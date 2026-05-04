@@ -1,3 +1,4 @@
+```
 frontend/
 ├── src/
 │   ├── core/
@@ -30,3 +31,4 @@ frontend/
 │   └── main.jsx
 ├── package.json
 └── vite.config.js
+```
