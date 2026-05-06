@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src\API\CapitalUniversity.API.csproj" />
+    <Project Path="src\Core\CapitalUniversity.Core.csproj" />
+    <Project Path="src\SharedKernel\CapitalUniversity.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src\Modules\Module.Complaints\CapitalUniversity.Module.Complaints.csproj" />
+    <Project Path="src\Modules\Module.Complaints.Abstractions\CapitalUniversity.Module.Complaints.Abstractions.csproj" />
+    <Project Path="src\Modules\Module.Enrollment\CapitalUniversity.Module.Enrollment.csproj" />
+    <Project Path="src\Modules\Module.Enrollment.Abstractions\CapitalUniversity.Module.Enrollment.Abstractions.csproj" />
+    <Project Path="src\Modules\Module.Student\CapitalUniversity.Module.Student.csproj" />
+    <Project Path="src\Modules\Module.Student.Abstractions\CapitalUniversity.Module.Student.Abstractions.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests\Architecture.Tests\CapitalUniversity.Architecture.Tests.csproj" />
+    <Project Path="tests\Contract.Tests\CapitalUniversity.Contract.Tests.csproj" />
+    <Project Path="tests\Core.IntegrationsTests\CapitalUniversity.Core.IntegrationsTests.csproj" />
+    <Project Path="tests\Core.UniTests\CapitalUniversity.Core.UniTests.csproj" />
+  </Folder>
+</Solution>
