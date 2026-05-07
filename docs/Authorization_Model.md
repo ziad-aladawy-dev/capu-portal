@@ -278,6 +278,7 @@ The authorization implementation tracks variables across different scopes and co
 
 | Variable Name | Purpose | Example / Type |
 |---------------|---------|----------------|
+| `resource` | The name or wildcard identifying the target entity being accessed. | `"Student"` or `"*"` |
 | `requiredLevel` | The minimum `ActionLevel` necessary to perform the requested operation. | `ActionLevel.EditClose` |
 | `maxGrantedLevel` | The highest `ActionLevel` computed from matching Allow Overrides and Role Permissions. | `ActionLevel.Open` |
 | `relevantOverrides` | The subset of `IUserPermissionOverride` that match the current scope and resource (including wildcards `*`). | `List<IUserPermissionOverride>` |

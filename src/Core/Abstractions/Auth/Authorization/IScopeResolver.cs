@@ -10,7 +10,7 @@ public interface IScopeResolver
 
 public class AuthorizationScope
 {
-    public string Domain { get; set; }
-    public string Year { get; set; }
-    public string Semester { get; set; }
+    public required string Domain { get; set; }
+    public required string Year { get; set; }
+    public required string Semester { get; set; }
 }

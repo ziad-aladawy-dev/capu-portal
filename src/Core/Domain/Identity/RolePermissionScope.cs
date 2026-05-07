@@ -9,5 +9,5 @@ public class RolePermissionScope : BaseEntity
     public Guid? FacultyId { get; set; }
     public Guid? ProgramId { get; set; }
 
-    public RolePermission RolePermission { get; set; }
+    public RolePermission RolePermission { get; set; } = null!;
 }

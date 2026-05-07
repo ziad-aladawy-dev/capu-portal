@@ -12,6 +12,6 @@ public class Faculty : BaseEntity
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
-    public University University { get; set; }
+    public University University { get; set; } = null!;
     public ICollection<FacultySystem> Systems { get; set; } = new List<FacultySystem>();
 }

@@ -15,6 +15,6 @@ public class Level : BaseEntity
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
-    public AcademicProgram AcademicProgram { get; set; }
+    public AcademicProgram AcademicProgram { get; set; } = null!;
     public ICollection<Course> Courses { get; set; } = new List<Course>();
 }

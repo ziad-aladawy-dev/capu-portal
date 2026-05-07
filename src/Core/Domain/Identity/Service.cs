@@ -10,5 +10,5 @@ public class Service : BaseEntity
     public int OrderNumber { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public Module Module { get; set; }
+    public Module Module { get; set; } = null!;
 }

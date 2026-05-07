@@ -23,10 +23,10 @@ namespace CapitalUniversity.Core.Application.Localization
 
             var dict = JsonSerializer.Deserialize<Dictionary<string, T>>(json);
 
-            if (dict.TryGetValue(lang, out var value))
+            if (dict != null && dict.TryGetValue(lang, out var value))
                 return value;
 
-            return dict[DefaultLanguage];
+            return dict != null && dict.ContainsKey(DefaultLanguage) ? dict[DefaultLanguage] : default!;
         }
 
         public string Get(Enum value)
