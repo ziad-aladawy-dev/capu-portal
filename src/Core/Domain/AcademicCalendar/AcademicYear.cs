@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.AcademicCalendar;
 
@@ -10,4 +10,5 @@ public class AcademicYear : BaseEntity
     public bool IsCurrent { get; set; }
 
     public ICollection<Semester> Semesters { get; set; } = new List<Semester>();
+
 }

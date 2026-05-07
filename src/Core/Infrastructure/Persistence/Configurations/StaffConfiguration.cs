@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Identity;
 
@@ -21,7 +21,7 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
         builder.HasIndex(s => s.StaffCode).IsUnique();
         builder.HasIndex(s => s.Email).IsUnique();
 
-        builder.HasOne(s => s.University)
+        builder.HasOne<CapitalUniversity.Core.Domain.UniversityStructure.University>()
             .WithMany()
             .HasForeignKey(s => s.UniversityId)
             .OnDelete(DeleteBehavior.Restrict);

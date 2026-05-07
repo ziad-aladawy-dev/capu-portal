@@ -1,15 +1,13 @@
-﻿using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Identity;
 
+// NOTE: relationship structure may require future normalization review
 public class StaffPermissionScope : BaseEntity
 {
     public Guid StaffPermissionId { get; set; }
     public Guid? FacultyId { get; set; }
     public Guid? ProgramId { get; set; }
 
-    public StaffPermission StaffPermission { get; set; }
-    public Faculty Faculty { get; set; }
-    public AcademicProgram AcademicProgram { get; set; }
+    public StaffPermissionOverride StaffPermission { get; set; }
 }

@@ -28,8 +28,8 @@ public class CoreDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<RolePermissionScope> RolePermissionScopes { get; set; }
-    public DbSet<StaffRole> StaffRoles { get; set; }
-    public DbSet<StaffPermission> StaffPermissions { get; set; }
+    public DbSet<StaffRoleAssignment> StaffRoles { get; set; }
+    public DbSet<StaffPermissionOverride> StaffPermissions { get; set; }
     public DbSet<StaffPermissionScope> StaffPermissionScopes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

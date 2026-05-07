@@ -8,4 +8,7 @@
 </ItemGroup><ItemGroup>
   <ProjectReference Include="..\Core\CapitalUniversity.Core.csproj" />
   <ProjectReference Include="..\SharedKernel\CapitalUniversity.SharedKernel.csproj" />
+  <ProjectReference Include="..\Modules\Module.Student\CapitalUniversity.Module.Student.csproj" />
+  <ProjectReference Include="..\Modules\Module.Enrollment\CapitalUniversity.Module.Enrollment.csproj" />
+  <ProjectReference Include="..\Modules\Module.Complaints\CapitalUniversity.Module.Complaints.csproj" />
 </ItemGroup></Project>

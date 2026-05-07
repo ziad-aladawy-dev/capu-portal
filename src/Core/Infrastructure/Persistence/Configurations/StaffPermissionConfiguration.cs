@@ -1,18 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Identity;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 
-public class StaffPermissionConfiguration : IEntityTypeConfiguration<StaffPermission>
+public class StaffPermissionConfiguration : IEntityTypeConfiguration<StaffPermissionOverride>
 {
-    public void Configure(EntityTypeBuilder<StaffPermission> builder)
+    public void Configure(EntityTypeBuilder<StaffPermissionOverride> builder)
     {
         builder.ToTable("StaffPermissions");
         builder.HasKey(sp => sp.Id);
 
         builder.HasOne(sp => sp.Staff)
-            .WithMany(s => s.DirectPermissions)
+            .WithMany()
             .HasForeignKey(sp => sp.StaffId)
             .OnDelete(DeleteBehavior.Cascade);
 

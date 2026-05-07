@@ -1,32 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Identity;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 
-public class StaffRoleConfiguration : IEntityTypeConfiguration<StaffRole>
+public class StaffRoleConfiguration : IEntityTypeConfiguration<StaffRoleAssignment>
 {
-    public void Configure(EntityTypeBuilder<StaffRole> builder)
+    public void Configure(EntityTypeBuilder<StaffRoleAssignment> builder)
     {
         builder.ToTable("StaffRoles");
         builder.HasKey(sr => sr.Id);
 
-        builder.HasOne(sr => sr.Staff)
-            .WithMany(s => s.Roles)
+        builder.HasOne<Staff>()
+            .WithMany()
             .HasForeignKey(sr => sr.StaffId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(sr => sr.Role)
-            .WithMany(r => r.StaffRoles)
+        builder.HasOne<Role>()
+            .WithMany()
             .HasForeignKey(sr => sr.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(sr => sr.Faculty)
+        builder.HasOne<CapitalUniversity.Core.Domain.UniversityStructure.Faculty>()
             .WithMany()
             .HasForeignKey(sr => sr.FacultyId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(sr => sr.AcademicProgram)
+        builder.HasOne<CapitalUniversity.Core.Domain.UniversityStructure.AcademicProgram>()
             .WithMany()
             .HasForeignKey(sr => sr.ProgramId)
             .OnDelete(DeleteBehavior.Restrict);

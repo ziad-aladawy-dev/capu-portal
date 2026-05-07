@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.API.Configuration;
 
 internal class Program
 {
@@ -11,6 +12,7 @@ internal class Program
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // Add services to the container.
+        ModuleRegistry.RegisterModules(builder.Services);
 
         builder.Services.AddControllers();
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

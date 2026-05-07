@@ -5,10 +5,6 @@
     <Project Path="src\SharedKernel\CapitalUniversity.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/Modules/">
-    <Project Path="src\Modules\Module.Complaints\CapitalUniversity.Module.Complaints.csproj" />
-    <Project Path="src\Modules\Module.Complaints.Abstractions\CapitalUniversity.Module.Complaints.Abstractions.csproj" />
-    <Project Path="src\Modules\Module.Enrollment\CapitalUniversity.Module.Enrollment.csproj" />
-    <Project Path="src\Modules\Module.Enrollment.Abstractions\CapitalUniversity.Module.Enrollment.Abstractions.csproj" />
     <Project Path="src\Modules\Module.Student\CapitalUniversity.Module.Student.csproj" />
     <Project Path="src\Modules\Module.Student.Abstractions\CapitalUniversity.Module.Student.Abstractions.csproj" />
   </Folder>

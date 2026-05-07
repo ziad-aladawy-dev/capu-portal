@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Identity;
 
@@ -12,7 +12,7 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
         builder.HasKey(rp => rp.Id);
 
         builder.HasOne(rp => rp.Role)
-            .WithMany(r => r.Permissions)
+            .WithMany()
             .HasForeignKey(rp => rp.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
 
