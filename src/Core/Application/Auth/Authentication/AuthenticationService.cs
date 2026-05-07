@@ -25,7 +25,7 @@ public class AuthenticationService : IAuthenticationService
         _tokenService = tokenService;
     }
 
-    public async Task<LoginResponseDto> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
@@ -68,9 +68,9 @@ public class AuthenticationService : IAuthenticationService
                 }
             },
             Token = token,
-            AuthorizedScopes = authData.Scopes,
-            Permissions = authData.Permissions,
-            ActiveScope = authData.ActiveScope
+            AuthorizedScopes = authData.Scopes ?? new AuthorizedScopesDto(),
+            Permissions = authData.Permissions ?? new System.Collections.Generic.List<PermissionDto>(),
+            ActiveScope = authData.ActiveScope ?? new ActiveScopeDto()
         };
 
         return response;

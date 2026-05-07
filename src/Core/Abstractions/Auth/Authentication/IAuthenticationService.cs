@@ -6,5 +6,5 @@ namespace CapitalUniversity.Core.Abstractions.Auth.Authentication;
 
 public interface IAuthenticationService
 {
-    Task<LoginResponseDto> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default);
+    Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default);
 }

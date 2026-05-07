@@ -5,26 +5,26 @@ namespace CapitalUniversity.Core.Abstractions.Auth.Authentication.DTOs;
 
 public class LoginResponseDto
 {
-    public UserInfoDto User { get; set; }
-    public string Token { get; set; }
-    public AuthorizedScopesDto AuthorizedScopes { get; set; }
-    public List<PermissionDto> Permissions { get; set; }
-    public ActiveScopeDto ActiveScope { get; set; }
+    public UserInfoDto User { get; set; } = new();
+    public string Token { get; set; } = string.Empty;
+    public AuthorizedScopesDto AuthorizedScopes { get; set; } = new();
+    public List<PermissionDto> Permissions { get; set; } = new();
+    public ActiveScopeDto ActiveScope { get; set; } = new();
 }
 
 public class UserInfoDto
 {
     public Guid Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public UserAttributesDto Attributes { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public UserAttributesDto Attributes { get; set; } = new();
 }
 
 public class UserAttributesDto
 {
-    public string Uni { get; set; }
-    public string Faculty { get; set; }
-    public string Department { get; set; }
+    public string Uni { get; set; } = string.Empty;
+    public string Faculty { get; set; } = string.Empty;
+    public string Department { get; set; } = string.Empty;
 }
 
 public class AuthorizedScopesDto
@@ -37,16 +37,16 @@ public class AuthorizedScopesDto
 
 public class PermissionDto
 {
-    public string Key { get; set; }
-    public string Module { get; set; }
-    public string Resource { get; set; }
-    public string Action { get; set; }
+    public string Key { get; set; } = string.Empty;
+    public string Module { get; set; } = string.Empty;
+    public string Resource { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
 }
 
 public class ActiveScopeDto
 {
-    public StructuralScopeDto Structural { get; set; }
-    public TemporalScopeDto Temporal { get; set; }
+    public StructuralScopeDto Structural { get; set; } = new();
+    public TemporalScopeDto Temporal { get; set; } = new();
 }
 
 public class StructuralScopeDto
