@@ -12,6 +12,8 @@ internal class Program
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // Add services to the container.
+        builder.Services.AddScoped<CapitalUniversity.Core.Abstractions.Notifications.INotificationService, CapitalUniversity.Core.Application.Notifications.NotificationService>();
+
         ModuleRegistry.RegisterModules(builder.Services);
 
         builder.Services.AddControllers();
