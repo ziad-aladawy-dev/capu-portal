@@ -31,7 +31,7 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
             .ToList();
 
         // 1. Evaluate UserPermissionOverrides (DENY)
-        var denyOverride = relevantOverrides.FirstOrDefault(o => o.Type == OverrideType.Deny && o.Level >= requiredLevel);
+        var denyOverride = relevantOverrides.FirstOrDefault(o => o.Type == OverrideType.Deny && o.Level <= requiredLevel);
         if (denyOverride != null)
         {
             LogDecision(userId, "EvaluatePermission", resource, false, SourceType.UserOverride, denyOverride.Id, scope);
