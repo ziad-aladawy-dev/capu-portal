@@ -19,4 +19,24 @@ public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
     public Staff Staff { get; set; }
     public Service Service { get; set; }
     public ICollection<StaffPermissionScope> Scopes { get; set; } = new List<StaffPermissionScope>();
+
+    // For EF core / parameterless instantiation
+    protected StaffPermissionOverride() { }
+
+    public StaffPermissionOverride(Guid staffId, Guid serviceId, string resource, ActionLevel level, OverrideType type, string domain, string year, string semester)
+    {
+        StaffId = staffId;
+        ServiceId = serviceId;
+        Resource = resource;
+        Level = level;
+        Type = type;
+        Domain = domain;
+        Year = year;
+        Semester = semester;
+    }
+
+    public void UpdateLevel(ActionLevel newLevel)
+    {
+        Level = newLevel;
+    }
 }
