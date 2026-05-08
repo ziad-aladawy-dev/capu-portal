@@ -30,9 +30,9 @@ public class Student : BaseEntity
 
     public StudentStatusEnum Status { get; set; }
 
-    public Faculty Faculty { get; set; }
-    public AcademicProgram AcademicProgram { get; set; }
-    public Level Level { get; set; }
-    public AcademicYear CurrentAcademicYear { get; set; }
-    public Semester CurrentSemester { get; set; }
+    public Faculty Faculty { get; set; } = null!;
+    public AcademicProgram AcademicProgram { get; set; } = null!;
+    public Level Level { get; set; } = null!;
+    public AcademicYear CurrentAcademicYear { get; set; } = null!;
+    public Semester CurrentSemester { get; set; } = null!;
 }

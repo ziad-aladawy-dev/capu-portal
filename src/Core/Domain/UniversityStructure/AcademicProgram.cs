@@ -18,8 +18,8 @@ public class AcademicProgram : BaseEntity
 
     public Guid? ParentId { get; set; }
 
-    public FacultySystem FacultySystem { get; set; }
-    public AcademicProgram Parent { get; set; }
+    public FacultySystem FacultySystem { get; set; } = null!;
+    public AcademicProgram Parent { get; set; } = null!;
     public ICollection<AcademicProgram> Children { get; set; } = new List<AcademicProgram>();
 
     public ICollection<Level> Levels { get; set; } = new List<Level>();

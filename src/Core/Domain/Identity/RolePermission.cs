@@ -13,7 +13,7 @@ public class RolePermission : BaseEntity, IRolePermission
     public ActionLevel Level { get; private set; }
 
     // NOTE: navigation retained for compatibility; may be reviewed during modular separation
-    public Role Role { get; set; }
-    public Service Service { get; set; }
+    public Role Role { get; set; } = null!;
+    public Service Service { get; set; } = null!;
     public ICollection<RolePermissionScope> Scopes { get; set; } = new List<RolePermissionScope>();
 }

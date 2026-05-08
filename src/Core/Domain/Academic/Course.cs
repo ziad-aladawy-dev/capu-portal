@@ -13,6 +13,6 @@ public class Course : BaseEntity
     public Guid? ConfilictingCourseId { get; set; }
     public Guid? LevelId { get; set; }
 
-    public Course PrerequisiteCourse { get; set; }
-    public Level Level { get; set; }
+    public Course PrerequisiteCourse { get; set; } = null!;
+    public Level Level { get; set; } = null!;
 }

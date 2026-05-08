@@ -28,7 +28,7 @@ public class AuthorizationResult
         AppliedSemester = semester;
     }
 
-    public static AuthorizationResult Deny() => new AuthorizationResult(false, SourceType.None, null, null, null, null);
+    public static AuthorizationResult Deny() => new AuthorizationResult(false, SourceType.None, null, string.Empty, string.Empty, string.Empty);
     
     public static AuthorizationResult AllowFromOverride(Guid overrideId, string domain, string year, string semester) 
         => new AuthorizationResult(true, SourceType.UserOverride, overrideId, domain, year, semester);

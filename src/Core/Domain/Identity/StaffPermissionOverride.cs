@@ -16,7 +16,7 @@ public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
     public DateTime? ExpiresAt { get; set; }
 
     // NOTE: navigation retained for compatibility; may be reviewed during modular separation
-    public Staff Staff { get; set; }
-    public Service Service { get; set; }
+    public Staff Staff { get; set; } = null!;
+    public Service Service { get; set; } = null!;
     public ICollection<StaffPermissionScope> Scopes { get; set; } = new List<StaffPermissionScope>();
 }

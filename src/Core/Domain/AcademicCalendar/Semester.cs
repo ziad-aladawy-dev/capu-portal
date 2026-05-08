@@ -10,5 +10,5 @@ public class Semester : BaseEntity
     public DateTime EndDate { get; set; }
     public bool IsCurrent { get; set; }
 
-    public AcademicYear AcademicYear { get; set; }
+    public AcademicYear AcademicYear { get; set; } = null!;
 }
