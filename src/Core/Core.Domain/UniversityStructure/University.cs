@@ -4,8 +4,7 @@ namespace CapitalUniversity.Core.Domain.UniversityStructure;
 
 public class University : BaseEntity
 {
-    public string NameAr { get; set; } = string.Empty;
-    public string NameEn { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public string Domain { get; set; } = string.Empty;
     public string LogoUrl { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

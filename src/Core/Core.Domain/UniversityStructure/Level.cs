@@ -6,8 +6,7 @@ namespace CapitalUniversity.Core.Domain.UniversityStructure;
 public class Level : BaseEntity
 {
     public string Code { get; set; } = string.Empty;
-    public string NameAr { get; set; } = string.Empty;
-    public string NameEn { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public int Order { get; set; }        
     public Guid ProgramId { get; set; }
     public int TotalHours { get; set; }
