@@ -1,0 +1,54 @@
+.App {
+  min-height: 100vh;
+}
+
+/* Status Badge Styles (reused across pages) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-active {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.status-inactive {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Refresh Button */
+.refresh-btn {
+  padding: 10px 20px;
+  background: var(--pure-white);
+  color: var(--navy-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+  background: var(--soft-lavender);
+  transform: translateY(-2px);
+}
