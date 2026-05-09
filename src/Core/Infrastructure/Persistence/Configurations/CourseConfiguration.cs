@@ -11,8 +11,6 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
         builder.ToTable("Courses");
         builder.HasKey(c => c.Id);
         builder.Property(c => c.CourseCode).IsRequired().HasMaxLength(20);
-        builder.Property(c => c.NameAr).IsRequired().HasMaxLength(200);
-        builder.Property(c => c.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(c => c.CreditHours).IsRequired();
 
         builder.HasOne(c => c.Level)

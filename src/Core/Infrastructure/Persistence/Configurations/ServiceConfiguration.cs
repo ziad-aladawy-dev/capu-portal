@@ -10,8 +10,7 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
     {
         builder.ToTable("Services");
         builder.HasKey(s => s.Id);
-        builder.Property(s => s.DisplayNameAr).IsRequired().HasMaxLength(200);
-        builder.Property(s => s.DisplayNameEn).IsRequired().HasMaxLength(200);
+        builder.Property(s => s.DisplayName).IsRequired().HasMaxLength(200);
 
         builder.HasOne(s => s.Module)
             .WithMany(m => m.Services)

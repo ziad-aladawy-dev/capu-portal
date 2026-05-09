@@ -34,16 +34,5 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
             .WithMany()
             .HasForeignKey(s => s.LevelId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(s => s.CurrentAcademicYear)
-            .WithMany()
-            .HasForeignKey(s => s.CurrentAcademicYearId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(s => s.CurrentSemester)
-            .WithMany()
-            .HasForeignKey(s => s.CurrentSemesterId)
-            .OnDelete(DeleteBehavior.Restrict);
-
     }
 }

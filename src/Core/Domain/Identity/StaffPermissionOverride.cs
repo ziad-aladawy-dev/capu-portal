@@ -12,6 +12,7 @@ public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
     public ActionLevel Level { get; private set; }
     public Guid? FacultyId { get; private set; }
 	public Guid? ProgramId {get; private set; }
+    public string Domain { get; private set; } = string.Empty;
     public string Year { get; private set; } = string.Empty;
     public string Semester { get; private set; } = string.Empty;
     public OverrideType Type { get; private set; }
@@ -25,14 +26,13 @@ public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
     // For EF core / parameterless instantiation
     protected StaffPermissionOverride() { }
 
-    public StaffPermissionOverride(Guid staffId, Guid serviceId, string resource, ActionLevel level, OverrideType type, Guid? facultyId, Guid? programId, string year, string semester)
+    public StaffPermissionOverride(Guid staffId, Guid serviceId, string resource, ActionLevel level, OverrideType type, string domain, string year, string semester)
     {
         StaffId = staffId;
         ServiceId = serviceId;
         Resource = resource;
         Level = level;
-        FacultyId = facultyId;
-        ProgramId = programId;
+        Domain = domain;
         Type = type;
         Year = year;
         Semester = semester;
