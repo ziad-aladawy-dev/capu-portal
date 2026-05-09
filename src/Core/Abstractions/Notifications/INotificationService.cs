@@ -12,9 +12,7 @@ public interface INotificationService
         Guid recipientUserId,
         string title,
         string message,
-        NotificationType type,
-        Guid? referenceId = null,
-        string? referenceType = null);
+        NotificationType type);
 
     Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(Guid userId);
 

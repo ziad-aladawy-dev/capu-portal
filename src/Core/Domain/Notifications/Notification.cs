@@ -10,7 +10,5 @@ public class Notification : BaseEntity
     public string Message { get; set; } = string.Empty;
     public NotificationType Type { get; set; }
     public bool IsRead { get; set; }
-    public Guid? ReferenceId { get; set; }
-    public string? ReferenceType { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
