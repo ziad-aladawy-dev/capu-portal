@@ -5,8 +5,7 @@ namespace CapitalUniversity.Core.Domain.Identity;
 public class Service : BaseEntity
 {
     public Guid ModuleId { get; set; }
-    public string DisplayNameAr { get; set; } = string.Empty;
-    public string DisplayNameEn { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
     public int OrderNumber { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
