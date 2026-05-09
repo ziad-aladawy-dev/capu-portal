@@ -9,8 +9,8 @@ public class Student : BaseEntity
     public string NationalId { get; set; } = string.Empty;
     public string StudentCode { get; set; } = string.Empty;
     public string? PasswordHash { get; set; }
-    public string NameAr { get; set; } = string.Empty;
-    public string NameEn { get; set; } = string.Empty;
+    public DateTime PasswordExpiryDate { get; set; }
+    public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
 

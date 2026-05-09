@@ -6,5 +6,4 @@ public interface ILocalizationService
 {
     T Get<T>(string json);
     string Get(Enum value);
-    string GetString(string key);
 }

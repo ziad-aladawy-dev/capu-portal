@@ -41,13 +41,5 @@ namespace CapitalUniversity.Core.Application.Localization
 
             return lang == "ar" ? attr.Ar : attr.En;
         }
-
-        public string GetString(string key)
-        {
-            // Dummy implementation of IStringLocalizer or key based lookup
-            // Typically this would inject IStringLocalizer<SharedResource>
-            // For now, return the key or a localized mock value based on current culture
-            return key; // Pass-through if not found.
-        }
     }
 }
