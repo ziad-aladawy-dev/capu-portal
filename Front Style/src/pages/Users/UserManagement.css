@@ -1,0 +1,445 @@
+.dashboard-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f4f5f7 0%, #edeef5 100%);
+  }
+  
+  .main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+  
+  /* Table Container */
+  .table-container {
+    background: var(--pure-white);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(15, 23, 41, 0.08);
+    animation: slideUp 0.6s ease 0.2s both;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Table Styles */
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .users-table thead {
+    background: #2f3166;
+  }
+  
+  .users-table th {
+    padding: 18px 20px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--gold-light);
+    font-family: 'Space Mono', monospace;
+    white-space: nowrap;
+  }
+  
+  .users-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+  }
+  
+  .users-table tbody tr:hover {
+    background: var(--gold-pale);
+  }
+  
+  .users-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  
+  .users-table td {
+    padding: 20px;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  
+  /* Status Badge */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  
+  .status-active {
+    background: rgba(22, 163, 74, 0.1);
+    color: var(--success-green);
+  }
+  
+  .status-inactive {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--warning-red);
+  }
+  
+  .status-deleted {
+    background: rgba(156, 163, 175, 0.1);
+    color: #6b7280;
+  }
+  
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  .status-active .status-dot {
+    background: var(--success-green);
+  }
+  
+  .status-inactive .status-dot {
+    background: var(--warning-red);
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  /* Password Status */
+  .password-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  .password-valid {
+    background: rgba(22, 163, 74, 0.1);
+    color: #16a34a;
+  }
+  
+  .password-expired {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+  }
+  
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  
+  .action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    background: var(--soft-lavender);
+  }
+  
+  .action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(15, 23, 41, 0.15);
+  }
+  
+  .info-btn {
+    color: #2e3591;
+    background: rgba(46, 53, 145, 0.08);
+  }
+  
+  .info-btn:hover {
+    background: rgba(46, 53, 145, 0.15);
+  }
+  
+  .edit-btn {
+    color: #8a6a10;
+    background: rgba(201, 168, 76, 0.12);
+  }
+  
+  .edit-btn:hover {
+    background: rgba(201, 168, 76, 0.25);
+  }
+  
+  .delete-btn {
+    color: var(--warning-red);
+    background: rgba(220, 38, 38, 0.08);
+  }
+  
+  .delete-btn:hover {
+    background: rgba(220, 38, 38, 0.15);
+  }
+  
+  .toggle-btn {
+    color: #7a5c10;
+    background: rgba(201, 168, 76, 0.12);
+  }
+  
+  .toggle-btn.inactive {
+    color: var(--text-muted);
+    background: var(--soft-lavender);
+  }
+  
+  .reset-password-btn {
+    color: #7a5c10;
+    background: rgba(201, 168, 76, 0.12);
+  }
+  
+  .reset-password-btn:hover {
+    background: rgba(201, 168, 76, 0.25);
+  }
+  
+  /* Role Badge */
+  .role-badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  
+  .role-student {
+    background: rgba(26, 31, 94, 0.08);
+    color: var(--navy-primary);
+  }
+  
+  .role-professor {
+    background: rgba(201, 168, 76, 0.15);
+    color: #8a6a10;
+  }
+  
+  .role-admin {
+    background: linear-gradient(135deg, rgba(26,31,94,0.08), rgba(201,168,76,0.1));
+    color: var(--navy-secondary);
+  }
+  
+  .user-type-badge {
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  
+  /* Deleted row */
+  .deleted-row {
+    opacity: 0.6;
+    background-color: #fef2f2;
+  }
+  
+  .deleted-row:hover {
+    opacity: 0.8;
+  }
+  
+  /* Empty State */
+  .empty-state {
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  
+  .empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  /* Loading & Error States */
+  .loading-state, .error-state {
+    padding: 80px 20px;
+    text-align: center;
+    background: white;
+    border-radius: 20px;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #1a1f5e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Pagination */
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1f5e;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .pagination-btn:hover:not(:disabled) {
+    background: #1a1f5e;
+    color: white;
+    border-color: #1a1f5e;
+  }
+  
+  .pagination-btn.active {
+    background: linear-gradient(135deg, #c9a84c, #e0c06a);
+    color: #1a1f5e;
+    border-color: #c9a84c;
+  }
+  
+  .pagination-btn.dots {
+    border: none;
+    cursor: default;
+  }
+  
+  .pagination-btn.dots:hover {
+    background: none;
+    color: #1a1f5e;
+  }
+  
+  .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .pagination-info {
+    text-align: center;
+    font-size: 12px;
+    color: #6b7280;
+    padding: 8px 0;
+  }
+  
+  /* Modal Overlay */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: scaleIn 0.3s ease;
+  }
+  
+  .modal-content h3 {
+    font-size: 18px;
+    color: #1a1f5e;
+    margin-bottom: 12px;
+  }
+  
+  .modal-content p {
+    color: #6b7280;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+  
+  .modal-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .btn-confirm {
+    background: linear-gradient(135deg, #c9a84c, #e0c06a);
+    color: #1a1f5e;
+  }
+  
+  .btn-cancel {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+  
+  .btn-confirm:hover,
+  .btn-cancel:hover {
+    transform: translateY(-2px);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes scaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .main-content {
+      padding: 24px 16px;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+    }
+    
+    .users-table {
+      min-width: 900px;
+    }
+    
+    .action-buttons {
+      gap: 6px;
+    }
+    
+    .action-btn {
+      width: 34px;
+      height: 34px;
+    }
+  }
