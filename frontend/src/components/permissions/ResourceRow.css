@@ -1,0 +1,87 @@
+.resource-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s ease;
+}
+
+.resource-row:hover {
+  background: var(--table-row-alt-bg);
+}
+
+.resource-row:nth-child(even) {
+  background: rgba(26, 31, 94, 0.02);
+}
+
+.resource-name {
+  padding: var(--table-cell-padding);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.permission-cell {
+  padding: var(--table-cell-padding);
+  text-align: center;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.permission-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
+}
+
+.checkbox-visual {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.permission-checkbox:checked ~ .checkbox-visual {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: currentColor;
+}
+
+.permission-checkbox:focus ~ .checkbox-visual {
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.2);
+}
+
+.checkbox-checkmark {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .resource-name {
+    font-size: var(--font-size-sm);
+    min-width: 100px;
+  }
+
+  .permission-cell {
+    padding: 6px 4px;
+  }
+
+  .checkbox-visual {
+    width: 18px;
+    height: 18px;
+  }
+}
