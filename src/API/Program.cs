@@ -1,12 +1,39 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.API.Configuration;
+using CapitalUniversity.API.Middleware;
+using CapitalUniversity.Core.Abstractions.Logging;
+using CapitalUniversity.Core.Infrastructure.Logging;
+using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
+using MongoDB.Driver;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        // Configure MongoDB settings
+        builder.Services.Configure<MongoSettings>(builder.Configuration.GetSection("MongoSettings"));
+
+        // Register MongoClient as Singleton
+        builder.Services.AddSingleton<IMongoClient>(sp =>
+        {
+            var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoSettings>>().Value;
+            return new MongoClient(settings.ConnectionString);
+        });
+
+        // Register MongoLoggerService
+        builder.Services.AddSingleton<IAppLogger, MongoLoggerService>();
+
+        // Configure Forwarded Headers for IIS/Reverse Proxy
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor |
+                ForwardedHeaders.XForwardedProto;
+        });
 
         builder.Services.AddDbContext<CoreDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -21,6 +48,12 @@ internal class Program
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
+
+        // Use Forwarded Headers
+        app.UseForwardedHeaders();
+
+        // Use Global Exception Middleware
+        app.UseMiddleware<GlobalExceptionMiddleware>();
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())

@@ -29,11 +29,6 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.IsRead)
             .IsRequired();
 
-        builder.Property(n => n.ReferenceId);
-
-        builder.Property(n => n.ReferenceType)
-            .HasMaxLength(255);
-
         builder.Property(n => n.CreatedAt)
             .IsRequired();
 
