@@ -1,0 +1,421 @@
+.student-list-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  color: #667eea;
+}
+
+.header-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+/* Search and Filter Bar */
+.search-filter-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 300px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-icon {
+  color: #9ca3af;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.active-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Table */
+.students-table-wrapper {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.students-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.students-table thead {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.students-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.students-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.students-table th.sortable:hover {
+  color: #667eea;
+}
+
+.sort-icon-inactive {
+  opacity: 0.3;
+}
+
+.students-table tbody {
+  background: white;
+}
+
+.student-row {
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.student-row:hover {
+  background: #f9fafb;
+}
+
+.student-row:last-child {
+  border-bottom: none;
+}
+
+.students-table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+
+/* Student Info Cell */
+.student-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.student-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.student-email {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Program Cell */
+.program-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.program-name {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.college-name {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Year Badge */
+.year-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  background: #e5e7eb;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* GPA Cell */
+.gpa-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.gpa-value {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.gpa-high {
+  color: #059669;
+}
+
+.gpa-medium {
+  color: #d97706;
+}
+
+.gpa-low {
+  color: #dc2626;
+}
+
+.credits {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-graduated {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-suspended {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Financial Badge */
+.financial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.financial-paid {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.financial-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.financial-partial {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.financial-overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* View Button */
+.view-btn {
+  padding: 6px 14px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-btn:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* No Results */
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+}
+
+.no-results h3 {
+  margin: 16px 0 8px 0;
+  color: #374151;
+}
+
+.no-results p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .students-table th:nth-child(4),
+  .students-table td:nth-child(4),
+  .students-table th:nth-child(7),
+  .students-table td:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    min-width: auto;
+  }
+
+  .students-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .students-table {
+    min-width: 700px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+}
