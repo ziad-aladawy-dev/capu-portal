@@ -10,8 +10,6 @@ public class FacultyConfiguration : IEntityTypeConfiguration<Faculty>
     {
         builder.ToTable("Faculties");
         builder.HasKey(f => f.Id);
-        builder.Property(f => f.NameAr).IsRequired().HasMaxLength(200);
-        builder.Property(f => f.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(f => f.Code).IsRequired().HasMaxLength(20);
 
         builder.HasOne(f => f.University)

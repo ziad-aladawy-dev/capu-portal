@@ -10,8 +10,6 @@ public class UniversityConfiguration : IEntityTypeConfiguration<University>
     {
         builder.ToTable("Universities");
         builder.HasKey(u => u.Id);
-        builder.Property(u => u.NameAr).IsRequired().HasMaxLength(200);
-        builder.Property(u => u.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(u => u.Domain).HasMaxLength(100);
         builder.Property(u => u.LogoUrl).HasMaxLength(500);
         builder.HasIndex(u => u.Domain).IsUnique();

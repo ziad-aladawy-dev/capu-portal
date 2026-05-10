@@ -41,5 +41,10 @@ namespace CapitalUniversity.Core.Application.Localization
 
             return lang == "ar" ? attr.Ar : attr.En;
         }
+
+        public string GetString(string key)
+        {
+            return key;
+        }
     }
 }

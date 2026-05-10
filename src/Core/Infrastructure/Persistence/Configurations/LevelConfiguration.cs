@@ -12,8 +12,6 @@ public class LevelConfiguration : IEntityTypeConfiguration<Level>
         builder.ToTable("Levels");
         builder.HasKey(l => l.Id);
         builder.Property(l => l.Code).IsRequired().HasMaxLength(20);
-        builder.Property(l => l.NameAr).IsRequired().HasMaxLength(200);
-        builder.Property(l => l.NameEn).IsRequired().HasMaxLength(200);
         builder.Property(l => l.Order).IsRequired();
 
         builder.HasOne(l => l.AcademicProgram)

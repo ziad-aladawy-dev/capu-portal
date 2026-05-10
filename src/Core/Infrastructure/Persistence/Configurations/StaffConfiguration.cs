@@ -12,8 +12,7 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.NationalId).IsRequired().HasMaxLength(20);
         builder.Property(s => s.StaffCode).IsRequired().HasMaxLength(20);
-        builder.Property(s => s.NameAr).IsRequired().HasMaxLength(200);
-        builder.Property(s => s.NameEn).IsRequired().HasMaxLength(200);
+        builder.Property(s => s.Name).IsRequired().HasMaxLength(200);
         builder.Property(s => s.Email).IsRequired().HasMaxLength(200);
         builder.Property(s => s.Phone).HasMaxLength(20);
 

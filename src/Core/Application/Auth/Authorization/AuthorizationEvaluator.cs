@@ -77,10 +77,21 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
 
         // 3. Apply ABAC constraints
         bool isAllowed = false;
-        if (isClosed && (requiredLevel == ActionLevel.Insert || requiredLevel == ActionLevel.EditClose || requiredLevel == ActionLevel.Delete))
+        if (isClosed)
         {
-            // Closed records require at least Open level (Level 4) to modify, but cannot bypass higher required levels (like Delete)
-            isAllowed = maxGrantedLevel >= (ActionLevel)Math.Max((int)ActionLevel.Open, (int)requiredLevel);
+            if (requiredLevel == ActionLevel.Delete)
+            {
+                isAllowed = maxGrantedLevel >= ActionLevel.Delete;
+            }
+            else if (requiredLevel == ActionLevel.Insert || requiredLevel == ActionLevel.EditClose)
+            {
+                // Closed records require at least Open level (Level 4) to modify
+                isAllowed = maxGrantedLevel >= ActionLevel.Open;
+            }
+            else
+            {
+                isAllowed = maxGrantedLevel >= requiredLevel;
+            }
         }
         else
         {
