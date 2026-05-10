@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Domain.AcademicCalendar;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
+using CapitalUniversity.Core.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
@@ -31,6 +32,7 @@ public class CoreDbContext : DbContext
     public DbSet<StaffRoleAssignment> StaffRoles { get; set; }
     public DbSet<StaffPermissionOverride> StaffPermissions { get; set; }
     public DbSet<StaffPermissionScope> StaffPermissionScopes { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,5 +54,6 @@ public class CoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new StaffRoleConfiguration());
         modelBuilder.ApplyConfiguration(new StaffPermissionConfiguration());
         modelBuilder.ApplyConfiguration(new StaffPermissionScopeConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
     }
 }
