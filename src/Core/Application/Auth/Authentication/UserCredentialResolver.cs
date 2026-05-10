@@ -54,11 +54,11 @@ public class StudentUserCredential : IUserCredential
     public string PasswordHash => _student.PasswordHash ?? string.Empty;
     public DateTime PasswordExpiry => _student.PasswordExpiry ?? _student.CreatedAt.AddDays(365);
     public string Role => "Student";
-    public string Name => _student.NameEn;
+    public string Name => _student.Name;
     public string Email => _student.Email;
     public string UniAttribute => string.Empty;
-    public string FacultyAttribute => _student.Faculty?.NameEn ?? string.Empty;
-    public string DepartmentAttribute => _student.AcademicProgram?.NameEn ?? string.Empty;
+    public string FacultyAttribute => _student.Faculty?.Name?? string.Empty;
+    public string DepartmentAttribute => _student.AcademicProgram?.Name ?? string.Empty;
 }
 
 public class StaffUserCredential : IUserCredential
@@ -75,7 +75,7 @@ public class StaffUserCredential : IUserCredential
     public string PasswordHash => _staff.PasswordHash ?? string.Empty;
     public DateTime PasswordExpiry => _staff.PasswordExpiry ?? DateTime.UtcNow.AddDays(90);
     public string Role => "Staff";
-    public string Name => _staff.NameEn;
+    public string Name => _staff.Name;
     public string Email => _staff.Email ?? string.Empty;
     public string UniAttribute => _staff.UniversityId.ToString();
     public string FacultyAttribute => _staff.FacultyId?.ToString() ?? string.Empty;

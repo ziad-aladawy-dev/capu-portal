@@ -10,8 +10,7 @@ public class Student : BaseEntity
     public string StudentCode { get; set; } = string.Empty;
     public string? PasswordHash { get; set; }
     public DateTime? PasswordExpiry { get; set; }
-    public string NameAr { get; set; } = string.Empty;
-    public string NameEn { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
 

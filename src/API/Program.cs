@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.API.Configuration;
