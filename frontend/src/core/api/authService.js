@@ -3,7 +3,7 @@ import axiosInstance from './axiosConfig';
 class AuthService {
   async login(credentials) {
     try {
-      const response = await axiosInstance.post('/Auth/login/staff', credentials);
+      const response = await axiosInstance.post('/Auth/login/', credentials);
       
       if (response.data && response.data.token) {
         localStorage.setItem('authToken', response.data.token);

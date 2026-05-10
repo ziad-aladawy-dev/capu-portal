@@ -1,0 +1,15 @@
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.deps.json
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.dll
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Domain.dll
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Domain.pdb
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.AssemblyReference.cache
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfoInputs.cache
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfo.cs
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.CoreCompileInputs.cache
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalU.EAF30ED6.Up2Date
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.dll
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\refint\CapitalUniversity.Core.Abstractions.dll
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
+E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\ref\CapitalUniversity.Core.Abstractions.dll
