@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication.DTOs;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization.DTOs;
+
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

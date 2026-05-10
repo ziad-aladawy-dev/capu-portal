@@ -19,3 +19,6 @@ E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\
 E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\ref\CapitalUniversity.Core.Infrastructure.dll
 E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Infrastructure\bin\Debug\net9.0\CapitalUniversity.Core.Application.dll
 E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Infrastructure\bin\Debug\net9.0\CapitalUniversity.Core.Application.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\refint\CapitalUniversity.Core.Infrastructure.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.pdb

@@ -15,7 +15,7 @@ public class AuthorizationEvaluatorClosedTests
     private readonly AuthorizationEvaluator _evaluator;
     private readonly Guid _userId = Guid.NewGuid();
     private readonly string _resource = "Student";
-    private readonly AuthorizationScope _scope = new() { Domain = "F1", Year = "Y1", Semester = "S1" };
+    private readonly AuthorizationScope _scope = new() { Domain = "F1", UniversityId = null, FacultyId = Guid.Parse("00000000-0000-0000-0000-000000000001"), ProgramId = null, Year = "Y1", Semester = "S1" };
 
     public AuthorizationEvaluatorClosedTests()
     {
@@ -34,7 +34,7 @@ public class AuthorizationEvaluatorClosedTests
     public void Evaluate_ClosedRecordConstraints_WorksCorrectly(ActionLevel requiredLevel, ActionLevel grantedLevel, bool expectedAllowed)
     {
         var roleId = Guid.NewGuid();
-        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, "F1", "Y1", "S1") };
+        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1") };
         var rolePermissions = new List<IRolePermission> { new TestRolePermission(roleId, _resource, grantedLevel) };
 
         var result = _evaluator.Evaluate(_userId, _resource, requiredLevel, true, _scope, [], roleAssignments, rolePermissions);

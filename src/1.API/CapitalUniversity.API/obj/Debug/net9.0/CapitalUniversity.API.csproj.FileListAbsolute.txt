@@ -167,3 +167,6 @@ E:\CapitalUniversity\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUni
 E:\CapitalUniversity\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.genruntimeconfig.cache
 E:\CapitalUniversity\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\ref\CapitalUniversity.API.dll
 E:\CapitalUniversity\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\refint\CapitalUniversity.API.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.pdb

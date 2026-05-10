@@ -3,11 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Commands.CreateRole;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Commands.UpdateRole;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Commands.DeleteRole;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Queries.GetRoleById;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Queries.GetRoles;
+
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Authorization;
 
 namespace CapitalUniversity.API.Controllers;
 

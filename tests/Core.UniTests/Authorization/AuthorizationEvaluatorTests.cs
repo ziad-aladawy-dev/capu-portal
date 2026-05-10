@@ -15,7 +15,7 @@ public class AuthorizationEvaluatorTests
     private readonly AuthorizationEvaluator _evaluator;
     private readonly Guid _userId = Guid.NewGuid();
     private readonly string _resource = "Student";
-    private readonly AuthorizationScope _scope = new() { Domain = "F1", Year = "Y1", Semester = "S1" };
+    private readonly AuthorizationScope _scope = new() { Domain = "F1", UniversityId = null, FacultyId = Guid.Parse("00000000-0000-0000-0000-000000000001"), ProgramId = null, Year = "Y1", Semester = "S1" };
 
     public AuthorizationEvaluatorTests()
     {
@@ -30,7 +30,7 @@ public class AuthorizationEvaluatorTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, "F1", "Y1", "S1", OverrideType.Deny)
+            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Deny)
         };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.View, false, _scope, overrides, [], []);
@@ -44,7 +44,7 @@ public class AuthorizationEvaluatorTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), "*", ActionLevel.View, "F1", "Y1", "S1", OverrideType.Deny)
+            new TestPermissionOverride(Guid.NewGuid(), "*", ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Deny)
         };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.View, false, _scope, overrides, [], []);
@@ -58,12 +58,12 @@ public class AuthorizationEvaluatorTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, "F2", "Y1", "S1", OverrideType.Deny)
+            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000002"), null, "Y1", "S1", OverrideType.Deny)
         };
 
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(Guid.NewGuid(), "F1", "Y1", "S1")
+            new TestRoleAssignment(Guid.NewGuid(), null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -83,7 +83,7 @@ public class AuthorizationEvaluatorTests
         var overrideId = Guid.NewGuid();
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(overrideId, _resource, ActionLevel.View, "F1", "Y1", "S1", OverrideType.Allow)
+            new TestPermissionOverride(overrideId, _resource, ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Allow)
         };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.View, false, _scope, overrides, [], []);
@@ -98,13 +98,13 @@ public class AuthorizationEvaluatorTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, "F1", "Y1", "S1", OverrideType.Allow)
+            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Allow)
         };
 
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -124,13 +124,13 @@ public class AuthorizationEvaluatorTests
         var overrideId = Guid.NewGuid();
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(overrideId, _resource, ActionLevel.EditClose, "F1", "Y1", "S1", OverrideType.Allow)
+            new TestPermissionOverride(overrideId, _resource, ActionLevel.EditClose, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Allow)
         };
 
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -152,7 +152,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -172,7 +172,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -192,7 +192,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F2", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000002"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -213,7 +213,7 @@ public class AuthorizationEvaluatorTests
         var overrideId = Guid.NewGuid();
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(overrideId, _resource, ActionLevel.Insert, "F1", "Y1", "S1", OverrideType.Allow)
+            new TestPermissionOverride(overrideId, _resource, ActionLevel.Insert, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Allow)
         };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.Insert, true, _scope, overrides, [], []);
@@ -227,7 +227,7 @@ public class AuthorizationEvaluatorTests
         var overrideId = Guid.NewGuid();
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(overrideId, _resource, ActionLevel.Open, "F1", "Y1", "S1", OverrideType.Allow)
+            new TestPermissionOverride(overrideId, _resource, ActionLevel.Open, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Allow)
         };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.Insert, true, _scope, overrides, [], []);
@@ -241,7 +241,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -259,7 +259,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -277,7 +277,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -295,7 +295,7 @@ public class AuthorizationEvaluatorTests
         var roleId = Guid.NewGuid();
         var roleAssignments = new List<IUserRoleAssignment>
         {
-            new TestRoleAssignment(roleId, "F1", "Y1", "S1")
+            new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1")
         };
         var rolePermissions = new List<IRolePermission>
         {
@@ -313,17 +313,21 @@ internal class TestPermissionOverride : IUserPermissionOverride
     public Guid Id { get; }
     public string Resource { get; }
     public ActionLevel Level { get; }
-    public string Domain { get; }
+    public Guid? UniversityId { get; }
+    public Guid? FacultyId { get; }
+    public Guid? ProgramId { get; }
     public string Year { get; }
     public string Semester { get; }
     public OverrideType Type { get; }
 
-    public TestPermissionOverride(Guid id, string resource, ActionLevel level, string domain, string year, string semester, OverrideType type)
+    public TestPermissionOverride(Guid id, string resource, ActionLevel level, Guid? universityId, Guid? facultyId, Guid? programId, string year, string semester, OverrideType type)
     {
         Id = id;
         Resource = resource;
         Level = level;
-        Domain = domain;
+        UniversityId = universityId;
+        FacultyId = facultyId;
+        ProgramId = programId;
         Year = year;
         Semester = semester;
         Type = type;
@@ -333,14 +337,18 @@ internal class TestPermissionOverride : IUserPermissionOverride
 internal class TestRoleAssignment : IUserRoleAssignment
 {
     public Guid RoleId { get; }
-    public string Domain { get; }
+    public Guid? UniversityId { get; }
+    public Guid? FacultyId { get; }
+    public Guid? ProgramId { get; }
     public string Year { get; }
     public string Semester { get; }
 
-    public TestRoleAssignment(Guid roleId, string domain, string year, string semester)
+    public TestRoleAssignment(Guid roleId, Guid? universityId, Guid? facultyId, Guid? programId, string year, string semester)
     {
         RoleId = roleId;
-        Domain = domain;
+        UniversityId = universityId;
+        FacultyId = facultyId;
+        ProgramId = programId;
         Year = year;
         Semester = semester;
     }

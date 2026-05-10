@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Infrastructure.Persistence;
+﻿
+using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 

@@ -69,14 +69,14 @@ public class PermissionManagementServiceTests
 
         var savedRole = dbContext.StaffRoles.First();
         Assert.Equal(request.UserId, savedRole.StaffId);
-        Assert.Equal(request.StructuralScope.FacultyId.ToString(), savedRole.Domain);
+        Assert.Equal(request.StructuralScope.FacultyId.ToString(), savedRole.FacultyId.ToString());
         Assert.Equal("Global", savedRole.Year);
         Assert.Equal("Global", savedRole.Semester);
 
         var savedOverride = dbContext.StaffPermissions.First();
         Assert.Equal("Profile", savedOverride.Resource);
         Assert.Equal(ActionLevel.EditClose, savedOverride.Level);
-        Assert.Equal(request.StructuralScope.FacultyId.ToString(), savedOverride.Domain);
+        Assert.Equal(request.StructuralScope.FacultyId.ToString(), savedOverride.FacultyId.ToString());
     }
 
     [Fact]

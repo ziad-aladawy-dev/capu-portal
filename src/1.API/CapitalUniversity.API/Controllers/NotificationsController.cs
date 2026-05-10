@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CapitalUniversity.Core.Abstractions.Notifications;
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Notifications;
 
 namespace CapitalUniversity.API.Controllers;
 

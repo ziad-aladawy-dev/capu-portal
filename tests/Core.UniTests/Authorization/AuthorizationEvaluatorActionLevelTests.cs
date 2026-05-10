@@ -15,7 +15,7 @@ public class AuthorizationEvaluatorActionLevelTests
     private readonly AuthorizationEvaluator _evaluator;
     private readonly Guid _userId = Guid.NewGuid();
     private readonly string _resource = "Student";
-    private readonly AuthorizationScope _scope = new() { Domain = "F1", Year = "Y1", Semester = "S1" };
+    private readonly AuthorizationScope _scope = new() { Domain = "F1", UniversityId = null, FacultyId = Guid.Parse("00000000-0000-0000-0000-000000000001"), ProgramId = null, Year = "Y1", Semester = "S1" };
 
     public AuthorizationEvaluatorActionLevelTests()
     {
@@ -28,11 +28,11 @@ public class AuthorizationEvaluatorActionLevelTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, "F1", "Y1", "S1", OverrideType.Deny)
+            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.View, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Deny)
         };
 
         var roleId = Guid.NewGuid();
-        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, "F1", "Y1", "S1") };
+        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1") };
         var rolePermissions = new List<IRolePermission> { new TestRolePermission(roleId, _resource, ActionLevel.EditClose) };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.EditClose, false, _scope, overrides, roleAssignments, rolePermissions);
@@ -45,11 +45,11 @@ public class AuthorizationEvaluatorActionLevelTests
     {
         var overrides = new List<IUserPermissionOverride>
         {
-            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.EditClose, "F1", "Y1", "S1", OverrideType.Deny)
+            new TestPermissionOverride(Guid.NewGuid(), _resource, ActionLevel.EditClose, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1", OverrideType.Deny)
         };
 
         var roleId = Guid.NewGuid();
-        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, "F1", "Y1", "S1") };
+        var roleAssignments = new List<IUserRoleAssignment> { new TestRoleAssignment(roleId, null, Guid.Parse("00000000-0000-0000-0000-000000000001"), null, "Y1", "S1") };
         var rolePermissions = new List<IRolePermission> { new TestRolePermission(roleId, _resource, ActionLevel.View) };
 
         var result = _evaluator.Evaluate(_userId, _resource, ActionLevel.View, false, _scope, overrides, roleAssignments, rolePermissions);
