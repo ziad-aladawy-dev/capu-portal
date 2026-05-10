@@ -1,8 +1,8 @@
 import React from "react";
 import { ChevronRight, X, SlidersHorizontal, Users, GraduationCap, DollarSign, BookOpen, Shield } from "lucide-react";
-import { useFilters } from "../../hooks/use-filters";
-import { useScope } from "../../hooks/use-scope";
-import { FILTER_CATEGORIES } from "../../lib/constants";
+import { useFilters } from "../../../hooks/use-filters";
+import { useScope } from "../../../hooks/use-scope";
+import { FILTER_CATEGORIES } from "../../../lib/constants";
 import "./FilterSidebar.css";
 
 const CategoryFilters = {

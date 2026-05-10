@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useScope } from "../hooks/use-scope";
+import { useScope } from "../../hooks/use-scope";
 import { X, Check } from "lucide-react";
 import "./ScopeEditor.css";
 

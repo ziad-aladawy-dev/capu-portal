@@ -1,47 +1,42 @@
-import axiosInstance from './axiosConfig';
+// Mock auth service that mimics a backend login
+const authService = {
+  login: async (credentials) => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-class AuthService {
-  async login(credentials) {
-    try {
-      const response = await axiosInstance.post('/Auth/login/', credentials);
-      
-      if (response.data && response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('user', JSON.stringify({
-          userId: response.data.userId,
-          name: response.data.name,
-          email: response.data.email,
-          userType: response.data.userType
-        }));
-      }
-      
-      return response.data;
-    } catch (error) {
-      throw new Error(error.userMessage || 'Login failed');
+    if (credentials.nationalId === 'admin' && credentials.password === 'admin123') {
+      const user = {
+        id: '1',
+        nationalId: 'admin',
+        name: 'Admin User',
+        role: 'SuperAdmin'
+      };
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', 'mock-jwt-token');
+      return { user, token: 'mock-jwt-token' };
+    } else {
+      throw new Error('Invalid credentials');
     }
-  }
+  },
 
-  logout() {
-    localStorage.removeItem('authToken');
+  logout: () => {
     localStorage.removeItem('user');
-    window.location.href = '/login';
-  }
+    localStorage.removeItem('token');
+  },
 
-  getToken() {
-    return localStorage.getItem('authToken');
-  }
-
-  getCurrentUser() {
+  getCurrentUser: () => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
+    if (!userStr) return null;
+    try {
       return JSON.parse(userStr);
+    } catch (e) {
+      return null;
     }
-    return null;
-  }
+  },
 
-  isAuthenticated() {
-    return !!this.getToken();
+  isAuthenticated: () => {
+    return !!localStorage.getItem('token');
   }
-}
+};
 
-export default new AuthService();
+export default authService;

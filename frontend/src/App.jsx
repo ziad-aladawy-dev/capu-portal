@@ -8,7 +8,11 @@ import {
   Outlet
 } from "react-router-dom";
 
-// --- Old Imports (from HEAD) ---
+// --- Original Layout Imports ---
+import Sidebar from "./core/layouts/Sidebar/Sidebar";
+import TopNav from "./core/layouts/TopNav/TopNav";
+
+// --- Core Pages ---
 import LandingPage from './core/pages/Landing/LandingPage';
 import Login from './core/auth/pages/Login';
 import AdminDashboard from './core/pages/Dashboard/AdminDashboard';
@@ -21,83 +25,50 @@ import AddStaff from './core/pages/Users/AddStaff';
 import EditStudent from './core/pages/Users/EditStudent';
 import EditStaff from './core/pages/Users/EditStaff';
 import UserDetails from './core/pages/Users/UserDetails';
-import ProtectedRoute from './core/guards/ProtectedRoute';
-import './styles/global.css';
 
-// --- New Contexts & Components (from fe-permissions) ---
+// --- Guards & Contexts ---
+import ProtectedRoute from './core/guards/ProtectedRoute';
 import { AuthProvider } from "./contexts/AuthContext";
 import { ScopeProvider } from "./contexts/ScopeContext";
 import { FilterProvider } from "./contexts/FilterContext";
 import { useFilters } from "./hooks/use-filters";
 import { FILTER_CATEGORIES } from "./lib/constants";
-import { TopBar } from "./components/layout/TopBar";
-import { AppSidebar } from "./components/layout/AppSidebar";
-import { FilterSidebar } from "./components/layout/FilterSidebar";
-import { HorizontalNav } from "./components/layout/HorizontalNav";
-import { PermissionMatrix } from "./components/permissions/PermissionMatrix";
-import { Dashboard } from "./pages/Dashboard";
-import { Users } from "./pages/Users";
-import { StudentList } from "./pages/students/StudentList";
-import { StudentDetail } from "./pages/students/StudentDetail";
-import { mockPermissionMatrix } from "./lib/mock-data";
+
+// --- Layouts ---
+import { FilterSidebar } from "./core/layouts/FilterSidebar/FilterSidebar";
+
+// --- Styles ---
 import "./App.css";
 
-// AppLayout component
+// AppLayout using the original Sidebar and TopNav, but incorporating FilterSidebar
 const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(true);
   const location = useLocation();
   const { setCurrentCategory } = useFilters();
 
+  // Route matching to Filter Categories
   useEffect(() => {
-    if (location.pathname.startsWith("/students")) {
-      setCurrentCategory(FILTER_CATEGORIES.STUDENTS);
-    } else if (location.pathname.startsWith("/admin")) {
-      setCurrentCategory(FILTER_CATEGORIES.ADMIN);
-    } else if (location.pathname.startsWith("/financial")) {
-      setCurrentCategory(FILTER_CATEGORIES.FINANCIAL);
-    } else if (location.pathname.startsWith("/registration")) {
-      setCurrentCategory(FILTER_CATEGORIES.REGISTRATION);
+    if (location.pathname.startsWith("/users")) {
+      setCurrentCategory(FILTER_CATEGORIES.ADMIN); // Users filter matches admin category usually
     }
   }, [location.pathname, setCurrentCategory]);
 
-  const showFilterSidebar = !["/dashboard", "/permissions"].includes(location.pathname);
+  // Determine if filter sidebar should be visible
+  const showFilterSidebar = ["/users"].some(path => location.pathname.startsWith(path));
 
   const getFilterSidebarClass = () => {
     if (!showFilterSidebar) return "";
     return filterSidebarOpen ? "with-filter-sidebar" : "with-filter-sidebar collapsed";
   };
 
-  const getHorizontalNavItems = () => {
-    if (location.pathname.startsWith("/students")) {
-      return [
-        { label: "All Students", path: "/students/list" },
-        { label: "Enrollment", path: "/students/enrollment" },
-        { label: "Grades", path: "/students/grades" }
-      ];
-    }
-    if (location.pathname.startsWith("/admin")) {
-      return [
-        { label: "Users", path: "/admin/users" },
-        { label: "Roles", path: "/admin/roles" },
-        { label: "Departments", path: "/admin/departments" }
-      ];
-    }
-    return [];
-  };
-
-  const handleSidebarNavigate = (path) => {
-    window.location.hash = path;
-  };
-
   return (
     <div className="app-layout">
-      <TopBar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <TopNav onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <div className="app-main">
-        <AppSidebar 
+        <Sidebar
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)}
-          onNavigate={handleSidebarNavigate}
         />
         <FilterSidebar 
           isVisible={showFilterSidebar} 
@@ -105,9 +76,6 @@ const AppLayout = () => {
           onToggle={() => setFilterSidebarOpen(!filterSidebarOpen)}
         />
         <main className={`app-content ${getFilterSidebarClass()}`}>
-          {getHorizontalNavItems().length > 0 && (
-            <HorizontalNav items={getHorizontalNavItems()} />
-          )}
           <div className="page-content">
             <Outlet />
           </div>
@@ -116,33 +84,6 @@ const AppLayout = () => {
     </div>
   );
 };
-
-const PermissionsPage = () => (
-  <div className="page-container">
-    <PermissionMatrix initialPermissions={mockPermissionMatrix} />
-  </div>
-);
-
-const AdminPage = () => (
-  <div className="page-container">
-    <h1>Admin Management</h1>
-    <p>Admin management page</p>
-  </div>
-);
-
-const FinancialPage = () => (
-  <div className="page-container">
-    <h1>Financial</h1>
-    <p>Financial management page</p>
-  </div>
-);
-
-const RegistrationPage = () => (
-  <div className="page-container">
-    <h1>Registration</h1>
-    <p>Registration management page</p>
-  </div>
-);
 
 export default function App() {
   return (
@@ -157,32 +98,20 @@ export default function App() {
               
               {/* Protected Layout wrapper */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="permissions" element={<PermissionsPage />} />
-                
-                {/* Students routes */}
-                <Route path="students" element={<Navigate to="/students/list" />} />
-                <Route path="students/list" element={<StudentList />} />
-                <Route path="students/detail/:studentId" element={<StudentDetail />} />
-                <Route path="students/enrollment" element={<StudentList />} />
-                <Route path="students/grades" element={<StudentList />} />
-                
-                {/* Admin routes */}
-                <Route path="admin" element={<Navigate to="/admin/users" />} />
-                <Route path="admin/users" element={<Users />} />
-                <Route path="admin/*" element={<AdminPage />} />
-                
-                {/* Financial routes */}
-                <Route path="financial" element={<FinancialPage />} />
-                <Route path="financial/*" element={<FinancialPage />} />
-                
-                {/* Registration routes */}
-                <Route path="registration" element={<RegistrationPage />} />
-                <Route path="registration/*" element={<RegistrationPage />} />
-
-                {/* Legacy / Custom Routes merged from HEAD */}
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="permissions" element={<PermissionManagement />} />
                 <Route path="university-tree" element={<UniversityTree />} />
                 <Route path="sync" element={<SyncManifest />} />
+
+                {/* User routes */}
+                <Route path="users" element={<UserManagement />} />
+                <Route path="users/add-student" element={<AddStudent />} />
+                <Route path="users/add-staff" element={<AddStaff />} />
+                <Route path="users/edit-student/:id" element={<EditStudent />} />
+                <Route path="users/edit-staff/:id" element={<EditStaff />} />
+                <Route path="users/:id" element={<UserDetails />} />
+
+                {/* Legacy paths as placeholders */}
                 <Route path="faculties" element={
                   <div className="main-content" style={{ textAlign: 'center', padding: '60px' }}>
                     <h2>Faculty Management</h2><p>Coming soon...</p>
@@ -203,14 +132,6 @@ export default function App() {
                     <h2>Settings</h2><p>Coming soon...</p>
                   </div>
                 } />
-                
-                {/* User routes */}
-                <Route path="users" element={<UserManagement />} />
-                <Route path="users/add-student" element={<AddStudent />} />
-                <Route path="users/add-staff" element={<AddStaff />} />
-                <Route path="users/edit-student/:id" element={<EditStudent />} />
-                <Route path="users/edit-staff/:id" element={<EditStaff />} />
-                <Route path="users/:id" element={<UserDetails />} />
               </Route>
 
               {/* Fallback */}
