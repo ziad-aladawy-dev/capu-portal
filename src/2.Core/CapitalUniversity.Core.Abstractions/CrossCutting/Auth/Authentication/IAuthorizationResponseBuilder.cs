@@ -1,0 +1,10 @@
+using System.Threading;
+using System.Threading.Tasks;
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization.DTOs;
+
+namespace CapitalUniversity.Core.Abstractions;
+
+public interface IAuthorizationResponseBuilder
+{
+    Task<(AuthorizedScopesDto Scopes, System.Collections.Generic.List<PermissionDto> Permissions, ActiveScopeDto ActiveScope)> BuildAsync(IUserCredential user, CancellationToken cancellationToken = default);
+}
