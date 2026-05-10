@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5193/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -32,12 +32,12 @@ axiosInstance.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    
-    const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.title || 
-                        error.message || 
-                        'An unexpected error occurred';
-    
+
+    const errorMessage = error.response?.data?.message ||
+      error.response?.data?.title ||
+      error.message ||
+      'An unexpected error occurred';
+
     return Promise.reject({
       ...error,
       userMessage: errorMessage
