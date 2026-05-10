@@ -1,0 +1,11 @@
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\bin\Debug\net9.0\CapitalUniversity.Module.Student.deps.json
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\bin\Debug\net9.0\CapitalUniversity.Module.Student.dll
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\bin\Debug\net9.0\CapitalUniversity.Module.Student.pdb
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.GeneratedMSBuildEditorConfig.editorconfig
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.AssemblyInfoInputs.cache
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.AssemblyInfo.cs
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.csproj.CoreCompileInputs.cache
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.dll
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\refint\CapitalUniversity.Module.Student.dll
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\CapitalUniversity.Module.Student.pdb
+E:\CapitalUniversity\src\4.Modules\CapitalUniversity.Module.Student\obj\Debug\net9.0\ref\CapitalUniversity.Module.Student.dll

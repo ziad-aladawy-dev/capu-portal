@@ -1,0 +1,81 @@
+[
+  {
+    "ContainingType": "CapitalUniversity.API.Controllers.UniversityStructureController",
+    "Method": "Create",
+    "RelativePath": "api/university-structure",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs.CreateStructureNodeRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CapitalUniversity.API.Controllers.UniversityStructureController",
+    "Method": "GetById",
+    "RelativePath": "api/university-structure/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CapitalUniversity.API.Controllers.UniversityStructureController",
+    "Method": "Update",
+    "RelativePath": "api/university-structure/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs.UpdateStructureNodeRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CapitalUniversity.API.Controllers.UniversityStructureController",
+    "Method": "Delete",
+    "RelativePath": "api/university-structure/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CapitalUniversity.API.Controllers.UniversityStructureController",
+    "Method": "GetTree",
+    "RelativePath": "api/university-structure/tree",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]
