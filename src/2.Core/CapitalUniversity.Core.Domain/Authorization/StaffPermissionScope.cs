@@ -9,5 +9,5 @@ public class StaffPermissionScope : BaseEntity
     public Guid? FacultyId { get; set; }
     public Guid? ProgramId { get; set; }
 
-    public StaffPermissionOverride StaffPermission { get; set; }
+    public CapitalUniversity.Core.Domain.Users.StaffPermissionOverride StaffPermission { get; set; }
 }

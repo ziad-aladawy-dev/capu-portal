@@ -1,7 +1,7 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.Enums;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Domain;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications

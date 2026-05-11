@@ -1,6 +1,6 @@
 using System;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authentication;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 
 public interface IUserCredential
 {

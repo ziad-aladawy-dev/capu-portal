@@ -1,5 +1,5 @@
 ﻿using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+using CapitalUniversity.Core.Abstractions.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.Domain.UniversityStructure;
 

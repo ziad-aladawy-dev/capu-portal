@@ -1,6 +1,6 @@
 using System;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Audit;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 
 public interface ILoggerService
 {

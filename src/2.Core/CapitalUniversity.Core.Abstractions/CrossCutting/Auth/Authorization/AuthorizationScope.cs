@@ -1,6 +1,6 @@
 using System;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public class AuthorizationScope
 {

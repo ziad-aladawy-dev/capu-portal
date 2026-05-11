@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Localization;
 namespace CapitalUniversity.Core.Domain.Enums;
 
 public enum SystemTypeEnum

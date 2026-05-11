@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authentication.DTOs
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs
 
 
 

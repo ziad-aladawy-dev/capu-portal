@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Modules;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
 
 public interface IModule
 {

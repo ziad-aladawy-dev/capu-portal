@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Modules;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
 
 public interface IManifest
 {

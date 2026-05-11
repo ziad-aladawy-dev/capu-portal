@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
   </ItemGroup>
 
 </Project>

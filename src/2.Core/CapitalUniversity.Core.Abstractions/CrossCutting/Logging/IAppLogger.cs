@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Logging;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 
 public interface IAppLogger
 {

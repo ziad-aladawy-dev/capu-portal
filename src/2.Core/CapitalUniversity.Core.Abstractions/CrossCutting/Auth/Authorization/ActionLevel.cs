@@ -1,4 +1,4 @@
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public enum ActionLevel
 {

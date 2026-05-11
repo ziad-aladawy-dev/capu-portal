@@ -1,11 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authentication
-
-
-;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 
 public interface IAuthenticationService
 {

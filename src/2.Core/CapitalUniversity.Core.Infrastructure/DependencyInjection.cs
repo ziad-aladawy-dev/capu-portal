@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Application.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Repositories;

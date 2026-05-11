@@ -1,4 +1,4 @@
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Localization
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Localization
 {
     public interface ICurrentCultureService
     {

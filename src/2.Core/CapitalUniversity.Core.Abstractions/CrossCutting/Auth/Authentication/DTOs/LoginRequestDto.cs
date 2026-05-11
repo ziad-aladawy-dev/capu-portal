@@ -1,4 +1,4 @@
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authentication.DTOs;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
 public class LoginRequestDto
 {

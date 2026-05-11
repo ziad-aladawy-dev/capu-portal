@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Notifications.Enums;
 using System;
 using CapitalUniversity.Core.Domain.Common;
 

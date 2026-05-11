@@ -1,6 +1,6 @@
 ﻿using CapitalUniversity.Core.Domain.UniversityStructure;
 
-namespace CapitalUniversity.Core.Abstractions.Repositories;
+namespace CapitalUniversity.Core.Domain.Repositories;
 
 public interface IStructureNodeRepository
 {

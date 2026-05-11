@@ -1,7 +1,7 @@
 using System;
 using CapitalUniversity.Core.Abstractions;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Execution;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 
 public interface IExecutionContext
 {

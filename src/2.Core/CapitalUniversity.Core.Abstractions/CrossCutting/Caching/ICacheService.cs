@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Caching;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 
 public interface ICacheService
 {

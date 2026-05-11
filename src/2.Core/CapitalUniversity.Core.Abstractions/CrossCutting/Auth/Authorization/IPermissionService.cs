@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public interface IPermissionService
 {

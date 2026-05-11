@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authentication;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 
 public interface IUserCredentialResolver
 {

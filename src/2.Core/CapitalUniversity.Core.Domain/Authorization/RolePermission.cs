@@ -1,5 +1,5 @@
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Authorization;
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
 namespace CapitalUniversity.Core.Domain.Authorization;
 
 public class RolePermission : BaseEntity, IRolePermission
@@ -13,6 +13,6 @@ public class RolePermission : BaseEntity, IRolePermission
 
     // NOTE: navigation retained for compatibility; may be reviewed during modular separation
     public Role Role { get; set; } = null!;
-    public Service Service { get; set; } = null!;
+    public CapitalUniversity.Core.Domain.Services.Service Service { get; set; } = null!;
     public ICollection<RolePermissionScope> Scopes { get; set; } = new List<RolePermissionScope>();
 }

@@ -1,5 +1,5 @@
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Abstractions.Authorization;
+using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
 
 namespace CapitalUniversity.Core.Domain.Users;
 

@@ -1,7 +1,7 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.Enums;
 using System;
-using CapitalUniversity.Core.Domain.Common;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Notifications.DTOs;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 
 public class NotificationDto
 {

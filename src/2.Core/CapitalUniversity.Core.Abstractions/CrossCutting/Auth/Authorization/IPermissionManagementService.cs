@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions;
-using CapitalUniversity.Core.Abstractions;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
-namespace CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public interface IPermissionManagementService
 {

@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "kH5EcDaamWU=",
+  "dgSpecHash": "kxEX33VFa8s=",
   "success": true,
-  "projectFilePath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "/app/src/2.Core/CapitalUniversity.Core.Domain/CapitalUniversity.Core.Domain.csproj",
+  "expectedPackageFiles": [
+    "/home/jules/.nuget/packages/microsoft.netcore.app.ref/9.0.13/microsoft.netcore.app.ref.9.0.13.nupkg.sha512",
+    "/home/jules/.nuget/packages/microsoft.aspnetcore.app.ref/9.0.13/microsoft.aspnetcore.app.ref.9.0.13.nupkg.sha512"
+  ],
   "logs": []
 }
