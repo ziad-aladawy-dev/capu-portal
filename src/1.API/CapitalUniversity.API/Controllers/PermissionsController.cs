@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

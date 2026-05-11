@@ -20,3 +20,12 @@ C:/Users/menna/source/repos/ziad-aladawy-dev/capu-portal/src/2.Core/CapitalUnive
 /app/src/2.Core/CapitalUniversity.Core.Domain/obj/Debug/net9.0/CapitalUniversity.Core.Domain.dll
 /app/src/2.Core/CapitalUniversity.Core.Domain/obj/Debug/net9.0/refint/CapitalUniversity.Core.Domain.dll
 /app/src/2.Core/CapitalUniversity.Core.Domain/obj/Debug/net9.0/CapitalUniversity.Core.Domain.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.csproj.AssemblyReference.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.AssemblyInfoInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.AssemblyInfo.cs
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.csproj.CoreCompileInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.sourcelink.json
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\refint\CapitalUniversity.Core.Domain.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Domain\obj\Debug\net9.0\CapitalUniversity.Core.Domain.pdb

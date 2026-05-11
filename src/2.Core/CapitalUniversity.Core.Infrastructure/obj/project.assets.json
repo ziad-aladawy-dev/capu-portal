@@ -2113,7 +2113,8 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
-          "CapitalUniversity.Core.Domain": "1.0.0"
+          "Microsoft.AspNetCore.Http": "2.3.0",
+          "Microsoft.Extensions.DependencyInjection": "9.0.0"
         },
         "compile": {
           "bin/placeholder/CapitalUniversity.Core.Abstractions.dll": {}
@@ -2144,6 +2145,9 @@
       "CapitalUniversity.Core.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
+        "dependencies": {
+          "CapitalUniversity.Core.Abstractions": "1.0.0"
+        },
         "compile": {
           "bin/placeholder/CapitalUniversity.Core.Domain.dll": {}
         },
@@ -5716,23 +5720,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\3bdo3\\.nuget\\packages\\": {},
+    "C:\\Users\\menna\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
       "projectName": "CapitalUniversity.Core.Infrastructure",
-      "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
-      "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-      "outputPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
+      "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+      "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -5747,14 +5751,14 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-              "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+            "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+              "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
             },
-            "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-              "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+            "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+              "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
             },
-            "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-              "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+            "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+              "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
             }
           }
         }
@@ -5769,7 +5773,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net9.0": {
@@ -5822,7 +5826,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

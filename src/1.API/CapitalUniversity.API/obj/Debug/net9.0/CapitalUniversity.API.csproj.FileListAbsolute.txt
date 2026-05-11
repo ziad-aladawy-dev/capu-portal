@@ -170,3 +170,12 @@ E:\CapitalUniversity\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\staticweba
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.dll
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\refint\CapitalUniversity.API.dll
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.csproj.AssemblyReference.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\rpswa.dswa.cache.json
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.AssemblyInfoInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.AssemblyInfo.cs
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.csproj.CoreCompileInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\1.API\CapitalUniversity.API\obj\Debug\net9.0\CapitalUniversity.API.sourcelink.json

@@ -22,3 +22,9 @@ E:\CapitalUniversity\src\2.Core\CapitalUniversity.Core.Infrastructure\bin\Debug\
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.dll
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\refint\CapitalUniversity.Core.Infrastructure.dll
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.AssemblyInfo.cs
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Infrastructure\obj\Debug\net9.0\CapitalUniversity.Core.Infrastructure.sourcelink.json

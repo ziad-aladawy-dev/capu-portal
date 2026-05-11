@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Authorization;
 
 namespace CapitalUniversity.API.Controllers;
 

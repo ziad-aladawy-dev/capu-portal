@@ -30,3 +30,12 @@ C:/Users/menna/source/repos/ziad-aladawy-dev/capu-portal/src/2.Core/CapitalUnive
 /app/src/2.Core/CapitalUniversity.Core.Abstractions/obj/Debug/net9.0/CapitalUniversity.Core.Abstractions.dll
 /app/src/2.Core/CapitalUniversity.Core.Abstractions/obj/Debug/net9.0/refint/CapitalUniversity.Core.Abstractions.dll
 /app/src/2.Core/CapitalUniversity.Core.Abstractions/obj/Debug/net9.0/CapitalUniversity.Core.Abstractions.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfoInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfo.cs
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.CoreCompileInputs.cache
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.sourcelink.json
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\refint\CapitalUniversity.Core.Abstractions.dll
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
+C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.AssemblyReference.cache
