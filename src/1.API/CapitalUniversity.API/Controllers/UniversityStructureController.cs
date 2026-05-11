@@ -71,4 +71,80 @@ public class UniversityStructureController : ControllerBase
             Message = "Node deleted successfully"
         });
     }
+
+    [HttpPut("move/{id}")]
+    public async Task<IActionResult> Move(
+        Guid id,
+        [FromBody] MoveStructureNodeRequest request)
+    {
+        await _service.MoveNodeAsync(id, request);
+
+        return Ok(new
+        {
+            Message = "Node moved successfully"
+        });
+    }
+
+    [HttpGet("roots")]
+    public async Task<IActionResult> GetRoots()
+    {
+        var result = await _service.GetRootsAsync();
+
+        return Ok(result);
+    }
+
+    [HttpGet("children/{id}")]
+    public async Task<IActionResult> GetChildren(Guid id)
+    {
+        var result = await _service.GetChildrenAsync(id);
+
+        return Ok(result);
+    }
+
+    [HttpGet("breadcrumb/{id}")]
+    public async Task<IActionResult>
+        GetBreadcrumb(Guid id)
+    {
+        var result = await _service
+            .GetBreadcrumbAsync(id);
+
+        return Ok(result);
+    }
+
+    [HttpGet("subtree/{id}")]
+    public async Task<IActionResult>
+        GetSubTree(Guid id)
+    {
+        var result = await _service
+            .GetSubTreeAsync(id);
+
+        if (result == null)
+            return NotFound();
+
+        return Ok(result);
+    }
+
+    [HttpGet("ancestors/{id}")]
+    public async Task<IActionResult>
+        GetAncestors(Guid id)
+    {
+        var result = await _service
+            .GetAncestorsChainAsync(id);
+
+        return Ok(result);
+    }
+
+    [HttpPut("reorder/{id}")]
+    public async Task<IActionResult>
+        Reorder(
+            Guid id,
+            [FromBody] ReorderNodeRequest request)
+    {
+        await _service.ReorderNodeAsync(id, request);
+
+        return Ok(new
+        {
+            Message = "Node reordered successfully"
+        });
+    }
 }

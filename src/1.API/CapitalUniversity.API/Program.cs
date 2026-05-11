@@ -1,5 +1,6 @@
-﻿using CapitalUniversity.Core.Infrastructure.Persistence;
-using CapitalUniversity.Core.Infrastructure;
+﻿using CapitalUniversity.Core.Infrastructure;
+using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+    await UniversityStructureSeeder.SeedAsync(db);
+}
 
 if (app.Environment.IsDevelopment())
 {

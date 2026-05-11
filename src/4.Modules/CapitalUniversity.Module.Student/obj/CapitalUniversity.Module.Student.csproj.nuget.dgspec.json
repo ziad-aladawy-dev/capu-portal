@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\CapitalUniversity\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj": {}
+    "D:\\GitHub\\capu-portal\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj": {}
   },
   "projects": {
-    "E:\\CapitalUniversity\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj": {
+    "D:\\GitHub\\capu-portal\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\CapitalUniversity\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj",
+        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj",
         "projectName": "CapitalUniversity.Module.Student",
-        "projectPath": "E:\\CapitalUniversity\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj",
+        "projectPath": "D:\\GitHub\\capu-portal\\src\\4.Modules\\CapitalUniversity.Module.Student\\CapitalUniversity.Module.Student.csproj",
         "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "E:\\CapitalUniversity\\src\\4.Modules\\CapitalUniversity.Module.Student\\obj\\",
+        "outputPath": "D:\\GitHub\\capu-portal\\src\\4.Modules\\CapitalUniversity.Module.Student\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

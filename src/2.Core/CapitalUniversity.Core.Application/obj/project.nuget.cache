@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "JRBwBT/AyTE=",
+  "dgSpecHash": "k+z7a1JQzoc=",
   "success": true,
-  "projectFilePath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+  "projectFilePath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\3bdo3\\.nuget\\packages\\microsoft.aspnetcore.authentication\\2.3.0\\microsoft.aspnetcore.authentication.2.3.0.nupkg.sha512",
     "C:\\Users\\3bdo3\\.nuget\\packages\\microsoft.aspnetcore.authentication.abstractions\\2.3.0\\microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",

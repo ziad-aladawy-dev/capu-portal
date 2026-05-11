@@ -14,6 +14,10 @@ public class StructureNodeDto
 
     public int Order { get; set; }
 
+    public string Path { get; set; } = string.Empty;
+
+    public int Depth { get; set; }
+
     public bool IsActive { get; set; }
 
     public List<StructureNodeDto> Children { get; set; } = new();

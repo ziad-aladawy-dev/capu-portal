@@ -13,7 +13,9 @@ public class StructureNode : BaseEntity
 
     public int Order { get; set; }
 
-    public string? Path { get; set; }
+    public string Path { get; set; } = string.Empty;
+
+    public int Depth { get; set; }
 
     public bool IsActive { get; set; } = true;
 

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {}
+    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {}
   },
   "projects": {
-    "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
         "projectName": "CapitalUniversity.Core.Abstractions",
-        "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
         "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
+        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,8 +32,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -73,14 +73,14 @@
         }
       }
     },
-    "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
         "projectName": "CapitalUniversity.Core.Application",
-        "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
         "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
+        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -101,11 +101,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -167,14 +167,14 @@
         }
       }
     },
-    "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
         "projectName": "CapitalUniversity.Core.Domain",
-        "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
         "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
+        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -232,14 +232,14 @@
         }
       }
     },
-    "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
+    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
         "projectName": "CapitalUniversity.Core.Infrastructure",
-        "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
+        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -260,14 +260,14 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
               },
-              "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "E:\\CapitalUniversity\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
