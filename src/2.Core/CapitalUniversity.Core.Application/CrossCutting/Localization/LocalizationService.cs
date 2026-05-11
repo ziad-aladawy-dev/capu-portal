@@ -1,8 +1,8 @@
-using CapitalUniversity.Core.Abstractions.Localization;
 using System.Reflection;
 using System.Text.Json;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
-namespace CapitalUniversity.Core.Application.Localization
+namespace CapitalUniversity.Core.Application.CrossCutting.Localization
 {
     // Simple dummy class to attach resources to, if needed.
     public class SharedResource {}

@@ -1,6 +1,6 @@
-using CapitalUniversity.Core.Abstractions.Localization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
-namespace CapitalUniversity.Core.Application.Localization;
+namespace CapitalUniversity.Core.Application.CrossCutting.Localization;
 
 public class LocalizationFormatter
 {

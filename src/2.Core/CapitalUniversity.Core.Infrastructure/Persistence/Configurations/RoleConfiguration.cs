@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System.Data;
+using CapitalUniversity.Core.Domain.Identity;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 

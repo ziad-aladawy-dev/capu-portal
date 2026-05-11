@@ -1,12 +1,11 @@
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
-namespace CapitalUniversity.Core.CrossCutting.Authentication;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
 public class TokenService : ITokenService
 {

@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Domain.Common;
+﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 namespace CapitalUniversity.Core.Domain.Users;
 
@@ -28,9 +29,4 @@ public class Student : BaseEntity
 
     public StudentStatusEnum Status { get; set; }
 
-    public Faculty Faculty { get; set; } = null!;
-    public AcademicProgram AcademicProgram { get; set; } = null!;
-    public Level Level { get; set; } = null!;
-    public AcademicYear CurrentAcademicYear { get; set; } = null!;
-    public Semester CurrentSemester { get; set; } = null!;
 }

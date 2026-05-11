@@ -1,9 +1,6 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 
-namespace CapitalUniversity.Core.Application.Auth.Authorization.Roles.Queries.GetRoleById;
+namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
 
 public class GetRoleByIdRequest
 {

@@ -1,8 +1,7 @@
-using System;
 using System.Security.Cryptography;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 
-namespace CapitalUniversity.Core.CrossCutting.Authentication;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
 public class PasswordHasher : IPasswordHasher
 {

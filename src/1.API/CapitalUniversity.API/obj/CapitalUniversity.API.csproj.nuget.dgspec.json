@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {}
+    "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {
+    "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
         "projectName": "CapitalUniversity.API",
-        "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
+        "projectPath": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
         "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\1.API\\CapitalUniversity.API\\obj\\",
+        "outputPath": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,11 +32,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
               },
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj"
               }
             }
           }
@@ -99,14 +99,14 @@
         }
       }
     },
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
         "projectName": "CapitalUniversity.Core.Abstractions",
-        "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
         "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -174,14 +174,14 @@
         }
       }
     },
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
         "projectName": "CapitalUniversity.Core.Application",
-        "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
         "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -202,11 +202,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -268,14 +268,14 @@
         }
       }
     },
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
         "projectName": "CapitalUniversity.Core.Domain",
-        "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
         "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -296,8 +296,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               }
             }
           }
@@ -317,6 +317,12 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "dependencies": {
+            "MongoDB.Bson": {
+              "target": "Package",
+              "version": "[3.8.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -337,14 +343,14 @@
         }
       }
     },
-    "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
         "projectName": "CapitalUniversity.Core.Infrastructure",
-        "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -365,14 +371,14 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
               },
-              "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -422,6 +428,14 @@
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
               "version": "[9.0.0, )"
+            },
+            "MongoDB.Driver": {
+              "target": "Package",
+              "version": "[3.8.0, )"
+            },
+            "Riok.Mapperly": {
+              "target": "Package",
+              "version": "[5.0.0-next.7, )"
             }
           },
           "imports": [

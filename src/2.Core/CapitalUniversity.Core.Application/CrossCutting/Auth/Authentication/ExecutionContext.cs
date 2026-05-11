@@ -1,10 +1,9 @@
-using System;
 using System.Security.Claims;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using Microsoft.AspNetCore.Http;
-using CapitalUniversity.Core.Abstractions.Execution;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
 
-namespace CapitalUniversity.Core.Application.Auth.Authentication;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
 public class ExecutionContext : IExecutionContext
 {

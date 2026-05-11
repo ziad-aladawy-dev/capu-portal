@@ -1,8 +1,6 @@
-using System.Threading;
-using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
-namespace CapitalUniversity.Core.CrossCutting.Security;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 
 public class ScopeResolver : IScopeResolver
 {

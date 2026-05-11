@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Users;

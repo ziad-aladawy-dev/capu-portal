@@ -1,10 +1,7 @@
-using System.Globalization;
-using System.Threading.Tasks;
-
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using Microsoft.AspNetCore.Http;
-using CapitalUniversity.Core.Abstractions.Localization;
 
-namespace CapitalUniversity.Core.CrossCutting.Localization;
+namespace CapitalUniversity.Core.Application.CrossCutting.Localization;
 
 public class CurrentCultureService : ICurrentCultureService
 {

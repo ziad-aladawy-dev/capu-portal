@@ -1,10 +1,7 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
-namespace CapitalUniversity.Core.Application.Auth.Authentication;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
 public class AuthenticationService : IAuthenticationService
 {
@@ -62,9 +59,6 @@ public class AuthenticationService : IAuthenticationService
                 Email = credential.Email,
                 Attributes = new UserAttributesDto
                 {
-                    Uni = credential.UniAttribute,
-                    Faculty = credential.FacultyAttribute,
-                    Department = credential.DepartmentAttribute
                 }
             },
             Token = token,

@@ -1,16 +1,12 @@
-using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.Enums;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications
 {
 
     public interface INotificationService
     {
-        Task CreateNotificationAsync(
-            Guid recipientUserId,
+        Task CreateNotificationAsync(Guid recipientUserId,
             string title,
             string message,
             NotificationType type);

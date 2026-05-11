@@ -1,13 +1,7 @@
-
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Infrastructure.Persistence;
-using CapitalUniversity.Core.Application.Auth.Authorization.Roles.Queries.GetRoleById;
+using Microsoft.EntityFrameworkCore;
 
-namespace CapitalUniversity.Core.Application.Auth.Authorization.Roles.Queries.GetRoles;
+namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
 
 public class GetRolesRequest
 {

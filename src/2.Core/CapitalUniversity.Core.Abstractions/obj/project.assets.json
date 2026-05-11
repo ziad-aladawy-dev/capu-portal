@@ -497,11 +497,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+      "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
       "projectName": "CapitalUniversity.Core.Abstractions",
-      "projectPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+      "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
       "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
+      "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -1,8 +1,6 @@
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
-namespace CapitalUniversity.Core.Abstractions;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 
 public interface IAuthorizationResponseBuilder
 {

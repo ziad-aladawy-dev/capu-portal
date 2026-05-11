@@ -19,20 +19,5 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.HasIndex(s => s.NationalId).IsUnique();
         builder.HasIndex(s => s.StudentCode).IsUnique();
         builder.HasIndex(s => s.Email).IsUnique();
-
-        builder.HasOne(s => s.Faculty)
-            .WithMany()
-            .HasForeignKey(s => s.FacultyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(s => s.AcademicProgram)
-            .WithMany()
-            .HasForeignKey(s => s.ProgramId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(s => s.Level)
-            .WithMany()
-            .HasForeignKey(s => s.LevelId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

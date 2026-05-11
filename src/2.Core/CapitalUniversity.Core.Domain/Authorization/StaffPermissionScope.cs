@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Identity;
@@ -9,5 +10,5 @@ public class StaffPermissionScope : BaseEntity
     public Guid? FacultyId { get; set; }
     public Guid? ProgramId { get; set; }
 
-    public CapitalUniversity.Core.Domain.Users.StaffPermissionOverride StaffPermission { get; set; }
+    public StaffPermissionOverride StaffPermission { get; set; }
 }

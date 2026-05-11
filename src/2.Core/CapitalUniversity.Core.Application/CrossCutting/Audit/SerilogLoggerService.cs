@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Execution;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Audit;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 
 
-namespace CapitalUniversity.Core.Application.Cross-Cutting.Audit;
+namespace CapitalUniversity.Core.Application.CrossCutting.Audit;
 
 public class SerilogLoggerService : ILoggerService
 {

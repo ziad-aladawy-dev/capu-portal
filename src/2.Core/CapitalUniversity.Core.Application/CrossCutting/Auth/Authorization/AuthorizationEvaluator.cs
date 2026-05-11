@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using CapitalUniversity.Core.Abstractions.Audit;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared;
 
-namespace CapitalUniversity.Core.CrossCutting.Security;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 
 public class AuthorizationEvaluator : IAuthorizationEvaluator
 {

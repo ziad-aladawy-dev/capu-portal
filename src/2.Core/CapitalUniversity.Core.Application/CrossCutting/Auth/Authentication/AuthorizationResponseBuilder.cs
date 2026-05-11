@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication.DTOs;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CapitalUniversity.Core.Application.Auth.Authentication;

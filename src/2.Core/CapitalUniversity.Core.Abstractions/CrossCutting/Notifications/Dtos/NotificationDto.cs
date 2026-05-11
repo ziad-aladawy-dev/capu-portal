@@ -1,5 +1,4 @@
-using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.Enums;
-using System;
+using CapitalUniversity.Core.Abstractions.Shared;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 

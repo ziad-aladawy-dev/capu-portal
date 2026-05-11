@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using CapitalUniversity.Core.Domain.Users;
@@ -16,14 +17,5 @@ public class StaffPermissionScopeConfiguration : IEntityTypeConfiguration<StaffP
             .HasForeignKey(sps => sps.StaffPermissionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<CapitalUniversity.Core.Domain.UniversityStructure.Faculty>()
-            .WithMany()
-            .HasForeignKey(sps => sps.FacultyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne<CapitalUniversity.Core.Domain.UniversityStructure.AcademicProgram>()
-            .WithMany()
-            .HasForeignKey(sps => sps.ProgramId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

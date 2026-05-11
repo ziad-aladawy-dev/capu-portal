@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CapitalUniversity.Core.Abstractions.Shared;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs
 ;

@@ -1,5 +1,7 @@
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Identity;
 namespace CapitalUniversity.Core.Domain.Authorization;
 
 public class RolePermission : BaseEntity, IRolePermission

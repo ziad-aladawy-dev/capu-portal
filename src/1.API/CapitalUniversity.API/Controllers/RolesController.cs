@@ -3,8 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-using CapitalUniversity.Core.Abstractions.CrossCutting.Authorization;
+using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
+using CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
 
 namespace CapitalUniversity.API.Controllers;
 

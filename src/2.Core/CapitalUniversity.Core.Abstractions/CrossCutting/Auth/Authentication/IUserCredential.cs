@@ -12,8 +12,5 @@ public interface IUserCredential
     string Name { get; }
     string Email { get; }
 
-    // Minimal attributes to satisfy the UserInfoDto response map
-    string UniAttribute { get; }
-    string FacultyAttribute { get; }
-    string DepartmentAttribute { get; }
+
 }

@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Authorization;
 
-namespace CapitalUniversity.Core.Domain.Identity;
+namespace CapitalUniversity.Core.Domain.Authorization;
 
 public class Service : BaseEntity
 {

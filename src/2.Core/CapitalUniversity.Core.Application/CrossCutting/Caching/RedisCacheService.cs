@@ -1,11 +1,8 @@
-using System;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using Microsoft.Extensions.Caching.Distributed;
-using CapitalUniversity.Core.Abstractions.Caching;
 
-namespace CapitalUniversity.Core.CrossCutting.Caching;
+namespace CapitalUniversity.Core.Application.CrossCutting.Caching;
 
 public class RedisCacheService : ICacheService
 {

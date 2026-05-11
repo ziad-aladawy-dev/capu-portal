@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
-namespace CapitalUniversity.Core.Application.Notifications;
+namespace CapitalUniversity.Core.Infrastructure.Services.Notifications;
 
 public class NotificationService : INotificationService
 {
@@ -36,6 +33,7 @@ public class NotificationService : INotificationService
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync();
     }
+
 
     public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(Guid userId)
     {

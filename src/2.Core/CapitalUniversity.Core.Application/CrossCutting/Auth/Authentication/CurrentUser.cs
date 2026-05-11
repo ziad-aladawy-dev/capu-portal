@@ -1,7 +1,7 @@
 using System;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 namespace CapitalUniversity.Core.Application.Auth.Authentication;
 

@@ -1,9 +1,6 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 
-namespace CapitalUniversity.Core.Application.Auth.Authorization.Roles.Commands.DeleteRole;
+namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 
 public class DeleteRoleRequest
 {

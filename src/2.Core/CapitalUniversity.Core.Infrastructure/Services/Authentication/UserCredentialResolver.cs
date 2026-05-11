@@ -1,11 +1,9 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Domain.Users;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace CapitalUniversity.Core.Application.Auth.Authentication;
+namespace CapitalUniversity.Core.Infrastructure.Services.Authentication;
 
 public class UserCredentialResolver : IUserCredentialResolver
 {
@@ -19,9 +17,7 @@ public class UserCredentialResolver : IUserCredentialResolver
     public async Task<IUserCredential> ResolveCredentialAsync(string identifier, CancellationToken cancellationToken = default)
     {
         var student = await _dbContext.Students
-            .Include(s => s.Faculty)
-            .Include(s => s.AcademicProgram)
-            .FirstOrDefaultAsync(s => s.NationalId == identifier || s.Email == identifier || s.StudentCode == identifier, cancellationToken);
+            .FirstOrDefaultAsync(s => s.NationalId == identifier , cancellationToken);
 
         if (student != null)
         {
@@ -29,7 +25,7 @@ public class UserCredentialResolver : IUserCredentialResolver
         }
 
         var staff = await _dbContext.Staffs
-            .FirstOrDefaultAsync(s => s.NationalId == identifier || s.Email == identifier || s.StaffCode == identifier, cancellationToken);
+            .FirstOrDefaultAsync(s => s.NationalId == identifier, cancellationToken);
 
         if (staff != null)
         {
@@ -42,9 +38,9 @@ public class UserCredentialResolver : IUserCredentialResolver
 
 public class StudentUserCredential : IUserCredential
 {
-    private readonly CapitalUniversity.Core.Domain.Identity.Student _student;
+    private readonly Student _student;
 
-    public StudentUserCredential(CapitalUniversity.Core.Domain.Identity.Student student)
+    public StudentUserCredential(Student student)
     {
         _student = student;
     }
@@ -57,15 +53,13 @@ public class StudentUserCredential : IUserCredential
     public string Name => _student.Name;
     public string Email => _student.Email;
     public string UniAttribute => string.Empty;
-    public string FacultyAttribute => _student.Faculty?.Name?? string.Empty;
-    public string DepartmentAttribute => _student.AcademicProgram?.Name ?? string.Empty;
 }
 
 public class StaffUserCredential : IUserCredential
 {
-    private readonly CapitalUniversity.Core.Domain.Identity.Staff _staff;
+    private readonly Staff _staff;
 
-    public StaffUserCredential(CapitalUniversity.Core.Domain.Identity.Staff staff)
+    public StaffUserCredential(Staff staff)
     {
         _staff = staff;
     }

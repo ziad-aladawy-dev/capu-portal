@@ -1,18 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
-using CapitalUniversity.Core.Domain.Authorization.Contracts;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
+namespace CapitalUniversity.Core.Infrastructure.Services.Authorization;
 
+//TODO
 public class PermissionManagementService : IPermissionManagementService
 {
     private readonly IPermissionService _permissionService;
@@ -50,7 +47,7 @@ public class PermissionManagementService : IPermissionManagementService
 
         // 2. Resolve Role Permissions from db to get Module
         var rolePermsDb = await _dbContext.RolePermissions
-            .Include(rp => rp.Service).ThenInclude(s => s.Module)
+            .Include(rp => rp.Service)
             .Where(rp => roleIds.Contains(rp.RoleId))
             .ToListAsync(cancellationToken);
 
@@ -61,14 +58,13 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!maxGrantedLevelPerResource.ContainsKey(rp.Resource) || maxGrantedLevelPerResource[rp.Resource].Level < rp.Level)
             {
-                maxGrantedLevelPerResource[rp.Resource] = (rp.Level, rp.Service.Module.ModuleKey);
             }
         }
 
         // Process Overrides using rawPermissions (already evaluated logic)
         // Wait, the overrides returned by rawPermissions are already the active ones for the user for the resolved scope hierarchy
         var overridesDb = await _dbContext.StaffPermissions
-            .Include(sp => sp.Service).ThenInclude(s => s.Module)
+            .Include(sp => sp.Service)
             .Where(sp => rawPermissions.Overrides.Select(o => o.Id).Contains(sp.Id))
             .ToListAsync(cancellationToken);
 
@@ -78,7 +74,6 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!maxGrantedLevelPerResource.ContainsKey(ov.Resource) || maxGrantedLevelPerResource[ov.Resource].Level < ov.Level)
             {
-                maxGrantedLevelPerResource[ov.Resource] = (ov.Level, ov.Service.Module.ModuleKey);
             }
         }
 
@@ -205,7 +200,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!existingRoles.Contains(roleId))
             {
-                var roleAssignment = new Domain.Users.StaffRoleAssignment(request.UserId, roleId, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
+                var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
                 _dbContext.StaffRoles.Add(roleAssignment);
             }
         }
@@ -221,7 +216,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!existingOverrides.Any(eo => eo.ServiceId == perm.ServiceId && eo.Resource == perm.Resource && eo.Type == perm.Type))
             {
-                var spOverride = new Domain.Users.StaffPermissionOverride(request.UserId, perm.ServiceId, perm.Resource, perm.Level, perm.Type, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
+                var spOverride = new StaffPermissionOverride(request.UserId, perm.ServiceId, perm.Resource, perm.Level, perm.Type, null, year, semester);
 
                 spOverride.Scopes.Add(new Domain.Identity.StaffPermissionScope
                 {
@@ -268,7 +263,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!currentRoles.Any(cr => cr.RoleId == roleId))
             {
-                var roleAssignment = new Domain.Users.StaffRoleAssignment(request.UserId, roleId, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
+                var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
                 _dbContext.StaffRoles.Add(roleAssignment);
             }
         }
@@ -307,7 +302,7 @@ public class PermissionManagementService : IPermissionManagementService
             }
             else
             {
-                var spOverride = new Domain.Users.StaffPermissionOverride(request.UserId, permToAdd.ServiceId, permToAdd.Resource, permToAdd.Level, permToAdd.Type, null, request.StructuralScope.FacultyId, request.StructuralScope.ProgramId, year, semester);
+                var spOverride = new StaffPermissionOverride(request.UserId, permToAdd.ServiceId, permToAdd.Resource, permToAdd.Level, permToAdd.Type, null, year, semester);
 
                 spOverride.Scopes.Add(new Domain.Identity.StaffPermissionScope
                 {

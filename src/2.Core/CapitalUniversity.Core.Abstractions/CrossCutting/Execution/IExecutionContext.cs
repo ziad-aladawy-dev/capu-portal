@@ -1,5 +1,6 @@
 using System;
 using CapitalUniversity.Core.Abstractions;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 

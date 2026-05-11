@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using CapitalUniversity.Core.Abstractions.Logging;
-using CapitalUniversity.Core.Domain.Common.Enums;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
+
+using CapitalUniversity.Core.Abstractions.Shared;
+
 using CapitalUniversity.Core.Domain.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
 using Microsoft.AspNetCore.Http;

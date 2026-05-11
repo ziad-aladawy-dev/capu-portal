@@ -1,7 +1,7 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
 
-namespace CapitalUniversity.Core.Domain.Users;
+namespace CapitalUniversity.Core.Domain.Authorization;
 
 public class StaffRoleAssignment : BaseEntity, IUserRoleAssignment
 {

@@ -1,9 +1,8 @@
-using System.Linq;
-using Riok.Mapperly.Abstractions;
-using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
+using CapitalUniversity.Core.Domain.Notifications;
+using Riok.Mapperly.Abstractions;
 
-namespace CapitalUniversity.Core.Application.Notifications;
+namespace CapitalUniversity.Core.Infrastructure.Services.Notifications;
 
 [Mapper]
 public partial class NotificationMapper

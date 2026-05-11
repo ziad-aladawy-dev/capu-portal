@@ -1,7 +1,10 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Abstractions.Cross-Cutting.Auth.Authorization;
+using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Users;
 
-namespace CapitalUniversity.Core.Domain.Users
+namespace CapitalUniversity.Core.Domain.Authorization
 {
 
     public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
@@ -12,6 +15,7 @@ namespace CapitalUniversity.Core.Domain.Users
         public Guid PermissionId { get; set; }
         public string Resource { get; private set; } = string.Empty;
         public ActionLevel Level { get; private set; }
+        public Guid? UniversityId { get; }
         public Guid? FacultyId { get; private set; }
         public Guid? ProgramId { get; private set; }
         public string Domain { get; private set; } = string.Empty;
