@@ -18,7 +18,23 @@ public interface IStructureNodeRepository
 
     Task SoftDeleteAsync(Guid id);
 
+    Task RecursiveSoftDeleteAsync(string path);
+
     Task<bool> ExistsAsync(Guid id);
 
     Task SaveChangesAsync();
+
+    Task<List<StructureNode>> GetDescendantsAsync(string path);
+
+    Task UpdateRangeAsync(List<StructureNode> nodes);
+
+    Task<List<StructureNode>> GetChildrenOnlyAsync(Guid parentId);
+
+    Task<List<StructureNode>> GetByIdsAsync(List<Guid> ids);
+
+    Task<List<StructureNode>> GetDescendantsTreeAsync(string path);
+
+    Task<List<StructureNode>> GetAncestorsAsync(List<Guid> ids);
+
+    Task<List<StructureNode>> GetSiblingsAsync(Guid? parentId);
 }

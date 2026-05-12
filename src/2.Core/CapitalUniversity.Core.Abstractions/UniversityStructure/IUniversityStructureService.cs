@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
+using CapitalUniversity.Core.Application.DTOs.UniversityStructure;
 
 namespace CapitalUniversity.Core.Abstractions.UniversityStructure;
 
@@ -13,4 +14,18 @@ public interface IUniversityStructureService
     Task UpdateNodeAsync(Guid id, UpdateStructureNodeRequest request);
 
     Task DeleteNodeAsync(Guid id);
+
+    Task MoveNodeAsync(Guid nodeId, MoveStructureNodeRequest request);
+
+    Task<List<StructureNodeDto>> GetRootsAsync();
+
+    Task<List<StructureNodeDto>> GetChildrenAsync(Guid parentId);
+
+    Task<List<BreadcrumbItemDto>> GetBreadcrumbAsync(Guid nodeId);
+
+    Task<StructureNodeDto?> GetSubTreeAsync(Guid nodeId);
+
+    Task<List<StructureNodeDto>> GetAncestorsChainAsync(Guid nodeId);
+
+    Task ReorderNodeAsync(Guid nodeId, ReorderNodeRequest request);
 }

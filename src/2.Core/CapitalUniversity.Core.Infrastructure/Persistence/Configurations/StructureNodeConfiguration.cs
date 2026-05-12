@@ -23,7 +23,11 @@ public class StructureNodeConfiguration : IEntityTypeConfiguration<StructureNode
             .HasDefaultValue(0);
 
         builder.Property(x => x.Path)
-            .HasMaxLength(2000);
+            .IsRequired()
+            .HasMaxLength(4000);
+
+        builder.Property(x => x.Depth)
+            .IsRequired();
 
         builder.Property(x => x.IsActive)
             .HasDefaultValue(true);
@@ -38,12 +42,14 @@ public class StructureNodeConfiguration : IEntityTypeConfiguration<StructureNode
 
         builder.HasIndex(x => x.ParentId);
 
-        builder.HasIndex(x => x.Type);
+        builder.HasIndex(x => x.Path);
 
-        builder.HasIndex(x => x.IsDeleted);
+        builder.HasIndex(x => x.Depth);
+
+        builder.HasIndex(x => x.Type);
 
         builder.HasIndex(x => x.Order);
 
-        builder.HasIndex(x => x.Path);
+        builder.HasIndex(x => x.IsDeleted);
     }
 }

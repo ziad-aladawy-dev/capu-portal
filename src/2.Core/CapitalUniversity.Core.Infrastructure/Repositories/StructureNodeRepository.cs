@@ -72,6 +72,24 @@ public class StructureNodeRepository : IStructureNodeRepository
         _context.StructureNodes.Update(node);
     }
 
+    public async Task RecursiveSoftDeleteAsync(string path)
+    {
+        var nodes = await _context.StructureNodes
+            .IgnoreQueryFilters()
+            .Where(x =>
+                x.Path.StartsWith(path) &&
+                !x.IsDeleted)
+            .ToListAsync();
+
+        foreach (var node in nodes)
+        {
+            node.IsDeleted = true;
+            node.UpdatedAt = DateTime.UtcNow;
+        }
+
+        _context.StructureNodes.UpdateRange(nodes);
+    }
+
     public async Task<bool> ExistsAsync(Guid id)
     {
         return await _context.StructureNodes
@@ -81,5 +99,68 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<StructureNode>> GetDescendantsAsync(string path)
+    {
+        return await _context.StructureNodes
+            .Where(x =>
+                x.Path.StartsWith(path) &&
+                !x.IsDeleted)
+            .ToListAsync();
+    }
+
+    public Task UpdateRangeAsync(List<StructureNode> nodes)
+    {
+        _context.StructureNodes.UpdateRange(nodes);
+
+        return Task.CompletedTask;
+    }
+
+    public async Task<List<StructureNode>> GetChildrenOnlyAsync(Guid parentId)
+    {
+        return await _context.StructureNodes
+            .Where(x =>
+                x.ParentId == parentId &&
+                !x.IsDeleted)
+            .OrderBy(x => x.Order)
+            .ToListAsync();
+    }
+
+    public async Task<List<StructureNode>> GetByIdsAsync(List<Guid> ids)
+    {
+        return await _context.StructureNodes
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+    }
+
+    public async Task<List<StructureNode>> GetDescendantsTreeAsync(string path)
+    {
+        return await _context.StructureNodes
+            .Where(x =>
+                x.Path.StartsWith(path) &&
+                !x.IsDeleted)
+            .OrderBy(x => x.Depth)
+            .ThenBy(x => x.Order)
+            .ToListAsync();
+    }
+
+    public async Task<List<StructureNode>> GetAncestorsAsync(List<Guid> ids)
+    {
+        return await _context.StructureNodes
+            .Where(x =>
+                ids.Contains(x.Id) &&
+                !x.IsDeleted)
+            .ToListAsync();
+    }
+
+    public async Task<List<StructureNode>> GetSiblingsAsync(Guid? parentId)
+    {
+        return await _context.StructureNodes
+            .Where(x =>
+                x.ParentId == parentId &&
+                !x.IsDeleted)
+            .OrderBy(x => x.Order)
+            .ToListAsync();
     }
 }
