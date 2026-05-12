@@ -15,17 +15,7 @@ public class Student : BaseEntity
 
     public DateTime EnrollmentDate { get; set; }
     public DateTime? GraduationDate { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
     public bool IsActive { get; set; } = true;
-
-    public Guid FacultyId { get; set; }
-    public Guid ProgramId { get; set; }
-    public Guid? LevelId { get; set; }
-    public Guid? CurrentAcademicYearId { get; set; }
-    public Guid? CurrentSemesterId { get; set; }
 
     public StudentStatusEnum Status { get; set; }
 

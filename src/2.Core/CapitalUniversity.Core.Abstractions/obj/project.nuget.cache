@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "rT/oxqnoQbs=",
+  "dgSpecHash": "80vKlUIHKvY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\menna\\source\\repos\\ziad-aladawy-dev\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+  "projectFilePath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\menna\\.nuget\\packages\\microsoft.aspnetcore.http\\2.3.0\\microsoft.aspnetcore.http.2.3.0.nupkg.sha512",
     "C:\\Users\\menna\\.nuget\\packages\\microsoft.aspnetcore.http.abstractions\\2.3.0\\microsoft.aspnetcore.http.abstractions.2.3.0.nupkg.sha512",

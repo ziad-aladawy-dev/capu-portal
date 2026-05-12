@@ -39,3 +39,16 @@ C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUnive
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\refint\CapitalUniversity.Core.Abstractions.dll
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
 C:\Users\menna\source\repos\ziad-aladawy-dev\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.AssemblyReference.cache
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.deps.json
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.dll
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\bin\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.AssemblyReference.cache
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfoInputs.cache
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.AssemblyInfo.cs
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.csproj.CoreCompileInputs.cache
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.sourcelink.json
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.dll
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\refint\CapitalUniversity.Core.Abstractions.dll
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\CapitalUniversity.Core.Abstractions.pdb
+D:\capu-portal\src\2.Core\CapitalUniversity.Core.Abstractions\obj\Debug\net9.0\ref\CapitalUniversity.Core.Abstractions.dll

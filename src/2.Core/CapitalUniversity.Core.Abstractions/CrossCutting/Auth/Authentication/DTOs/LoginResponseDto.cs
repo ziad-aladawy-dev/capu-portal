@@ -33,15 +33,13 @@ public class UserAttributesDto
 
 public class AuthorizedScopesDto
 {
-    public List<Guid> AllowedFacultyIds { get; set; } = new();
-    public List<Guid> AllowedProgramIds { get; set; } = new();
+    public List<Guid> AllowedNodeIds { get; set; } = new();
     public List<Guid> AllowedAcademicYearIds { get; set; } = new();
     public List<Guid> AllowedSemesterIds { get; set; } = new();
 }
 
 public class PermissionDto
 {
-    public string Key { get; set; } = string.Empty;
     public string Module { get; set; } = string.Empty;
     public string Resource { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
@@ -55,8 +53,7 @@ public class ActiveScopeDto
 
 public class StructuralScopeDto
 {
-    public Guid? FacultyId { get; set; }
-    public Guid? ProgramId { get; set; }
+    public Guid? NodeId { get; set; }
 }
 
 public class TemporalScopeDto

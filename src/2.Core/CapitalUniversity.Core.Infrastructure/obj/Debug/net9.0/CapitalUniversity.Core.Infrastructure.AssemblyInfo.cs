@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CapitalUniversity.Core.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+07157dd03a615ee099b2cf85230252a5f6757da8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+36136dcfcfb92a01d3c3b3694ba90bfdd3051d7c")]
 [assembly: System.Reflection.AssemblyProductAttribute("CapitalUniversity.Core.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CapitalUniversity.Core.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

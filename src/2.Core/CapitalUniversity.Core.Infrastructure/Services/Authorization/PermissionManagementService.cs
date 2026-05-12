@@ -97,7 +97,6 @@ public class PermissionManagementService : IPermissionManagementService
                 {
                     effectivePermissions.Add(new PermissionDto
                     {
-                        Key = $"{kvp.Value.Module}.{kvp.Key}.{action}",
                         Module = kvp.Value.Module,
                         Resource = kvp.Key,
                         Action = action

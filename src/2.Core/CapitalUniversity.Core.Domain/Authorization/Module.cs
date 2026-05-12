@@ -8,7 +8,6 @@ public class Module : BaseEntity
     public string DisplayName { get; set; } = string.Empty;
     public string? Icon { get; set; }
     public int? OrderNumber { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Service> Services { get; set; } = new List<Service>();
 

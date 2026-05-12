@@ -25,8 +25,7 @@ public class AuthorizationResponseBuilder : IAuthorizationResponseBuilder
 
         var scopes = new AuthorizedScopesDto
         {
-            AllowedFacultyIds = new List<Guid>(),
-            AllowedProgramIds = new List<Guid>(),
+            AllowedNodeIds = new List<Guid>(),
             AllowedAcademicYearIds = new List<Guid>(),
             AllowedSemesterIds = new List<Guid>()
         };
