@@ -1,4 +1,6 @@
-﻿using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
@@ -11,20 +13,31 @@ public class CoreDbContext : DbContext
 
     public DbSet<StructureNode> StructureNodes => Set<StructureNode>();
 
-    public DbSet<Student> Students => Set<Student>();
-
-    public DbSet<Staff> Staff => Set<Staff>();
+    public DbSet<Student> Students { get; set; }
+    public DbSet<Staff> Staffs { get; set; }
+    public DbSet<Module> Modules { get; set; }
+    public DbSet<Service> Services { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<RolePermissionScope> RolePermissionScopes { get; set; }
+    public DbSet<StaffRoleAssignment> StaffRoles { get; set; }
+    public DbSet<StaffPermissionOverride> StaffPermissions { get; set; }
+    public DbSet<StaffPermissionScope> StaffPermissionScopes { get; set; }
+    public DbSet<StaffPermissionOverride> StaffPermissionOverrides { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.ApplyConfiguration(new StructureNodeConfiguration());
-
-        modelBuilder.ApplyConfigurationsFromAssembly(
-            typeof(CoreDbContext).Assembly);
-
-        modelBuilder.Entity<StructureNode>()
-            .HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.ApplyConfiguration(new StudentConfiguration());
+        modelBuilder.ApplyConfiguration(new StaffConfiguration());
+        modelBuilder.ApplyConfiguration(new ModuleConfiguration());
+        modelBuilder.ApplyConfiguration(new ServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new RoleConfiguration());
+        modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());
+        modelBuilder.ApplyConfiguration(new RolePermissionScopeConfiguration());
+        modelBuilder.ApplyConfiguration(new StaffRoleConfiguration());
+        modelBuilder.ApplyConfiguration(new StaffPermissionConfiguration());
+        modelBuilder.ApplyConfiguration(new StaffPermissionScopeConfiguration());
+        
     }
 }

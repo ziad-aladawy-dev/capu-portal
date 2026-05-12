@@ -28,4 +28,5 @@ public class Staff : BaseEntity
     public StructureNode StructureNode { get; set; }
 
     public bool IsActive { get; set; }
+
 }

@@ -24,4 +24,5 @@ public class Student : BaseEntity
     public StructureNode StructureNode { get; set; }
 
     public bool IsActive { get; set; }
+    public DateTime? PasswordExpiry { get; set; }
 }

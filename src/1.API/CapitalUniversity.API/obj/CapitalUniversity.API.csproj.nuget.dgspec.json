@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\GitHub\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {}
+    "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {}
   },
   "projects": {
-    "D:\\GitHub\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {
+    "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
         "projectName": "CapitalUniversity.API",
-        "projectPath": "D:\\GitHub\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
-        "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\capu-portal\\src\\1.API\\CapitalUniversity.API\\obj\\",
+        "projectPath": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\CapitalUniversity.API.csproj",
+        "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+        "outputPath": "D:\\capu-portal\\src\\1.API\\CapitalUniversity.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -32,11 +32,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
               },
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj"
               }
             }
           }
@@ -51,7 +51,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net9.0": {
@@ -95,24 +95,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
         "projectName": "CapitalUniversity.Core.Abstractions",
-        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
-        "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj",
+        "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -126,11 +126,7 @@
         "frameworks": {
           "net9.0": {
             "targetAlias": "net9.0",
-            "projectReferences": {
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
-              }
-            }
+            "projectReferences": {}
           }
         },
         "warningProperties": {
@@ -143,11 +139,21 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.Http": {
+              "target": "Package",
+              "version": "[2.3.0, )"
+            },
+            "Microsoft.Extensions.DependencyInjection": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -164,24 +170,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
         "projectName": "CapitalUniversity.Core.Application",
-        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
-        "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj",
+        "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -196,11 +202,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -215,7 +221,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net9.0": {
@@ -258,24 +264,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
         "projectName": "CapitalUniversity.Core.Domain",
-        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
-        "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+        "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -289,7 +295,11 @@
         "frameworks": {
           "net9.0": {
             "targetAlias": "net9.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -302,11 +312,17 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "dependencies": {
+            "MongoDB.Bson": {
+              "target": "Package",
+              "version": "[3.8.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -323,24 +339,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
+    "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "projectUniqueName": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
         "projectName": "CapitalUniversity.Core.Infrastructure",
-        "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\3bdo3\\.nuget\\packages\\",
-        "outputPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
+        "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\CapitalUniversity.Core.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\menna\\.nuget\\packages\\",
+        "outputPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\3bdo3\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\menna\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -355,14 +371,14 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Abstractions\\CapitalUniversity.Core.Abstractions.csproj"
               },
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Application\\CapitalUniversity.Core.Application.csproj"
               },
-              "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
-                "projectPath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
+              "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj": {
+                "projectPath": "D:\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj"
               }
             }
           }
@@ -377,7 +393,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net9.0": {
@@ -412,6 +428,14 @@
             "Microsoft.Extensions.DependencyInjection.Abstractions": {
               "target": "Package",
               "version": "[9.0.0, )"
+            },
+            "MongoDB.Driver": {
+              "target": "Package",
+              "version": "[3.8.0, )"
+            },
+            "Riok.Mapperly": {
+              "target": "Package",
+              "version": "[5.0.0-next.7, )"
             }
           },
           "imports": [
@@ -430,7 +454,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

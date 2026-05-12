@@ -5,176 +5,372 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/staff": {
+    "/api/Notifications": {
       "get": {
         "tags": [
-          "Staff"
+          "Notifications"
         ],
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Notifications/unread": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Notifications/{id}/read": {
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "tags": [
+          "Permissions"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionDto"
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "tags": [
-          "Staff"
+          "Permissions"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStaffRequest"
+                "$ref": "#/components/schemas/CreatePermissionAssignmentRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStaffRequest"
+                "$ref": "#/components/schemas/CreatePermissionAssignmentRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStaffRequest"
+                "$ref": "#/components/schemas/CreatePermissionAssignmentRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/staff/{id}": {
+    "/api/permissions/assignment": {
       "get": {
         "tags": [
-          "Staff"
+          "Permissions"
         ],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
+            "name": "UserId",
+            "in": "query",
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "FacultyId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ProgramId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "AcademicYearId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "SemesterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "AllFaculties",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "AllPrograms",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "AlwaysActive",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "tags": [
-          "Staff"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
+          "Permissions"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStaffRequest"
+                "$ref": "#/components/schemas/UpdatePermissionAssignmentRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStaffRequest"
+                "$ref": "#/components/schemas/UpdatePermissionAssignmentRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStaffRequest"
+                "$ref": "#/components/schemas/UpdatePermissionAssignmentRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionAssignmentResponse"
+                }
+              }
+            }
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/api/roles": {
+      "get": {
         "tags": [
-          "Staff"
+          "Roles"
         ],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
+            "name": "Page",
+            "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/students": {
-      "get": {
-        "tags": [
-          "Students"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedRoleResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedRoleResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedRoleResponse"
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "tags": [
-          "Students"
+          "Roles"
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStudentRequest"
+                "$ref": "#/components/schemas/CreateRoleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStudentRequest"
+                "$ref": "#/components/schemas/CreateRoleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStudentRequest"
+                "$ref": "#/components/schemas/CreateRoleRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRoleResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRoleResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRoleResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/students/{id}": {
+    "/api/roles/{id}": {
       "get": {
         "tags": [
-          "Students"
+          "Roles"
         ],
         "parameters": [
           {
@@ -189,13 +385,30 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "tags": [
-          "Students"
+          "Roles"
         ],
         "parameters": [
           {
@@ -212,30 +425,47 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStudentRequest"
+                "$ref": "#/components/schemas/UpdateRoleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStudentRequest"
+                "$ref": "#/components/schemas/UpdateRoleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStudentRequest"
+                "$ref": "#/components/schemas/UpdateRoleRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRoleResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRoleResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRoleResponse"
+                }
+              }
+            }
           }
         }
       },
       "delete": {
         "tags": [
-          "Students"
+          "Roles"
         ],
         "parameters": [
           {
@@ -381,236 +611,73 @@
           }
         }
       }
-    },
-    "/api/university-structure/move/{id}": {
-      "put": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoveStructureNodeRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoveStructureNodeRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoveStructureNodeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/roots": {
-      "get": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/children/{id}": {
-      "get": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/breadcrumb/{id}": {
-      "get": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/subtree/{id}": {
-      "get": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/ancestors/{id}": {
-      "get": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/university-structure/reorder/{id}": {
-      "put": {
-        "tags": [
-          "UniversityStructure"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderNodeRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderNodeRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderNodeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
-      "CreateStaffRequest": {
+      "ActionLevel": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "CreatePermissionAssignmentRequest": {
         "type": "object",
         "properties": {
-          "employeeCode": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "permissionOverrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionOverrideModel"
+            },
+            "nullable": true
+          },
+          "structuralScope": {
+            "$ref": "#/components/schemas/StructuralScopeModel"
+          },
+          "temporalScope": {
+            "$ref": "#/components/schemas/TemporalScopeModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateRoleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string",
             "nullable": true
-          },
-          "nationalId": {
-            "type": "string",
-            "nullable": true
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "role": {
-            "type": "string",
-            "nullable": true
-          },
-          "jobTitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "structureNodeId": {
-            "type": "string",
-            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -637,61 +704,139 @@
         },
         "additionalProperties": false
       },
-      "CreateStudentRequest": {
+      "OverrideType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PagedRoleResponse": {
         "type": "object",
         "properties": {
-          "studentCode": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponse"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionAssignmentResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "permissionOverrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionOverrideModel"
+            },
+            "nullable": true
+          },
+          "structuralScope": {
+            "$ref": "#/components/schemas/StructuralScopeModel"
+          },
+          "temporalScope": {
+            "$ref": "#/components/schemas/TemporalScopeModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
             "type": "string",
             "nullable": true
+          },
+          "module": {
+            "type": "string",
+            "nullable": true
+          },
+          "resource": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PermissionOverrideModel": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource": {
+            "type": "string",
+            "nullable": true
+          },
+          "level": {
+            "$ref": "#/components/schemas/ActionLevel"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OverrideType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string",
             "nullable": true
           },
-          "nationalId": {
-            "type": "string",
-            "nullable": true
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "structureNodeId": {
-            "type": "string",
-            "format": "uuid"
+          "isSystemRole": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
-      "MoveStructureNodeRequest": {
+      "StructuralScopeModel": {
         "type": "object",
         "properties": {
-          "newParentId": {
+          "facultyId": {
             "type": "string",
             "format": "uuid",
             "nullable": true
           },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "ReorderNodeRequest": {
-        "type": "object",
-        "properties": {
-          "newOrder": {
-            "type": "integer",
-            "format": "int32"
+          "allFaculties": {
+            "type": "boolean"
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "allPrograms": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -711,43 +856,95 @@
         "type": "integer",
         "format": "int32"
       },
-      "UpdateStaffRequest": {
+      "TemporalScopeModel": {
         "type": "object",
         "properties": {
-          "name": {
+          "academicYearId": {
             "type": "string",
+            "format": "uuid",
             "nullable": true
           },
-          "nationalId": {
+          "semesterId": {
             "type": "string",
+            "format": "uuid",
             "nullable": true
           },
-          "birthDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "role": {
-            "type": "string",
-            "nullable": true
-          },
-          "jobTitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "structureNodeId": {
+          "alwaysActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdatePermissionAssignmentRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
             "type": "string",
             "format": "uuid"
           },
-          "isActive": {
-            "type": "boolean"
+          "rolesToAdd": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "rolesToRemove": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          },
+          "permissionsToAdd": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionOverrideModel"
+            },
+            "nullable": true
+          },
+          "permissionsToRemove": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionOverrideModel"
+            },
+            "nullable": true
+          },
+          "structuralScope": {
+            "$ref": "#/components/schemas/StructuralScopeModel"
+          },
+          "temporalScope": {
+            "$ref": "#/components/schemas/TemporalScopeModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateRoleRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateRoleResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -765,39 +962,6 @@
           "order": {
             "type": "integer",
             "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateStudentRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "nationalId": {
-            "type": "string",
-            "nullable": true
-          },
-          "birthDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "phoneNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "structureNodeId": {
-            "type": "string",
-            "format": "uuid"
           },
           "isActive": {
             "type": "boolean"
