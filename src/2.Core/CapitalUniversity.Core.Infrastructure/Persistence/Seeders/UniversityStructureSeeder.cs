@@ -1,5 +1,6 @@
-﻿using CapitalUniversity.Core.Domain.UniversityStructure;
-using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+﻿using CapitalUniversity.Core.Abstractions.UniversityStructure.Enums;
+using CapitalUniversity.Core.Domain.UniversityStructure;
+
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 

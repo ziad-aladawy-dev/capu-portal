@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Application.StaffManagement;
 using CapitalUniversity.Core.Application.Students;
 using CapitalUniversity.Core.Application.UniversityStructure;
+using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Infrastructure.Repositories;
 
 using Microsoft.Extensions.DependencyInjection;

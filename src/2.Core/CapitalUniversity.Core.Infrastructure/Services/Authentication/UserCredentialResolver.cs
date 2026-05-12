@@ -1,5 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
-using CapitalUniversity.Core.Domain.Users;
+using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,7 +48,7 @@ public class StudentUserCredential : IUserCredential
     public Guid Id => _student.Id;
     public string Identifier => _student.NationalId;
     public string PasswordHash => _student.PasswordHash ?? string.Empty;
-    public DateTime PasswordExpiry => _student.PasswordExpiry ?? _student.CreatedAt.AddDays(365);
+    public DateTime? PasswordExpiry => _student.PasswordExpiry ?? _student.CreatedAt.AddDays(365);
     public string Role => "Student";
     public string Name => _student.Name;
     public string Email => _student.Email;
@@ -67,11 +67,9 @@ public class StaffUserCredential : IUserCredential
     public Guid Id => _staff.Id;
     public string Identifier => _staff.NationalId;
     public string PasswordHash => _staff.PasswordHash ?? string.Empty;
-    public DateTime PasswordExpiry => _staff.PasswordExpiry ?? DateTime.UtcNow.AddDays(90);
+    public DateTime? PasswordExpiry => null;
     public string Role => "Staff";
     public string Name => _staff.Name;
     public string Email => _staff.Email ?? string.Empty;
-    public string UniAttribute => _staff.UniversityId.ToString();
-    public string FacultyAttribute => _staff.FacultyId?.ToString() ?? string.Empty;
-    public string DepartmentAttribute => _staff.ProgramId?.ToString() ?? string.Empty;
+
 }

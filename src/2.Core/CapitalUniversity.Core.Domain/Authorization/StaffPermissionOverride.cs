@@ -2,7 +2,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Users;
+using Staff = CapitalUniversity.Core.Domain.Identity.Staff;
 
 namespace CapitalUniversity.Core.Domain.Authorization
 {

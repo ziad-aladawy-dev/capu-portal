@@ -16,14 +16,14 @@ public class StaffRepository : IStaffRepository
 
     public async Task<Staff?> GetByIdAsync(Guid id)
     {
-        return await _context.Staff
+        return await _context.Staffs
             .Include(x => x.StructureNode)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<List<Staff>> GetAllAsync()
     {
-        return await _context.Staff
+        return await _context.Staffs
             .Include(x => x.StructureNode)
             .OrderBy(x => x.EmployeeCode)
             .ToListAsync();
@@ -31,12 +31,12 @@ public class StaffRepository : IStaffRepository
 
     public async Task AddAsync(Staff staff)
     {
-        await _context.Staff.AddAsync(staff);
+        await _context.Staffs.AddAsync(staff);
     }
 
     public Task UpdateAsync(Staff staff)
     {
-        _context.Staff.Update(staff);
+        _context.Staffs.Update(staff);
 
         return Task.CompletedTask;
     }
@@ -51,19 +51,19 @@ public class StaffRepository : IStaffRepository
         staff.IsDeleted = true;
         staff.UpdatedAt = DateTime.UtcNow;
 
-        _context.Staff.Update(staff);
+        _context.Staffs.Update(staff);
     }
 
     public async Task<bool> ExistsAsync(Guid id)
     {
-        return await _context.Staff
+        return await _context.Staffs
             .AnyAsync(x => x.Id == id);
     }
 
     public async Task<bool> EmployeeCodeExistsAsync(
         string employeeCode)
     {
-        return await _context.Staff
+        return await _context.Staffs
             .AnyAsync(x =>
                 x.EmployeeCode == employeeCode);
     }

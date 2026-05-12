@@ -2,7 +2,6 @@ using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.UniversityStructure;
-using CapitalUniversity.Core.Domain.Users;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 

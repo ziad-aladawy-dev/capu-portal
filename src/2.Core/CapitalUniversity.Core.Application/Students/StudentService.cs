@@ -2,6 +2,7 @@
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Repositories;
 
 namespace CapitalUniversity.Core.Application.Students;
 

@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Domain.Users;
+﻿using CapitalUniversity.Core.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System.Data;
