@@ -246,3 +246,33 @@
     padding: 12px;
   }
 }
+
+.scope-trigger {
+  min-width: 240px;
+  max-width: 280px;
+}
+
+.scope-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.scope-content strong {
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope-content small {
+  font-size: 8px;
+  color: rgba(255,255,255,0.48);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

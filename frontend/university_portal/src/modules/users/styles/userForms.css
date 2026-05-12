@@ -1,0 +1,255 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
+
+.add-user-page {
+  min-height: 100%;
+  background: #f5f6fa;
+  font-family: "DM Sans", sans-serif;
+  color: #1a1f5e;
+}
+
+.page-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  color: white;
+  border-radius: 16px;
+  padding: 15px 17px;
+  margin-bottom: 12px;
+  box-shadow: 0 12px 26px rgba(26, 31, 94, 0.14);
+}
+
+.header-content { display: flex; align-items: center; gap: 11px; }
+.header-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(224, 192, 106, 0.14);
+  color: #e0c06a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-text h1 {
+  margin: 0;
+  font-size: 19px;
+  font-family: "Space Mono", monospace;
+}
+.header-text p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+}
+.gold-line { width: 38px; height: 2px; margin-top: 5px; background: linear-gradient(90deg, #c9a84c, #e0c06a); border-radius: 2px; }
+
+.form-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(26, 31, 94, 0.045);
+}
+.form-header {
+  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.form-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(224, 192, 106, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-title-wrapper h3 {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #e0c06a;
+  font-family: "Space Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.form-title-wrapper p { margin: 3px 0 0; font-size: 10.5px; color: rgba(255,255,255,0.62); }
+.form-body { padding: 15px; }
+.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.form-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #1a1f5e;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
+}
+.input-wrapper { position: relative; }
+.input-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}
+.form-input,
+.form-select {
+  width: 100%;
+  height: 36px;
+  padding: 0 11px 0 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 12px;
+  font-family: "DM Sans", sans-serif;
+  transition: 0.2s ease;
+  background: #f8f9fb;
+  color: #1a1f5e;
+  outline: none;
+}
+.form-select {
+  cursor: pointer;
+  padding-right: 36px;
+  appearance: none;
+}
+.form-input:focus,
+.form-select:focus {
+  border-color: #c9a84c;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+}
+.form-input.error,
+.form-select.error { border-color: #dc2626; background: #fff7f7; }
+.error-message { color: #dc2626; font-size: 10.5px; margin-top: 5px; }
+.input-hint { font-size: 10.5px; color: #6b7280; margin-top: 5px; display: block; }
+.full-width { grid-column: 1 / -1; }
+
+.submit-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  padding: 14px;
+  text-align: right;
+  box-shadow: 0 4px 16px rgba(26, 31, 94, 0.045);
+}
+.submit-button {
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  color: #1a1f5e;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.2s ease;
+}
+.submit-button:hover:not(:disabled) { transform: translateY(-1px); }
+.submit-button:disabled { opacity: 0.7; cursor: not-allowed; }
+.button-spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(26, 31, 94, 0.3);
+  border-top-color: #1a1f5e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 31, 94, 0.6);
+  backdrop-filter: blur(7px);
+  z-index: 9998;
+}
+.success-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 34px 42px;
+  border-radius: 18px;
+  box-shadow: 0 25px 70px rgba(26, 31, 94, 0.3);
+  z-index: 9999;
+  text-align: center;
+}
+.success-icon {
+  width: 66px;
+  height: 66px;
+  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.success-text { color: #1a1f5e; font-size: 19px; font-weight: 800; margin-bottom: 8px; font-family: "Space Mono", monospace; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1100px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+  .page-container { padding: 12px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-body { padding: 12px; }
+  .submit-section { text-align: stretch; }
+  .submit-button { width: 100%; justify-content: center; }
+  .success-message { width: calc(100% - 32px); padding: 28px 20px; }
+}
+
+.account-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.account-status-toggle input {
+  display: none;
+}
+
+.account-status-switch {
+  width: 42px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.18);
+  position: relative;
+  transition: 0.25s ease;
+}
+
+.account-status-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.25s ease;
+}
+
+.account-status-toggle input:checked + .account-status-switch {
+  background: rgba(22, 163, 74, 0.18);
+}
+
+.account-status-toggle input:checked + .account-status-switch .account-status-dot {
+  left: 22px;
+  background: #16a34a;
+}
+
+.account-status-text {
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+}
