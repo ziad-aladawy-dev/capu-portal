@@ -100,7 +100,8 @@ body {
 }
 
 .login-page .login-container {
-  max-width: 760px;
+  max-width: 800px;
+  min-height: 530px;
   width: 100%;
   display: grid;
   grid-template-columns: 0.9fr 1fr;
@@ -167,7 +168,9 @@ body {
   animation: slideUp 0.8s ease 0.3s both;
 }
 
+/* ✅ FIX: display:block ensures children stack vertically */
 .login-page .form-header {
+  display: block;
   text-align: center;
   margin-bottom: 30px;
   background: transparent;
@@ -178,8 +181,9 @@ body {
   font-size: 26px;
   font-weight: 800;
   color: #1a1f5e;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-family: "Space Mono", monospace;
+  line-height: 1.3;
 }
 
 .login-page .gold-line {
@@ -188,13 +192,6 @@ body {
   background: linear-gradient(90deg, #c9a84c, #e0c06a);
   border-radius: 2px;
   margin: 0 auto 12px;
-}
-
-.login-page .form-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 4px;
 }
 
 .login-page .form-subtitle {

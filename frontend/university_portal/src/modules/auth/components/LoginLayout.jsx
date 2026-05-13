@@ -8,7 +8,6 @@ function LoginLayout({
   type,
   title,
   subtitle,
-  description,
   redirectPath,
   contactText,
 }) {
@@ -28,8 +27,7 @@ function LoginLayout({
           <div className="form-header">
             <h1 className="welcome-text">{title}</h1>
             <div className="gold-line" />
-            <h2 className="form-title">{subtitle}</h2>
-            <p className="form-subtitle">{description}</p>
+            <p className="form-subtitle">{subtitle}</p>
           </div>
 
           <LoginForm

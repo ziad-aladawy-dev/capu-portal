@@ -1,31 +1,45 @@
 :root {
   --navbar-height: 72px;
   --sidebar-width: 280px;
+
   --navy-primary: #1a1f5e;
   --navy-accent: #2e3591;
+
+  --gold: #c9a84c;
   --gold-light: #e0c06a;
+
   --shadow-md: 0 8px 24px rgba(26, 31, 94, 0.18);
 
-  @media (max-width: 1024px) {
+  --heading: "Space Mono", monospace;
+  --body-font: "DM Sans", sans-serif;
+
+  --text-h: #1a1f5e;
+  --code-bg: #eef3fb;
+  --mono: "Space Mono", monospace;
+}
+
+@media (max-width: 1024px) {
+  :root {
     font-size: 16px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-  --navbar-height: 74px;
+    --navbar-height: 74px;
 
-  --sidebar-width: 280px;
+    --sidebar-width: 280px;
 
-  --navy-primary: #1a1f5e;
+    --navy-primary: #1a1f5e;
 
-  --navy-accent: #2e3591;
+    --navy-accent: #2e3591;
 
-  --gold: #c9a84c;
+    --gold: #c9a84c;
 
-  --gold-light: #e0c06a;
+    --gold-light: #e0c06a;
 
-  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.12);
+  }
 }
 
 * {
@@ -34,42 +48,59 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: "DM Sans", sans-serif;
-
-  background: #f4f5f7;
-}
-
+html,
+body,
 #root {
   width: 100%;
   min-height: 100vh;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+body {
+  font-family: var(--body-font);
+  background: #f4f5f7;
+  overflow-x: hidden;
 }
 
-h1 {
+/* IMPORTANT */
+/* متعمليش global styles على كل h1 */
+/* خليها مخصوصة للـ landing بس */
+
+.landing-page h1 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: #ffffff;
+
   font-size: 56px;
   letter-spacing: -1.68px;
+
   margin: 32px 0;
-  @media (max-width: 1024px) {
+}
+
+@media (max-width: 1024px) {
+  .landing-page h1 {
     font-size: 36px;
     margin: 20px 0;
   }
 }
-h2 {
+
+.landing-page h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+
   font-size: 24px;
   line-height: 118%;
   letter-spacing: -0.24px;
+
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
+}
+
+@media (max-width: 1024px) {
+  .landing-page h2 {
     font-size: 20px;
   }
 }
+
 p {
   margin: 0;
 }

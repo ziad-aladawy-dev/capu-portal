@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 function LandingNavbar() {
   const navigate = useNavigate();
@@ -23,18 +23,24 @@ function LandingNavbar() {
     };
   }, []);
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
+  const goToLogin = () => {
+    navigate("/admin/login");
+    closeMobileMenu();
+  };
+
   return (
-    <header className={scrolled ? "landing-navbar scrolled" : "landing-navbar"}>
+    <header className={`landing-navbar ${scrolled ? "scrolled" : ""}`}>
       <div className="navbar-container">
         <div className="navbar-brand">
-          <div className="navbar-logo">
-            <GraduationCap size={26} />
-          </div>
-
-          <div>
-            <h2>Capital University</h2>
-            <p>Official University Portal</p>
-          </div>
+          <img
+            src="/images/UniLogo2.png"
+            alt="Capital University"
+            className="navbar-logo-img"
+          />
         </div>
 
         {!isMobile && (
@@ -50,13 +56,16 @@ function LandingNavbar() {
         )}
 
         {!isMobile && (
-          <button className="login-btn" onClick={() => navigate("/admin/login")}>
+          <button className="login-btn" onClick={goToLogin}>
             Login
           </button>
         )}
 
         {isMobile && (
-          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)}>
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(true)}
+          >
             <Menu size={22} />
           </button>
         )}
@@ -66,7 +75,8 @@ function LandingNavbar() {
         <div className="mobile-menu">
           <div className="mobile-menu-header">
             <span>Menu</span>
-            <button onClick={() => setMobileMenuOpen(false)}>
+
+            <button onClick={closeMobileMenu}>
               <X size={18} />
             </button>
           </div>
@@ -80,7 +90,7 @@ function LandingNavbar() {
             <span>News</span>
             <span>Contact</span>
 
-            <button onClick={() => navigate("/admin/login")}>Login</button>
+            <button onClick={goToLogin}>Login</button>
           </div>
         </div>
       )}

@@ -32,7 +32,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
       key: "administration",
       title: "Administration",
       items: [
-        { label: "University Structure", path: "/admin/faculties", icon: <Building2 size={13} /> },
+        { label: "University Structure", path: "/admin/university-structure", icon: <Building2 size={13} /> },
         { label: "Users Management", path: "/admin/users", icon: <Users size={13} /> },
         { label: "Add Student", path: "/admin/users/add-student", icon: <UserPlus size={13} /> },
         { label: "Add Staff", path: "/admin/users/add-staff", icon: <UserPlus size={13} /> },

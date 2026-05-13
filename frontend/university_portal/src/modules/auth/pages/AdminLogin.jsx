@@ -4,10 +4,9 @@ function AdminLogin() {
   return (
     <LoginLayout
       type="admin"
-      title="Admin Login"
-      subtitle="Staff / Administrator Access"
-      description="Enter your credentials to access the dashboard"
-      redirectPath="/dashboard"
+      title="Admin / Staff Portal"
+      subtitle="Enter your credentials to continue"
+      redirectPath="/admin/dashboard"
       contactText="Contact system admin"
     />
   );

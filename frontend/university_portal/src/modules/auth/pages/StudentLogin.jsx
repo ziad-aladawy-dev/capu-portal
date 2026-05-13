@@ -4,9 +4,8 @@ function StudentLogin() {
   return (
     <LoginLayout
       type="student"
-      title="Student Login"
-      subtitle="Student Portal Access"
-      description="Enter your credentials to access student dashboard"
+      title="Student Portal"
+      subtitle="Enter your credentials to continue"
       redirectPath="/student/profile"
       contactText="Contact admission office"
     />
