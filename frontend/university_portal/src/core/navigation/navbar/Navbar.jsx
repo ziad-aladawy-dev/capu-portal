@@ -11,11 +11,8 @@ import {
 import "./navbar.css";
 
 function Navbar({ onToggleSidebar }) {
-  const selectedUniversity = "Capital University";
 
-const selectedFaculty = "Faculty of Engineering";
-
-const selectedProgram = "Software Engineering";
+const currentScope = "Faculty of Engineering";
   const selectedYear = "2025-2026";
   const selectedSemester = "Fall Semester";
 
@@ -33,34 +30,14 @@ const selectedProgram = "Software Engineering";
   <Building2 size={15} />
 
   <div>
-    <span className="nav-label">University</span>
-    <strong>{selectedUniversity}</strong>
+    <span className="nav-label">Current Scope</span>
+    <strong>{currentScope}</strong>
   </div>
 
   <ChevronDown size={13} />
 </div>
 
-<div className="nav-dropdown-trigger">
-  <BookOpen size={15} />
 
-  <div>
-    <span className="nav-label">Faculty</span>
-    <strong>{selectedFaculty}</strong>
-  </div>
-
-  <ChevronDown size={13} />
-</div>
-
-<div className="nav-dropdown-trigger small">
-  <BookOpen size={15} />
-
-  <div>
-    <span className="nav-label">Program</span>
-    <strong>{selectedProgram}</strong>
-  </div>
-
-  <ChevronDown size={13} />
-</div>
 
         <div className="nav-dropdown-trigger small">
           <CalendarRange size={15} />
