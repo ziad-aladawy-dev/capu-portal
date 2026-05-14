@@ -25,9 +25,9 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
     {
         var relevantOverrides = overrides
             .Where(o => (o.Resource == resource || o.Resource == "*") && 
-                        o.UniversityId == scope.UniversityId && 
-                        o.FacultyId == scope.FacultyId && 
-                        o.ProgramId == scope.ProgramId && 
+                        !string.IsNullOrEmpty(scope.StructureNodePath) &&
+                        !string.IsNullOrEmpty(o.StructureNodePath) &&
+                        (scope.StructureNodePath + "/").StartsWith(o.StructureNodePath + "/") &&
                         o.Year == scope.Year && 
                         o.Semester == scope.Semester)
             .ToList();
@@ -59,9 +59,9 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
 
 
         var matchingAssignments = assignments
-            .Where(a => a.UniversityId == scope.UniversityId && 
-                        a.FacultyId == scope.FacultyId && 
-                        a.ProgramId == scope.ProgramId && 
+            .Where(a => !string.IsNullOrEmpty(scope.StructureNodePath) &&
+                        !string.IsNullOrEmpty(a.StructureNodePath) &&
+                        (scope.StructureNodePath + "/").StartsWith(a.StructureNodePath + "/") &&
                         a.Year == scope.Year && 
                         a.Semester == scope.Semester)
             .ToList();
@@ -122,7 +122,7 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
     private void LogDecision(Guid userId, string operation, string resource, bool isAllowed, SourceType sourceType, Guid? sourceId, AuthorizationScope scope)
     {
         var resultText = isAllowed ? "ALLOW" : "DENY";
-        var scopeInfo = $"Uni:{scope.UniversityId}, Fac:{scope.FacultyId}, Prog:{scope.ProgramId}, Year:{scope.Year}, Sem:{scope.Semester}";
+        var scopeInfo = $"Node:{scope.StructureNodeId}, Year:{scope.Year}, Sem:{scope.Semester}";
         var message = $"AuthZ Decision: {resultText} | Source: {sourceType} ({sourceId}) | Scope: {scopeInfo}";
 
         _logger.LogInformation(message, resource);

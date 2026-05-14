@@ -6,8 +6,7 @@ public interface IRequestContext
 {
     Guid? UserId { get; }
     string Role { get; }
-    Guid? ActiveFacultyId { get; }
-    Guid? ActiveProgramId { get; }
+    Guid? ActiveStructureNodeId { get; }
     Guid? ActiveAcademicYearId { get; }
     Guid? ActiveSemesterId { get; }
 }

@@ -2,15 +2,11 @@ using System;
 using System.Collections.Generic;
 using CapitalUniversity.Core.Abstractions.Shared;
 
-namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs
-;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 
 public class StructuralScopeModel
 {
-    public Guid? FacultyId { get; set; }
-    public bool AllFaculties { get; set; }
-    public Guid? ProgramId { get; set; }
-    public bool AllPrograms { get; set; }
+    public Guid? StructureNodeId { get; set; }
 }
 
 public class TemporalScopeModel
@@ -23,12 +19,9 @@ public class TemporalScopeModel
 public class GetPermissionAssignmentQueryDto
 {
     public Guid UserId { get; set; }
-    public Guid? FacultyId { get; set; }
-    public Guid? ProgramId { get; set; }
+    public Guid? StructureNodeId { get; set; }
     public Guid? AcademicYearId { get; set; }
     public Guid? SemesterId { get; set; }
-    public bool AllFaculties { get; set; }
-    public bool AllPrograms { get; set; }
     public bool AlwaysActive { get; set; }
 }
 
@@ -58,7 +51,6 @@ public class UpdatePermissionAssignmentRequest
 
     public List<PermissionOverrideModel> PermissionsToAdd { get; set; } = new();
 
-    // For overrides to remove, we could pass the ServiceId and Resource to identify them
     public List<PermissionOverrideModel> PermissionsToRemove { get; set; } = new();
 
     public StructuralScopeModel StructuralScope { get; set; } = new();

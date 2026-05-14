@@ -17,6 +17,7 @@ public class UserCredentialResolver : IUserCredentialResolver
     public async Task<IUserCredential> ResolveCredentialAsync(string identifier, CancellationToken cancellationToken = default)
     {
         var student = await _dbContext.Students
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.NationalId == identifier , cancellationToken);
 
         if (student != null)
@@ -25,6 +26,7 @@ public class UserCredentialResolver : IUserCredentialResolver
         }
 
         var staff = await _dbContext.Staffs
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.NationalId == identifier, cancellationToken);
 
         if (staff != null)
