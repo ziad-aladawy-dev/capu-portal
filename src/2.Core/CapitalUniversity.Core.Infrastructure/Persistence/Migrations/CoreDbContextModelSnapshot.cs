@@ -22,6 +22,290 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Module", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModuleKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("OrderNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleKey")
+                        .IsUnique();
+
+                    b.ToTable("Modules", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PermissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("RoleId", "ServiceId")
+                        .IsUnique();
+
+                    b.ToTable("RolePermissions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermissionScope", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("FacultyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ProgramId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RolePermissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RolePermissionId");
+
+                    b.ToTable("RolePermissionScopes", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Service", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OrderNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId", "OrderNumber")
+                        .IsUnique();
+
+                    b.ToTable("Services", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PermissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Semester")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("StructureNodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StructureNodePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Year")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffPermissions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffRoleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Semester")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("StructureNodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StructureNodePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Year")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffRoles", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystemRole")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Staff", b =>
                 {
                     b.Property<Guid>("Id")
@@ -99,6 +383,37 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("Staff", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.StaffPermissionScope", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("FacultyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ProgramId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StaffPermissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffPermissionId");
+
+                    b.ToTable("StaffPermissionScopes", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Student", b =>
                 {
                     b.Property<Guid>("Id")
@@ -131,6 +446,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("PasswordExpiry")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -166,6 +484,67 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("Students", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Services.Service", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Service");
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -179,31 +558,24 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Order")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Path")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -213,19 +585,84 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Depth");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("Order");
-
                     b.HasIndex("ParentId");
 
-                    b.HasIndex("Path");
+                    b.ToTable("StructureNodes");
+                });
 
-                    b.HasIndex("Type");
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.ToTable("StructureNodes", (string)null);
+                    b.HasOne("CapitalUniversity.Core.Domain.Services.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermissionScope", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.RolePermission", "RolePermission")
+                        .WithMany("Scopes")
+                        .HasForeignKey("RolePermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RolePermission");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Service", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.Module", "Module")
+                        .WithMany("Services")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Services.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffRoleAssignment", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Staff", null)
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Staff", b =>
@@ -237,6 +674,17 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("StructureNode");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.StaffPermissionScope", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", "StaffPermission")
+                        .WithMany("Scopes")
+                        .HasForeignKey("StaffPermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StaffPermission");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Student", b =>
@@ -254,10 +702,24 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", "Parent")
                         .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ParentId");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Module", b =>
+                {
+                    b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+                {
+                    b.Navigation("Scopes");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
+                {
+                    b.Navigation("Scopes");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>

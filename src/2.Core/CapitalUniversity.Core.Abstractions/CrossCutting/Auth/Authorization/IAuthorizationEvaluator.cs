@@ -23,9 +23,8 @@ public interface IUserPermissionOverride
     Guid Id { get; }
     string Resource { get; }
     ActionLevel Level { get; }
-    Guid? UniversityId { get; }
-    Guid? FacultyId { get; }
-    Guid? ProgramId { get; }
+    Guid? StructureNodeId { get; }
+    string? StructureNodePath { get; }
     string Year { get; }
     string Semester { get; }
     OverrideType Type { get; }
@@ -34,9 +33,8 @@ public interface IUserPermissionOverride
 public interface IUserRoleAssignment
 {
     Guid RoleId { get; }
-    Guid? UniversityId { get; }
-    Guid? FacultyId { get; }
-    Guid? ProgramId { get; }
+    Guid? StructureNodeId { get; }
+    string? StructureNodePath { get; }
     string Year { get; }
     string Semester { get; }
 }

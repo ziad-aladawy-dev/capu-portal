@@ -1,49 +1,91 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Localization
 {
-    // Simple dummy class to attach resources to, if needed.
     public class SharedResource {}
 
     public class LocalizationService : ILocalizationService
     {
         private const string DefaultLanguage = "ar";
+        private const string EnglishLanguage = "en";
         private readonly ICurrentCultureService _culture;
+        private readonly ILogger<LocalizationService> _logger;
 
-        public LocalizationService(ICurrentCultureService culture)
+        private static readonly ConcurrentDictionary<Enum, string> ArabicCache = new();
+        private static readonly ConcurrentDictionary<Enum, string> EnglishCache = new();
+
+        public LocalizationService(ICurrentCultureService culture, ILogger<LocalizationService> logger)
         {
             _culture = culture;
+            _logger = logger;
         }
 
         public T Get<T>(string json)
         {
-            var lang = _culture.Language;
+            if (string.IsNullOrWhiteSpace(json))
+                return default!;
 
-            var dict = JsonSerializer.Deserialize<Dictionary<string, T>>(json);
+            try
+            {
+                var lang = _culture.Language?.ToLowerInvariant() ?? DefaultLanguage;
+                var dict = JsonSerializer.Deserialize<Dictionary<string, T>>(json);
 
-            if (dict != null && dict.TryGetValue(lang, out var value))
-                return value;
+                if (dict == null)
+                    return default!;
 
-            return dict != null && dict.ContainsKey(DefaultLanguage) ? dict[DefaultLanguage] : default!;
+                if (dict.TryGetValue(lang, out var value))
+                    return value;
+
+                // Fallback to Default (Arabic)
+                if (dict.TryGetValue(DefaultLanguage, out var defaultValue))
+                    return defaultValue;
+
+                // Fallback to English if Arabic is also missing
+                if (dict.TryGetValue(EnglishLanguage, out var enValue))
+                    return enValue;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize localized JSON: {Json}", json);
+            }
+
+            return default!;
         }
 
         public string Get(Enum value)
         {
-            var lang = _culture.Language;
+            if (value == null) return string.Empty;
+
+            var lang = _culture.Language?.ToLowerInvariant() ?? DefaultLanguage;
+            var cache = lang == EnglishLanguage ? EnglishCache : ArabicCache;
+
+            if (cache.TryGetValue(value, out var cachedValue))
+                return cachedValue;
 
             var field = value.GetType().GetField(value.ToString());
             var attr = field?.GetCustomAttribute<LocalizedAttribute>();
 
+            string result;
             if (attr == null)
-                return value.ToString();
+            {
+                result = value.ToString();
+            }
+            else
+            {
+                result = lang == EnglishLanguage ? attr.En : attr.Ar;
+            }
 
-            return lang == "ar" ? attr.Ar : attr.En;
+            cache.TryAdd(value, result);
+            return result;
         }
 
         public string GetString(string key)
         {
+            // Future implementation: look up in .resx or DB
             return key;
         }
     }

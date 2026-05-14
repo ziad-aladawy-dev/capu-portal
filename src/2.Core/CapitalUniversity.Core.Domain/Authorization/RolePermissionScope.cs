@@ -6,8 +6,7 @@ namespace CapitalUniversity.Core.Domain.Authorization;
 public class RolePermissionScope : BaseEntity
 {
     public Guid RolePermissionId { get; set; }
-    public Guid? FacultyId { get; set; }
-    public Guid? ProgramId { get; set; }
+    public Guid? StructureNodeId { get; set; }
 
     public RolePermission RolePermission { get; set; } = null!;
 }

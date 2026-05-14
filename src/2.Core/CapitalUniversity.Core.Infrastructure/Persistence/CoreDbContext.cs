@@ -1,17 +1,28 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Notifications;
+using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
 
 public class CoreDbContext : DbContext
 {
-    public CoreDbContext(DbContextOptions<CoreDbContext> options) : base(options) { }
+    private readonly IAppLogger? _logger;
+
+    public CoreDbContext(DbContextOptions<CoreDbContext> options, IAppLogger? logger = null) : base(options) 
+    {
+        _logger = logger;
+    }
 
     public DbSet<StructureNode> StructureNodes => Set<StructureNode>();
+
+    public DbSet<AcademicYear> AcademicYears => Set<AcademicYear>();
+    public DbSet<Semester> Semesters => Set<Semester>();
 
     public DbSet<Student> Students { get; set; }
     public DbSet<Staff> Staffs { get; set; }
@@ -26,6 +37,41 @@ public class CoreDbContext : DbContext
     public DbSet<StaffPermissionOverride> StaffPermissionOverrides { get; set; }
     public DbSet<Notification> Notifications { get; set; }
 
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        if (_logger != null)
+        {
+            await AuditChangesAsync();
+        }
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task AuditChangesAsync()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+
+        foreach (var entry in entries)
+        {
+            var metadata = new Dictionary<string, object>
+            {
+                { "Entity", entry.Entity.GetType().Name },
+                { "State", entry.State.ToString() }
+            };
+
+            if (entry.State == EntityState.Modified)
+            {
+                var changes = entry.Properties
+                    .Where(p => p.IsModified)
+                    .ToDictionary(p => p.Metadata.Name, p => new { Old = p.OriginalValue, New = p.CurrentValue });
+                metadata.Add("Changes", changes);
+            }
+
+            await _logger!.LogInfoAsync($"Entity {entry.State}: {entry.Entity.GetType().Name}", "AuditTrail", null, metadata);
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new StudentConfiguration());
@@ -38,6 +84,8 @@ public class CoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new StaffRoleConfiguration());
         modelBuilder.ApplyConfiguration(new StaffPermissionConfiguration());
         modelBuilder.ApplyConfiguration(new StaffPermissionScopeConfiguration());
+        modelBuilder.ApplyConfiguration(new AcademicYearConfiguration());
+        modelBuilder.ApplyConfiguration(new SemesterConfiguration());
         
     }
 }

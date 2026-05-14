@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs
-
-
-
-;
+namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
 public class LoginResponseDto
 {

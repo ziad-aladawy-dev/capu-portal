@@ -7,8 +7,7 @@ namespace CapitalUniversity.Core.Domain.Identity;
 public class StaffPermissionScope : BaseEntity
 {
     public Guid StaffPermissionId { get; set; }
-    public Guid? FacultyId { get; set; }
-    public Guid? ProgramId { get; set; }
+    public Guid? StructureNodeId { get; set; }
 
     public StaffPermissionOverride StaffPermission { get; set; }
 }

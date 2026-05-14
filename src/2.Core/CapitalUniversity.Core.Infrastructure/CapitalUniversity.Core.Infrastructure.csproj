@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
@@ -15,6 +16,8 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.9" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
 		<PackageReference Include="MongoDB.Driver" Version="3.8.0" />
 		<PackageReference Include="Riok.Mapperly" Version="5.0.0-next.7" />
 	</ItemGroup>

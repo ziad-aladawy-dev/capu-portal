@@ -15,9 +15,8 @@ namespace CapitalUniversity.Core.Domain.Authorization
         public Guid PermissionId { get; set; }
         public string Resource { get; private set; } = string.Empty;
         public ActionLevel Level { get; private set; }
-        public Guid? UniversityId { get; }
-        public Guid? FacultyId { get; private set; }
-        public Guid? ProgramId { get; private set; }
+        public Guid? StructureNodeId { get; set; }
+        public string? StructureNodePath { get; set; }
         public string Domain { get; private set; } = string.Empty;
         public string Year { get; private set; } = string.Empty;
         public string Semester { get; private set; } = string.Empty;

@@ -26,28 +26,26 @@ public class AuthenticationService : IAuthenticationService
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return null; // Or throw ValidationException
+            return null;
         }
 
         var credential = await _credentialResolver.ResolveCredentialAsync(request.Identifier, cancellationToken);
-        if (credential == null)
+        
+        // Always verify a "dummy" hash if user not found to prevent timing attacks
+        string hashToVerify = credential?.PasswordHash ?? _passwordHasher.HashPassword("dummy_password_for_timing_safety");
+        bool isPasswordValid = _passwordHasher.VerifyHashedPassword(hashToVerify, request.Password);
+
+        if (credential == null || !isPasswordValid)
         {
-            return null; // Or throw InvalidCredentialsException
+            return null;
         }
 
-        if (DateTime.UtcNow > credential.PasswordExpiry)
+        if (credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry)
         {
-            return null; // Or throw PasswordExpiredException
-        }
-
-        var isPasswordValid = _passwordHasher.VerifyHashedPassword(credential.PasswordHash, request.Password);
-        if (!isPasswordValid)
-        {
-            return null; // Or throw InvalidCredentialsException
+            return null;
         }
 
         var token = _tokenService.GenerateToken(credential);
-
         var authData = await _authorizationResponseBuilder.BuildAsync(credential, cancellationToken);
 
         var response = new LoginResponseDto
@@ -57,9 +55,7 @@ public class AuthenticationService : IAuthenticationService
                 Id = credential.Id,
                 Name = credential.Name,
                 Email = credential.Email,
-                Attributes = new UserAttributesDto
-                {
-                }
+                Attributes = new UserAttributesDto()
             },
             Token = token,
             AuthorizedScopes = authData.Scopes ?? new AuthorizedScopesDto(),

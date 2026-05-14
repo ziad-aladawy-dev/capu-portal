@@ -12,138 +12,159 @@ public static class UniversityStructureSeeder
         if (context.StructureNodes.Any())
             return;
 
+        var nodes = new List<StructureNode>();
+
         var university = CreateNode(
             "Capital University",
             StructureNodeType.University,
             null,
-            0);
+            0,
+            nodes);
 
         var commerceFaculty = CreateNode(
             "Faculty of Commerce",
             StructureNodeType.Faculty,
             university,
-            0);
+            0,
+            nodes);
 
         var csFaculty = CreateNode(
             "Faculty of Computers and AI",
             StructureNodeType.Faculty,
             university,
-            1);
+            1,
+            nodes);
 
         var mediaFaculty = CreateNode(
             "Faculty of Media",
             StructureNodeType.Faculty,
             university,
-            2);
+            2,
+            nodes);
 
         var commerceCreditHours = CreateNode(
             "Credit Hours System",
             StructureNodeType.System,
             commerceFaculty,
-            0);
+            0,
+            nodes);
 
         var commerceRegular = CreateNode(
             "Regular System",
             StructureNodeType.System,
             commerceFaculty,
-            1);
+            1,
+            nodes);
 
         var accountingProgram = CreateNode(
             "Accounting Program",
             StructureNodeType.Program,
             commerceCreditHours,
-            0);
+            0,
+            nodes);
 
         var businessProgram = CreateNode(
             "Business Administration Program",
             StructureNodeType.Program,
             commerceCreditHours,
-            1);
+            1,
+            nodes);
 
         var level1 = CreateNode(
             "First Level",
             StructureNodeType.Level,
             accountingProgram,
-            0);
+            0,
+            nodes);
 
         var level2 = CreateNode(
             "Second Level",
             StructureNodeType.Level,
             accountingProgram,
-            1);
+            1,
+            nodes);
 
         var accountingSpec = CreateNode(
             "Accounting Specialization",
             StructureNodeType.Specialization,
             level2,
-            0);
+            0,
+            nodes);
 
         var financeSpec = CreateNode(
             "Finance Specialization",
             StructureNodeType.Specialization,
             level2,
-            1);
+            1,
+            nodes);
 
         CreateNode(
             "Third Level",
             StructureNodeType.Level,
             accountingSpec,
-            0);
+            0,
+            nodes);
 
         CreateNode(
             "Fourth Level",
             StructureNodeType.Level,
             accountingSpec,
-            1);
+            1,
+            nodes);
 
         var csCreditHours = CreateNode(
             "Credit Hours System",
             StructureNodeType.System,
             csFaculty,
-            0);
+            0,
+            nodes);
 
         var aiProgram = CreateNode(
             "Artificial Intelligence Program",
             StructureNodeType.Program,
             csCreditHours,
-            0);
+            0,
+            nodes);
 
         var cyberProgram = CreateNode(
             "Cyber Security Program",
             StructureNodeType.Program,
             csCreditHours,
-            1);
+            1,
+            nodes);
 
         CreateNode(
             "First Level",
             StructureNodeType.Level,
             aiProgram,
-            0);
+            0,
+            nodes);
 
         CreateNode(
             "Second Level",
             StructureNodeType.Level,
             aiProgram,
-            1);
+            1,
+            nodes);
 
         CreateNode(
             "First Level",
             StructureNodeType.Level,
             cyberProgram,
-            0);
+            0,
+            nodes);
 
-        await context.StructureNodes.AddRangeAsync(_nodes);
+        await context.StructureNodes.AddRangeAsync(nodes);
 
         await context.SaveChangesAsync();
     }
-
-    private static readonly List<StructureNode> _nodes = new();
 
     private static StructureNode CreateNode(
         string name,
         StructureNodeType type,
         StructureNode? parent,
-        int order)
+        int order,
+        List<StructureNode> nodes)
     {
         var node = new StructureNode
         {
@@ -170,7 +191,7 @@ public static class UniversityStructureSeeder
             ? $"/{node.Id}"
             : $"{parent.Path}/{node.Id}";
 
-        _nodes.Add(node);
+        nodes.Add(node);
 
         return node;
     }
