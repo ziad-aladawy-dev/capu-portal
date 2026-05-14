@@ -39,8 +39,14 @@ public class AcademicYearServiceTests
             EndDate = now.AddDays(10)
         };
 
-        _createValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<ValidationContext<CreateAcademicYearRequest>>(), default))
+        _createValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<CreateAcademicYearRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+
+        _repoMock.Setup(x => x.HasOverlapAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<Guid?>()))
+            .ReturnsAsync(false);
+
+        _repoMock.Setup(x => x.GetCurrentAsync())
+            .ReturnsAsync((AcademicYear)null);
 
         // Act
         var id = await _service.CreateAsync(request);

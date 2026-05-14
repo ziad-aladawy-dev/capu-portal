@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.TestHost;
 using System.Net;
 using System.Net.Http.Json;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
@@ -23,21 +25,21 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
 
     public AcademicYearApiTests(WebApplicationFactory<ModulesRegistry> factory)
     {
+        var dbName = "AcademicYearTestDb_" + Guid.NewGuid();
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureServices(services =>
+            builder.ConfigureTestServices(services =>
             {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<CoreDbContext>));
-                if (descriptor != null) services.Remove(descriptor);
+                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
+                services.RemoveAll(typeof(CoreDbContext));
 
                 services.AddDbContext<CoreDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("AcademicYearTestDb_" + Guid.NewGuid());
+                    options.UseInMemoryDatabase(dbName);
                 });
 
-                var loggerDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
-                if (loggerDescriptor != null) services.Remove(loggerDescriptor);
+                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
                 services.AddScoped(_ => Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>());
             });
         });
@@ -146,5 +148,69 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         updated!.Name.Should().Be("Updated Name");
         updated.StartDate.Should().BeCloseTo(createRequest.StartDate, TimeSpan.FromSeconds(1));
         updated.EndDate.Should().BeCloseTo(createRequest.EndDate, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Create_EndDateBeforeStartDate_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new CreateAcademicYearRequest
+        {
+            Name = "Invalid Dates",
+            StartDate = DateTime.UtcNow.AddDays(10),
+            EndDate = DateTime.UtcNow.AddDays(5)
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/academic-years", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetById_NonExistent_ReturnsNotFound()
+    {
+        // Act
+        var response = await _client.GetAsync($"/api/academic-years/{Guid.NewGuid()}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Update_NonExistent_ReturnsNotFound()
+    {
+        // Arrange
+        var request = new UpdateAcademicYearRequest { Name = "New Name" };
+
+        // Act
+        var response = await _client.PatchAsJsonAsync($"/api/academic-years/{Guid.NewGuid()}", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_ValidId_ReturnsOk()
+    {
+        // Arrange
+        var createRequest = new CreateAcademicYearRequest
+        {
+            Name = "To Delete",
+            StartDate = DateTime.UtcNow.AddYears(10),
+            EndDate = DateTime.UtcNow.AddYears(11)
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/academic-years", createRequest);
+        Guid id = await GetIdFromResponse(createResponse);
+
+        // Act
+        var response = await _client.DeleteAsync($"/api/academic-years/{id}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getResponse = await _client.GetAsync($"/api/academic-years/{id}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
