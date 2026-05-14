@@ -34,43 +34,57 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<List<PermissionDto>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var domain = "Global"; // Default domain
+        var lookup = await GetPermissionLookupAsync(userId, cancellationToken);
+        
+        return lookup.Select(key => 
+        {
+            var parts = key.Split(':');
+            return new PermissionDto
+            {
+                Module = parts[0],
+                Resource = parts[1],
+                Action = parts[2]
+            };
+        }).ToList();
+    }
+
+    public async Task<HashSet<string>> GetPermissionLookupAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
         var year = _requestContext.ActiveAcademicYearId?.ToString() ?? "Global";
         var semester = _requestContext.ActiveSemesterId?.ToString() ?? "Global";
-        var cacheKey = $"eff_perms_{userId}_{year}_{semester}";
+        var cacheKey = $"perm_lookup_{userId}_{year}_{semester}";
 
-        var cachedPermissions = await _cache.GetAsync<List<PermissionDto>>(cacheKey, cancellationToken);
-        if (cachedPermissions != null)
+        var cachedLookup = await _cache.GetAsync<HashSet<string>>(cacheKey, cancellationToken);
+        if (cachedLookup != null)
         {
-            return cachedPermissions;
+            return cachedLookup;
         }
 
+        var domain = "Global";
         var scope = await _scopeResolver.ResolveAsync(domain, year, semester, cancellationToken);
-
         var rawPermissions = await _permissionService.GetPermissionsAsync(userId, "*", scope, cancellationToken);
 
-        var effectivePermissions = new List<PermissionDto>();
-
         var roleIds = rawPermissions.Assignments.Select(a => a.RoleId).Distinct().ToList();
-
         var rolePermsDb = await _dbContext.RolePermissions
             .Include(rp => rp.Service)
+                .ThenInclude(s => s.Module)
             .Where(rp => roleIds.Contains(rp.RoleId))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var maxGrantedLevelPerResource = new Dictionary<string, (ActionLevel Level, string Module)>();
+        var maxGrantedLevelPerResource = new Dictionary<string, (ActionLevel Level, string ModuleKey)>();
 
         foreach (var rp in rolePermsDb)
         {
             if (!maxGrantedLevelPerResource.ContainsKey(rp.Resource) || maxGrantedLevelPerResource[rp.Resource].Level < rp.Level)
             {
-                maxGrantedLevelPerResource[rp.Resource] = (rp.Level, rp.Service.Name);
+                maxGrantedLevelPerResource[rp.Resource] = (rp.Level, rp.Service.Module.ModuleKey);
             }
         }
 
         var overridesDb = await _dbContext.StaffPermissions
             .Include(sp => sp.Service)
+                .ThenInclude(s => s.Module)
             .Where(sp => rawPermissions.Overrides.Select(o => o.Id).Contains(sp.Id))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -80,7 +94,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!maxGrantedLevelPerResource.ContainsKey(ov.Resource) || maxGrantedLevelPerResource[ov.Resource].Level < ov.Level)
             {
-                maxGrantedLevelPerResource[ov.Resource] = (ov.Level, ov.Service.Name);
+                maxGrantedLevelPerResource[ov.Resource] = (ov.Level, ov.Service.Module.ModuleKey);
             }
         }
 
@@ -90,10 +104,11 @@ public class PermissionManagementService : IPermissionManagementService
             if (maxGrantedLevelPerResource.ContainsKey(deny.Resource) && maxGrantedLevelPerResource[deny.Resource].Level >= deny.Level)
             {
                 var newMaxLevel = (ActionLevel)((int)deny.Level - 1);
-                maxGrantedLevelPerResource[deny.Resource] = (newMaxLevel, maxGrantedLevelPerResource[deny.Resource].Module);
+                maxGrantedLevelPerResource[deny.Resource] = (newMaxLevel, maxGrantedLevelPerResource[deny.Resource].ModuleKey);
             }
         }
 
+        var lookup = new HashSet<string>();
         foreach (var kvp in maxGrantedLevelPerResource)
         {
             if (kvp.Value.Level > ActionLevel.None)
@@ -101,24 +116,20 @@ public class PermissionManagementService : IPermissionManagementService
                 var actions = GetActionsUpToLevel(kvp.Value.Level);
                 foreach (var action in actions)
                 {
-                    effectivePermissions.Add(new PermissionDto
-                    {
-                        Module = kvp.Value.Module,
-                        Resource = kvp.Key,
-                        Action = action
-                    });
+                    // Composite key: Module:Resource:Action
+                    lookup.Add($"{kvp.Value.ModuleKey}:{kvp.Key}:{action}");
                 }
             }
         }
 
-        await _cache.SetAsync(cacheKey, effectivePermissions, TimeSpan.FromMinutes(20), cancellationToken);
+        await _cache.SetAsync(cacheKey, lookup, TimeSpan.FromMinutes(20), cancellationToken);
 
-        return effectivePermissions;
+        return lookup;
     }
 
     private async Task InvalidateUserCacheAsync(Guid userId, string year, string semester)
     {
-        var cacheKey = $"eff_perms_{userId}_{year}_{semester}";
+        var cacheKey = $"perm_lookup_{userId}_{year}_{semester}";
         await _cache.RemoveAsync(cacheKey);
     }
 

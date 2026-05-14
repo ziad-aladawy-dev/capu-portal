@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.TestHost;
 using System.Net;
 using System.Net.Http.Json;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
+using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Identity;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
@@ -51,10 +54,26 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
     private void SetupAuth()
     {
         using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
         var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
         
+        var userId = Guid.NewGuid();
+        
+        // Seed Module/Service/Role/Permissions for the test user
+        var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
+        var service = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
+        var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
+        
+        db.Modules.Add(module);
+        db.Services.Add(service);
+        db.Roles.Add(role);
+        db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "Year", ActionLevel.Delete)); // Level 5 covers all
+        db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
+        
+        db.SaveChanges();
+
         var mockUser = new Mock<IUserCredential>();
-        mockUser.Setup(u => u.Id).Returns(Guid.NewGuid());
+        mockUser.Setup(u => u.Id).Returns(userId);
         mockUser.Setup(u => u.Identifier).Returns("admin");
         mockUser.Setup(u => u.Role).Returns("Admin");
         mockUser.Setup(u => u.Name).Returns("Admin User");

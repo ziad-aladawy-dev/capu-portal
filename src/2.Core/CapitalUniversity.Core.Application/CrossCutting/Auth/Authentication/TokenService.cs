@@ -18,13 +18,19 @@ public class TokenService : ITokenService
 
     public string GenerateToken(IUserCredential user)
     {
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim("Id", user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim("Id", user.Id.ToString()), // Keep for compatibility if needed
             new Claim("NationalId", user.Identifier),
             new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -10,5 +10,4 @@ public class Module : BaseEntity
     public int? OrderNumber { get; set; }
 
     public ICollection<Service> Services { get; set; } = new List<Service>();
-
 }

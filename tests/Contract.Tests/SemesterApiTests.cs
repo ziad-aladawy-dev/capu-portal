@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.TestHost;
 using CapitalUniversity.API;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
+using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
@@ -47,20 +50,38 @@ public class SemesterApiTests : IClassFixture<WebApplicationFactory<ModulesRegis
         _client = _factory.CreateClient();
         SetupAuth();
     }
+private void SetupAuth()
+{
+    using var scope = _factory.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+    var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
 
-    private void SetupAuth()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+    var userId = Guid.NewGuid();
 
-        var mockUser = new Mock<IUserCredential>();
-        mockUser.Setup(u => u.Id).Returns(Guid.NewGuid());
-        mockUser.Setup(u => u.Identifier).Returns("admin");
-        mockUser.Setup(u => u.Role).Returns("Admin");
+    // Seed Module/Service/Role/Permissions for the test user
+    var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
+    var serviceYear = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
+    var serviceSem = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Semester" };
+    var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
 
-        var token = tokenService.GenerateToken(mockUser.Object);
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
+    db.Modules.Add(module);
+    db.Services.AddRange(serviceYear, serviceSem);
+    db.Roles.Add(role);
+    db.RolePermissions.Add(new RolePermission(role.Id, serviceYear.Id, "Year", ActionLevel.Delete));
+    db.RolePermissions.Add(new RolePermission(role.Id, serviceSem.Id, "Semester", ActionLevel.Delete));
+    db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
+
+    db.SaveChanges();
+
+    var mockUser = new Mock<IUserCredential>();
+    mockUser.Setup(u => u.Id).Returns(userId);
+    mockUser.Setup(u => u.Identifier).Returns("admin");
+    mockUser.Setup(u => u.Role).Returns("Admin");
+    mockUser.Setup(u => u.Name).Returns("Admin User");
+
+    var token = tokenService.GenerateToken(mockUser.Object);
+    _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+}
 
     private async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
     {

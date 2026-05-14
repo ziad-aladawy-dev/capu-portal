@@ -12,6 +12,8 @@ public interface IPermissionManagementService
 {
     Task<List<PermissionDto>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
 
+    Task<HashSet<string>> GetPermissionLookupAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default);
 
     Task<PermissionAssignmentResponse> CreateAssignmentAsync(CreatePermissionAssignmentRequest request, CancellationToken cancellationToken = default);
