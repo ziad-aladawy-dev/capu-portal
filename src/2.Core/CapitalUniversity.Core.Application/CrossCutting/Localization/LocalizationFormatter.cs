@@ -1,5 +1,4 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
-using CapitalUniversity.Core.Domain.Localization;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Localization;
 

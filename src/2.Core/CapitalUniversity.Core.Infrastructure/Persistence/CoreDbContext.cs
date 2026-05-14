@@ -24,8 +24,10 @@ public class CoreDbContext : DbContext
     public DbSet<AcademicYear> AcademicYears => Set<AcademicYear>();
     public DbSet<Semester> Semesters => Set<Semester>();
 
-    public DbSet<Student> Students { get; set; }
-    public DbSet<Staff> Staffs { get; set; }
+    public DbSet<Student> Students => Set<Student>();
+
+    public DbSet<Staff> Staffs => Set<Staff>();
+
     public DbSet<Module> Modules { get; set; }
     public DbSet<Service> Services { get; set; }
     public DbSet<Role> Roles { get; set; }
@@ -74,6 +76,8 @@ public class CoreDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.ApplyConfiguration(new StudentConfiguration());
         modelBuilder.ApplyConfiguration(new StaffConfiguration());
         modelBuilder.ApplyConfiguration(new ModuleConfiguration());
@@ -86,6 +90,11 @@ public class CoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new StaffPermissionScopeConfiguration());
         modelBuilder.ApplyConfiguration(new AcademicYearConfiguration());
         modelBuilder.ApplyConfiguration(new SemesterConfiguration());
-        
+
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(CoreDbContext).Assembly);
+
+        modelBuilder.Entity<StructureNode>()
+            .HasQueryFilter(x => !x.IsDeleted);
     }
 }

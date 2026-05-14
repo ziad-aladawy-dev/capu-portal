@@ -1,9 +1,8 @@
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Shared;
 namespace CapitalUniversity.Core.Domain.Authorization;
 
-public class RolePermission : BaseEntity
+public class RolePermission : BaseEntity, IRolePermission
 {
     public Guid RoleId { get; set; }
     public Guid PermissionId { get; set; }

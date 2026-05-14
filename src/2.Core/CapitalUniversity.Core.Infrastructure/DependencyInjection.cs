@@ -5,7 +5,6 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
-using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
@@ -22,7 +21,6 @@ using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using CapitalUniversity.Core.Application.Semesters;
 using CapitalUniversity.Core.Application.Semesters.Validators;
 using CapitalUniversity.Core.Infrastructure.Services.Semesters;
-using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Infrastructure.Repositories;
 using CapitalUniversity.Core.Infrastructure.Services.Authentication;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization;
@@ -36,7 +34,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Application.CrossCutting.Caching;
 using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
 using Microsoft.Extensions.Options;
-using CapitalUniversity.Core.Domain.Localization;
+using CapitalUniversity.Core.Abstractions.Repositories;
 
 namespace CapitalUniversity.Core.Infrastructure;
 
@@ -92,6 +90,8 @@ public static class DependencyInjection
         services.AddScoped<IStructureNodeRepository, StructureNodeRepository>();
 
         services.AddScoped<IUniversityStructureService, UniversityStructureService>();
+
+        services.AddScoped<IStructureLookupService, StructureLookupService>();
 
         services.AddScoped<IStudentRepository, StudentRepository>();
 

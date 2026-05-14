@@ -15,4 +15,10 @@ public class UpdateStudentRequest
     public Guid StructureNodeId { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string? Password { get; set; }
+
+    public string? ConfirmPassword { get; set; }
+
+    public DateTime? PasswordExpiry { get; set; }
 }

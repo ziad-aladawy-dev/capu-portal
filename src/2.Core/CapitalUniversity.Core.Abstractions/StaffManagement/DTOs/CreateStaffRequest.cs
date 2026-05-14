@@ -4,6 +4,10 @@ public class CreateStaffRequest
 {
     public string EmployeeCode { get; set; } = string.Empty;
 
+    public string Password { get; set; } = string.Empty;
+
+    public string ConfirmPassword { get; set; } = string.Empty;
+
     public string Name { get; set; } = string.Empty;
 
     public string NationalId { get; set; } = string.Empty;
@@ -19,4 +23,6 @@ public class CreateStaffRequest
     public string JobTitle { get; set; } = string.Empty;
 
     public Guid StructureNodeId { get; set; }
+
+    public DateTime? PasswordExpiry { get; set; }
 }

@@ -31,7 +31,7 @@ services:
     command: redis-server --appendonly yes
 
   mongodb:
-    image: mongo:latest
+    image: mongo:7-jammy
     container_name: capitalportal-mongo
     ports:
       - "27017:27017"

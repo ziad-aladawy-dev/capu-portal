@@ -74,6 +74,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
 
     await UniversityStructureSeeder.SeedAsync(db);
+    await IdentitySeeder.SeedAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

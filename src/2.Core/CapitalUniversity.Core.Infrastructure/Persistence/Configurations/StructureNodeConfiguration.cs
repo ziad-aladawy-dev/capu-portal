@@ -51,5 +51,7 @@ public class StructureNodeConfiguration : IEntityTypeConfiguration<StructureNode
         builder.HasIndex(x => x.Order);
 
         builder.HasIndex(x => x.IsDeleted);
+
+        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

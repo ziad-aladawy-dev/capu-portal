@@ -2,7 +2,7 @@ using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Authorization;
 
-public class StaffRoleAssignment : BaseEntity
+public class StaffRoleAssignment : BaseEntity, IUserRoleAssignment
 {
     public Guid StaffId { get; set; }
     public Guid RoleId { get; private set; }

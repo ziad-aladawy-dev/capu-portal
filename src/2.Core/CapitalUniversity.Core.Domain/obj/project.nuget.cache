@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "Jd0sYXwjWJ8=",
+  "success": true,
+  "projectFilePath": "D:\\GitHub\\capu-portal\\src\\2.Core\\CapitalUniversity.Core.Domain\\CapitalUniversity.Core.Domain.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\3bdo3\\.nuget\\packages\\mongodb.bson\\3.8.0\\mongodb.bson.3.8.0.nupkg.sha512",
+    "C:\\Users\\3bdo3\\.nuget\\packages\\system.memory\\4.5.5\\system.memory.4.5.5.nupkg.sha512",
+    "C:\\Users\\3bdo3\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\5.0.0\\system.runtime.compilerservices.unsafe.5.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,12 +1,11 @@
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Shared;
 using Staff = CapitalUniversity.Core.Domain.Identity.Staff;
 
 namespace CapitalUniversity.Core.Domain.Authorization
 {
 
-    public class StaffPermissionOverride : BaseEntity
+    public class StaffPermissionOverride : BaseEntity, IUserPermissionOverride
     {
         public Guid StaffId { get; set; }
 

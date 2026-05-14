@@ -20,5 +20,21 @@ public class StudentDto
 
     public string StructureNodeName { get; set; } = string.Empty;
 
+    public string FacultyName { get; set; } = string.Empty;
+
+    public string ProgramName { get; set; } = string.Empty;
+
+    public string LevelName { get; set; } = string.Empty;
+
     public bool IsActive { get; set; }
+
+    public string PasswordStatus =>
+        PasswordExpiry.HasValue &&
+        PasswordExpiry < DateTime.UtcNow
+            ? "Expired"
+            : "Valid";
+
+    public DateTime? PasswordExpiry { get; set; }
+
+    public DateTime CreatedAt { get; set; }
 }

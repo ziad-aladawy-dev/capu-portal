@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-using CapitalUniversity.Core.Domain.UniversityStructure;
-=======
 ﻿using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
->>>>>>> Stashed changes
 
 namespace CapitalUniversity.Core.Application.UniversityStructure.UniversityStructureRules;
 
@@ -41,23 +37,12 @@ public static class StructureNodeRules
                 new List<StructureNodeType>
                 {
                     StructureNodeType.Level,
-                    StructureNodeType.Track,
                     StructureNodeType.Specialization
                 }
             },
 
             {
                 StructureNodeType.Level,
-                new List<StructureNodeType>
-                {
-                    StructureNodeType.Level,
-                    StructureNodeType.Track,
-                    StructureNodeType.Specialization
-                }
-            },
-
-            {
-                StructureNodeType.Track,
                 new List<StructureNodeType>
                 {
                     StructureNodeType.Level,

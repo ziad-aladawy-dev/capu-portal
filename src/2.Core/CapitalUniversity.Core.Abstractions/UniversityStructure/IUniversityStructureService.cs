@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
+using CapitalUniversity.Core.Application.DTOs.UniversityStructure;
 
 namespace CapitalUniversity.Core.Abstractions.UniversityStructure;
 

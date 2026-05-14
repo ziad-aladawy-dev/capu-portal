@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Domain.Identity;
+﻿using CapitalUniversity.Core.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,7 +9,7 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
     public void Configure(
         EntityTypeBuilder<Staff> builder)
     {
-        builder.ToTable("Staff");
+        builder.ToTable("Staffs");
 
         builder.HasKey(x => x.Id);
 

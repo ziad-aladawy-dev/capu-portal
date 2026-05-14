@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Common;
-=======
-using CapitalUniversity.Core.Domain.Shared;
->>>>>>> Stashed changes
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 

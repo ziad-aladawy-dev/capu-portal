@@ -1,11 +1,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
-=======
-using CapitalUniversity.Core.Domain.Shared;
->>>>>>> Stashed changes
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 

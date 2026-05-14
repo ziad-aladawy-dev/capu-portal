@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Common;
-=======
-using CapitalUniversity.Core.Domain.Shared;
->>>>>>> Stashed changes
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 

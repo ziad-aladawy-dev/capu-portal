@@ -1,6 +1,7 @@
-﻿using CapitalUniversity.Core.Domain.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
+using CapitalUniversity.Core.Application.DTOs.UniversityStructure;
 using CapitalUniversity.Core.Application.UniversityStructure.UniversityStructureRules;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 
@@ -179,31 +180,50 @@ public class UniversityStructureService : IUniversityStructureService
         await _repository.SaveChangesAsync();
     }
 
-    public async Task MoveNodeAsync(Guid nodeId, MoveStructureNodeRequest request)
+    public async Task MoveNodeAsync(
+        Guid nodeId,
+        MoveStructureNodeRequest request)
     {
-        var node = await _repository.GetByIdAsync(nodeId);
+        var node =
+            await _repository.GetByIdAsync(nodeId);
 
-        if (node == null)
+        if (node == null || node.IsDeleted)
+        {
             throw new Exception("Node not found");
+        }
 
         if (request.NewParentId == node.Id)
+        {
             throw new Exception(
                 "Node cannot be moved inside itself");
+        }
 
         StructureNode? newParent = null;
 
         if (request.NewParentId.HasValue)
         {
-            newParent = await _repository.GetByIdAsync(
-                request.NewParentId.Value);
+            newParent =
+                await _repository.GetByIdAsync(
+                    request.NewParentId.Value);
 
-            if (newParent == null)
-                throw new Exception("New parent not found");
+            if (newParent == null ||
+                newParent.IsDeleted)
+            {
+                throw new Exception(
+                    "New parent not found");
+            }
 
-            bool isValid = StructureNodeValidator
-                .IsValidChild(
-                    newParent.Type,
-                    node.Type);
+            if (!newParent.IsActive)
+            {
+                throw new Exception(
+                    "Cannot move under inactive node");
+            }
+
+            bool isValid =
+                StructureNodeValidator
+                    .IsValidChild(
+                        newParent.Type,
+                        node.Type);
 
             if (!isValid)
             {
@@ -214,11 +234,11 @@ public class UniversityStructureService : IUniversityStructureService
             if (newParent.Path.StartsWith(node.Path))
             {
                 throw new Exception(
-                    "Cannot move node into its descendants");
+                    "Cannot move node inside descendants");
             }
         }
 
-        var oldPath = node.Path;
+        string oldPath = node.Path;
 
         string newPath;
 
@@ -234,41 +254,57 @@ public class UniversityStructureService : IUniversityStructureService
         {
             newDepth = newParent.Depth + 1;
 
-            newPath = $"{newParent.Path}/{node.Id}";
+            newPath =
+                $"{newParent.Path}/{node.Id}";
         }
 
-        node.ParentId = request.NewParentId;
-        node.Order = request.Order;
-        node.Depth = newDepth;
-        node.Path = newPath;
-        node.UpdatedAt = DateTime.UtcNow;
+        node.ParentId =
+            request.NewParentId;
 
-        var descendants = await _repository
-            .GetDescendantsAsync(oldPath);
+        node.Order =
+            request.Order;
 
-        foreach (var descendant in descendants)
+        node.Path =
+            newPath;
+
+        node.Depth =
+            newDepth;
+
+        node.UpdatedAt =
+            DateTime.UtcNow;
+
+        var descendants =
+            await _repository
+                .GetDescendantsAsync(oldPath);
+
+        foreach (var item in descendants)
         {
-            if (descendant.Id == node.Id)
+            if (item.Id == node.Id)
                 continue;
 
-            descendant.Path = descendant.Path.Replace(
-                oldPath,
-                newPath);
+            item.Path =
+                item.Path.Replace(
+                    oldPath,
+                    newPath);
 
-            descendant.Depth =
-                descendant.Path.Split(
+            item.Depth =
+                item.Path.Split(
                     '/',
-                    StringSplitOptions.RemoveEmptyEntries)
+                    StringSplitOptions
+                        .RemoveEmptyEntries)
                 .Length - 1;
 
-            descendant.UpdatedAt = DateTime.UtcNow;
+            item.UpdatedAt =
+                DateTime.UtcNow;
         }
 
         descendants[0] = node;
 
-        await _repository.UpdateRangeAsync(descendants);
+        await _repository
+            .UpdateRangeAsync(descendants);
 
-        await _repository.SaveChangesAsync();
+        await _repository
+            .SaveChangesAsync();
     }
 
     public async Task<List<StructureNodeDto>> GetRootsAsync()

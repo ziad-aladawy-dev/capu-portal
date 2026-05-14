@@ -1,10 +1,6 @@
-<<<<<<< Updated upstream
-using CapitalUniversity.Core.Domain.UniversityStructure;
-=======
 ﻿using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
->>>>>>> Stashed changes
 
-namespace CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
+namespace CapitalUniversity.Core.Application.DTOs.UniversityStructure;
 
 public class BreadcrumbItemDto
 {

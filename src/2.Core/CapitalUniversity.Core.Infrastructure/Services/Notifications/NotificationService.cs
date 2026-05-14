@@ -1,11 +1,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
-<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Common;
-=======
->>>>>>> Stashed changes
 using CapitalUniversity.Core.Domain.Notifications;
-using CapitalUniversity.Core.Domain.Shared;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

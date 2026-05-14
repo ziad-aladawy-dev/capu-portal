@@ -1,10 +1,6 @@
 using System;
 
-<<<<<<<< Updated upstream:src/2.Core/CapitalUniversity.Core.Domain/Common/LocalizedAttribute.cs
 namespace CapitalUniversity.Core.Domain.Common
-========
-namespace CapitalUniversity.Core.Domain.Localization
->>>>>>>> Stashed changes:src/2.Core/CapitalUniversity.Core.Domain/Localization/LocalizedAttribute.cs
 {
     /// <summary>
     /// Attribute to specify localized strings for a property or field.

@@ -1,8 +1,9 @@
-using CapitalUniversity.Core.Domain.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.Application.Students;
 
@@ -10,8 +11,7 @@ public class StudentService : IStudentService
 {
     private readonly IStudentRepository _repository;
 
-    private readonly IStructureNodeRepository
-        _structureRepository;
+    private readonly IStructureNodeRepository _structureRepository;
 
     public StudentService(
         IStudentRepository repository,
@@ -33,6 +33,26 @@ public class StudentService : IStudentService
                 "Student code already exists");
         }
 
+        if (await _repository.EmailExistsAsync(
+            request.Email))
+        {
+            throw new Exception(
+                "Email already exists");
+        }
+
+        if (await _repository.NationalIdExistsAsync(
+            request.NationalId))
+        {
+            throw new Exception(
+                "National ID already exists");
+        }
+
+        if (request.Password != request.ConfirmPassword)
+        {
+            throw new Exception(
+                "Passwords do not match");
+        }
+
         var structureNode = await _structureRepository
             .GetByIdAsync(request.StructureNodeId);
 
@@ -40,6 +60,19 @@ public class StudentService : IStudentService
         {
             throw new Exception(
                 "Structure node not found");
+        }
+
+        if (structureNode.Type != StructureNodeType.Level)
+        {
+            throw new Exception(
+                "Student must be assigned to level node");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+            request.StudentCode))
+        {
+            request.StudentCode =
+                await GenerateStudentCodeAsync();
         }
 
         var student = new Student
@@ -60,7 +93,9 @@ public class StudentService : IStudentService
 
             StructureNodeId = request.StructureNodeId,
 
-            PasswordHash = "NOT_SET",
+            PasswordHash = request.Password,
+
+            PasswordExpiry = request.PasswordExpiry,
 
             IsActive = true
         };
@@ -89,6 +124,50 @@ public class StudentService : IStudentService
                 "Structure node not found");
         }
 
+        if (structureNode.Type != StructureNodeType.Level)
+        {
+            throw new Exception(
+                "Student must be assigned to a level");
+        }
+
+        bool emailExists =
+            await _repository.EmailExistsAsync(
+                request.Email);
+
+        if (emailExists &&
+            student.Email != request.Email)
+        {
+            throw new Exception(
+                "Email already exists");
+        }
+
+        bool nationalIdExists =
+            await _repository
+                .NationalIdExistsAsync(
+                    request.NationalId);
+
+        if (nationalIdExists &&
+            student.NationalId !=
+            request.NationalId)
+        {
+            throw new Exception(
+                "National ID already exists");
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+            request.Password))
+        {
+            if (request.Password !=
+                request.ConfirmPassword)
+            {
+                throw new Exception(
+                    "Passwords do not match");
+            }
+
+            student.PasswordHash =
+                request.Password;
+        }
+
         student.Name = request.Name;
 
         student.NationalId = request.NationalId;
@@ -103,6 +182,8 @@ public class StudentService : IStudentService
             request.StructureNodeId;
 
         student.IsActive = request.IsActive;
+
+        student.PasswordExpiry = request.PasswordExpiry;
 
         student.UpdatedAt = DateTime.UtcNow;
 
@@ -120,6 +201,22 @@ public class StudentService : IStudentService
             throw new Exception("Student not found");
 
         await _repository.SoftDeleteAsync(id);
+
+        await _repository.SaveChangesAsync();
+    }
+
+    public async Task ToggleStatusAsync(Guid id)
+    {
+        bool exists = await _repository
+            .ExistsAsync(id);
+
+        if (!exists)
+        {
+            throw new Exception(
+                "Student not found");
+        }
+
+        await _repository.ToggleStatusAsync(id);
 
         await _repository.SaveChangesAsync();
     }
@@ -145,29 +242,153 @@ public class StudentService : IStudentService
             .ToList();
     }
 
-    private static StudentDto Map(Student student)
+    public async Task<PagedResult<StudentDto>>
+        SearchAsync(StudentQueryRequest request)
     {
+        var result = await _repository
+            .SearchAsync(request);
+
+        return new PagedResult<StudentDto>
+        {
+            Items = result.Items
+                .Select(Map)
+                .ToList(),
+
+            Page = result.Page,
+
+            PageSize = result.PageSize,
+
+            TotalCount = result.TotalCount,
+
+            TotalPages = result.TotalPages
+        };
+    }
+
+    public async Task<UserStatisticsDto>
+        GetStatisticsAsync(
+            UserStatisticsRequest request)
+    {
+        var result =
+            await SearchAsync(
+                new StudentQueryRequest
+                {
+                    ScopeNodeId =
+                        request.ScopeNodeId,
+
+                    Page = 1,
+
+                    PageSize = int.MaxValue
+                });
+
+        return new UserStatisticsDto
+        {
+            TotalStudents =
+                result.Items.Count,
+
+            ActiveStudents =
+                result.Items.Count(
+                    x => x.IsActive),
+
+            InactiveStudents =
+                result.Items.Count(
+                    x => !x.IsActive)
+        };
+    }
+
+    private static StudentDto Map(
+            Student student)
+    {
+        string facultyName = string.Empty;
+
+        string programName = string.Empty;
+
+        string levelName =
+            student.StructureNode.Name;
+
+        var programNode =
+            student.StructureNode.Parent;
+
+        if (programNode != null)
+        {
+            programName =
+                programNode.Name;
+        }
+
+        var facultyNode =
+            programNode?.Parent;
+
+        if (facultyNode != null)
+        {
+            facultyName =
+                facultyNode.Name;
+        }
+
         return new StudentDto
         {
             Id = student.Id,
 
-            StudentCode = student.StudentCode,
+            StudentCode =
+                student.StudentCode,
 
             Name = student.Name,
 
-            NationalId = student.NationalId,
+            NationalId =
+                student.NationalId,
 
-            BirthDate = student.BirthDate,
+            BirthDate =
+                student.BirthDate,
 
-            PhoneNumber = student.PhoneNumber,
+            PhoneNumber =
+                student.PhoneNumber,
 
             Email = student.Email,
 
-            StructureNodeId = student.StructureNodeId,
+            StructureNodeId =
+                student.StructureNodeId,
 
-            StructureNodeName = student.StructureNode.Name,
+            StructureNodeName =
+                student.StructureNode.Name,
 
-            IsActive = student.IsActive
+            FacultyName =
+                facultyName,
+
+            ProgramName =
+                programName,
+
+            LevelName =
+                levelName,
+
+            IsActive =
+                student.IsActive,
+
+            PasswordExpiry =
+                student.PasswordExpiry,
+
+            CreatedAt =
+                student.CreatedAt
         };
+    }
+
+    private async Task<string>
+        GenerateStudentCodeAsync()
+    {
+        var lastCode = await _repository
+            .GetLastStudentCodeAsync();
+
+        if (string.IsNullOrWhiteSpace(
+            lastCode))
+        {
+            return "STU-1001";
+        }
+
+        var numberPart = lastCode
+            .Replace("STU-", "");
+
+        int number =
+            int.Parse(numberPart);
+
+        number++;
+
+        return $"STU-{number}";
     }
 }

@@ -2,15 +2,11 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
-<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Common;
-=======
->>>>>>> Stashed changes
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using CapitalUniversity.Core.Domain.Shared;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Authorization;
 

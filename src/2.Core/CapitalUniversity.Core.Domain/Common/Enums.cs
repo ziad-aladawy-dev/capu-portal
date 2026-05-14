@@ -1,10 +1,4 @@
-<<<<<<<< Updated upstream:src/2.Core/CapitalUniversity.Core.Domain/Common/Enums.cs
 namespace CapitalUniversity.Core.Domain.Common;
-========
-﻿using CapitalUniversity.Core.Domain.Localization;
-
-namespace CapitalUniversity.Core.Domain.Shared;
->>>>>>>> Stashed changes:src/2.Core/CapitalUniversity.Core.Domain/Shared/Enums.cs
 
 public enum LogLevelType
 {

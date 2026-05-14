@@ -1,5 +1,4 @@
 using CapitalUniversity.Core.Domain.Common;
-using CapitalUniversity.Core.Domain.Shared;
 
 namespace CapitalUniversity.Core.Domain.Notifications;
 
