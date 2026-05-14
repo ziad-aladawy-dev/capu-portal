@@ -1,5 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications
 {
@@ -18,3 +18,4 @@ namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications
         Task MarkAsReadAsync(Guid notificationId, Guid userId);
     }
 }
+

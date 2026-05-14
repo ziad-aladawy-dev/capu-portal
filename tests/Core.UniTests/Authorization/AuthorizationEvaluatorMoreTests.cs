@@ -51,3 +51,4 @@ public class AuthorizationEvaluatorMoreTests
         result.IsAllowed.Should().BeTrue();
     }
 }
+

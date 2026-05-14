@@ -1,6 +1,6 @@
-﻿using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Identity;
 
-namespace CapitalUniversity.Core.Abstractions.Repositories;
+namespace CapitalUniversity.Core.Domain.Repositories;
 
 public interface IStudentRepository
 {

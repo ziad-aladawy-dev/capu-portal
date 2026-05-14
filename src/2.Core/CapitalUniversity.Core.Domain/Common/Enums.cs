@@ -1,6 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
-
-namespace CapitalUniversity.Core.Abstractions.Shared;
+namespace CapitalUniversity.Core.Domain.Common;
 
 public enum LogLevelType
 {

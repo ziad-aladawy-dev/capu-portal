@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v9.0": {
       "CapitalUniversity.Core.Abstractions/1.0.0": {
         "dependencies": {
+          "CapitalUniversity.Core.Domain": "1.0.0",
           "Microsoft.AspNetCore.Http": "2.3.0",
           "Microsoft.Extensions.DependencyInjection": "9.0.0"
         },
@@ -120,6 +121,25 @@
             "fileVersion": "2.3.0.25014"
           }
         }
+      },
+      "MongoDB.Bson/3.8.0": {
+        "runtime": {
+          "lib/net6.0/MongoDB.Bson.dll": {
+            "assemblyVersion": "3.8.0.0",
+            "fileVersion": "3.8.0.0"
+          }
+        }
+      },
+      "CapitalUniversity.Core.Domain/1.0.0": {
+        "dependencies": {
+          "MongoDB.Bson": "3.8.0"
+        },
+        "runtime": {
+          "CapitalUniversity.Core.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -198,6 +218,18 @@
       "sha512": "sha512-/M0wVg6tJUOHutWD3BMOUVZAioJVXe0tCpFiovzv0T9T12TBf4MnaHP0efO8TCr1a6O9RZgQeZ9Gdark8L9XdA==",
       "path": "microsoft.net.http.headers/2.3.0",
       "hashPath": "microsoft.net.http.headers.2.3.0.nupkg.sha512"
+    },
+    "MongoDB.Bson/3.8.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HeiOJUylam5nIB7b1EfzlnJbf6A9te79WO6CtsKfp8M/2EeL4SoSQFjmUpJ6/vvuaNKGENXMaX9oUJp9KpHlqw==",
+      "path": "mongodb.bson/3.8.0",
+      "hashPath": "mongodb.bson.3.8.0.nupkg.sha512"
+    },
+    "CapitalUniversity.Core.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }

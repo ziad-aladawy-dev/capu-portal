@@ -1,6 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -68,3 +68,4 @@ public class NotificationService : INotificationService
         }
     }
 }
+

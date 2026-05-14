@@ -1,11 +1,11 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
-using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;

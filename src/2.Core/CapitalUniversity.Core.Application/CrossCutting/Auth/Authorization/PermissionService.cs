@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Domain.Authorization;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 
@@ -20,3 +21,4 @@ public class PermissionService : IPermissionService
         );
     }
 }
+

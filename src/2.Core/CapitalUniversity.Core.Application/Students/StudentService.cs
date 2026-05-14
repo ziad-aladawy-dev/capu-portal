@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;

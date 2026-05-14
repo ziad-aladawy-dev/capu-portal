@@ -367,3 +367,4 @@ internal class TestRolePermission : IRolePermission
         Level = level;
     }
 }
+

@@ -1,4 +1,4 @@
-﻿namespace CapitalUniversity.Core.Abstractions.UniversityStructure.Enums;
+namespace CapitalUniversity.Core.Domain.UniversityStructure;
 
 public enum StructureNodeType
 {

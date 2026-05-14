@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Domain.Repositories;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -88,3 +88,4 @@ public class UnitOfWork : IUnitOfWork
         _context.Dispose();
     }
 }
+

@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 
@@ -14,3 +14,4 @@ public class NotificationDto
     public string? ReferenceType { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+

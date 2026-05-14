@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 

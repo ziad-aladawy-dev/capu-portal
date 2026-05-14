@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.UniversityStructure.Enums;
+using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 
 

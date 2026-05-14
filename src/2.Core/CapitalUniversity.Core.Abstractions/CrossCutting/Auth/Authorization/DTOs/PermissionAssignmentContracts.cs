@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 
@@ -65,3 +65,4 @@ public class PermissionAssignmentResponse
     public StructuralScopeModel StructuralScope { get; set; } = new();
     public TemporalScopeModel TemporalScope { get; set; } = new();
 }
+

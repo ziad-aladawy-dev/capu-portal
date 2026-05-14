@@ -1,4 +1,3 @@
-using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Notifications;

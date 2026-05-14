@@ -4,7 +4,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 
 using CapitalUniversity.Core.Domain.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
@@ -117,3 +117,4 @@ public class MongoLoggerService : IAppLogger
         await _logsCollection.InsertOneAsync(entry);
     }
 }
+

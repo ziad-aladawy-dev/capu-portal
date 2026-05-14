@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 
@@ -128,3 +129,5 @@ public class AuthorizationEvaluator : IAuthorizationEvaluator
         _logger.LogInformation(message, resource);
     }
 }
+
+

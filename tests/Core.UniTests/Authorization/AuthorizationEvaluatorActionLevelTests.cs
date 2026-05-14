@@ -57,3 +57,4 @@ public class AuthorizationEvaluatorActionLevelTests
         result.IsAllowed.Should().BeTrue("because denying a higher level (EditClose) should not affect lower levels (View).");
     }
 }
+

@@ -42,3 +42,4 @@ public class AuthorizationEvaluatorClosedTests
         result.IsAllowed.Should().Be(expectedAllowed);
     }
 }
+

@@ -7,9 +7,6 @@
 	  <RootNamespace>CapitalUniversity.Core.Domain</RootNamespace>
   </PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
-	</ItemGroup>
-	<ItemGroup>
 	  <PackageReference Include="MongoDB.Bson" Version="3.8.0" />
 	</ItemGroup>
 

@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Domain.Repositories;
 
 namespace CapitalUniversity.Core.Domain.Repositories;
 
@@ -14,3 +14,4 @@ public interface IUnitOfWork : IDisposable
     Task CommitTransactionAsync(CancellationToken cancellationToken = default);
     Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
 }
+

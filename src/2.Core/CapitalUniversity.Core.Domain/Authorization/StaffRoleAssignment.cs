@@ -1,4 +1,3 @@
-using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Authorization;

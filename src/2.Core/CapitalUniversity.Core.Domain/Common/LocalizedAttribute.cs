@@ -1,6 +1,6 @@
 using System;
 
-namespace CapitalUniversity.Core.Abstractions.CrossCutting.Localization
+namespace CapitalUniversity.Core.Domain.Common
 {
     /// <summary>
     /// Attribute to specify localized strings for a property or field.

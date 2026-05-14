@@ -1,5 +1,3 @@
-using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Identity;
 using Staff = CapitalUniversity.Core.Domain.Identity.Staff;

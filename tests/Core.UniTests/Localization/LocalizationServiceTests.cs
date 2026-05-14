@@ -1,7 +1,8 @@
 using System;
 using System.Text.Json;
-using CapitalUniversity.Core.Abstractions.Localization;
-using CapitalUniversity.Core.Application.Localization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Application.CrossCutting.Localization;
+using CapitalUniversity.Core.Domain.Common;
 using FluentAssertions;
 using Moq;
 using Xunit;
