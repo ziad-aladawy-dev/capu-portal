@@ -2,7 +2,7 @@ using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using CapitalUniversity.Core.Application.Semesters.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Domain.Semsters;
 using FluentValidation;
 using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException;

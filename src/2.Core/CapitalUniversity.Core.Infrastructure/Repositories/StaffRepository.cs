@@ -1,7 +1,8 @@
-using CapitalUniversity.Core.Domain.Repositories;
+
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using CapitalUniversity.Core.Abstractions.Repositories;
 
 namespace CapitalUniversity.Core.Infrastructure.Repositories;
 

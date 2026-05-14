@@ -1,4 +1,5 @@
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
+
 using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

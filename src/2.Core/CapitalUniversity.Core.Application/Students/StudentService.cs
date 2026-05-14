@@ -1,9 +1,7 @@
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Repositories;
-
 namespace CapitalUniversity.Core.Application.Students;
 
 public class StudentService : IStudentService

@@ -1,6 +1,6 @@
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 
-namespace CapitalUniversity.Core.Domain.Repositories;
+namespace CapitalUniversity.Core.Abstractions.Repositories;
 
 public interface IUnitOfWork : IDisposable
 {

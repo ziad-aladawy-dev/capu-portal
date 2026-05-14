@@ -1,9 +1,7 @@
-using CapitalUniversity.Core.Domain.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Repositories;
-
 namespace CapitalUniversity.Core.Application.StaffManagement;
 
 public class StaffService : IStaffService
