@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.API.Controllers;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Auth.Authorization.DTOs;
-using CapitalUniversity.Core.Abstractions.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -23,7 +23,7 @@ public class PermissionsControllerTests
 
         var permissions = new List<PermissionDto>
         {
-            new PermissionDto { Module = "Student", Resource = "Profile", Action = "View", Key = "Student.Profile.View" }
+            new PermissionDto { Module = "Student", Resource = "Profile", Action = "View" }
         };
 
         mockService.Setup(s => s.GetEffectivePermissionsAsync(mockUser.Object.Id, It.IsAny<CancellationToken>()))

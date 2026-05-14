@@ -1,4 +1,5 @@
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
+
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using FluentAssertions;
 using Xunit;
 
@@ -9,25 +10,22 @@ public class AuthorizationScopeTests
     [Fact]
     public void AuthorizationScope_ShouldInitializeProperties()
     {
-        var universityId = System.Guid.NewGuid();
-        var facultyId = System.Guid.NewGuid();
-        var programId = System.Guid.NewGuid();
+        var nodeId = System.Guid.NewGuid();
+        var nodePath = "/1/2";
 
         var scope = new AuthorizationScope
         {
             Domain = "F1",
             Year = "Y1",
             Semester = "S1",
-            UniversityId = universityId,
-            FacultyId = facultyId,
-            ProgramId = programId
+            StructureNodeId = nodeId,
+            StructureNodePath = nodePath
         };
 
         scope.Domain.Should().Be("F1");
         scope.Year.Should().Be("Y1");
         scope.Semester.Should().Be("S1");
-        scope.UniversityId.Should().Be(universityId);
-        scope.FacultyId.Should().Be(facultyId);
-        scope.ProgramId.Should().Be(programId);
+        scope.StructureNodeId.Should().Be(nodeId);
+        scope.StructureNodePath.Should().Be(nodePath);
     }
 }

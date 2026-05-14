@@ -1,6 +1,6 @@
 using System;
-using CapitalUniversity.Core.Abstractions.Execution;
-using CapitalUniversity.Core.Application.Audit;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Application.CrossCutting.Audit;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

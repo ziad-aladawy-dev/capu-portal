@@ -1,4 +1,4 @@
-using CapitalUniversity.Core.Abstractions.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using FluentAssertions;
 using Xunit;
 using System;
@@ -15,9 +15,9 @@ public class AuthorizationResultTests
         result.IsAllowed.Should().BeFalse();
         result.SourceType.Should().Be(SourceType.None);
         result.SourceId.Should().BeNull();
-        result.AppliedDomain.Should().Be(string.Empty);
-        result.AppliedYear.Should().Be(string.Empty);
-        result.AppliedSemester.Should().Be(string.Empty);
+        result.AppliedDomain.Should().BeNull();
+        result.AppliedYear.Should().BeNull();
+        result.AppliedSemester.Should().BeNull();
     }
 
     [Fact]
