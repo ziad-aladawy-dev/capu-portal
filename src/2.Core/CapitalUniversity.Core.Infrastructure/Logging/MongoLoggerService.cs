@@ -4,9 +4,13 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 
+<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Common;
 
+=======
+>>>>>>> Stashed changes
 using CapitalUniversity.Core.Domain.Logging;
+using CapitalUniversity.Core.Domain.Shared;
 using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;

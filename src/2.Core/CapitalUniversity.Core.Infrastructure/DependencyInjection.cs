@@ -36,6 +36,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Application.CrossCutting.Caching;
 using CapitalUniversity.Core.Infrastructure.Persistence.Mongo;
 using Microsoft.Extensions.Options;
+using CapitalUniversity.Core.Domain.Localization;
 
 namespace CapitalUniversity.Core.Infrastructure;
 

@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Domain.Localization;
 using Microsoft.AspNetCore.Http;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Localization;

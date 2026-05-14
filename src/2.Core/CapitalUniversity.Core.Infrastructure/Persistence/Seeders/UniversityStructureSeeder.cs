@@ -1,5 +1,10 @@
+<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure;
+=======
+﻿using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+>>>>>>> Stashed changes
 
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;

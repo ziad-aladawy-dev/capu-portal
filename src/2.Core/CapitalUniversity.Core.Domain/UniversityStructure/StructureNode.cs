@@ -1,4 +1,8 @@
 ﻿using CapitalUniversity.Core.Domain.Common;
+<<<<<<< Updated upstream
+=======
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+>>>>>>> Stashed changes
 
 namespace CapitalUniversity.Core.Domain.UniversityStructure;
 

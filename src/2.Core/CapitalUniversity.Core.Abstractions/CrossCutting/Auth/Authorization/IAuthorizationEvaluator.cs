@@ -1,8 +1,12 @@
 using CapitalUniversity.Core.Abstractions;
 using System;
 using System.Collections.Generic;
+<<<<<<< Updated upstream
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
+=======
+using CapitalUniversity.Core.Domain.Shared;
+>>>>>>> Stashed changes
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
