@@ -17,7 +17,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet]
-    [HasPermission("Academic", "Year", "View")]
+    [HasPermission("Academic.Year.View")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -25,7 +25,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission("Academic", "Year", "View")]
+    [HasPermission("Academic.Year.View")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -34,7 +34,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission("Academic", "Year", "Insert")]
+    [HasPermission("Academic.Year.Insert")]
     public async Task<IActionResult> Create([FromBody] CreateAcademicYearRequest request)
     {
         var id = await _service.CreateAsync(request);

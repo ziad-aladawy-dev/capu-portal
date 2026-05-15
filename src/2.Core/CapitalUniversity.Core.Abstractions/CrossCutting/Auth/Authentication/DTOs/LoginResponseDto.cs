@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
@@ -29,16 +30,14 @@ public class UserAttributesDto
 
 public class AuthorizedScopesDto
 {
+    public bool IsGlobalStructural { get; set; }
     public List<Guid> AllowedNodeIds { get; set; } = new();
+    
+    public bool IsGlobalYear { get; set; }
     public List<Guid> AllowedAcademicYearIds { get; set; } = new();
+    
+    public bool IsGlobalSemester { get; set; }
     public List<Guid> AllowedSemesterIds { get; set; } = new();
-}
-
-public class PermissionDto
-{
-    public string Module { get; set; } = string.Empty;
-    public string Resource { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
 }
 
 public class ActiveScopeDto

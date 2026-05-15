@@ -9,8 +9,8 @@ public static class IdentitySeeder
     public static async Task SeedAsync(
         CoreDbContext context)
     {
-        //if (context.Students.Any() || context.Staffs.Any())
-        //    return;
+        if (context.Students.Any() || context.Staffs.Any())
+           return;
 
         var nutritionProgram = await context.StructureNodes
             .FirstAsync(x =>

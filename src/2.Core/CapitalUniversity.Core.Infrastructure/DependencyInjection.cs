@@ -11,7 +11,6 @@ using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Application.CrossCutting.Audit;
 using CapitalUniversity.Core.Application.Auth.Authentication;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
-using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Application.CrossCutting.Localization;
 using CapitalUniversity.Core.Application.StaffManagement;
 using CapitalUniversity.Core.Application.Students;
@@ -120,8 +119,8 @@ public static class DependencyInjection
         services.AddScoped<IUserCredentialResolver, UserCredentialResolver>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
-        services.AddScoped<IAuthorizationResponseBuilder, AuthorizationResponseBuilder>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<IExecutionContext, CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication.ExecutionContext>();
@@ -130,7 +129,6 @@ public static class DependencyInjection
         services.AddScoped<IScopeResolver, ScopeResolver>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
-        services.AddScoped<IAuthorizationEvaluator, AuthorizationEvaluator>();
 
         // Localization
         services.AddScoped<ICurrentCultureService, CurrentCultureService>();

@@ -116,8 +116,8 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
         var cachedPerms = await cache.GetAsync<HashSet<string>>(cacheKey);
         
         cachedPerms.Should().NotBeNull();
-        cachedPerms.Should().Contain("Academic:Year:View");
-        cachedPerms.Should().NotContain("Academic:Year:Insert");
+        cachedPerms.Should().Contain("Academic.Year.View");
+        cachedPerms.Should().NotContain("Academic.Year.Insert");
 
         // 5. Action Outside Scope (Insert)
         var createRequest = new { Name = "New Year", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddYears(1) };

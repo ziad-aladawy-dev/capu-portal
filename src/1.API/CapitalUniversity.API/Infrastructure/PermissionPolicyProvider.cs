@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
@@ -18,14 +19,13 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
-        if (policyName.StartsWith("Permission:", StringComparison.OrdinalIgnoreCase))
+        if (policyName.StartsWith(PermissionIdentity.Prefix, StringComparison.OrdinalIgnoreCase))
         {
-            var parts = policyName.Split(':');
-            if (parts.Length == 4)
+            if (PermissionIdentity.TryParse(policyName, out var module, out var resource, out var action))
             {
-                var permission = $"{parts[1]}:{parts[2]}:{parts[3]}";
+                var canonicalPermission = PermissionIdentity.Create(module, resource, action);
                 var policy = new AuthorizationPolicyBuilder();
-                policy.AddRequirements(new PermissionRequirement(permission));
+                policy.AddRequirements(new PermissionRequirement(canonicalPermission));
                 return Task.FromResult<AuthorizationPolicy?>(policy.Build());
             }
         }

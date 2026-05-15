@@ -11,6 +11,6 @@ public interface IPermissionService
     Task<(IEnumerable<IUserPermissionOverride> Overrides, IEnumerable<IUserRoleAssignment> Assignments, IEnumerable<IRolePermission> RolePermissions)> GetPermissionsAsync(
         Guid userId,
         string resource,
-        AuthorizationScope scope,
+        AuthorizationScope? scope = null,
         CancellationToken cancellationToken = default);
 }

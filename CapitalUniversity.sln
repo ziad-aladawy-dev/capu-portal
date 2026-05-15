@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.4.11626.88 stable
+VisualStudioVersion = 18.4.11626.88
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.API", "src\1.API\CapitalUniversity.API\CapitalUniversity.API.csproj", "{B647B9EB-9F7F-450A-A512-BCAB0FE67270}"
 EndProject
@@ -42,6 +42,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.Student", "src\4.Modules\CapitalUniversity.Module.Student\CapitalUniversity.Module.Student.csproj", "{819DADC2-AAA7-4C60-AC9F-06B3B04CA078}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.Student.Abstractions", "src\4.Modules\CapitalUniversity.Module.Student.Abstractions\CapitalUniversity.Module.Student.Abstractions.csproj", "{1500B845-FAA9-44A4-8E9A-ACF85B46B3F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Core.UniTests", "tests\Core.UniTests\CapitalUniversity.Core.UniTests.csproj", "{525521F4-32D6-4948-31A0-E00F3BD3DFB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Core.IntegrationsTests", "tests\Core.IntegrationsTests\CapitalUniversity.Core.IntegrationsTests.csproj", "{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Contract.Tests", "tests\Contract.Tests\CapitalUniversity.Contract.Tests.csproj", "{5D97F848-797F-C8C5-1082-826CB0C860D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Architecture.Tests", "tests\Architecture.Tests\CapitalUniversity.Architecture.Tests.csproj", "{3306EFAF-4894-B410-A69D-9219009CDCDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +93,22 @@ Global
 		{1500B845-FAA9-44A4-8E9A-ACF85B46B3F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1500B845-FAA9-44A4-8E9A-ACF85B46B3F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1500B845-FAA9-44A4-8E9A-ACF85B46B3F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{525521F4-32D6-4948-31A0-E00F3BD3DFB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{525521F4-32D6-4948-31A0-E00F3BD3DFB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{525521F4-32D6-4948-31A0-E00F3BD3DFB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{525521F4-32D6-4948-31A0-E00F3BD3DFB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D97F848-797F-C8C5-1082-826CB0C860D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D97F848-797F-C8C5-1082-826CB0C860D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D97F848-797F-C8C5-1082-826CB0C860D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D97F848-797F-C8C5-1082-826CB0C860D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3306EFAF-4894-B410-A69D-9219009CDCDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3306EFAF-4894-B410-A69D-9219009CDCDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3306EFAF-4894-B410-A69D-9219009CDCDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3306EFAF-4894-B410-A69D-9219009CDCDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -104,6 +128,10 @@ Global
 		{D33E5797-8D3F-45FF-8925-B04C541FE596} = {95B6F1B1-E590-4146-9B8C-AE61B53A1EE2}
 		{819DADC2-AAA7-4C60-AC9F-06B3B04CA078} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 		{1500B845-FAA9-44A4-8E9A-ACF85B46B3F2} = {05BB4593-248D-4292-B05B-06FF83355A2D}
+		{525521F4-32D6-4948-31A0-E00F3BD3DFB0} = {0D47B5B3-C8F4-4034-92A3-7A0091B7E2BB}
+		{2AA139D8-512D-F5D6-C729-BC55EAAB4EA1} = {0D47B5B3-C8F4-4034-92A3-7A0091B7E2BB}
+		{5D97F848-797F-C8C5-1082-826CB0C860D0} = {0D47B5B3-C8F4-4034-92A3-7A0091B7E2BB}
+		{3306EFAF-4894-B410-A69D-9219009CDCDC} = {0D47B5B3-C8F4-4034-92A3-7A0091B7E2BB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8DF18C70-881E-4A42-A9B0-BAD283D97E48}

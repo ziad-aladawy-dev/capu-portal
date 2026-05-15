@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 
 
@@ -13,6 +14,8 @@ public interface IPermissionManagementService
     Task<List<PermissionDto>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<HashSet<string>> GetPermissionLookupAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default);
 
     Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default);
 

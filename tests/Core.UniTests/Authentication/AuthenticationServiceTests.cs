@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 using Moq;
 using Xunit;
@@ -18,7 +20,7 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var credentialMock = new Mock<IUserCredential>();
@@ -41,14 +43,17 @@ public class AuthenticationServiceTests
         mockTokenService.Setup(t => t.GenerateToken(credentialMock.Object))
             .Returns("token123");
 
-        var authScopes = new AuthorizedScopesDto();
-        var permissions = new List<PermissionDto>();
-        var activeScope = new ActiveScopeDto();
+        var loginResponse = new LoginResponseDto
+        {
+            AuthorizedScopes = new AuthorizedScopesDto(),
+            Permissions = new List<PermissionDto>(),
+            ActiveScope = new ActiveScopeDto()
+        };
 
-        mockAuthBuilder.Setup(a => a.BuildAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((authScopes, permissions, activeScope));
+        mockPermService.Setup(a => a.GetBootstrapContextAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(loginResponse);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -56,11 +61,9 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
-        Assert.Equal("admin123", request.Identifier);
-        Assert.Equal("Admin", credentialMock.Object.Role);
-        Assert.Equal(authScopes, result.AuthorizedScopes);
-        Assert.Equal(permissions, result.Permissions);
-        Assert.Equal(activeScope, result.ActiveScope);
+        Assert.Equal(loginResponse.AuthorizedScopes, result.AuthorizedScopes);
+        Assert.Equal(loginResponse.Permissions, result.Permissions);
+        Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }
 
     [Fact]
@@ -69,7 +72,7 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var credentialMock = new Mock<IUserCredential>();
@@ -92,14 +95,17 @@ public class AuthenticationServiceTests
         mockTokenService.Setup(t => t.GenerateToken(credentialMock.Object))
             .Returns("token123");
 
-        var authScopes = new AuthorizedScopesDto();
-        var permissions = new List<PermissionDto>();
-        var activeScope = new ActiveScopeDto();
+        var loginResponse = new LoginResponseDto
+        {
+            AuthorizedScopes = new AuthorizedScopesDto(),
+            Permissions = new List<PermissionDto>(),
+            ActiveScope = new ActiveScopeDto()
+        };
 
-        mockAuthBuilder.Setup(a => a.BuildAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((authScopes, permissions, activeScope));
+        mockPermService.Setup(a => a.GetBootstrapContextAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(loginResponse);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -107,11 +113,9 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
-        Assert.Equal("student123", request.Identifier);
-        Assert.Equal("Student", credentialMock.Object.Role);
-        Assert.Equal(authScopes, result.AuthorizedScopes);
-        Assert.Equal(permissions, result.Permissions);
-        Assert.Equal(activeScope, result.ActiveScope);
+        Assert.Equal(loginResponse.AuthorizedScopes, result.AuthorizedScopes);
+        Assert.Equal(loginResponse.Permissions, result.Permissions);
+        Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }
 
     [Theory]
@@ -125,11 +129,11 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var request = new LoginRequestDto { Identifier = identifier, Password = password };
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -144,7 +148,7 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var request = new LoginRequestDto { Identifier = "nonexistent", Password = "password" };
@@ -152,7 +156,7 @@ public class AuthenticationServiceTests
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
             .ReturnsAsync((IUserCredential)null);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -167,7 +171,7 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var credentialMock = new Mock<IUserCredential>();
@@ -178,7 +182,7 @@ public class AuthenticationServiceTests
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
             .ReturnsAsync(credentialMock.Object);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -193,7 +197,7 @@ public class AuthenticationServiceTests
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
-        var mockAuthBuilder = new Mock<IAuthorizationResponseBuilder>();
+        var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
         var credentialMock = new Mock<IUserCredential>();
@@ -208,7 +212,7 @@ public class AuthenticationServiceTests
         mockHasher.Setup(h => h.VerifyHashedPassword("hashed", "wrongpassword"))
             .Returns(false);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockAuthBuilder.Object, mockTokenService.Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -217,3 +221,4 @@ public class AuthenticationServiceTests
         Assert.Null(result);
     }
 }
+

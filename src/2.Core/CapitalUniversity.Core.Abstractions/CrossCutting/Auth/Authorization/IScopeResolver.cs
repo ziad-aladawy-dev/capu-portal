@@ -5,5 +5,5 @@ namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public interface IScopeResolver
 {
-    Task<AuthorizationScope> ResolveAsync(string domain, string year, string semester, CancellationToken cancellationToken = default);
+    Task<AuthorizationScope> ResolveAsync(Guid userId, string year, string semester, CancellationToken cancellationToken = default);
 }

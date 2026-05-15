@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
@@ -7,19 +8,19 @@ public class AuthenticationService : IAuthenticationService
 {
     private readonly IUserCredentialResolver _credentialResolver;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IAuthorizationResponseBuilder _authorizationResponseBuilder;
     private readonly ITokenService _tokenService;
+    private readonly IPermissionManagementService _permissionManagementService;
 
     public AuthenticationService(
         IUserCredentialResolver credentialResolver,
         IPasswordHasher passwordHasher,
-        IAuthorizationResponseBuilder authorizationResponseBuilder,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IPermissionManagementService permissionManagementService)
     {
         _credentialResolver = credentialResolver;
         _passwordHasher = passwordHasher;
-        _authorizationResponseBuilder = authorizationResponseBuilder;
         _tokenService = tokenService;
+        _permissionManagementService = permissionManagementService;
     }
 
     public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
@@ -46,22 +47,9 @@ public class AuthenticationService : IAuthenticationService
         }
 
         var token = _tokenService.GenerateToken(credential);
-        var authData = await _authorizationResponseBuilder.BuildAsync(credential, cancellationToken);
 
-        var response = new LoginResponseDto
-        {
-            User = new UserInfoDto
-            {
-                Id = credential.Id,
-                Name = credential.Name,
-                Email = credential.Email,
-                Attributes = new UserAttributesDto()
-            },
-            Token = token,
-            AuthorizedScopes = authData.Scopes ?? new AuthorizedScopesDto(),
-            Permissions = authData.Permissions ?? new System.Collections.Generic.List<PermissionDto>(),
-            ActiveScope = authData.ActiveScope ?? new ActiveScopeDto()
-        };
+        var response = await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
+        response.Token = token;
 
         return response;
     }

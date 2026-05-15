@@ -2,7 +2,6 @@ namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 
 public class AuthorizationScope
 {
-    public required string Domain { get; set; }
     public required string Year { get; set; }
     public required string Semester { get; set; }
 
