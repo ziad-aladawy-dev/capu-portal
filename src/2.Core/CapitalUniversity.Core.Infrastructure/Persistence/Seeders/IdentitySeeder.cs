@@ -10,11 +10,8 @@ public static class IdentitySeeder
         CoreDbContext context)
     {
         if (context.Students.Any() || context.Staffs.Any())
-<<<<<<< HEAD
            return;
-=======
-            return;
->>>>>>> rescue-fixes
+
 
         var nutritionProgram = await context.StructureNodes
             .FirstAsync(x =>
