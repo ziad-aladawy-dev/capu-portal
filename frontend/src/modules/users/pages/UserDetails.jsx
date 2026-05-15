@@ -7,7 +7,7 @@ import {
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
-import '../styles/UserDetails.css';
+import '../styles/userDetails.css';
 
 const UserDetails = () => {
   const { id } = useParams();

@@ -11,7 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 
-import "./sidebar.css";
+import "../../styles/sidebar.css";
 
 const categoryIcons = {
   overview: <LayoutDashboard size={14} />,

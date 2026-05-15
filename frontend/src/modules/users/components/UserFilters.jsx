@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, Filter, X } from "lucide-react";
-import { USER_TYPES_CONFIG } from "./userTypeConfig";
+import { USER_TYPES_CONFIG } from "../utils/userTypeConfig";
 
 const UserFilters = ({ filters, roles, faculties, departments, onFilterChange, onFetchDepartments }) => {
   const [localFilters, setLocalFilters] = useState({

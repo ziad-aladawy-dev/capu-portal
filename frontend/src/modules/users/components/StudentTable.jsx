@@ -1,9 +1,9 @@
 import React from 'react';
 import { Eye, Edit3, Key, Shield, ToggleRight, ToggleLeft, Trash2 } from 'lucide-react';
-import './UserTable.css';
+import '../styles/userTable.css';
 
-const StaffTable = ({ 
-  staff, 
+const StudentTable = ({ 
+  students, 
   loading, 
   error, 
   pagination, 
@@ -18,7 +18,7 @@ const StaffTable = ({
     return (
       <div className="table-container loading-state">
         <div className="loading-spinner"></div>
-        <p>Loading staff...</p>
+        <p>Loading students...</p>
       </div>
     );
   }
@@ -32,11 +32,11 @@ const StaffTable = ({
     );
   }
 
-  if (!staff || staff.length === 0) {
+  if (!students || students.length === 0) {
     return (
       <div className="table-container">
         <div className="empty-state">
-          <p>No staff found matching your criteria</p>
+          <p>No students found matching your criteria</p>
         </div>
       </div>
     );
@@ -71,19 +71,19 @@ const StaffTable = ({
     return rangeWithDots;
   };
 
-  const isPasswordExpired = (staffMember) => {
-    return staffMember.isPasswordExpired || 
-      (staffMember.passwordExpiryDate && new Date(staffMember.passwordExpiryDate) < new Date());
+  const isPasswordExpired = (student) => {
+    return student.isPasswordExpired || 
+      (student.passwordExpiryDate && new Date(student.passwordExpiryDate) < new Date());
   };
 
-  const handleToggleActive = (staffMember) => {
-    onAction(staffMember.id, staffMember.isActive ? 'deactivate' : 'activate', 
-      staffMember.isActive ? 'Deactivate Staff' : 'Activate Staff');
+  const handleToggleActive = (student) => {
+    onAction(student.id, student.isActive ? 'deactivate' : 'activate', 
+      student.isActive ? 'Deactivate Student' : 'Activate Student');
   };
 
-  const handleDelete = (staffMember) => {
-    if (window.confirm(`Are you sure you want to delete staff "${staffMember.fullNameEn}"?`)) {
-      onAction(staffMember.id, 'soft-delete', 'Delete Staff');
+  const handleDelete = (student) => {
+    if (window.confirm(`Are you sure you want to delete student "${student.fullNameEn}"?`)) {
+      onAction(student.id, 'soft-delete', 'Delete Student');
     }
   };
 
@@ -93,7 +93,7 @@ const StaffTable = ({
         <thead>
           <tr>
             <th>#</th>
-            <th>Staff Code</th>
+            <th>Student Code</th>
             <th>National ID</th>
             <th>Name (English)</th>
             <th>Name (Arabic)</th>
@@ -104,20 +104,20 @@ const StaffTable = ({
           </tr>
         </thead>
         <tbody>
-          {staff.map((staffMember) => (
-            <tr key={staffMember.id} className={staffMember.isDeleted ? 'deleted-row' : ''}>
-              <td>{staffMember.displayId || staffMember.id?.substring(0, 8)}</td>
-              <td style={{ fontFamily: 'Space Mono, monospace', fontWeight: 600 }}>{staffMember.staffCode}</td>
-              <td style={{ fontFamily: 'Space Mono, monospace' }}>{staffMember.nationalId}</td>
-              <td style={{ fontWeight: 600 }}>{staffMember.fullNameEn}</td>
-              <td>{staffMember.fullNameAr}</td>
-              <td>{staffMember.email}</td>
+          {students.map((student) => (
+            <tr key={student.id} className={student.isDeleted ? 'deleted-row' : ''}>
+              <td>{student.displayId || student.id?.substring(0, 8)}</td>
+              <td style={{ fontFamily: 'Space Mono, monospace', fontWeight: 600 }}>{student.studentCode}</td>
+              <td style={{ fontFamily: 'Space Mono, monospace' }}>{student.nationalId}</td>
+              <td style={{ fontWeight: 600 }}>{student.fullNameEn}</td>
+              <td>{student.fullNameAr}</td>
+              <td>{student.email}</td>
               <td>
-                <span className={`status-badge ${staffMember.isActive ? 'status-active' : 'status-inactive'}`}>
+                <span className={`status-badge ${student.isActive ? 'status-active' : 'status-inactive'}`}>
                   <span className="status-dot"></span>
-                  {staffMember.isActive ? 'Active' : 'Inactive'}
+                  {student.isActive ? 'Active' : 'Inactive'}
                 </span>
-                {staffMember.isDeleted && (
+                {student.isDeleted && (
                   <span className="status-badge status-deleted">
                     <span className="status-dot"></span>
                     Deleted
@@ -125,29 +125,29 @@ const StaffTable = ({
                 )}
               </td>
               <td>
-                <span className={`password-badge ${isPasswordExpired(staffMember) ? 'password-expired' : 'password-valid'}`}>
-                  {isPasswordExpired(staffMember) ? 'Expired' : 'Valid'}
+                <span className={`password-badge ${isPasswordExpired(student) ? 'password-expired' : 'password-valid'}`}>
+                  {isPasswordExpired(student) ? 'Expired' : 'Valid'}
                 </span>
               </td>
               <td>
                 <div className="action-buttons">
                   <button
                     className="action-btn info-btn"
-                    onClick={() => onViewDetails(staffMember.id)}
+                    onClick={() => onViewDetails(student.id)}
                     title="View Details"
                   >
                     <Eye size={16} />
                   </button>
                   <button
                     className="action-btn edit-btn"
-                    onClick={() => onEdit(staffMember.id)}
-                    title="Edit Staff"
+                    onClick={() => onEdit(student.id)}
+                    title="Edit Student"
                   >
                     <Edit3 size={16} />
                   </button>
                   <button
                     className="action-btn permission-btn"
-                    onClick={() => onPermissions(staffMember.id)}
+                    onClick={() => onPermissions(student.id)}
                     title="Manage Permissions"
                   >
                     <Shield size={16} />
@@ -194,4 +194,4 @@ const StaffTable = ({
   );
 };
 
-export default StaffTable;
+export default StudentTable;

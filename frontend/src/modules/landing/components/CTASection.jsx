@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, ArrowRight } from "lucide-react";
-import AdminLogin from "../../auth/pages/AdminLogin";
+import AdminLogin from "../../../core/auth/pages/AdminLogin";
 import Reveal from "./Reveal";
 
 function CTASection() {

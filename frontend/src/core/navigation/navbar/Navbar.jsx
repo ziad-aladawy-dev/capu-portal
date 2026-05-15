@@ -8,7 +8,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 
-import "./navbar.css";
+import "../../styles/navbar.css";
 
 function Navbar({ onToggleSidebar }) {
 

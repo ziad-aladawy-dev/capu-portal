@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "../../modules/landing/pages/LandingPage";
-import AdminLogin from "../../modules/auth/pages/AdminLogin";
-import StudentLogin from "../../modules/auth/pages/StudentLogin";
+import AdminLogin from "../auth/pages/AdminLogin";
+import StudentLogin from "../auth/pages/StudentLogin";
 import DashboardLayout from "../layouts/DashboardLayout";
 import AdminDashboard from "../../modules/admin/pages/AdminDashboard";
 import UserManagement from "../../modules/users/pages/UserManagement";
