@@ -60,6 +60,10 @@ CrossCutting/
   LoginResponseDto.cs
  Auth/Authentication/
   IAuthenticationService.cs
+<<<<<<< HEAD
+=======
+  IAuthorizationResponseBuilder.cs
+>>>>>>> rescue-fixes
   IPasswordHasher.cs
   IRequestContext.cs
   ITokenService.cs
@@ -70,15 +74,23 @@ CrossCutting/
   AuthorizationResult.cs
   AuthorizationScope.cs
   AuthUser.cs
+<<<<<<< HEAD
   DTOs/
    PermissionAssignmentContracts.cs
    PermissionDto.cs
+=======
+  DTOs/PermissionAssignmentContracts.cs
+  IAuthorizationEvaluator.cs
+>>>>>>> rescue-fixes
   ICurrentUser.cs
   IPermissionManagementService.cs
   IPermissionService.cs
   IScopeResolver.cs
   OverrideType.cs
+<<<<<<< HEAD
   PermissionIdentity.cs
+=======
+>>>>>>> rescue-fixes
  Caching/ICacheService.cs
  Execution/IExecutionContext.cs
  Localization/

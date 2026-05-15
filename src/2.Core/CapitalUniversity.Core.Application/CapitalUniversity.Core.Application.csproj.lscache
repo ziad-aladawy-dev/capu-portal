@@ -57,11 +57,16 @@ CrossCutting/
  Audit/SerilogLoggerService.cs
  Auth/Authentication/
   AuthenticationService.cs
+<<<<<<< HEAD
+=======
+  AuthorizationResponseBuilder.cs
+>>>>>>> rescue-fixes
   CurrentUser.cs
   ExecutionContext.cs
   PasswordHasher.cs
   RequestContext.cs
   TokenService.cs
+<<<<<<< HEAD
  Auth/Authorization/Roles/Commands/
   CreateRoleCommand.cs
   DeleteRoleCommand.cs
@@ -69,6 +74,18 @@ CrossCutting/
  Auth/Authorization/Roles/Queries/
   GetRoleByIdQuery.cs
   GetRolesQuery.cs
+=======
+ Auth/Authorization/
+  AuthorizationEvaluator.cs
+  Roles/Commands/
+   CreateRoleCommand.cs
+   DeleteRoleCommand.cs
+   UpdateRoleCommand.cs
+  Roles/Queries/
+   GetRoleByIdQuery.cs
+   GetRolesQuery.cs
+  ScopeResolver.cs
+>>>>>>> rescue-fixes
  Caching/
   MemoryCacheService.cs
   RedisCacheService.cs

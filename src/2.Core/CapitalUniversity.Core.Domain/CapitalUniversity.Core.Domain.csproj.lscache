@@ -86,7 +86,10 @@ obj/Debug/net9.0/
 Semsters/
  AcademicYear.cs
  Semester.cs
+<<<<<<< HEAD
 Services/Service.cs
+=======
+>>>>>>> rescue-fixes
 UniversityStructure/
  Enums/StructureNodeType.cs
  StructureNode.cs

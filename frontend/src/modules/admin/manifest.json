@@ -1,0 +1,47 @@
+{
+  "id": "admin",
+  "name": "Admin Dashboard",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin",
+      "component": "Navigate",
+      "props": { "to": "/admin/dashboard", "replace": true },
+      "permission": "dashboard.dashboard.view",
+      "moduleId": "admin"
+    },
+    {
+      "path": "/admin/dashboard",
+      "component": "AdminDashboard",
+      "permission": "dashboard.dashboard.view",
+      "moduleId": "admin"
+    },
+    {
+      "path": "/admin/programs",
+      "component": "Placeholder",
+      "props": { "title": "Programs Page" },
+      "permission": "programs.programs.view",
+      "moduleId": "admin"
+    },
+    {
+      "path": "/admin/sync",
+      "component": "Placeholder",
+      "props": { "title": "SIS Sync Page" },
+      "permission": "sync.sync.view",
+      "moduleId": "admin"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Overview",
+      "label": "Dashboard",
+      "path": "/admin/dashboard",
+      "icon": "LayoutDashboard",
+      "permission": "dashboard.dashboard.view"
+    }
+  ],
+  "permissions": {
+    "resources": ["dashboard.dashboard.view", "programs.programs.view", "sync.sync.view"]
+  }
+}

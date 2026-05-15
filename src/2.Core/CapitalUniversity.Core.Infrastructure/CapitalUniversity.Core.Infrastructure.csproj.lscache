@@ -86,6 +86,10 @@ Persistence/
   CoreDbContextModelSnapshot.cs
  Mongo/MongoSettings.cs
  Seeders/
+<<<<<<< HEAD
+=======
+  DataSeeder.cs
+>>>>>>> rescue-fixes
   IdentitySeeder.cs
   UniversityStructureSeeder.cs
 Repositories/
@@ -100,7 +104,10 @@ Services/
  Authorization/
   PermissionManagementService.cs
   PermissionService.cs
+<<<<<<< HEAD
   ScopeResolver.cs
+=======
+>>>>>>> rescue-fixes
  Notifications/
   NotificationMapper.cs
   NotificationService.cs

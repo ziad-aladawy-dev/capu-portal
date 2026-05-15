@@ -10,7 +10,11 @@ public static class IdentitySeeder
         CoreDbContext context)
     {
         if (context.Students.Any() || context.Staffs.Any())
+<<<<<<< HEAD
            return;
+=======
+            return;
+>>>>>>> rescue-fixes
 
         var nutritionProgram = await context.StructureNodes
             .FirstAsync(x =>
@@ -31,6 +35,7 @@ public static class IdentitySeeder
                 StudentCode = "20250001",
 
                 PasswordHash = "123456",
+                // 123456
 
                 Name = "أحمد محمد علي",
 

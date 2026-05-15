@@ -56,9 +56,18 @@ TemporaryDependencyNodeTargetIdentifier=net9.0
 <NUGET>/microsoft.net.test.sdk/17.11.1/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.Program.cs
 Authentication/
  AuthenticationServiceTests.cs
+<<<<<<< HEAD
  IAuthorizationResponseBuilder.cs
  TokenServiceTests.cs
 Authorization/
+=======
+ TokenServiceTests.cs
+Authorization/
+ AuthorizationEvaluatorActionLevelTests.cs
+ AuthorizationEvaluatorClosedTests.cs
+ AuthorizationEvaluatorMoreTests.cs
+ AuthorizationEvaluatorTests.cs
+>>>>>>> rescue-fixes
  AuthorizationResultTests.cs
  AuthorizationScopeTests.cs
  PermissionManagementServiceTests.cs
