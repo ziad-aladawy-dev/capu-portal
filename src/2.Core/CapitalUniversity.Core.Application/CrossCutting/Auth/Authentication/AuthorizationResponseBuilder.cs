@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CapitalUniversity.Core.Application.Auth.Authentication;
+namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 
 public class AuthorizationResponseBuilder : IAuthorizationResponseBuilder
 {
@@ -38,7 +34,7 @@ public class AuthorizationResponseBuilder : IAuthorizationResponseBuilder
 
         var permissionDtos = new List<PermissionDto>();
 
-        if (user.Role == "Staff")
+        if (user.Role != "Student")
         {
             try
             {

@@ -34,17 +34,35 @@ public class PermissionManagementServiceTests
         return ctx;
     }
 
+    private PermissionManagementService CreateService(
+        CoreDbContext dbContext,
+        out Mock<IPermissionService> mockPermissionService,
+        out Mock<IRequestContext> mockRequestContext,
+        out Mock<IScopeResolver> mockScopeResolver,
+        out Mock<ICacheService> mockCache,
+        out Mock<ICurrentUser> mockCurrentUser)
+    {
+        mockPermissionService = new Mock<IPermissionService>();
+        mockRequestContext = new Mock<IRequestContext>();
+        mockScopeResolver = new Mock<IScopeResolver>();
+        mockCache = new Mock<ICacheService>();
+        mockCurrentUser = new Mock<ICurrentUser>();
+
+        return new PermissionManagementService(
+            mockPermissionService.Object,
+            mockRequestContext.Object,
+            mockScopeResolver.Object,
+            dbContext,
+            mockCache.Object,
+            mockCurrentUser.Object);
+    }
+
     [Fact]
     public async Task CreateAssignmentAsync_ValidRequest_CreatesRolesAndOverrides()
     {
         // Arrange
         var dbContext = GetDbContext();
-        var mockPermissionService = new Mock<IPermissionService>();
-        var mockRequestContext = new Mock<IRequestContext>();
-        var mockScopeResolver = new Mock<IScopeResolver>();
-        var mockCache = new Mock<ICacheService>();
-
-        var service = new PermissionManagementService(mockPermissionService.Object, mockRequestContext.Object, mockScopeResolver.Object, dbContext, mockCache.Object);
+        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
 
         var request = new CreatePermissionAssignmentRequest
         {
@@ -90,22 +108,18 @@ public class PermissionManagementServiceTests
     {
         // Arrange
         var dbContext = GetDbContext();
-        var mockPermissionService = new Mock<IPermissionService>();
-        var mockRequestContext = new Mock<IRequestContext>();
-        var mockScopeResolver = new Mock<IScopeResolver>();
-        var mockCache = new Mock<ICacheService>();
+        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
 
         var userId = Guid.NewGuid();
         var nodeId = Guid.NewGuid();
         var yearId = Guid.NewGuid();
         var semesterId = Guid.NewGuid();
-        
-        // Manual seed for test - implementation uses .ToString() of Guid
-        var roleId = Guid.NewGuid();
-        dbContext.StaffRoles.Add(new StaffRoleAssignment(userId, roleId, yearId.ToString(), semesterId.ToString()) { StructureNodeId = nodeId });
-        await dbContext.SaveChangesAsync();
 
-        var service = new PermissionManagementService(mockPermissionService.Object, mockRequestContext.Object, mockScopeResolver.Object, dbContext, mockCache.Object);
+        dbContext.StaffRoles.Add(new StaffRoleAssignment(userId, Guid.NewGuid(), yearId.ToString(), semesterId.ToString())
+        {
+            StructureNodeId = nodeId
+        });
+        await dbContext.SaveChangesAsync();
 
         var query = new GetPermissionAssignmentQueryDto
         {
@@ -114,51 +128,48 @@ public class PermissionManagementServiceTests
             AcademicYearId = yearId,
             SemesterId = semesterId
         };
-        
+
         // Act
         var result = await service.GetAssignmentAsync(query);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(userId, result.UserId);
-        Assert.Contains(roleId, result.RoleIds);
+        Assert.Equal(nodeId, result.StructuralScope.StructureNodeId);
+        Assert.Equal(yearId, result.TemporalScope.AcademicYearId);
     }
 
     [Fact]
-    public async Task UpdateAssignmentAsync_AddAndRemove_UpdatesCorrectment()
+    public async Task UpdateAssignmentAsync_RemovesAndAddsCorrectly()
     {
         // Arrange
         var dbContext = GetDbContext();
-        var mockPermissionService = new Mock<IPermissionService>();
-        var mockRequestContext = new Mock<IRequestContext>();
-        var mockScopeResolver = new Mock<IScopeResolver>();
-        var mockCache = new Mock<ICacheService>();
+        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
 
         var userId = Guid.NewGuid();
-        var nodeId = Guid.NewGuid();
-        var oldRoleId = Guid.NewGuid();
-        var newRoleId = Guid.NewGuid();
+        var role1 = Guid.NewGuid();
+        var role2 = Guid.NewGuid();
 
-        dbContext.StaffRoles.Add(new StaffRoleAssignment(userId, oldRoleId, "Global", "Global") { StructureNodeId = nodeId });
+        dbContext.StaffRoles.Add(new StaffRoleAssignment(userId, role1, "Global", "Global"));
         await dbContext.SaveChangesAsync();
-
-        var service = new PermissionManagementService(mockPermissionService.Object, mockRequestContext.Object, mockScopeResolver.Object, dbContext, mockCache.Object);
 
         var request = new UpdatePermissionAssignmentRequest
         {
             UserId = userId,
-            RolesToAdd = new List<Guid> { newRoleId },
-            RolesToRemove = new List<Guid> { oldRoleId },
-            StructuralScope = new StructuralScopeModel { StructureNodeId = nodeId },
+            RolesToRemove = new List<Guid> { role1 },
+            RolesToAdd = new List<Guid> { role2 },
+            PermissionsToRemove = new List<PermissionOverrideModel>(),
+            PermissionsToAdd = new List<PermissionOverrideModel>(),
+            StructuralScope = new StructuralScopeModel(),
             TemporalScope = new TemporalScopeModel { AlwaysActive = true }
         };
 
         // Act
-        var result = await service.UpdateAssignmentAsync(request);
+        await service.UpdateAssignmentAsync(request);
 
         // Assert
-        Assert.Single(dbContext.StaffRoles);
-        Assert.Equal(newRoleId, dbContext.StaffRoles.First().RoleId);
-        Assert.Equal(newRoleId, result.RoleIds.First());
+        var currentRoles = await dbContext.StaffRoles.Where(r => r.StaffId == userId).ToListAsync();
+        Assert.Single(currentRoles);
+        Assert.Equal(role2, currentRoles.First().RoleId);
     }
 }

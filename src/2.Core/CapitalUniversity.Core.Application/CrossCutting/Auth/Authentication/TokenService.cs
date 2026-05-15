@@ -32,6 +32,11 @@ public class TokenService : ITokenService
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
         }
 
+        if (user.StructureNodeId.HasValue)
+        {
+            claims.Add(new Claim("StructureNodeId", user.StructureNodeId.Value.ToString()));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

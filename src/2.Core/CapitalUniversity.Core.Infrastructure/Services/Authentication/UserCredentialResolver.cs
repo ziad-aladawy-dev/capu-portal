@@ -54,7 +54,7 @@ public class StudentUserCredential : IUserCredential
     public string Role => "Student";
     public string Name => _student.Name;
     public string Email => _student.Email;
-    public string UniAttribute => string.Empty;
+    public Guid? StructureNodeId => _student.StructureNodeId;
 }
 
 public class StaffUserCredential : IUserCredential
@@ -73,5 +73,5 @@ public class StaffUserCredential : IUserCredential
     public string Role => "Staff";
     public string Name => _staff.Name;
     public string Email => _staff.Email ?? string.Empty;
-
+    public Guid? StructureNodeId => null;
 }

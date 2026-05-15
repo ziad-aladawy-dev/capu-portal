@@ -11,6 +11,5 @@ public interface IUserCredential
     string Role { get; }
     string Name { get; }
     string Email { get; }
-
-
+    Guid? StructureNodeId { get; }
 }

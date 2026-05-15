@@ -17,19 +17,22 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly IScopeResolver _scopeResolver;
     private readonly CoreDbContext _dbContext;
     private readonly ICacheService _cache;
+    private readonly ICurrentUser _currentUser;
 
     public PermissionManagementService(
         IPermissionService permissionService,
         IRequestContext requestContext,
         IScopeResolver scopeResolver,
         CoreDbContext dbContext,
-        ICacheService cache)
+        ICacheService cache,
+        ICurrentUser currentUser)
     {
         _permissionService = permissionService;
         _requestContext = requestContext;
         _scopeResolver = scopeResolver;
         _dbContext = dbContext;
         _cache = cache;
+        _currentUser = currentUser;
     }
 
     public async Task<List<PermissionDto>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -62,6 +65,17 @@ public class PermissionManagementService : IPermissionManagementService
 
         var domain = "Global";
         var scope = await _scopeResolver.ResolveAsync(domain, year, semester, cancellationToken);
+
+        // If current user is the one we are checking and they have a structure node (e.g. Student)
+        if (_currentUser.Id == userId && _currentUser.StructureNodeId.HasValue)
+        {
+            scope.StructureNodeId = _currentUser.StructureNodeId;
+            var node = await _dbContext.StructureNodes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == _currentUser.StructureNodeId, cancellationToken);
+            scope.StructureNodePath = node?.Path;
+        }
+
         var rawPermissions = await _permissionService.GetPermissionsAsync(userId, "*", scope, cancellationToken);
 
         var roleIds = rawPermissions.Assignments.Select(a => a.RoleId).Distinct().ToList();
