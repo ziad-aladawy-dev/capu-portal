@@ -17,7 +17,7 @@ public class RolePermission : BaseEntity, IRolePermission
     public ICollection<RolePermissionScope> Scopes { get; set; } = new List<RolePermissionScope>();
 
     // For EF
-    protected RolePermission() { }
+    public RolePermission() { }
 
     public RolePermission(Guid roleId, Guid serviceId, string resource, ActionLevel level)
     {
