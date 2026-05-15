@@ -1,0 +1,31 @@
+{
+  "id": "staff",
+  "name": "Staff Directory",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/staff",
+      "component": "StaffDirectory",
+      "permission": "staff.directory.view",
+      "moduleId": "staff"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "People Management",
+      "label": "Staff Directory",
+      "path": "/admin/staff",
+      "icon": "Users",
+      "permission": "staff.directory.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "staff.directory.view",
+      "staff.directory.create",
+      "staff.directory.edit",
+      "staff.directory.delete"
+    ]
+  }
+}

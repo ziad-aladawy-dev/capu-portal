@@ -1,0 +1,53 @@
+{
+  "id": "users",
+  "name": "User Management",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/users",
+      "component": "UserManagement",
+      "permission": "users.users.view",
+      "moduleId": "users"
+    },
+    {
+      "path": "/admin/users/add-student",
+      "component": "AddStudent",
+      "permission": "users.users.insert",
+      "moduleId": "users"
+    },
+    {
+      "path": "/admin/users/edit-student/:id",
+      "component": "EditStudent",
+      "permission": "users.users.editclose",
+      "moduleId": "users"
+    },
+    {
+      "path": "/admin/users/add-staff",
+      "component": "AddStaff",
+      "permission": "users.users.insert",
+      "moduleId": "users"
+    },
+    {
+      "path": "/admin/users/edit-staff/:id",
+      "component": "EditStaff",
+      "permission": "users.users.editclose",
+      "moduleId": "users"
+    },
+    {
+      "path": "/admin/users/:id",
+      "component": "UserDetails",
+      "permission": "users.users.view",
+      "moduleId": "users"
+    }
+  ],
+  "menuItems": [],
+  "permissions": {
+    "resources": [
+      "users.users.view",
+      "users.users.insert",
+      "users.users.editclose",
+      "users.users.delete"
+    ]
+  }
+}

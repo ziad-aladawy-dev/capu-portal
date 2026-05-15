@@ -1,0 +1,44 @@
+{
+  "id": "permissions",
+  "name": "Permissions & Roles",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/permissions",
+      "component": "PermissionsPage",
+      "permission": "permissions.permissions.view",
+      "moduleId": "permissions"
+    },
+    {
+      "path": "/admin/roles",
+      "component": "RolesPage",
+      "permission": "permissions.permissions.view",
+      "moduleId": "permissions"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Security & Access",
+      "label": "Permissions Matrix",
+      "path": "/admin/permissions",
+      "icon": "Shield",
+      "permission": "permissions.permissions.view"
+    },
+    {
+      "category": "Security & Access",
+      "label": "Roles",
+      "path": "/admin/roles",
+      "icon": "UserCog",
+      "permission": "permissions.permissions.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "permissions.permissions.view",
+      "permissions.permissions.insert",
+      "permissions.permissions.editclose",
+      "permissions.permissions.delete"
+    ]
+  }
+}
