@@ -116,3 +116,5 @@ appsettings.Production.json
 
 .wolf/
 .agents/
+
+*.csproj.lscache
