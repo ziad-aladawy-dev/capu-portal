@@ -120,6 +120,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<ISessionVersionService, SessionVersionService>();
 
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<ICurrentUser, CurrentUser>();

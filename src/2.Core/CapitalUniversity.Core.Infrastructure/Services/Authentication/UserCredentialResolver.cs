@@ -14,11 +14,11 @@ public class UserCredentialResolver : IUserCredentialResolver
         _dbContext = dbContext;
     }
 
-    public async Task<IUserCredential> ResolveCredentialAsync(string identifier, CancellationToken cancellationToken = default)
+    public async Task<IUserCredential?> ResolveCredentialAsync(string identifier, CancellationToken cancellationToken = default)
     {
         var student = await _dbContext.Students
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.NationalId == identifier , cancellationToken);
+            .FirstOrDefaultAsync(s => s.NationalId == identifier, cancellationToken);
 
         if (student != null)
         {
@@ -34,7 +34,50 @@ public class UserCredentialResolver : IUserCredentialResolver
             return new StaffUserCredential(staff);
         }
 
-        return null!;
+        return null;
+    }
+
+    public async Task<IUserCredential?> ResolveByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _dbContext.Staffs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (staff != null) return new StaffUserCredential(staff);
+
+        var student = await _dbContext.Students
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (student != null) return new StudentUserCredential(student);
+
+        return null;
+    }
+
+    public async Task<bool> UpdatePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        IPasswordHasher hasher,
+        CancellationToken cancellationToken = default)
+    {
+        var staff = await _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (staff != null)
+        {
+            if (!hasher.VerifyHashedPassword(staff.PasswordHash ?? string.Empty, currentPassword)) return false;
+            staff.PasswordHash = hasher.HashPassword(newPassword);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        var student = await _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (student != null)
+        {
+            if (!hasher.VerifyHashedPassword(student.PasswordHash ?? string.Empty, currentPassword)) return false;
+            student.PasswordHash = hasher.HashPassword(newPassword);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -55,6 +98,7 @@ public class StudentUserCredential : IUserCredential
     public string Name => _student.Name;
     public string Email => _student.Email;
     public Guid? StructureNodeId => _student.StructureNodeId;
+    public int SessionVersion => _student.SessionVersion;
 }
 
 public class StaffUserCredential : IUserCredential
@@ -74,4 +118,5 @@ public class StaffUserCredential : IUserCredential
     public string Name => _staff.Name;
     public string Email => _staff.Email ?? string.Empty;
     public Guid? StructureNodeId => null;
+    public int SessionVersion => _staff.SessionVersion;
 }

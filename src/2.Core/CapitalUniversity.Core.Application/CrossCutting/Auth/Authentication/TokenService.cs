@@ -24,7 +24,8 @@ public class TokenService : ITokenService
             new Claim("Id", user.Id.ToString()), // Keep for compatibility if needed
             new Claim("NationalId", user.Identifier),
             new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(SessionClaims.SessionVersion, user.SessionVersion.ToString())
         };
 
         if (!string.IsNullOrEmpty(user.Email))

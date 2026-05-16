@@ -26,4 +26,9 @@ public class Student : BaseEntity
     public DateTime? PasswordExpiry { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// See Staff.SessionVersion.
+    /// </summary>
+    public int SessionVersion { get; set; }
 }

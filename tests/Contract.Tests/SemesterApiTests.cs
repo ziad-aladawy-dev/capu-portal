@@ -71,6 +71,20 @@ private void SetupAuth()
     db.RolePermissions.Add(new RolePermission(role.Id, serviceSem.Id, "Semester", ActionLevel.Delete));
     db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
+    // SessionVersionMiddleware needs a Staff row matching the token's user id.
+    var anyNodeId = db.StructureNodes.AsNoTracking().Select(n => n.Id).First();
+    db.Staffs.Add(new Staff
+    {
+        Id = userId,
+        EmployeeCode = "TEST-" + userId.ToString("N").Substring(0, 8),
+        NationalId = "TEST" + userId.ToString("N").Substring(0, 11),
+        PasswordHash = "test-hash",
+        Name = "Test Admin",
+        Role = "Admin",
+        StructureNodeId = anyNodeId,
+        IsActive = true,
+    });
+
     db.SaveChanges();
 
     var mockUser = new Mock<IUserCredential>();

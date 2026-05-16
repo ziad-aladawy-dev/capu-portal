@@ -508,9 +508,12 @@ public static class DataSeeder
 
         StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
-        var defs = new (string EmpCode, string RoleName, string Year, string Semester, string NodeName)[]
+        // NodeName=null means "global structural" — the row has no structural restriction
+        // and the runtime PermissionService filter accepts it regardless of header.
+        // Reserved for Super Admin; every other role is tenanted to a real node.
+        var defs = new (string EmpCode, string RoleName, string Year, string Semester, string? NodeName)[]
         {
-            ("ADMIN-001", "Super Admin",      "Global", "Global", "Capital University"),
+            ("ADMIN-001", "Super Admin",      "Global", "Global", null),
             ("FAC-001",   "Faculty Admin",    yearKey,  fallKey,  "Home Economics"),
             ("HOD-001",   "Department Head",  yearKey,  fallKey,  "Clinical Nutrition"),
             ("REG-001",   "Registrar",        yearKey,  fallKey,  "Capital University"),
@@ -534,17 +537,22 @@ public static class DataSeeder
                 Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode}/{d.RoleName} — role missing.");
                 continue;
             }
-            var node = FindNode(d.NodeName);
-            if (node == null)
+
+            StructureNode? node = null;
+            if (d.NodeName != null)
             {
-                Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode} — node '{d.NodeName}' not found.");
-                continue;
+                node = FindNode(d.NodeName);
+                if (node == null)
+                {
+                    Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode} — node '{d.NodeName}' not found.");
+                    continue;
+                }
             }
 
             var alreadyAssigned = existing.Any(a =>
                 a.StaffId == s.Id &&
                 a.RoleId == r.Id &&
-                a.StructureNodeId == node.Id &&
+                a.StructureNodeId == node?.Id &&
                 a.Year == d.Year &&
                 a.Semester == d.Semester);
 
@@ -552,8 +560,8 @@ public static class DataSeeder
 
             context.StaffRoles.Add(new StaffRoleAssignment(s.Id, r.Id, d.Year, d.Semester)
             {
-                StructureNodeId = node.Id,
-                StructureNodePath = node.Path,
+                StructureNodeId = node?.Id,
+                StructureNodePath = node?.Path,
             });
             added++;
         }

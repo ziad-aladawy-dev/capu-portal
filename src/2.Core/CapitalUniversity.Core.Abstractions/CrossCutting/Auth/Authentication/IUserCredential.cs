@@ -12,4 +12,5 @@ public interface IUserCredential
     string Name { get; }
     string Email { get; }
     Guid? StructureNodeId { get; }
+    int SessionVersion { get; }
 }

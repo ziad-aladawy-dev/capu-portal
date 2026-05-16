@@ -51,7 +51,18 @@ builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddOptions<SessionVersionOptions>()
+    .Bind(builder.Configuration.GetSection(SessionVersionOptions.SectionName));
+
+builder.Services.AddAuthorization(options =>
+{
+    // Every endpoint requires an authenticated principal by default. Login, refresh
+    // (anon — caller carries an expired/expiring token), health, and swagger opt out
+    // with [AllowAnonymous] or anonymous mappings below.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
@@ -91,6 +102,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<SessionVersionMiddleware>();
 app.UseAuthorization();
+
+// Health endpoint (anonymous).
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
 app.MapControllers();
 app.Run();
+
+// Required by WebApplicationFactory<TEntryPoint> in integration tests.
+public partial class Program { }

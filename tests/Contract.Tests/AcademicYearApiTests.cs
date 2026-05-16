@@ -69,7 +69,23 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         db.Roles.Add(role);
         db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "Year", ActionLevel.Delete)); // Level 5 covers all
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
-        
+
+        // SessionVersionMiddleware rejects tokens for users that have no row in
+        // Staffs/Students. Seed a matching Staff row so the version check passes
+        // (both sides default to 0).
+        var anyNodeId = db.StructureNodes.AsNoTracking().Select(n => n.Id).First();
+        db.Staffs.Add(new Staff
+        {
+            Id = userId,
+            EmployeeCode = "TEST-" + userId.ToString("N").Substring(0, 8),
+            NationalId = "TEST" + userId.ToString("N").Substring(0, 11),
+            PasswordHash = "test-hash",
+            Name = "Test Admin",
+            Role = "Admin",
+            StructureNodeId = anyNodeId,
+            IsActive = true,
+        });
+
         db.SaveChanges();
 
         var mockUser = new Mock<IUserCredential>();

@@ -30,4 +30,11 @@ public class Staff : BaseEntity
     public DateTime? PasswordExpiry { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Monotonic counter bumped on logout / password change. Tokens carry the version
+    /// snapshot at issue time; a mismatch with this row's current value invalidates
+    /// the bearer, providing stateless-revocation without a token blocklist.
+    /// </summary>
+    public int SessionVersion { get; set; }
 }
