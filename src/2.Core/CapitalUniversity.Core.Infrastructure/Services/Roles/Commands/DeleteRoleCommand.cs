@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
@@ -10,10 +11,14 @@ public class DeleteRoleRequest
 public class DeleteRoleCommandHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly IPermissionCacheInvalidator? _cacheInvalidator;
 
-    public DeleteRoleCommandHandler(CoreDbContext dbContext)
+    public DeleteRoleCommandHandler(
+        CoreDbContext dbContext,
+        IPermissionCacheInvalidator? cacheInvalidator = null)
     {
         _dbContext = dbContext;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<bool> Handle(DeleteRoleRequest request, CancellationToken cancellationToken)
@@ -21,6 +26,13 @@ public class DeleteRoleCommandHandler
         var role = await _dbContext.Roles.FindAsync(new object[] { request.Id }, cancellationToken);
 
         if (role == null) return false;
+
+        // Snapshot assignees BEFORE delete so the cascade doesn't drop them from
+        // StaffRoles before the invalidator queries.
+        if (_cacheInvalidator is not null)
+        {
+            await _cacheInvalidator.InvalidateRoleAsync(request.Id, cancellationToken);
+        }
 
         _dbContext.Roles.Remove(role);
         await _dbContext.SaveChangesAsync(cancellationToken);

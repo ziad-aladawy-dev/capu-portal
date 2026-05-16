@@ -112,6 +112,14 @@ using (var scope = app.Services.CreateScope())
     await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
     await IdentitySeeder.SeedAsync(db);
+
+    // Reconcile manifest-declared permissions against the DB. Additive only —
+    // every module owns its permissions through IPermissionManifest, and the
+    // synchroniser fills in any missing Module/Service rows without touching
+    // teammate-seeded ones. Safe on every startup.
+    var manifestSync = scope.ServiceProvider
+        .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
+    await manifestSync.SynchronizeAsync();
 }
 
 if (app.Environment.IsDevelopment())

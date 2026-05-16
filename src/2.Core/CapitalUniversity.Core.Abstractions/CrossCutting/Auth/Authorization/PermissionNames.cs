@@ -43,32 +43,26 @@ public static class PermissionNames
     }
 
     /// <summary>
-    /// Used by <c>AcademicYearsController</c>. Currently uses the legacy
-    /// <c>Module = Academic</c> / <c>Resource = Year</c> naming — the production
-    /// seeder doesn't grant these (it grants <c>academics.academic-years.*</c> via
-    /// the "View Academic Years" service), so this is effectively dead in prod
-    /// until the controllers migrate to the canonical names. Keeping the constants
-    /// here so the existing tests + bespoke seeded scenarios compile.
+    /// Combined academic-timeline permissions covering BOTH academic years and
+    /// semesters. The system already collapses these into a single resource at
+    /// runtime — <see cref="PermissionIdentity.ResourceFor"/> maps every academics-
+    /// module service to the <c>academic-years</c> resource — so granting one set
+    /// of permissions on this resource grants management of both tables. This is
+    /// intentional: anyone with academic temporal scope management needs both.
+    ///
+    /// <para>
+    /// Module = <c>academics</c>, Resource = <c>academic-years</c>. Bound by
+    /// <see cref="AcademicYearsController"/> and <see cref="SemestersController"/>.
+    /// Declared by <c>AcademicsPermissionManifest</c>; the seeder grants this via
+    /// the "Academic Timeline" service row.
+    /// </para>
     /// </summary>
-    public static class AcademicYear
+    public static class AcademicTimeline
     {
-        public const string View      = "Academic.Year.View";
-        public const string Insert    = "Academic.Year.Insert";
-        public const string EditClose = "Academic.Year.EditClose";
-        public const string Open      = "Academic.Year.Open";
-        public const string Delete    = "Academic.Year.Delete";
-    }
-
-    /// <summary>
-    /// Used by <c>SemestersController</c>. Same legacy-naming note as
-    /// <see cref="AcademicYear"/>.
-    /// </summary>
-    public static class AcademicSemester
-    {
-        public const string View      = "Academic.Semester.View";
-        public const string Insert    = "Academic.Semester.Insert";
-        public const string EditClose = "Academic.Semester.EditClose";
-        public const string Open      = "Academic.Semester.Open";
-        public const string Delete    = "Academic.Semester.Delete";
+        public const string View      = "academics.academic-years.View";
+        public const string Insert    = "academics.academic-years.Insert";
+        public const string EditClose = "academics.academic-years.EditClose";
+        public const string Open      = "academics.academic-years.Open";
+        public const string Delete    = "academics.academic-years.Delete";
     }
 }

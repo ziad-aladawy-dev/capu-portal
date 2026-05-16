@@ -18,7 +18,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission(PermissionNames.AcademicSemester.View)]
+    [HasPermission(PermissionNames.AcademicTimeline.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -27,7 +27,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpGet("current")]
-    [HasPermission(PermissionNames.AcademicSemester.View)]
+    [HasPermission(PermissionNames.AcademicTimeline.View)]
     public async Task<IActionResult> GetCurrent()
     {
         var result = await _service.GetCurrentAsync();
@@ -36,7 +36,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission(PermissionNames.AcademicSemester.Insert)]
+    [HasPermission(PermissionNames.AcademicTimeline.Insert)]
     public async Task<IActionResult> Create([FromBody] CreateSemesterRequest request)
     {
         var id = await _service.CreateAsync(request);
@@ -44,7 +44,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}")]
-    [HasPermission(PermissionNames.AcademicSemester.EditClose)]
+    [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSemesterRequest request)
     {
         await _service.UpdateAsync(id, request);
@@ -52,7 +52,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [HasPermission(PermissionNames.AcademicSemester.Delete)]
+    [HasPermission(PermissionNames.AcademicTimeline.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);
@@ -60,6 +60,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpPost("resolve")]
+    [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
     public async Task<IActionResult> Resolve()
     {
         await _service.ResolveCurrentSemesterAsync();

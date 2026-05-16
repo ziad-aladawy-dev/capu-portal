@@ -18,7 +18,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet]
-    [HasPermission(PermissionNames.AcademicYear.View)]
+    [HasPermission(PermissionNames.AcademicTimeline.View)]
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -26,7 +26,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission(PermissionNames.AcademicYear.View)]
+    [HasPermission(PermissionNames.AcademicTimeline.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -35,7 +35,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission(PermissionNames.AcademicYear.Insert)]
+    [HasPermission(PermissionNames.AcademicTimeline.Insert)]
     public async Task<IActionResult> Create([FromBody] CreateAcademicYearRequest request)
     {
         var id = await _service.CreateAsync(request);
@@ -43,6 +43,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}")]
+    [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAcademicYearRequest request)
     {
         await _service.UpdateAsync(id, request);
@@ -50,6 +51,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [HasPermission(PermissionNames.AcademicTimeline.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);
@@ -57,6 +59,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/semesters")]
+    [HasPermission(PermissionNames.AcademicTimeline.View)]
     public async Task<IActionResult> GetSemesters(Guid id, [FromServices] ISemesterService semesterService)
     {
         var result = await semesterService.GetByAcademicYearIdAsync(id);
@@ -64,6 +67,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpPost("resolve")]
+    [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
     public async Task<IActionResult> Resolve()
     {
         await _service.ResolveCurrentYearAsync();

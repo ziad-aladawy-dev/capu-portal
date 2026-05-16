@@ -1,6 +1,8 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
 namespace CapitalUniversity.API.Infrastructure;
@@ -21,15 +23,25 @@ public class GlobalExceptionHandler : IExceptionHandler
     {
         _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
 
-        var (statusCode, title, type) = exception switch
+        // Map each infrastructure exception to (status, localized-title-key, RFC type).
+        // Title comes back through the localization service so the response respects
+        // the request's culture; Detail keeps the caller-supplied message (it's their
+        // string, not ours to translate).
+        var (statusCode, titleKey, type) = exception switch
         {
-            ValidationException => ((int)HttpStatusCode.BadRequest, "Validation Error", "https://tools.ietf.org/html/rfc7231#section-6.5.1"),
-            UnauthorizedException => ((int)HttpStatusCode.Unauthorized, "Unauthorized", "https://tools.ietf.org/html/rfc7235#section-3.1"),
-            ForbiddenException => ((int)HttpStatusCode.Forbidden, "Forbidden", "https://tools.ietf.org/html/rfc7231#section-6.5.3"),
-            NotFoundException => ((int)HttpStatusCode.NotFound, "Not Found", "https://tools.ietf.org/html/rfc7231#section-6.5.4"),
-            ConflictException => ((int)HttpStatusCode.Conflict, "Conflict", "https://tools.ietf.org/html/rfc7231#section-6.5.8"),
-            _ => ((int)HttpStatusCode.InternalServerError, "Server Error", "https://tools.ietf.org/html/rfc7231#section-6.6.1")
+            ValidationException   => ((int)HttpStatusCode.BadRequest,         LocalizedKeys.Infrastructure.ValidationError, "https://tools.ietf.org/html/rfc7231#section-6.5.1"),
+            UnauthorizedException => ((int)HttpStatusCode.Unauthorized,       LocalizedKeys.Auth.Unauthorized,              "https://tools.ietf.org/html/rfc7235#section-3.1"),
+            ForbiddenException    => ((int)HttpStatusCode.Forbidden,          LocalizedKeys.Permissions.Forbidden,          "https://tools.ietf.org/html/rfc7231#section-6.5.3"),
+            NotFoundException     => ((int)HttpStatusCode.NotFound,           LocalizedKeys.Infrastructure.NotFound,        "https://tools.ietf.org/html/rfc7231#section-6.5.4"),
+            ConflictException     => ((int)HttpStatusCode.Conflict,           LocalizedKeys.Infrastructure.Conflict,        "https://tools.ietf.org/html/rfc7231#section-6.5.8"),
+            _                     => ((int)HttpStatusCode.InternalServerError, LocalizedKeys.Infrastructure.ServerError,    "https://tools.ietf.org/html/rfc7231#section-6.6.1")
         };
+
+        // Resolve the localization service from the request's scope — the handler
+        // itself is registered as a singleton (AddExceptionHandler default), so
+        // constructor-injecting a scoped service would create a captive dependency.
+        var localization = httpContext.RequestServices.GetService<ILocalizationService>();
+        var title = localization?.GetString(titleKey) ?? titleKey;
 
         var problemDetails = new ProblemDetails
         {

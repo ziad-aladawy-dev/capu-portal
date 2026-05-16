@@ -125,6 +125,10 @@ public static class DependencyInjection
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ISessionVersionService, SessionVersionService>();
 
+        services.AddOptions<RefreshTokenSettings>()
+            .Bind(configuration.GetSection(RefreshTokenSettings.SectionName));
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<IExecutionContext, CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication.ExecutionContext>();
@@ -133,6 +137,21 @@ public static class DependencyInjection
         services.AddScoped<IScopeResolver, ScopeResolver>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
+        services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
+
+        // Permission Manifest System (PR-B1) — each module declares its own permissions
+        // via an IPermissionManifest. The registry validates duplicates at startup; the
+        // synchronizer ensures Module + Service rows exist for every declared permission.
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AcademicsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AuthorizationPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.NotificationsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PermissionManifestRegistry>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer,
+                           CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.PermissionManifestSynchronizer>();
         services.AddScoped<
             CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries.IPermissionTreeQueryHandler,
             CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries.PermissionTreeQueryHandler>();
@@ -155,7 +174,15 @@ public static class DependencyInjection
         // Logging & Audit
 
         services.AddScoped<ILoggerService, SerilogLoggerService>();
-        services.AddScoped<IAppLogger, MongoLoggerService>();
+
+        // Async audit pipeline (PR-D1): BufferedAppLogger captures HttpContext fields
+        // synchronously and stages a LogEntry on a bounded Channel; AuditLogFlushWorker
+        // drains the channel and writes to Mongo out of band. MongoLoggerService is
+        // still available for callers that need a synchronous write.
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAuditLogQueue>(
+            _ => new CapitalUniversity.Core.Infrastructure.Logging.ChannelAuditLogQueue());
+        services.AddScoped<IAppLogger, CapitalUniversity.Core.Infrastructure.Logging.BufferedAppLogger>();
+        services.AddHostedService<CapitalUniversity.Core.Infrastructure.Logging.AuditLogFlushWorker>();
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();

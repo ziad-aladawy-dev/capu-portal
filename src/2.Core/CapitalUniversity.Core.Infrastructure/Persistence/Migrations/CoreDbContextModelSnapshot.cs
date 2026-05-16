@@ -364,6 +364,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("SessionVersion")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("StructureNodeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -457,6 +460,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int>("SessionVersion")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("StructureNodeId")
                         .HasColumnType("uniqueidentifier");
 
@@ -520,6 +526,50 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.HasIndex("RecipientUserId");
 
                     b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Outbox.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EnqueuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAt", "EnqueuedAt");
+
+                    b.ToTable("OutboxMessages", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.AcademicYear", b =>

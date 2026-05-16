@@ -39,6 +39,7 @@ public class CoreDbContext : DbContext
     public DbSet<StaffPermissionOverride> StaffPermissionOverrides { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<CapitalUniversity.Core.Domain.Outbox.OutboxMessage> OutboxMessages { get; set; }
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

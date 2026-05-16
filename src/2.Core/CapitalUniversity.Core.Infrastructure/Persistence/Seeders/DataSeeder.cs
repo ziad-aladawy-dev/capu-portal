@@ -199,8 +199,10 @@ public static class DataSeeder
         AddSvc("permissions",  "Manage Permissions",   1);
         AddSvc("sync",         "View Sync",            0);
         AddSvc("sync",         "Execute Sync",         1);
-        AddSvc("academics",    "View Academic Years",  0);
-        AddSvc("academics",    "Manage Semesters",     1);
+        // Consolidated academic-timeline service — covers both Academic Years and
+        // Semesters via the single canonical "academics.academic-years.*" identity
+        // PermissionIdentity.ResourceFor already produces for every academics row.
+        AddSvc("academics",    "Academic Timeline",    0);
         AddSvc("notifications","View Notifications",   0);
         AddSvc("notifications","Send Notifications",   1);
         AddSvc("permissions",  "Manage Roles",         2);
@@ -284,8 +286,7 @@ public static class DataSeeder
         AddPerm("Faculty Admin", "View Programs",        ActionLevel.View);
         AddPerm("Faculty Admin", "Manage Programs",      ActionLevel.Insert);
         AddPerm("Faculty Admin", "View Permissions",     ActionLevel.View);
-        AddPerm("Faculty Admin", "View Academic Years",  ActionLevel.View);
-        AddPerm("Faculty Admin", "Manage Semesters",     ActionLevel.View);
+        AddPerm("Faculty Admin", "Academic Timeline",    ActionLevel.View);
         AddPerm("Faculty Admin", "View Notifications",   ActionLevel.View);
         AddPerm("Faculty Admin", "Send Notifications",   ActionLevel.Insert);
         AddPerm("Faculty Admin", "Manage Roles",         ActionLevel.View);
@@ -296,7 +297,7 @@ public static class DataSeeder
         AddPerm("Department Head", "Edit Users",         ActionLevel.EditClose);
         AddPerm("Department Head", "View Structure",     ActionLevel.View);
         AddPerm("Department Head", "View Programs",      ActionLevel.View);
-        AddPerm("Department Head", "View Academic Years",ActionLevel.View);
+        AddPerm("Department Head", "Academic Timeline", ActionLevel.View);
         AddPerm("Department Head", "View Notifications", ActionLevel.View);
 
         // Registrar
@@ -307,8 +308,7 @@ public static class DataSeeder
         AddPerm("Registrar", "View Structure",           ActionLevel.View);
         AddPerm("Registrar", "View Programs",            ActionLevel.View);
         AddPerm("Registrar", "Manage Programs",          ActionLevel.Insert);
-        AddPerm("Registrar", "View Academic Years",      ActionLevel.View);
-        AddPerm("Registrar", "Manage Semesters",         ActionLevel.View);
+        AddPerm("Registrar", "Academic Timeline",        ActionLevel.View);
 
         // Academic Advisor
         AddPerm("Academic Advisor", "View Dashboard",    ActionLevel.View);

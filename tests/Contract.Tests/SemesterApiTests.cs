@@ -58,17 +58,17 @@ private void SetupAuth()
 
     var userId = Guid.NewGuid();
 
-    // Seed Module/Service/Role/Permissions for the test user
-    var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
-    var serviceYear = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
-    var serviceSem = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Semester" };
+    // Seed the consolidated academic-timeline permission — one Service + one
+    // RolePermission row covers BOTH academic-years and semesters controllers
+    // via canonical "academics.academic-years.*".
+    var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
+    var service = new Service { Id = Guid.NewGuid(), ModuleId = module.Id, DisplayName = "Academic Timeline" };
     var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
 
     db.Modules.Add(module);
-    db.Services.AddRange(serviceYear, serviceSem);
+    db.Services.Add(service);
     db.Roles.Add(role);
-    db.RolePermissions.Add(new RolePermission(role.Id, serviceYear.Id, "Year", ActionLevel.Delete));
-    db.RolePermissions.Add(new RolePermission(role.Id, serviceSem.Id, "Semester", ActionLevel.Delete));
+    db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.Delete));
     db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
     // SessionVersionMiddleware needs a Staff row matching the token's user id.

@@ -54,6 +54,12 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
 
     private async Task<string> LoginAsSuperAdminAsync(HttpClient client)
     {
+        var (access, _) = await LoginAsSuperAdminPairAsync(client);
+        return access;
+    }
+
+    private async Task<(string Access, string Refresh)> LoginAsSuperAdminPairAsync(HttpClient client)
+    {
         var response = await client.PostAsJsonAsync("/api/auth/login",
             new LoginRequestDto { Identifier = SuperAdminNid, Password = SuperAdminPwd });
 
@@ -63,7 +69,9 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
         var body = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
         body.Should().NotBeNull();
         body!.Token.Should().NotBeNullOrWhiteSpace();
-        return body.Token;
+        body.RefreshToken.Should().NotBeNullOrWhiteSpace(
+            "login now issues a refresh token alongside the access token");
+        return (body.Token, body.RefreshToken);
     }
 
     [Fact]
@@ -164,10 +172,10 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
     public async Task Refresh_IssuesNewToken_ThatStillWorks()
     {
         var client = _factory.CreateClient();
-        var oldToken = await LoginAsSuperAdminAsync(client);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", oldToken);
+        var (oldToken, refreshToken) = await LoginAsSuperAdminPairAsync(client);
 
-        var refresh = await client.PostAsync("/api/auth/refresh", content: null);
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh",
+            new RefreshTokenRequestDto { RefreshToken = refreshToken });
         refresh.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await refresh.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
@@ -175,9 +183,63 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
         body!.Token.Should().NotBeNullOrWhiteSpace();
         body.Token.Should().NotBe(oldToken,
             "refresh must mint a new jti-distinct token even when the version claim is unchanged");
+        body.RefreshToken.Should().NotBeNullOrWhiteSpace().And.NotBe(refreshToken,
+            "rotation must return a fresh refresh token, invalidating the presented one");
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.Token);
         var afterRefresh = await client.GetAsync("/api/permissions");
         afterRefresh.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Refresh_WithRotatedToken_ReplayDetected_RevokesEverything()
+    {
+        var client = _factory.CreateClient();
+        var (access, refreshToken) = await LoginAsSuperAdminPairAsync(client);
+
+        // First refresh — succeeds and yields a successor refresh token.
+        var firstRefresh = await client.PostAsJsonAsync("/api/auth/refresh",
+            new RefreshTokenRequestDto { RefreshToken = refreshToken });
+        firstRefresh.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstBody = await firstRefresh.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
+
+        // Replay the original (now-revoked, but-rotated) token. Must fail AND the
+        // service must bump SessionVersion, taking the still-issued successor down too.
+        var replay = await client.PostAsJsonAsync("/api/auth/refresh",
+            new RefreshTokenRequestDto { RefreshToken = refreshToken });
+        replay.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+            "presenting a rotated refresh token is treated as a compromise signal");
+
+        // The successor access token also stops working — replay triggered a session bump.
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstBody!.Token);
+        var afterReplay = await client.GetAsync("/api/permissions");
+        afterReplay.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+            "session-version bump on replay must invalidate every still-live access token");
+    }
+
+    [Fact]
+    public async Task Refresh_WithRevokedToken_AfterLogout_Returns401()
+    {
+        var client = _factory.CreateClient();
+        var (access, refreshToken) = await LoginAsSuperAdminPairAsync(client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", access);
+        var logout = await client.PostAsync("/api/auth/logout", content: null);
+        logout.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        client.DefaultRequestHeaders.Authorization = null;
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh",
+            new RefreshTokenRequestDto { RefreshToken = refreshToken });
+        refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized,
+            "logout must revoke every refresh token, so the previously issued one is dead");
+    }
+
+    [Fact]
+    public async Task Refresh_WithUnknownToken_Returns401()
+    {
+        var client = _factory.CreateClient();
+        var refresh = await client.PostAsJsonAsync("/api/auth/refresh",
+            new RefreshTokenRequestDto { RefreshToken = "not-a-real-token-value" });
+        refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

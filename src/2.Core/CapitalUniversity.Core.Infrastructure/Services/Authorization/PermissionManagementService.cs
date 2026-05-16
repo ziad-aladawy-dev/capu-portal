@@ -21,6 +21,7 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly ICacheService _cache;
     private readonly ICurrentUser _currentUser;
     private readonly PermissionCacheOptions _cacheOptions;
+    private readonly IPermissionCacheInvalidator? _cacheInvalidator;
 
     public PermissionManagementService(
         IPermissionService permissionService,
@@ -29,7 +30,8 @@ public class PermissionManagementService : IPermissionManagementService
         CoreDbContext dbContext,
         ICacheService cache,
         ICurrentUser currentUser,
-        Microsoft.Extensions.Options.IOptions<PermissionCacheOptions>? cacheOptions = null)
+        Microsoft.Extensions.Options.IOptions<PermissionCacheOptions>? cacheOptions = null,
+        IPermissionCacheInvalidator? cacheInvalidator = null)
     {
         _permissionService = permissionService;
         _requestContext = requestContext;
@@ -38,6 +40,7 @@ public class PermissionManagementService : IPermissionManagementService
         _cache = cache;
         _currentUser = currentUser;
         _cacheOptions = cacheOptions?.Value ?? new PermissionCacheOptions();
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -245,7 +248,10 @@ public class PermissionManagementService : IPermissionManagementService
         var structureNodeId = _requestContext.ActiveStructureNodeId;
         var structureKey = structureNodeId?.ToString() ?? ScopeKeys.Global;
         var version = await GetUserPermissionVersionAsync(userId, cancellationToken);
-        var cacheKey = $"perm_lookup_{userId}_{version}_{year}_{semester}_{structureKey}";
+        var epoch = await GetGlobalEpochAsync(cancellationToken);
+        // Epoch participates in the key so InvalidateAllAsync (manifest sync, schema
+        // migration) orphans every cached entry without enumerating keys.
+        var cacheKey = $"perm_lookup_{epoch}_{userId}_{version}_{year}_{semester}_{structureKey}";
 
         var cachedLookup = await _cache.GetAsync<HashSet<string>>(cacheKey, cancellationToken);
         if (cachedLookup != null)
@@ -325,8 +331,16 @@ public class PermissionManagementService : IPermissionManagementService
 
     // Rotating the per-user version orphans every cached perm_lookup_{userId}_{version}_*
     // entry across all scope variants in a single write — no key enumeration needed.
+    // Delegates to IPermissionCacheInvalidator when it's wired so all rotation paths
+    // share one implementation; falls back to a direct cache write for tests/old
+    // construction paths that bypass DI.
     private async Task InvalidateUserCacheAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        if (_cacheInvalidator is not null)
+        {
+            await _cacheInvalidator.InvalidateUserAsync(userId, cancellationToken);
+            return;
+        }
         await _cache.SetAsync(VersionKey(userId), Guid.NewGuid().ToString("N"), TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
     }
 
@@ -341,7 +355,17 @@ public class PermissionManagementService : IPermissionManagementService
         return initial;
     }
 
-    private static string VersionKey(Guid userId) => $"perm_lookup_v_{userId}";
+    private async Task<string> GetGlobalEpochAsync(CancellationToken cancellationToken)
+    {
+        var current = await _cache.GetAsync<string>(PermissionCacheInvalidator.GlobalEpochKey, cancellationToken);
+        if (!string.IsNullOrEmpty(current)) return current;
+
+        var initial = "0";
+        await _cache.SetAsync(PermissionCacheInvalidator.GlobalEpochKey, initial, TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
+        return initial;
+    }
+
+    private static string VersionKey(Guid userId) => PermissionCacheInvalidator.UserVersionKey(userId);
 
     private IEnumerable<string> GetActionsUpToLevel(ActionLevel level)
     {

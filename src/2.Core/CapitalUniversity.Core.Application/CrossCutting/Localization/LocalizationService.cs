@@ -86,8 +86,8 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
 
         public string GetString(string key)
         {
-            // Future implementation: look up in .resx or DB
-            return key;
+            if (string.IsNullOrEmpty(key)) return string.Empty;
+            return LocalizedStrings.Resolve(key, _culture.Language);
         }
     }
 }
