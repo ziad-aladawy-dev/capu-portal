@@ -237,6 +237,11 @@ public static class DataSeeder
 
         var roleMap = roles.ToDictionary(r => r.Name, r => r.Id);
 
+        // Load existing rows from the DB (not just .Local) so the upsert respects
+        // the IX_RolePermissions_RoleId_ServiceId unique index across runs.
+        var existing = await context.RolePermissions
+            .ToDictionaryAsync(rp => (rp.RoleId, rp.ServiceId));
+
         string ResourceFor(Module mod, string displayName)
         {
             if (displayName == "Manage Roles") return "roles";
@@ -256,20 +261,20 @@ public static class DataSeeder
             var resource = ResourceFor(mod, displayName);
             var roleId = roleMap[roleName];
 
-            // Upsert: avoid duplicate (RoleId, ServiceId) per unique index
-            var existing = context.RolePermissions.Local
-                .FirstOrDefault(rp => rp.RoleId == roleId && rp.ServiceId == svc.Id);
-            if (existing != null)
+            if (existing.TryGetValue((roleId, svc.Id), out var current))
             {
-                if (level > existing.Level) existing.Level = level;
+                if (level > current.Level) current.Level = level;
+                current.Resource = resource;
                 return;
             }
 
-            context.RolePermissions.Add(new RolePermission(roleId, svc.Id, resource, level)
+            var newRow = new RolePermission(roleId, svc.Id, resource, level)
             {
                 Id = Guid.NewGuid(),
                 PermissionId = Guid.NewGuid(),
-            });
+            };
+            context.RolePermissions.Add(newRow);
+            existing[(roleId, svc.Id)] = newRow;
         }
 
         // Super Admin — full access

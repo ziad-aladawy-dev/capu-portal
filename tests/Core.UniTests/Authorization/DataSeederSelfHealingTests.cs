@@ -80,6 +80,38 @@ public class DataSeederSelfHealingTests
     }
 
     [Fact]
+    public async Task SeedAsync_WithPartiallyPopulatedRolePermissions_DoesNotViolateUniqueIndex()
+    {
+        // Reproduces the SqlException 2601 duplicate-key crash:
+        // a previous seed attempt left RolePermissions in the DB, and the next
+        // run uses a fresh DbContext whose .Local is empty. The upsert must read
+        // the DB, not just .Local, otherwise it tries to re-insert duplicates.
+        var dbName = Guid.NewGuid().ToString();
+        var options = new DbContextOptionsBuilder<CoreDbContext>()
+            .UseInMemoryDatabase(dbName)
+            .Options;
+        var hasher = new PasswordHasher();
+
+        // First context: full seed.
+        int fullCount;
+        using (var ctx1 = new CoreDbContext(options))
+        {
+            ctx1.Database.EnsureCreated();
+            await DataSeeder.SeedAsync(ctx1, hasher);
+            fullCount = await ctx1.RolePermissions.CountAsync();
+            Assert.True(fullCount > 0);
+        }
+
+        // Second context shares the same in-memory store but has empty .Local —
+        // exactly the production startup scenario after a prior partial seed.
+        using (var ctx2 = new CoreDbContext(options))
+        {
+            await DataSeeder.SeedAsync(ctx2, hasher);
+            Assert.Equal(fullCount, await ctx2.RolePermissions.CountAsync());
+        }
+    }
+
+    [Fact]
     public async Task SeedAsync_IsIdempotent_RunningTwiceDoesNotDuplicate()
     {
         var ctx = NewDb();
