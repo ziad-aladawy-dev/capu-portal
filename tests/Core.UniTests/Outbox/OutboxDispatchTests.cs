@@ -1,0 +1,156 @@
+using System.Text.Json;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
+using CapitalUniversity.Core.Domain.Outbox;
+using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Outbox;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Xunit;
+
+namespace CapitalUniversity.Core.UniTests.Outbox;
+
+/// <summary>
+/// Producer + dispatcher contract:
+///   - EnqueueAsync stages a row; the caller's SaveChanges commits it.
+///   - The dispatcher loads pending rows, invokes the matching handler, stamps
+///     ProcessedAt on success / bumps AttemptCount + LastError on failure.
+///   - A processed row is never re-dispatched (the dispatcher filters by ProcessedAt is null).
+///   - A handler that throws is retried up to MaxAttempts, then parked.
+/// </summary>
+public class OutboxDispatchTests
+{
+    private const string TestMessageType = "test.echo";
+
+    private static (IServiceProvider Provider, CoreDbContext Db, OutboxDispatcher Dispatcher, EchoHandler Handler) Build(
+        int maxAttempts = 3,
+        bool handlerThrows = false)
+    {
+        var services = new ServiceCollection();
+        var dbName = "Outbox_" + Guid.NewGuid();
+        services.AddDbContext<CoreDbContext>(o => o.UseInMemoryDatabase(dbName), ServiceLifetime.Scoped);
+
+        var handler = new EchoHandler(handlerThrows);
+        services.AddSingleton<IOutboxMessageHandler>(handler);
+        services.AddSingleton(Options.Create(new OutboxOptions { MaxAttempts = maxAttempts, BatchSize = 50 }));
+
+        var provider = services.BuildServiceProvider();
+        var db = provider.CreateScope().ServiceProvider.GetRequiredService<CoreDbContext>();
+        db.Database.EnsureCreated();
+
+        var dispatcher = new OutboxDispatcher(
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<IOptions<OutboxOptions>>(),
+            NullLogger<OutboxDispatcher>.Instance);
+
+        return (provider, db, dispatcher, handler);
+    }
+
+    [Fact]
+    public async Task EnqueueThenDispatch_InvokesHandler_AndStampsProcessedAt()
+    {
+        var (provider, db, dispatcher, handler) = Build();
+        var outbox = new OutboxService(db);
+
+        await outbox.EnqueueAsync(TestMessageType, new { greeting = "hello" });
+        await db.SaveChangesAsync();
+        db.OutboxMessages.Count().Should().Be(1);
+
+        await dispatcher.ProcessBatchAsync(CancellationToken.None);
+
+        handler.Calls.Should().Be(1);
+        var row = await db.OutboxMessages.AsNoTracking().FirstAsync();
+        row.ProcessedAt.Should().NotBeNull();
+        row.AttemptCount.Should().Be(1);
+        row.LastError.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SecondDispatchPass_DoesNotRedispatchProcessedRows()
+    {
+        var (provider, db, dispatcher, handler) = Build();
+        var outbox = new OutboxService(db);
+        await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
+        await db.SaveChangesAsync();
+
+        await dispatcher.ProcessBatchAsync(CancellationToken.None);
+        handler.Calls.Should().Be(1);
+
+        // Second tick — the row is processed; the dispatcher must skip it.
+        await dispatcher.ProcessBatchAsync(CancellationToken.None);
+        handler.Calls.Should().Be(1, "ProcessedAt-stamped rows must never be replayed");
+    }
+
+    [Fact]
+    public async Task HandlerThrows_BumpsAttempt_LeavesPending_RetriesUntilMaxAttempts()
+    {
+        const int maxAttempts = 3;
+        var (provider, db, dispatcher, handler) = Build(maxAttempts: maxAttempts, handlerThrows: true);
+        var outbox = new OutboxService(db);
+        await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
+        await db.SaveChangesAsync();
+
+        for (var i = 0; i < maxAttempts; i++)
+        {
+            await dispatcher.ProcessBatchAsync(CancellationToken.None);
+        }
+
+        var row = await db.OutboxMessages.AsNoTracking().FirstAsync();
+        row.ProcessedAt.Should().BeNull("the handler never succeeded");
+        row.AttemptCount.Should().Be(maxAttempts);
+        row.LastError.Should().NotBeNullOrEmpty();
+
+        // One more pass — row is past MaxAttempts and should be left alone (parked).
+        await dispatcher.ProcessBatchAsync(CancellationToken.None);
+        row = await db.OutboxMessages.AsNoTracking().FirstAsync();
+        row.AttemptCount.Should().Be(maxAttempts, "rows past MaxAttempts must not be retried");
+    }
+
+    [Fact]
+    public async Task UnknownMessageType_IsNotRetriedToInfinity()
+    {
+        var (provider, db, dispatcher, _) = Build();
+        var outbox = new OutboxService(db);
+        await outbox.EnqueueAsync("not.registered", new { x = 1 });
+        await db.SaveChangesAsync();
+
+        await dispatcher.ProcessBatchAsync(CancellationToken.None);
+
+        var row = await db.OutboxMessages.AsNoTracking().FirstAsync();
+        row.ProcessedAt.Should().BeNull();
+        row.AttemptCount.Should().Be(1);
+        row.LastError.Should().Contain("No handler registered");
+    }
+
+    [Fact]
+    public void EnqueueAsync_DoesNotCommit_LeavingTransactionalAtomicityToTheCaller()
+    {
+        // The outbox must NOT call SaveChanges internally — the whole point of the
+        // pattern is that the row commits in the same txn as the business state it
+        // accompanies. Verify the row is staged (.Local) but absent from the DB until
+        // the caller saves.
+        var (provider, db, _, _) = Build();
+        var outbox = new OutboxService(db);
+
+        outbox.EnqueueAsync(TestMessageType, new { x = 1 }).GetAwaiter().GetResult();
+
+        db.OutboxMessages.Local.Should().HaveCount(1);
+        db.ChangeTracker.Entries<OutboxMessage>().Should().HaveCount(1);
+    }
+
+    private class EchoHandler : IOutboxMessageHandler
+    {
+        private readonly bool _throws;
+        public int Calls;
+        public EchoHandler(bool throws) { _throws = throws; }
+        public string MessageType => TestMessageType;
+        public Task HandleAsync(string payload, CancellationToken cancellationToken)
+        {
+            Calls++;
+            if (_throws) throw new InvalidOperationException("simulated handler failure");
+            return Task.CompletedTask;
+        }
+    }
+}

@@ -137,6 +137,17 @@ public static class DependencyInjection
             CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries.IPermissionTreeQueryHandler,
             CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries.PermissionTreeQueryHandler>();
 
+        // Outbox — producer service, dispatcher hosted in API project. Handlers register
+        // themselves via AddSingleton<IOutboxMessageHandler, ...> on the caller side; we
+        // ship the in-app NotificationOutboxHandler here as the canonical example.
+        services.Configure<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.OutboxOptions>(
+            configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.OutboxOptions.SectionName));
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutbox,
+                           CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutboxMessageHandler,
+                           CapitalUniversity.Core.Infrastructure.Services.Outbox.NotificationOutboxHandler>();
+        services.AddHostedService<CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxDispatcher>();
+
         // Localization
         services.AddScoped<ICurrentCultureService, CurrentCultureService>();
         services.AddScoped<ILocalizationService, LocalizationService>();

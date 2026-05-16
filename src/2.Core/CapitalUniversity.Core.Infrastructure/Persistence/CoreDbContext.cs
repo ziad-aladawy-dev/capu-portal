@@ -38,6 +38,7 @@ public class CoreDbContext : DbContext
     public DbSet<StaffPermissionScope> StaffPermissionScopes { get; set; }
     public DbSet<StaffPermissionOverride> StaffPermissionOverrides { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<CapitalUniversity.Core.Domain.Outbox.OutboxMessage> OutboxMessages { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
