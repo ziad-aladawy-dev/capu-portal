@@ -21,5 +21,13 @@ public class StaffPermissionConfiguration : IEntityTypeConfiguration<StaffPermis
             .WithMany()
             .HasForeignKey(sp => sp.ServiceId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Mirrors the StaffRoles index strategy: composite covering the per-user
+        // scope filter, plus a StructureNodePath index for the prefix scan.
+        builder.HasIndex(sp => new { sp.StaffId, sp.Year, sp.Semester })
+            .HasDatabaseName("IX_StaffPermissions_StaffId_Year_Semester");
+
+        builder.HasIndex(sp => sp.StructureNodePath)
+            .HasDatabaseName("IX_StaffPermissions_StructureNodePath");
     }
 }

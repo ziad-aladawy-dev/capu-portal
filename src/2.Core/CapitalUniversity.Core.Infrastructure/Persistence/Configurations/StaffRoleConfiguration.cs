@@ -21,6 +21,16 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Configurations
                 .WithMany()
                 .HasForeignKey(sr => sr.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Hot path: PermissionService.GetPermissionsAsync filters by StaffId
+            // first, then by Year/Semester equality, then by StructureNodePath
+            // StartsWith. Composite index covers the (StaffId, Year, Semester)
+            // selectivity; the StructureNodePath index supports the prefix scan.
+            builder.HasIndex(sr => new { sr.StaffId, sr.Year, sr.Semester })
+                .HasDatabaseName("IX_StaffRoles_StaffId_Year_Semester");
+
+            builder.HasIndex(sr => sr.StructureNodePath)
+                .HasDatabaseName("IX_StaffRoles_StructureNodePath");
         }
     }
 }
