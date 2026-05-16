@@ -118,3 +118,4 @@ appsettings.Production.json
 .agents/
 
 *.csproj.lscache
+.claude/
