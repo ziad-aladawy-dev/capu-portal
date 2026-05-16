@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs.Management;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +27,7 @@ public class AuthorizationController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A list of modules with their resources and permissions.</returns>
     [HttpGet("permissions/tree")]
-    [HasPermission("permissions.permissions.View")]
+    [HasPermission(PermissionNames.Permissions.View)]
     public async Task<ActionResult<List<ModulePermissionTreeDto>>> GetPermissionTree(CancellationToken cancellationToken)
     {
         var result = await _permissionTreeHandler.Handle(new GetPermissionTreeRequest(), cancellationToken);
@@ -40,7 +41,7 @@ public class AuthorizationController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A list of modules with their resources and permissions, including assignment status.</returns>
     [HttpGet("roles/{roleId:guid}/permissions")]
-    [HasPermission("permissions.roles.View")]
+    [HasPermission(PermissionNames.Roles.View)]
     public async Task<ActionResult<List<ModulePermissionTreeDto>>> GetRolePermissions(Guid roleId, CancellationToken cancellationToken)
     {
         var result = await _permissionTreeHandler.Handle(new GetRolePermissionsRequest { RoleId = roleId }, cancellationToken);

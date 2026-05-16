@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
@@ -35,7 +36,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet]
-    [HasPermission("permissions.roles.View")]
+    [HasPermission(PermissionNames.Roles.View)]
     public async Task<ActionResult<PagedRoleResponse>> GetRoles([FromQuery] GetRolesRequest request, CancellationToken cancellationToken)
     {
         var response = await _getRolesHandler.Handle(request, cancellationToken);
@@ -43,7 +44,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission("permissions.roles.View")]
+    [HasPermission(PermissionNames.Roles.View)]
     public async Task<ActionResult<RoleResponse>> GetRole(Guid id, CancellationToken cancellationToken)
     {
         var response = await _getRoleByIdHandler.Handle(new GetRoleByIdRequest { Id = id }, cancellationToken);
@@ -52,7 +53,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission("permissions.roles.Insert")]
+    [HasPermission(PermissionNames.Roles.Insert)]
     public async Task<ActionResult<CreateRoleResponse>> CreateRole([FromBody] CreateRoleRequest request, CancellationToken cancellationToken)
     {
         var response = await _createRoleHandler.Handle(request, cancellationToken);
@@ -60,7 +61,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [HasPermission("permissions.roles.EditClose")]
+    [HasPermission(PermissionNames.Roles.EditClose)]
     public async Task<ActionResult<UpdateRoleResponse>> UpdateRole(Guid id, [FromBody] UpdateRoleRequest request, CancellationToken cancellationToken)
     {
         if (id != request.Id) return BadRequest();
@@ -70,7 +71,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [HasPermission("permissions.roles.Delete")]
+    [HasPermission(PermissionNames.Roles.Delete)]
     public async Task<ActionResult> DeleteRole(Guid id, CancellationToken cancellationToken)
     {
         var result = await _deleteRoleHandler.Handle(new DeleteRoleRequest { Id = id }, cancellationToken);

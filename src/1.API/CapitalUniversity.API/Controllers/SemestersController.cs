@@ -1,4 +1,5 @@
 using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission("Academic.Semester.View")]
+    [HasPermission(PermissionNames.AcademicSemester.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -26,7 +27,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpGet("current")]
-    [HasPermission("Academic.Semester.View")]
+    [HasPermission(PermissionNames.AcademicSemester.View)]
     public async Task<IActionResult> GetCurrent()
     {
         var result = await _service.GetCurrentAsync();
@@ -35,7 +36,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission("Academic.Semester.Insert")]
+    [HasPermission(PermissionNames.AcademicSemester.Insert)]
     public async Task<IActionResult> Create([FromBody] CreateSemesterRequest request)
     {
         var id = await _service.CreateAsync(request);
@@ -43,7 +44,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}")]
-    [HasPermission("Academic.Semester.EditClose")]
+    [HasPermission(PermissionNames.AcademicSemester.EditClose)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSemesterRequest request)
     {
         await _service.UpdateAsync(id, request);
@@ -51,7 +52,7 @@ public class SemestersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [HasPermission("Academic.Semester.Delete")]
+    [HasPermission(PermissionNames.AcademicSemester.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);

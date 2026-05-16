@@ -1,4 +1,5 @@
 using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet]
-    [HasPermission("Academic.Year.View")]
+    [HasPermission(PermissionNames.AcademicYear.View)]
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -25,7 +26,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission("Academic.Year.View")]
+    [HasPermission(PermissionNames.AcademicYear.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -34,7 +35,7 @@ public class AcademicYearsController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission("Academic.Year.Insert")]
+    [HasPermission(PermissionNames.AcademicYear.Insert)]
     public async Task<IActionResult> Create([FromBody] CreateAcademicYearRequest request)
     {
         var id = await _service.CreateAsync(request);
