@@ -7,6 +7,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CapitalUniversity.API.Infrastructure;
 
 namespace CapitalUniversity.API.Controllers;
 
@@ -25,6 +26,7 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpGet]
+    [HasPermission("System.Permissions.View")]
     public async Task<ActionResult<List<PermissionDto>>> GetEffectivePermissions(CancellationToken cancellationToken)
     {
         var permissions = await _permissionService.GetEffectivePermissionsAsync(_currentUser.Id, cancellationToken);
@@ -32,6 +34,7 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpGet("assignment")]
+    [HasPermission("System.Permissions.View")]
     public async Task<ActionResult<PermissionAssignmentResponse>> GetAssignment([FromQuery] GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.GetAssignmentAsync(query, cancellationToken);
@@ -42,6 +45,7 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("System.Permissions.Insert")]
     public async Task<ActionResult<PermissionAssignmentResponse>> CreateAssignment([FromBody] CreatePermissionAssignmentRequest request, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.CreateAssignmentAsync(request, cancellationToken);
@@ -49,6 +53,7 @@ public class PermissionsController : ControllerBase
     }
         
     [HttpPut("assignment")]
+    [HasPermission("System.Permissions.EditClose")]
     public async Task<ActionResult<PermissionAssignmentResponse>> UpdateAssignment([FromBody] UpdatePermissionAssignmentRequest request, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.UpdateAssignmentAsync(request, cancellationToken);
