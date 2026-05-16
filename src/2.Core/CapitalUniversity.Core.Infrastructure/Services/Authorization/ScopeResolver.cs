@@ -30,13 +30,13 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
         if (year == "Current")
         {
             var currentYear = await _academicYearService.GetCurrentAsync();
-            scope.Year = currentYear?.Id.ToString() ?? "Global";
+            scope.Year = currentYear?.Id.ToString() ?? ScopeKeys.Global;
         }
 
         if (semester == "Current")
         {
             var currentSem = await _semesterService.GetCurrentAsync();
-            scope.Semester = currentSem?.Id.ToString() ?? "Global";
+            scope.Semester = currentSem?.Id.ToString() ?? ScopeKeys.Global;
         }
 
         // 2. Resolve Structural Scope

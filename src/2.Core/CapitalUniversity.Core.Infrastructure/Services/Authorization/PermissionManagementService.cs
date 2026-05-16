@@ -223,8 +223,8 @@ public class PermissionManagementService : IPermissionManagementService
 
     private static PermissionScopeDto BuildScopeDto(ScopeKey k)
     {
-        var isGlobalYear = k.Year == "Global";
-        var isGlobalSemester = k.Semester == "Global";
+        var isGlobalYear = k.Year == ScopeKeys.Global;
+        var isGlobalSemester = k.Semester == ScopeKeys.Global;
 
         return new PermissionScopeDto
         {
@@ -240,10 +240,10 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<HashSet<string>> GetPermissionLookupAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var year = _requestContext.ActiveAcademicYearId?.ToString() ?? "Global";
-        var semester = _requestContext.ActiveSemesterId?.ToString() ?? "Global";
+        var year = _requestContext.ActiveAcademicYearId?.ToString() ?? ScopeKeys.Global;
+        var semester = _requestContext.ActiveSemesterId?.ToString() ?? ScopeKeys.Global;
         var structureNodeId = _requestContext.ActiveStructureNodeId;
-        var structureKey = structureNodeId?.ToString() ?? "Global";
+        var structureKey = structureNodeId?.ToString() ?? ScopeKeys.Global;
         var version = await GetUserPermissionVersionAsync(userId, cancellationToken);
         var cacheKey = $"perm_lookup_{userId}_{version}_{year}_{semester}_{structureKey}";
 
@@ -356,8 +356,8 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default)
     {
-        var year = query.AlwaysActive ? "Global" : (query.AcademicYearId?.ToString() ?? "Global");
-        var semester = query.AlwaysActive ? "Global" : (query.SemesterId?.ToString() ?? "Global");
+        var year = query.AlwaysActive ? ScopeKeys.Global : (query.AcademicYearId?.ToString() ?? ScopeKeys.Global);
+        var semester = query.AlwaysActive ? ScopeKeys.Global : (query.SemesterId?.ToString() ?? ScopeKeys.Global);
 
         var roles = await _dbContext.StaffRoles
             .Where(sr => sr.StaffId == query.UserId && 
@@ -412,8 +412,8 @@ public class PermissionManagementService : IPermissionManagementService
     {
         ValidateScopeCombinations(request.StructuralScope, request.TemporalScope);
 
-        var year = request.TemporalScope.AlwaysActive ? "Global" : (request.TemporalScope.AcademicYearId?.ToString() ?? "Global");
-        var semester = request.TemporalScope.AlwaysActive ? "Global" : (request.TemporalScope.SemesterId?.ToString() ?? "Global");
+        var year = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.AcademicYearId?.ToString() ?? ScopeKeys.Global);
+        var semester = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
 
         string? nodePath = null;
         if (request.StructuralScope.StructureNodeId.HasValue)
@@ -452,7 +452,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             if (!existingOverrides.Any(eo => eo.ServiceId == perm.ServiceId && eo.Resource == perm.Resource && eo.Type == perm.Type))
             {
-                var spOverride = new StaffPermissionOverride(request.UserId, perm.ServiceId, perm.Resource, perm.Level, perm.Type, "Global", year, semester)
+                var spOverride = new StaffPermissionOverride(request.UserId, perm.ServiceId, perm.Resource, perm.Level, perm.Type, ScopeKeys.Global, year, semester)
                 {
                     StructureNodeId = request.StructuralScope.StructureNodeId,
                     StructureNodePath = nodePath
@@ -480,8 +480,8 @@ public class PermissionManagementService : IPermissionManagementService
     {
         ValidateScopeCombinations(request.StructuralScope, request.TemporalScope);
 
-        var year = request.TemporalScope.AlwaysActive ? "Global" : (request.TemporalScope.AcademicYearId?.ToString() ?? "Global");
-        var semester = request.TemporalScope.AlwaysActive ? "Global" : (request.TemporalScope.SemesterId?.ToString() ?? "Global");
+        var year = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.AcademicYearId?.ToString() ?? ScopeKeys.Global);
+        var semester = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
 
         string? nodePath = null;
         if (request.StructuralScope.StructureNodeId.HasValue)
@@ -547,7 +547,7 @@ public class PermissionManagementService : IPermissionManagementService
             }
             else
             {
-                var spOverride = new StaffPermissionOverride(request.UserId, permToAdd.ServiceId, permToAdd.Resource, permToAdd.Level, permToAdd.Type, "Global", year, semester)
+                var spOverride = new StaffPermissionOverride(request.UserId, permToAdd.ServiceId, permToAdd.Resource, permToAdd.Level, permToAdd.Type, ScopeKeys.Global, year, semester)
                 {
                     StructureNodeId = request.StructuralScope.StructureNodeId,
                     StructureNodePath = nodePath

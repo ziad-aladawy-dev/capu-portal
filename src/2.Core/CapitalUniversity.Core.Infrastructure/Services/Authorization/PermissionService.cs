@@ -26,8 +26,8 @@ public class PermissionService : IPermissionService
         if (scope != null)
         {
             assignmentsQuery = assignmentsQuery.Where(sr => 
-                (sr.Year == "Global" || sr.Year == scope.Year) &&
-                (sr.Semester == "Global" || sr.Semester == scope.Semester) &&
+                (sr.Year == ScopeKeys.Global || sr.Year == scope.Year) &&
+                (sr.Semester == ScopeKeys.Global || sr.Semester == scope.Semester) &&
                 (sr.StructureNodePath == null || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sr.StructureNodePath))));
         }
 
@@ -46,8 +46,8 @@ public class PermissionService : IPermissionService
         if (scope != null)
         {
             overridesQuery = overridesQuery.Where(sp => 
-                (sp.Year == "Global" || sp.Year == scope.Year) &&
-                (sp.Semester == "Global" || sp.Semester == scope.Semester) &&
+                (sp.Year == ScopeKeys.Global || sp.Year == scope.Year) &&
+                (sp.Semester == ScopeKeys.Global || sp.Semester == scope.Semester) &&
                 (sp.StructureNodePath == null || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sp.StructureNodePath))));
         }
 

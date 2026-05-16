@@ -513,7 +513,7 @@ public static class DataSeeder
         // Reserved for Super Admin; every other role is tenanted to a real node.
         var defs = new (string EmpCode, string RoleName, string Year, string Semester, string? NodeName)[]
         {
-            ("ADMIN-001", "Super Admin",      "Global", "Global", null),
+            ("ADMIN-001", "Super Admin",      ScopeKeys.Global, ScopeKeys.Global, null),
             ("FAC-001",   "Faculty Admin",    yearKey,  fallKey,  "Home Economics"),
             ("HOD-001",   "Department Head",  yearKey,  fallKey,  "Clinical Nutrition"),
             ("REG-001",   "Registrar",        yearKey,  fallKey,  "Capital University"),
