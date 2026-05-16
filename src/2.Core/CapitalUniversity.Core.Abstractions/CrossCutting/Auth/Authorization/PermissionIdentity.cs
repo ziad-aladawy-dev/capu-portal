@@ -11,6 +11,23 @@ public static class PermissionIdentity
         return $"{Normalize(module)}.{Normalize(resource)}.{Normalize(action)}";
     }
 
+    /// <summary>
+    /// Canonical resource name for a Service inside a Module. Mirrors the mapping the
+    /// seeders + role-permission lookup use, so generated permission names round-trip
+    /// against seeded/real authorization names.
+    /// </summary>
+    public static string ResourceFor(string moduleKey, string serviceDisplayName)
+    {
+        if (string.Equals(serviceDisplayName, "Manage Roles", StringComparison.Ordinal))
+            return "roles";
+
+        return moduleKey switch
+        {
+            "academics" => "academic-years",
+            _ => moduleKey,
+        };
+    }
+
     public static bool TryParse(string identity, out string module, out string resource, out string action)
     {
         module = string.Empty;

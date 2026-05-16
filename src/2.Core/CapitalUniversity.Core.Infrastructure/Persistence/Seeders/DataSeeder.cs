@@ -6,6 +6,7 @@ using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
@@ -242,23 +243,13 @@ public static class DataSeeder
         var existing = await context.RolePermissions
             .ToDictionaryAsync(rp => (rp.RoleId, rp.ServiceId));
 
-        string ResourceFor(Module mod, string displayName)
-        {
-            if (displayName == "Manage Roles") return "roles";
-            return mod.ModuleKey switch
-            {
-                "academics" => "academic-years",
-                _ => mod.ModuleKey,
-            };
-        }
-
         void AddPerm(string roleName, string displayName, ActionLevel level)
         {
             var svc = svcList.FirstOrDefault(s => s.DisplayName == displayName);
             if (svc == null) return;
 
             var mod = context.Modules.Local.First(m => m.Id == svc.ModuleId);
-            var resource = ResourceFor(mod, displayName);
+            var resource = PermissionIdentity.ResourceFor(mod.ModuleKey, displayName);
             var roleId = roleMap[roleName];
 
             if (existing.TryGetValue((roleId, svc.Id), out var current))

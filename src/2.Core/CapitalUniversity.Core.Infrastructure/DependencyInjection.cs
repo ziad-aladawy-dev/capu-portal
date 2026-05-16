@@ -129,7 +129,9 @@ public static class DependencyInjection
         services.AddScoped<IScopeResolver, ScopeResolver>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
-        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries.PermissionTreeQueryHandler>();
+        services.AddScoped<
+            CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries.IPermissionTreeQueryHandler,
+            CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries.PermissionTreeQueryHandler>();
 
         // Localization
         services.AddScoped<ICurrentCultureService, CurrentCultureService>();
