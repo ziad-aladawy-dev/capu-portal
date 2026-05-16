@@ -45,6 +45,9 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
 
+        services.Configure<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.PermissionCacheOptions>(
+            configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Caching.PermissionCacheOptions.SectionName));
+
         // Register Caching
         if (configuration.GetValue<bool>("Redis:Enabled"))
         {

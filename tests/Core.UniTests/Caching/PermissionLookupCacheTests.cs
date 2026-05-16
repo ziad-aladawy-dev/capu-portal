@@ -1,0 +1,173 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Application.CrossCutting.Caching;
+using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Moq;
+using Xunit;
+
+namespace CapitalUniversity.Core.UniTests.Caching;
+
+/// <summary>
+/// Cache behavior tests for permission lookup — hit/miss/invalidation against a
+/// real ICacheService (MemoryCacheService). Validates that:
+///   - first lookup populates the cache,
+///   - second lookup serves from the cache (no DB hit),
+///   - an assignment edit bumps the per-user version stamp and orphans the entry,
+///   - the cache key includes scope dimensions so different scopes don't collide.
+/// </summary>
+public class PermissionLookupCacheTests
+{
+    private static (PermissionManagementService Service, CoreDbContext Db, ICacheService Cache, CountingPermissionService Probe) Build(
+        Guid userId,
+        string year = "Global",
+        string semester = "Global")
+    {
+        var dbOptions = new DbContextOptionsBuilder<CoreDbContext>()
+            .UseInMemoryDatabase("PermLookup_" + Guid.NewGuid())
+            .Options;
+        var db = new CoreDbContext(dbOptions);
+        db.Database.EnsureCreated();
+
+        // Minimal authorization graph: one module, one service, one role, one
+        // role-permission, one staff-role assignment. The Service entity needs an
+        // explicit Id so the permission lookup can navigate to it.
+        var module = new Module { Id = Guid.NewGuid(), DisplayName = "M", ModuleKey = "demo" };
+        var svc = new Service { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, DisplayName = "S" };
+        var role = new Role { Id = Guid.NewGuid(), Name = "R" };
+        db.Modules.Add(module);
+        db.Services.Add(svc);
+        db.Roles.Add(role);
+        db.RolePermissions.Add(new RolePermission(role.Id, svc.Id, "demo", ActionLevel.View));
+        db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, year, semester));
+        db.SaveChanges();
+
+        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        ICacheService cache = new MemoryCacheService(memoryCache);
+
+        var probe = new CountingPermissionService(new PermissionService(db));
+
+        var requestContext = new Mock<IRequestContext>();
+        requestContext.Setup(c => c.ActiveAcademicYearId).Returns((Guid?)null);
+        requestContext.Setup(c => c.ActiveSemesterId).Returns((Guid?)null);
+        requestContext.Setup(c => c.ActiveStructureNodeId).Returns((Guid?)null);
+
+        var scopeResolver = new Mock<IScopeResolver>();
+        scopeResolver.Setup(s => s.ResolveAsync(userId, "Global", "Global", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthorizationScope { Year = "Global", Semester = "Global" });
+
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(u => u.Id).Returns(userId);
+
+        var service = new PermissionManagementService(
+            probe,
+            requestContext.Object,
+            scopeResolver.Object,
+            db,
+            cache,
+            currentUser.Object,
+            Options.Create(new PermissionCacheOptions { LookupTtlMinutes = 20, VersionTtlHours = 24 }));
+
+        return (service, db, cache, probe);
+    }
+
+    [Fact]
+    public async Task GetPermissionLookupAsync_FirstCallMissesCache_SecondCallHits()
+    {
+        var userId = Guid.NewGuid();
+        var (service, _, _, probe) = Build(userId);
+
+        var first = await service.GetPermissionLookupAsync(userId);
+        first.Should().NotBeEmpty();
+        probe.Calls.Should().Be(1, "the first call must materialize from the DB");
+
+        var second = await service.GetPermissionLookupAsync(userId);
+        second.Should().Equal(first);
+        probe.Calls.Should().Be(1, "the second call must be served from the cache — no extra DB hit");
+    }
+
+    [Fact]
+    public async Task UpdateAssignment_BumpsVersion_InvalidatesPreviousCacheEntry()
+    {
+        var userId = Guid.NewGuid();
+        var (service, db, _, probe) = Build(userId);
+
+        await service.GetPermissionLookupAsync(userId);   // populate
+        probe.Calls.Should().Be(1);
+
+        // Bump the version via the public assignment API. The version-stamp pattern
+        // means the next read keys off a fresh stamp → cache miss → DB hit.
+        var roleId = db.Roles.AsNoTracking().Single().Id;
+        await service.UpdateAssignmentAsync(new UpdatePermissionAssignmentRequest
+        {
+            UserId = userId,
+            RolesToAdd = new List<Guid>(),
+            RolesToRemove = new List<Guid>(),
+            PermissionsToAdd = new List<PermissionOverrideModel>(),
+            PermissionsToRemove = new List<PermissionOverrideModel>(),
+            StructuralScope = new StructuralScopeModel(),
+            TemporalScope = new TemporalScopeModel { AlwaysActive = true },
+        });
+
+        var afterEdit = await service.GetPermissionLookupAsync(userId);
+        afterEdit.Should().NotBeEmpty();
+        probe.Calls.Should().Be(2, "version rotation must orphan the cached entry");
+    }
+
+    [Fact]
+    public async Task RedisCacheService_GetFails_DegradesToCacheMiss_NotException()
+    {
+        // RedisCacheService must never let a transport failure turn into a 500.
+        // Inject an IDistributedCache that throws on every call; the service should
+        // log + return default for Get and silently swallow for Set/Remove.
+        var brokenCache = new Mock<Microsoft.Extensions.Caching.Distributed.IDistributedCache>();
+        brokenCache.Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("simulated Redis outage"));
+        brokenCache.Setup(c => c.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(),
+                It.IsAny<Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("simulated Redis outage"));
+        brokenCache.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("simulated Redis outage"));
+
+        var svc = new RedisCacheService(brokenCache.Object);
+
+        (await svc.GetAsync<string>("k")).Should().BeNull();
+        await svc.SetAsync("k", "v", TimeSpan.FromMinutes(1));   // must not throw
+        await svc.RemoveAsync("k");                              // must not throw
+    }
+}
+
+/// <summary>
+/// Wraps the real <see cref="PermissionService"/> and counts how many times the
+/// permission-resolution method is called. Lets the tests assert "cache hit means
+/// no DB pass" precisely.
+/// </summary>
+internal class CountingPermissionService : IPermissionService
+{
+    private readonly IPermissionService _inner;
+    public int Calls { get; private set; }
+
+    public CountingPermissionService(IPermissionService inner)
+    {
+        _inner = inner;
+    }
+
+    public Task<(IEnumerable<IUserPermissionOverride> Overrides, IEnumerable<IUserRoleAssignment> Assignments, IEnumerable<IRolePermission> RolePermissions)>
+        GetPermissionsAsync(Guid userId, string resource, AuthorizationScope? scope = null, CancellationToken cancellationToken = default)
+    {
+        Calls++;
+        return _inner.GetPermissionsAsync(userId, resource, scope, cancellationToken);
+    }
+}

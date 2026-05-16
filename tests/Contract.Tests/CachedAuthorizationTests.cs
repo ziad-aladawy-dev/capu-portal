@@ -32,7 +32,9 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
 
     public CachedAuthorizationTests(WebApplicationFactory<ModulesRegistry> factory)
     {
+        // Hoist the in-memory DB name so the seeder + test queries land in the same store.
         _dbName = "CachedAuthTestDb_" + Guid.NewGuid();
+        var capturedName = _dbName;
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
@@ -40,7 +42,7 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             {
                 services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
                 services.RemoveAll(typeof(CoreDbContext));
-                services.AddDbContext<CoreDbContext>(options => options.UseInMemoryDatabase(_dbName));
+                services.AddDbContext<CoreDbContext>(options => options.UseInMemoryDatabase(capturedName));
 
                 // Mock MongoDB and Logging
                 services.RemoveAll(typeof(IMongoClient));
@@ -66,32 +68,35 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
             
-            // Seed a Staff user
-            var staff = new Staff 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Auth User", 
-                NationalId = "12345", 
-                PasswordHash = hasher.HashPassword("password") 
-            }; 
+            // Seed Staff with a real StructureNode FK (entity requires it).
+            var anyNodeId = await db.StructureNodes.AsNoTracking().Select(n => n.Id).FirstAsync();
+            var staff = new Staff
+            {
+                Id = Guid.NewGuid(),
+                Name = "Auth User",
+                EmployeeCode = "AUTH-001",
+                NationalId = "12345",
+                Role = "Viewer",
+                StructureNodeId = anyNodeId,
+                PasswordHash = hasher.HashPassword("password"),
+                IsActive = true,
+            };
             db.Staffs.Add(staff);
 
-            // Seed Module/Service
+            // Seed Module/Service.
             var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
-            var service = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
+            var service = new Service { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, DisplayName = "Year" };
             db.Modules.Add(module);
             db.Services.Add(service);
 
-            // Seed Role with only "View" permission
+            // Role with only View permission on the Year resource.
             var role = new Role { Id = Guid.NewGuid(), Name = "Viewer" };
             db.Roles.Add(role);
             db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "Year", ActionLevel.View));
 
-            // Assign role to staff (Global scope for simplicity)
-            db.StaffRoles.Add(new StaffRoleAssignment(staff.Id, role.Id, "Global", "Global") 
-            { 
-                StructureNodePath = null 
-            });
+            // Assign role to staff with truly-global structural scope so the request
+            // (which sends no X-StructureNode-Id) doesn't get filtered out.
+            db.StaffRoles.Add(new StaffRoleAssignment(staff.Id, role.Id, "Global", "Global"));
 
             await db.SaveChangesAsync();
         }
@@ -110,13 +115,19 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
         var viewResponse = await client.GetAsync("/api/academic-years");
         viewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // 4. Verify Cache - Should have permissions now
+        // 4. Verify Cache - Should have permissions now.
+        // Cache key format (PR-3): perm_lookup_{userId}_{versionStamp}_{year}_{semester}_{structureNode}.
+        // The version stamp is a random Guid lazily seeded on first lookup; read it
+        // back the same way the service does so the assertion isn't tied to the value.
         var cache = _factory.Services.GetRequiredService<ICacheService>();
-        var cacheKey = $"perm_lookup_{authResult.User.Id}_Global_Global";
+        var versionStamp = await cache.GetAsync<string>($"perm_lookup_v_{authResult.User.Id}");
+        versionStamp.Should().NotBeNullOrEmpty("the lookup must have populated the version stamp on first miss");
+
+        var cacheKey = $"perm_lookup_{authResult.User.Id}_{versionStamp}_Global_Global_Global";
         var cachedPerms = await cache.GetAsync<HashSet<string>>(cacheKey);
-        
+
         cachedPerms.Should().NotBeNull();
-        cachedPerms.Should().Contain("Academic.Year.View");
+        cachedPerms!.Should().Contain("Academic.Year.View");
         cachedPerms.Should().NotContain("Academic.Year.Insert");
 
         // 5. Action Outside Scope (Insert)

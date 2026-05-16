@@ -20,6 +20,7 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly CoreDbContext _dbContext;
     private readonly ICacheService _cache;
     private readonly ICurrentUser _currentUser;
+    private readonly PermissionCacheOptions _cacheOptions;
 
     public PermissionManagementService(
         IPermissionService permissionService,
@@ -27,7 +28,8 @@ public class PermissionManagementService : IPermissionManagementService
         IScopeResolver scopeResolver,
         CoreDbContext dbContext,
         ICacheService cache,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        Microsoft.Extensions.Options.IOptions<PermissionCacheOptions>? cacheOptions = null)
     {
         _permissionService = permissionService;
         _requestContext = requestContext;
@@ -35,6 +37,7 @@ public class PermissionManagementService : IPermissionManagementService
         _dbContext = dbContext;
         _cache = cache;
         _currentUser = currentUser;
+        _cacheOptions = cacheOptions?.Value ?? new PermissionCacheOptions();
     }
 
     public async Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -315,7 +318,7 @@ public class PermissionManagementService : IPermissionManagementService
             }
         }
 
-        await _cache.SetAsync(cacheKey, lookup, TimeSpan.FromMinutes(20), cancellationToken);
+        await _cache.SetAsync(cacheKey, lookup, TimeSpan.FromMinutes(_cacheOptions.LookupTtlMinutes), cancellationToken);
 
         return lookup;
     }
@@ -324,7 +327,7 @@ public class PermissionManagementService : IPermissionManagementService
     // entry across all scope variants in a single write — no key enumeration needed.
     private async Task InvalidateUserCacheAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        await _cache.SetAsync(VersionKey(userId), Guid.NewGuid().ToString("N"), TimeSpan.FromHours(24), cancellationToken);
+        await _cache.SetAsync(VersionKey(userId), Guid.NewGuid().ToString("N"), TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
     }
 
     private async Task<string> GetUserPermissionVersionAsync(Guid userId, CancellationToken cancellationToken)
@@ -334,7 +337,7 @@ public class PermissionManagementService : IPermissionManagementService
         if (!string.IsNullOrEmpty(current)) return current;
 
         var initial = "0";
-        await _cache.SetAsync(key, initial, TimeSpan.FromHours(24), cancellationToken);
+        await _cache.SetAsync(key, initial, TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
         return initial;
     }
 
