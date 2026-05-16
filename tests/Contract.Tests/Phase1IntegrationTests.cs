@@ -62,34 +62,69 @@ public class Phase1IntegrationTests : IClassFixture<WebApplicationFactory<Module
     }
 
     [Fact]
-    public async Task SecuredEndpoint_WithValidToken_ReturnsSuccess()
+    public async Task PermissionsEndpoint_WithValidTokenButNoPermissionGrants_Returns403()
     {
-        // Arrange
+        // The token authenticates the caller (no 401), but the caller's user id has no
+        // RolePermission rows in the DB — so [HasPermission("permissions.permissions.View")]
+        // must reject with 403, not silently let an authenticated student read the model.
         var client = _factory.CreateClient();
-        
-        // We need a valid token. Since we don't have a real DB seeded with a user we can authenticate, 
-        // we'll generate one manually using the same logic/key.
-        using var scope = _factory.Services.CreateScope();
-        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
-        
-        var mockUser = new Mock<IUserCredential>();
-        mockUser.Setup(u => u.Id).Returns(Guid.NewGuid());
-        mockUser.Setup(u => u.Identifier).Returns("123456789");
-        mockUser.Setup(u => u.Role).Returns("Staff");
-        mockUser.Setup(u => u.Name).Returns("Test User");
-        mockUser.Setup(u => u.Email).Returns("test@test.com");
+        client.DefaultRequestHeaders.Authorization = TokenForRandomAuthenticatedUser("Staff");
 
-        var token = tokenService.GenerateToken(mockUser.Object);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        // Act
         var response = await client.GetAsync("/api/permissions");
 
-        // Assert
-        // It might be 200 or 500 depending on DB connectivity in tests, but 401 is what we care about not seeing.
-        // Actually, if it's 200, it means it passed Auth check.
         response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task RolesEndpoint_WithValidTokenButNoPermissionGrants_Returns403()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = TokenForRandomAuthenticatedUser("Staff");
+
+        var response = await client.GetAsync("/api/roles");
+
+        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task RolesEndpoint_StudentToken_Returns403()
+    {
+        // Explicit student scenario from the eval: an authenticated student must not be
+        // able to read or manage role assignments.
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = TokenForRandomAuthenticatedUser("Student");
+
+        var response = await client.GetAsync("/api/roles");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task PermissionsEndpoint_StudentToken_Returns403()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = TokenForRandomAuthenticatedUser("Student");
+
+        var response = await client.GetAsync("/api/permissions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    private AuthenticationHeaderValue TokenForRandomAuthenticatedUser(string role)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var tokenService = scope.ServiceProvider.GetRequiredService<ITokenService>();
+
+        var user = new Mock<IUserCredential>();
+        user.Setup(u => u.Id).Returns(Guid.NewGuid());
+        user.Setup(u => u.Identifier).Returns("123456789");
+        user.Setup(u => u.Role).Returns(role);
+        user.Setup(u => u.Name).Returns("Test User");
+        user.Setup(u => u.Email).Returns("test@test.com");
+
+        return new AuthenticationHeaderValue("Bearer", tokenService.GenerateToken(user.Object));
     }
 
     [Fact]

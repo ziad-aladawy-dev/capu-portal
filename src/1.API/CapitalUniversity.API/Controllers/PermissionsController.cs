@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
@@ -12,7 +13,7 @@ namespace CapitalUniversity.API.Controllers;
 
 [ApiController]
 [Route("api/permissions")]
-[Authorize] // Added Authorize attribute to ensure security
+[Authorize]
 public class PermissionsController : ControllerBase
 {
     private readonly IPermissionManagementService _permissionService;
@@ -25,6 +26,7 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpGet]
+    [HasPermission("permissions.permissions.View")]
     public async Task<ActionResult<List<PermissionDto>>> GetEffectivePermissions(CancellationToken cancellationToken)
     {
         var permissions = await _permissionService.GetEffectivePermissionsAsync(_currentUser.Id, cancellationToken);
@@ -32,6 +34,7 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpGet("assignment")]
+    [HasPermission("permissions.permissions.View")]
     public async Task<ActionResult<PermissionAssignmentResponse>> GetAssignment([FromQuery] GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.GetAssignmentAsync(query, cancellationToken);
@@ -42,13 +45,15 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission("permissions.permissions.Insert")]
     public async Task<ActionResult<PermissionAssignmentResponse>> CreateAssignment([FromBody] CreatePermissionAssignmentRequest request, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.CreateAssignmentAsync(request, cancellationToken);
         return Ok(assignment);
     }
-        
+
     [HttpPut("assignment")]
+    [HasPermission("permissions.permissions.EditClose")]
     public async Task<ActionResult<PermissionAssignmentResponse>> UpdateAssignment([FromBody] UpdatePermissionAssignmentRequest request, CancellationToken cancellationToken)
     {
         var assignment = await _permissionService.UpdateAssignmentAsync(request, cancellationToken);

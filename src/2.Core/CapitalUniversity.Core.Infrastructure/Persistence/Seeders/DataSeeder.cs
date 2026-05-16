@@ -58,63 +58,66 @@ public static class DataSeeder
     //  1. UNIVERSITY STRUCTURE
     // ════════════════════════════════════════════════════════════════
 
-    private static readonly List<StructureNode> _nodes = new();
-
     private static async Task SeedStructureAsync(CoreDbContext context)
     {
+        // Locally-scoped collector — must NOT be a static field or concurrent test
+        // seedings (each on its own in-memory DB) race on it and throw
+        // InvalidOperationException: "Collection was modified".
+        var nodes = new List<StructureNode>();
+
+        StructureNode MakeNode(string name, StructureNodeType type, StructureNode? parent, int order)
+        {
+            var node = new StructureNode
+            {
+                Id = Guid.NewGuid(), Name = name, Type = type,
+                ParentId = parent?.Id, Order = order,
+                Depth = parent?.Depth + 1 ?? 0, IsActive = true,
+            };
+            node.Path = parent == null ? $"/{node.Id}" : $"{parent.Path}/{node.Id}";
+            nodes.Add(node);
+            return node;
+        }
+
+        void MakeLevelsInt(StructureNode parent, params int[] years)
+        {
+            foreach (var y in years) MakeNode($"Level {y}", StructureNodeType.Level, parent, y - 1);
+        }
+
+        void MakeLevelsStr(StructureNode parent, params string[] names)
+        {
+            for (var i = 0; i < names.Length; i++) MakeNode(names[i], StructureNodeType.Level, parent, i);
+        }
+
         var u = MakeNode("Capital University", StructureNodeType.University, null, 0);
 
         var he = MakeNode("Faculty of Home Economics", StructureNodeType.Faculty, u, 0);
         var heCredit = MakeNode("Credit Hours System", StructureNodeType.System, he, 0);
         var heSemester = MakeNode("Semester System", StructureNodeType.System, he, 1);
 
-        MakeLevels(MakeNode("Clinical Nutrition Program", StructureNodeType.Program, heCredit, 0), 1, 2, 3, 4);
-        MakeLevels(MakeNode("Family & Childhood Institution Management", StructureNodeType.Program, heCredit, 1), 1, 2, 3, 4);
+        MakeLevelsInt(MakeNode("Clinical Nutrition Program", StructureNodeType.Program, heCredit, 0), 1, 2, 3, 4);
+        MakeLevelsInt(MakeNode("Family & Childhood Institution Management", StructureNodeType.Program, heCredit, 1), 1, 2, 3, 4);
         var nutrition = MakeNode("Nutrition & Food Science", StructureNodeType.Program, heCredit, 2);
-        MakeLevels(nutrition, 1, 2, 3, 4);
-        MakeLevels(MakeNode("Textile & Clothing", StructureNodeType.Program, heCredit, 3), 1, 2, 3, 4);
-        MakeLevels(MakeNode("General Stream", StructureNodeType.Program, heCredit, 4), 1, 2, 3, 4);
-        MakeLevels(MakeNode("Leather Industries", StructureNodeType.Program, heCredit, 5), 1, 2, 3, 4);
+        MakeLevelsInt(nutrition, 1, 2, 3, 4);
+        MakeLevelsInt(MakeNode("Textile & Clothing", StructureNodeType.Program, heCredit, 3), 1, 2, 3, 4);
+        MakeLevelsInt(MakeNode("General Stream", StructureNodeType.Program, heCredit, 4), 1, 2, 3, 4);
+        MakeLevelsInt(MakeNode("Leather Industries", StructureNodeType.Program, heCredit, 5), 1, 2, 3, 4);
 
         var mat = MakeNode("Faculty of Engineering – Mataria", StructureNodeType.Faculty, u, 1);
         var matCredit = MakeNode("Credit Hours System", StructureNodeType.System, mat, 0);
-        MakeLevels(MakeNode("Civil Engineering", StructureNodeType.Program, matCredit, 0), "Freshman", "Sophomore", "Junior", "Senior");
-        MakeLevels(MakeNode("Architectural Engineering", StructureNodeType.Program, matCredit, 1), "Freshman", "Sophomore", "Junior", "Senior");
-        MakeLevels(MakeNode("Mechanical Engineering", StructureNodeType.Program, matCredit, 2), "Freshman", "Sophomore", "Junior", "Senior-1", "Senior-2");
-        MakeLevels(MakeNode("Electrical Engineering", StructureNodeType.Program, matCredit, 3), "Freshman", "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Civil Engineering", StructureNodeType.Program, matCredit, 0), "Freshman", "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Architectural Engineering", StructureNodeType.Program, matCredit, 1), "Freshman", "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Mechanical Engineering", StructureNodeType.Program, matCredit, 2), "Freshman", "Sophomore", "Junior", "Senior-1", "Senior-2");
+        MakeLevelsStr(MakeNode("Electrical Engineering", StructureNodeType.Program, matCredit, 3), "Freshman", "Sophomore", "Junior", "Senior");
 
         var hel = MakeNode("Faculty of Engineering – Helwan", StructureNodeType.Faculty, u, 2);
         var helCredit = MakeNode("Credit Hours System", StructureNodeType.System, hel, 0);
-        MakeLevels(MakeNode("Computer & Systems Engineering", StructureNodeType.Program, helCredit, 0), "Sophomore", "Junior", "Senior");
-        MakeLevels(MakeNode("Communications & Information Engineering", StructureNodeType.Program, helCredit, 1), "Preparatory", "First", "Second", "Third", "Fourth");
-        MakeLevels(MakeNode("Biomedical Engineering", StructureNodeType.Program, helCredit, 2), "Freshman", "Sophomore", "Junior", "Senior");
-        MakeLevels(MakeNode("Industrial Engineering", StructureNodeType.Program, helCredit, 3), "Freshman", "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Computer & Systems Engineering", StructureNodeType.Program, helCredit, 0), "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Communications & Information Engineering", StructureNodeType.Program, helCredit, 1), "Preparatory", "First", "Second", "Third", "Fourth");
+        MakeLevelsStr(MakeNode("Biomedical Engineering", StructureNodeType.Program, helCredit, 2), "Freshman", "Sophomore", "Junior", "Senior");
+        MakeLevelsStr(MakeNode("Industrial Engineering", StructureNodeType.Program, helCredit, 3), "Freshman", "Sophomore", "Junior", "Senior");
 
-        await context.StructureNodes.AddRangeAsync(_nodes);
+        await context.StructureNodes.AddRangeAsync(nodes);
         await context.SaveChangesAsync();
-    }
-
-    private static void MakeLevels(StructureNode parent, params int[] years)
-    {
-        foreach (var y in years) MakeNode($"Level {y}", StructureNodeType.Level, parent, y - 1);
-    }
-
-    private static void MakeLevels(StructureNode parent, params string[] names)
-    {
-        for (var i = 0; i < names.Length; i++) MakeNode(names[i], StructureNodeType.Level, parent, i);
-    }
-
-    private static StructureNode MakeNode(string name, StructureNodeType type, StructureNode? parent, int order)
-    {
-        var node = new StructureNode
-        {
-            Id = Guid.NewGuid(), Name = name, Type = type,
-            ParentId = parent?.Id, Order = order,
-            Depth = parent?.Depth + 1 ?? 0, IsActive = true,
-        };
-        node.Path = parent == null ? $"/{node.Id}" : $"{parent.Path}/{node.Id}";
-        _nodes.Add(node);
-        return node;
     }
 
     // ════════════════════════════════════════════════════════════════
