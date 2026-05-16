@@ -8,7 +8,6 @@ public class LoginResponseDto
 {
     public UserInfoDto User { get; set; } = new();
     public string Token { get; set; } = string.Empty;
-    public AuthorizedScopesDto AuthorizedScopes { get; set; } = new();
     public List<PermissionDto> Permissions { get; set; } = new();
     public ActiveScopeDto ActiveScope { get; set; } = new();
 }
@@ -26,18 +25,6 @@ public class UserAttributesDto
     public string Uni { get; set; } = string.Empty;
     public string Faculty { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
-}
-
-public class AuthorizedScopesDto
-{
-    public bool IsGlobalStructural { get; set; }
-    public List<Guid> AllowedNodeIds { get; set; } = new();
-    
-    public bool IsGlobalYear { get; set; }
-    public List<Guid> AllowedAcademicYearIds { get; set; } = new();
-    
-    public bool IsGlobalSemester { get; set; }
-    public List<Guid> AllowedSemesterIds { get; set; } = new();
 }
 
 public class ActiveScopeDto

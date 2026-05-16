@@ -45,7 +45,6 @@ public class AuthenticationServiceTests
 
         var loginResponse = new LoginResponseDto
         {
-            AuthorizedScopes = new AuthorizedScopesDto(),
             Permissions = new List<PermissionDto>(),
             ActiveScope = new ActiveScopeDto()
         };
@@ -61,7 +60,6 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
-        Assert.Equal(loginResponse.AuthorizedScopes, result.AuthorizedScopes);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }
@@ -97,7 +95,6 @@ public class AuthenticationServiceTests
 
         var loginResponse = new LoginResponseDto
         {
-            AuthorizedScopes = new AuthorizedScopesDto(),
             Permissions = new List<PermissionDto>(),
             ActiveScope = new ActiveScopeDto()
         };
@@ -113,7 +110,6 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
-        Assert.Equal(loginResponse.AuthorizedScopes, result.AuthorizedScopes);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }

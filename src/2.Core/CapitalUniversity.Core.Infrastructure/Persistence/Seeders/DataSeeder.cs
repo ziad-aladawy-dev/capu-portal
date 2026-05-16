@@ -6,7 +6,6 @@ using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
-using SimpleService = CapitalUniversity.Core.Domain.Authorization.Service;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
@@ -15,35 +14,43 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
-        if (!await context.StructureNodes.AnyAsync())
-            await SeedStructureAsync(context);
+        // Tables that are "one-shot" (skip if any rows exist).
+        await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
+        await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
+        await RunOnceAsync("Modules",         context.Modules,         () => SeedAuthModulesAsync(context));
+        await RunOnceAsync("Services",        context.Services,        () => SeedAuthServicesAsync(context));
+        await RunOnceAsync("Roles",           context.Roles,           () => SeedRolesAsync(context));
 
-        if (!await context.AcademicYears.AnyAsync())
-            await SeedAcademicTimelineAsync(context);
+        // Idempotent / self-healing: always run, upsert by natural key so stale state converges.
+        await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context));
+        await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
+        await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
+        await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
+        await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
+    }
 
-        if (!await context.Modules.AnyAsync())
-            await SeedAuthModulesAsync(context);
+    private static async Task RunOnceAsync<T>(string name, DbSet<T> set, Func<Task> seed) where T : class
+    {
+        if (await set.AnyAsync())
+        {
+            Console.WriteLine($"[Seed] {name}: already populated, skipping.");
+            return;
+        }
+        await RunStepAsync(name, seed);
+    }
 
-        if (!await context.Services.AnyAsync())
-            await SeedAuthServicesAsync(context);
-
-        if (!await context.Roles.AnyAsync())
-            await SeedRolesAsync(context);
-
-        if (!await context.RolePermissions.AnyAsync())
-            await SeedRolePermissionsAsync(context);
-
-        if (!await context.Staffs.AnyAsync())
-            await SeedStaffAsync(context, passwordHasher);
-
-        if (!await context.Students.AnyAsync())
-            await SeedStudentsAsync(context, passwordHasher);
-
-        if (!await context.StaffRoles.AnyAsync())
-            await SeedStaffRoleAssignmentsAsync(context);
-
-        if (!await context.Notifications.AnyAsync())
-            await SeedNotificationsAsync(context);
+    private static async Task RunStepAsync(string name, Func<Task> seed)
+    {
+        try
+        {
+            await seed();
+            Console.WriteLine($"[Seed] {name}: OK.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Seed] {name}: FAILED — {ex.GetType().Name}: {ex.Message}");
+            throw;
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -226,63 +233,43 @@ public static class DataSeeder
     {
         var roles = await context.Roles.ToListAsync();
         var svcList = await context.Services.ToListAsync();
-        var simpleSvcList = await context.Set<SimpleService>().ToListAsync();
         await context.Modules.LoadAsync();
 
         var roleMap = roles.ToDictionary(r => r.Name, r => r.Id);
-        var simpleSvcByName = simpleSvcList.ToDictionary(s => s.DisplayName);
 
-        // Resolve simple service name for FK based on auth service's module
-        string SimpleSvcName(Module mod) => mod.ModuleKey switch
+        string ResourceFor(Module mod, string displayName)
         {
-            "permissions"  => "permissions",
-            "academics"    => "academic-years",
-            "notifications"=> "notifications",
-            _              => mod.ModuleKey,
-        };
+            if (displayName == "Manage Roles") return "roles";
+            return mod.ModuleKey switch
+            {
+                "academics" => "academic-years",
+                _ => mod.ModuleKey,
+            };
+        }
 
         void AddPerm(string roleName, string displayName, ActionLevel level)
         {
-            var authSvc = svcList.FirstOrDefault(s => s.DisplayName == displayName);
-            if (authSvc == null) return;
+            var svc = svcList.FirstOrDefault(s => s.DisplayName == displayName);
+            if (svc == null) return;
 
-            var mod = context.Modules.Local.First(m => m.Id == authSvc.ModuleId);
-            var svcName = SimpleSvcName(mod);
-            if (!simpleSvcByName.TryGetValue(svcName, out var simpleSvc)) return;
-
-            // Handle "Manage Roles" which should use "roles" simple service
-            if (displayName == "Manage Roles")
-            {
-                if (!simpleSvcByName.TryGetValue("roles", out var rolesSvc)) return;
-                simpleSvc = rolesSvc;
-            }
-
+            var mod = context.Modules.Local.First(m => m.Id == svc.ModuleId);
+            var resource = ResourceFor(mod, displayName);
             var roleId = roleMap[roleName];
 
             // Upsert: avoid duplicate (RoleId, ServiceId) per unique index
             var existing = context.RolePermissions.Local
-                .FirstOrDefault(rp => rp.RoleId == roleId && rp.ServiceId == simpleSvc.Id);
+                .FirstOrDefault(rp => rp.RoleId == roleId && rp.ServiceId == svc.Id);
             if (existing != null)
             {
-                var currentLevel = (ActionLevel)context.Entry(existing).Property("Level").CurrentValue;
-                if (level > currentLevel)
-                    context.Entry(existing).Property("Level").CurrentValue = (int)level;
+                if (level > existing.Level) existing.Level = level;
                 return;
             }
 
-            var rp = new RolePermission
+            context.RolePermissions.Add(new RolePermission(roleId, svc.Id, resource, level)
             {
                 Id = Guid.NewGuid(),
-                RoleId = roleId,
-                ServiceId = simpleSvc.Id,
                 PermissionId = Guid.NewGuid(),
-            };
-
-            context.RolePermissions.Add(rp);
-
-            // Set private-setters via change tracker
-            context.Entry(rp).Property("Resource").CurrentValue = svcName;
-            context.Entry(rp).Property("Level").CurrentValue = (int)level;
+            });
         }
 
         // Super Admin — full access
@@ -350,24 +337,72 @@ public static class DataSeeder
     private static async Task SeedStaffAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
         var nodes = await context.StructureNodes.ToListAsync();
-        StructureNode Find(string name) => nodes.First(n => n.Name.Contains(name));
+        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
         var adminPwd = passwordHasher.HashPassword("admin123");
-        var studentPwd = passwordHasher.HashPassword("123456");
-        var staffList = new List<Staff>
+        var defs = new (string Emp, string Name, string NID, DateTime DOB, string Phone, string Email, string Role, string Job, string NodeName)[]
         {
-            new() { Id = Guid.NewGuid(), EmployeeCode = "ADMIN-001", PasswordHash = adminPwd, Name = "Super Admin User",      NationalId = "29801011234567", BirthDate = new(1985, 6, 15),  PhoneNumber = "01000000000", Email = "superadmin@capital.edu.eg", Role = "Super Admin",     JobTitle = "System Administrator",         StructureNodeId = Find("Capital University").Id, PasswordExpiry = DateTime.UtcNow.AddYears(5), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "FAC-001",  PasswordHash = adminPwd, Name = "Dr. Fatima Hassan",      NationalId = "28501011234567", BirthDate = new(1978, 3, 20),  PhoneNumber = "01111111111", Email = "fatima.hassan@capital.edu.eg", Role = "Faculty Admin",   JobTitle = "Faculty Dean",                StructureNodeId = Find("Home Economics").Id,  PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "HOD-001",  PasswordHash = adminPwd, Name = "Dr. Khaled Ibrahim",     NationalId = "28102021234567", BirthDate = new(1975, 11, 5),  PhoneNumber = "01111111112", Email = "khaled.ibrahim@capital.edu.eg", Role = "Department Head", JobTitle = "Head of Clinical Nutrition",  StructureNodeId = Find("Clinical Nutrition").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "REG-001",  PasswordHash = adminPwd, Name = "Ms. Aisha Mahmoud",      NationalId = "29003031234567", BirthDate = new(1985, 7, 12),  PhoneNumber = "01111111113", Email = "aisha.mahmoud@capital.edu.eg",  Role = "Registrar",       JobTitle = "Senior Registrar Officer",    StructureNodeId = Find("Capital University").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "ADV-001",  PasswordHash = adminPwd, Name = "Dr. Omar El-Sayed",      NationalId = "27504041234567", BirthDate = new(1982, 9, 28),  PhoneNumber = "01111111114", Email = "omar.elsayed@capital.edu.eg",   Role = "Academic Advisor",JobTitle = "Student Academic Advisor",   StructureNodeId = Find("Nutrition & Food Science").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "STF-001",  PasswordHash = adminPwd, Name = "Mr. Tamer Said",         NationalId = "29205051234567", BirthDate = new(1990, 1, 15),  PhoneNumber = "01111111115", Email = "tamer.said@capital.edu.eg",     Role = "Staff",           JobTitle = "IT Support Specialist",       StructureNodeId = Find("Capital University").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "VWR-001",  PasswordHash = adminPwd, Name = "Ms. Nadia Youssef",      NationalId = "29306061234567", BirthDate = new(1992, 4, 8),   PhoneNumber = "01111111116", Email = "nadia.youssef@capital.edu.eg",  Role = "Viewer",          JobTitle = "External Auditor",            StructureNodeId = Find("Capital University").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
-            new() { Id = Guid.NewGuid(), EmployeeCode = "FAC-002",  PasswordHash = adminPwd, Name = "Dr. Ahmed Abdel-Rahman", NationalId = "27807071234567", BirthDate = new(1970, 8, 18),  PhoneNumber = "01111111117", Email = "ahmed.abdelrahman@capital.edu.eg", Role = "Faculty Admin", JobTitle = "Vice Dean for Academic Affairs", StructureNodeId = Find("Mataria").Id, PasswordExpiry = DateTime.UtcNow.AddYears(1), IsActive = true },
+            ("ADMIN-001", "Super Admin User",      "29801011234567", new(1985, 6, 15),  "01000000000", "superadmin@capital.edu.eg",        "Super Admin",      "System Administrator",                "Capital University"),
+            ("FAC-001",   "Dr. Fatima Hassan",     "28501011234567", new(1978, 3, 20),  "01111111111", "fatima.hassan@capital.edu.eg",     "Faculty Admin",    "Faculty Dean",                        "Home Economics"),
+            ("HOD-001",   "Dr. Khaled Ibrahim",    "28102021234567", new(1975, 11, 5),  "01111111112", "khaled.ibrahim@capital.edu.eg",    "Department Head",  "Head of Clinical Nutrition",          "Clinical Nutrition"),
+            ("REG-001",   "Ms. Aisha Mahmoud",     "29003031234567", new(1985, 7, 12),  "01111111113", "aisha.mahmoud@capital.edu.eg",     "Registrar",        "Senior Registrar Officer",            "Capital University"),
+            ("ADV-001",   "Dr. Omar El-Sayed",     "27504041234567", new(1982, 9, 28),  "01111111114", "omar.elsayed@capital.edu.eg",      "Academic Advisor", "Student Academic Advisor",            "Nutrition & Food Science"),
+            ("STF-001",   "Mr. Tamer Said",        "29205051234567", new(1990, 1, 15),  "01111111115", "tamer.said@capital.edu.eg",        "Staff",            "IT Support Specialist",               "Capital University"),
+            ("VWR-001",   "Ms. Nadia Youssef",     "29306061234567", new(1992, 4, 8),   "01111111116", "nadia.youssef@capital.edu.eg",     "Viewer",           "External Auditor",                    "Capital University"),
+            ("FAC-002",   "Dr. Ahmed Abdel-Rahman","27807071234567", new(1970, 8, 18),  "01111111117", "ahmed.abdelrahman@capital.edu.eg", "Faculty Admin",    "Vice Dean for Academic Affairs",      "Mataria"),
         };
 
-        context.Staffs.AddRange(staffList);
+        var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
+        var added = 0;
+        var updated = 0;
+        foreach (var d in defs)
+        {
+            var node = FindNode(d.NodeName);
+            if (node == null)
+            {
+                Console.WriteLine($"[Seed] Staffs: skipping {d.Emp} — structure node '{d.NodeName}' not found.");
+                continue;
+            }
+
+            if (existing.TryGetValue(d.Emp, out var current))
+            {
+                current.Name = d.Name;
+                current.NationalId = d.NID;
+                current.BirthDate = d.DOB;
+                current.PhoneNumber = d.Phone;
+                current.Email = d.Email;
+                current.Role = d.Role;
+                current.JobTitle = d.Job;
+                current.StructureNodeId = node.Id;
+                current.PasswordHash = adminPwd;
+                current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
+                current.IsActive = true;
+                updated++;
+            }
+            else
+            {
+                context.Staffs.Add(new Staff
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeCode = d.Emp,
+                    Name = d.Name,
+                    NationalId = d.NID,
+                    BirthDate = d.DOB,
+                    PhoneNumber = d.Phone,
+                    Email = d.Email,
+                    Role = d.Role,
+                    JobTitle = d.Job,
+                    StructureNodeId = node.Id,
+                    PasswordHash = adminPwd,
+                    PasswordExpiry = DateTime.UtcNow.AddYears(5),
+                    IsActive = true,
+                });
+                added++;
+            }
+        }
+
         await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] Staffs: +{added} added, ~{updated} updated.");
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -377,32 +412,77 @@ public static class DataSeeder
     private static async Task SeedStudentsAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
         var nodes = await context.StructureNodes.ToListAsync();
-        StructureNode Find(string name) => nodes.First(n => n.Name.Contains(name));
+        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
-        var studentPwd = passwordHasher.HashPassword("123456");
-        var students = new List<Student>
+        var pwd = passwordHasher.HashPassword("123456");
+        var defs = new (string Code, string Name, string NID, DateTime DOB, string Phone, string Email, string NodeName)[]
         {
-            new() { Id = Guid.NewGuid(), StudentCode = "20250001", PasswordHash = studentPwd, Name = "Ahmed Mohamed Ali",        NationalId = "30201011234567", BirthDate = new(2002, 1, 1),  PhoneNumber = "01000000001", Email = "ahmed.mohamed@capital.edu.eg",   StructureNodeId = Find("Nutrition & Food Science").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250002", PasswordHash = studentPwd, Name = "Sara Mahmoud Hassan",      NationalId = "30202021234567", BirthDate = new(2002, 2, 2),  PhoneNumber = "01000000002", Email = "sara.hassan@capital.edu.eg",      StructureNodeId = Find("Level 4").Id,  IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250003", PasswordHash = studentPwd, Name = "Mohamed Khaled Ibrahim",   NationalId = "30203031234567", BirthDate = new(2003, 3, 3),  PhoneNumber = "01000000003", Email = "mohamed.ibrahim@capital.edu.eg",  StructureNodeId = Find("Level 4").Id,  IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250004", PasswordHash = studentPwd, Name = "Nourhan Atef El-Sayed",    NationalId = "30204041234567", BirthDate = new(2001, 5, 15), PhoneNumber = "01000000004", Email = "nourhan.atef@capital.edu.eg",     StructureNodeId = Find("Level 1").Id,  IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250005", PasswordHash = studentPwd, Name = "Mariam Tarek Fathy",       NationalId = "30205051234567", BirthDate = new(2001, 8, 22), PhoneNumber = "01000000005", Email = "mariam.tarek@capital.edu.eg",     StructureNodeId = Find("Textile & Clothing").Id,  IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250006", PasswordHash = studentPwd, Name = "Youssef Gamal El-Din",     NationalId = "30206061234567", BirthDate = new(2004, 11, 2), PhoneNumber = "01000000006", Email = "youssef.gamal@capital.edu.eg",    StructureNodeId = Find("Textile & Clothing").Id,  IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250007", PasswordHash = studentPwd, Name = "Omar Hossam El-Din",       NationalId = "30207071234567", BirthDate = new(2003, 4, 10), PhoneNumber = "01000000007", Email = "omar.hossam@capital.edu.eg",      StructureNodeId = Find("Civil Engineering").Id,    IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250008", PasswordHash = studentPwd, Name = "Laila Sherif Kamal",       NationalId = "30208081234567", BirthDate = new(2002, 7, 18), PhoneNumber = "01000000008", Email = "laila.sherif@capital.edu.eg",     StructureNodeId = Find("Civil Engineering").Id,    IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250009", PasswordHash = studentPwd, Name = "Ali Hassan Mohamed",       NationalId = "30209091234567", BirthDate = new(2001, 12, 5), PhoneNumber = "01000000009", Email = "ali.hassan@capital.edu.eg",       StructureNodeId = Find("Computer & Systems Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250010", PasswordHash = studentPwd, Name = "Hagar Mahmoud Ahmed",      NationalId = "30210101234567", BirthDate = new(2003, 9, 14), PhoneNumber = "01000000010", Email = "hagar.mahmoud@capital.edu.eg",    StructureNodeId = Find("Computer & Systems Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250011", PasswordHash = studentPwd, Name = "Karim Mostafa Abdel-Aziz", NationalId = "30211111234567", BirthDate = new(2002, 3, 28), PhoneNumber = "01000000011", Email = "karim.mostafa@capital.edu.eg",    StructureNodeId = Find("Computer & Systems Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250012", PasswordHash = studentPwd, Name = "Salma Adel Naguib",        NationalId = "30212121234567", BirthDate = new(2001, 6, 30), PhoneNumber = "01000000012", Email = "salma.adel@capital.edu.eg",       StructureNodeId = Find("Communications & Information Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250013", PasswordHash = studentPwd, Name = "Hassan Emad El-Din",       NationalId = "30213131234567", BirthDate = new(2004, 1, 8),  PhoneNumber = "01000000013", Email = "hassan.emad@capital.edu.eg",      StructureNodeId = Find("Communications & Information Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250014", PasswordHash = studentPwd, Name = "Dalia Samir Fawzy",        NationalId = "30214141234567", BirthDate = new(2003, 10, 20),PhoneNumber = "01000000014", Email = "dalia.samir@capital.edu.eg",      StructureNodeId = Find("Architectural Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250015", PasswordHash = studentPwd, Name = "Amr Khaled Youssef",       NationalId = "30215151234567", BirthDate = new(2002, 2, 14), PhoneNumber = "01000000015", Email = "amr.khaled@capital.edu.eg",       StructureNodeId = Find("Architectural Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250016", PasswordHash = studentPwd, Name = "Nada Ashraf Ibrahim",      NationalId = "30216161234567", BirthDate = new(2001, 11, 11),PhoneNumber = "01000000016", Email = "nada.ashraf@capital.edu.eg",      StructureNodeId = Find("Biomedical Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
-            new() { Id = Guid.NewGuid(), StudentCode = "20250017", PasswordHash = studentPwd, Name = "Mostafa Gamal Hassan",     NationalId = "30217171234567", BirthDate = new(2004, 5, 25), PhoneNumber = "01000000017", Email = "mostafa.gamal@capital.edu.eg",    StructureNodeId = Find("Biomedical Engineering").Id, IsActive = true, PasswordExpiry = DateTime.UtcNow.AddMonths(6) },
+            ("20250001", "Ahmed Mohamed Ali",        "30201011234567", new(2002, 1, 1),  "01000000001", "ahmed.mohamed@capital.edu.eg",   "Nutrition & Food Science"),
+            ("20250002", "Sara Mahmoud Hassan",      "30202021234567", new(2002, 2, 2),  "01000000002", "sara.hassan@capital.edu.eg",      "Level 4"),
+            ("20250003", "Mohamed Khaled Ibrahim",   "30203031234567", new(2003, 3, 3),  "01000000003", "mohamed.ibrahim@capital.edu.eg",  "Level 4"),
+            ("20250004", "Nourhan Atef El-Sayed",    "30204041234567", new(2001, 5, 15), "01000000004", "nourhan.atef@capital.edu.eg",     "Level 1"),
+            ("20250005", "Mariam Tarek Fathy",       "30205051234567", new(2001, 8, 22), "01000000005", "mariam.tarek@capital.edu.eg",     "Textile & Clothing"),
+            ("20250006", "Youssef Gamal El-Din",     "30206061234567", new(2004, 11, 2), "01000000006", "youssef.gamal@capital.edu.eg",    "Textile & Clothing"),
+            ("20250007", "Omar Hossam El-Din",       "30207071234567", new(2003, 4, 10), "01000000007", "omar.hossam@capital.edu.eg",      "Civil Engineering"),
+            ("20250008", "Laila Sherif Kamal",       "30208081234567", new(2002, 7, 18), "01000000008", "laila.sherif@capital.edu.eg",     "Civil Engineering"),
+            ("20250009", "Ali Hassan Mohamed",       "30209091234567", new(2001, 12, 5), "01000000009", "ali.hassan@capital.edu.eg",       "Computer & Systems Engineering"),
+            ("20250010", "Hagar Mahmoud Ahmed",      "30210101234567", new(2003, 9, 14), "01000000010", "hagar.mahmoud@capital.edu.eg",    "Computer & Systems Engineering"),
+            ("20250011", "Karim Mostafa Abdel-Aziz", "30211111234567", new(2002, 3, 28), "01000000011", "karim.mostafa@capital.edu.eg",    "Computer & Systems Engineering"),
+            ("20250012", "Salma Adel Naguib",        "30212121234567", new(2001, 6, 30), "01000000012", "salma.adel@capital.edu.eg",       "Communications & Information Engineering"),
+            ("20250013", "Hassan Emad El-Din",       "30213131234567", new(2004, 1, 8),  "01000000013", "hassan.emad@capital.edu.eg",      "Communications & Information Engineering"),
+            ("20250014", "Dalia Samir Fawzy",        "30214141234567", new(2003, 10, 20),"01000000014", "dalia.samir@capital.edu.eg",      "Architectural Engineering"),
+            ("20250015", "Amr Khaled Youssef",       "30215151234567", new(2002, 2, 14), "01000000015", "amr.khaled@capital.edu.eg",       "Architectural Engineering"),
+            ("20250016", "Nada Ashraf Ibrahim",      "30216161234567", new(2001, 11, 11),"01000000016", "nada.ashraf@capital.edu.eg",      "Biomedical Engineering"),
+            ("20250017", "Mostafa Gamal Hassan",     "30217171234567", new(2004, 5, 25), "01000000017", "mostafa.gamal@capital.edu.eg",    "Biomedical Engineering"),
         };
 
-        context.Students.AddRange(students);
+        var existing = await context.Students.ToDictionaryAsync(s => s.StudentCode);
+        var added = 0;
+        var updated = 0;
+        foreach (var d in defs)
+        {
+            var node = FindNode(d.NodeName);
+            if (node == null)
+            {
+                Console.WriteLine($"[Seed] Students: skipping {d.Code} — structure node '{d.NodeName}' not found.");
+                continue;
+            }
+
+            if (existing.TryGetValue(d.Code, out var current))
+            {
+                current.Name = d.Name;
+                current.NationalId = d.NID;
+                current.BirthDate = d.DOB;
+                current.PhoneNumber = d.Phone;
+                current.Email = d.Email;
+                current.StructureNodeId = node.Id;
+                current.PasswordHash = pwd;
+                current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
+                current.IsActive = true;
+                updated++;
+            }
+            else
+            {
+                context.Students.Add(new Student
+                {
+                    Id = Guid.NewGuid(),
+                    StudentCode = d.Code,
+                    Name = d.Name,
+                    NationalId = d.NID,
+                    BirthDate = d.DOB,
+                    PhoneNumber = d.Phone,
+                    Email = d.Email,
+                    StructureNodeId = node.Id,
+                    PasswordHash = pwd,
+                    PasswordExpiry = DateTime.UtcNow.AddYears(5),
+                    IsActive = true,
+                });
+                added++;
+            }
+        }
+
         await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] Students: +{added} added, ~{updated} updated.");
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -411,34 +491,76 @@ public static class DataSeeder
 
     private static async Task SeedStaffRoleAssignmentsAsync(CoreDbContext context)
     {
-        var staff = await context.Staffs.ToListAsync();
-        var roles = await context.Roles.ToListAsync();
+        var staff = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
+        var roles = await context.Roles.ToDictionaryAsync(r => r.Name);
         var nodes = await context.StructureNodes.ToListAsync();
+        var years = await context.AcademicYears.Include(y => y.Semesters).ToListAsync();
 
-        StructureNode Find(string name) => nodes.First(n => n.Name.Contains(name));
-        Staff ByCode(string code) => staff.First(s => s.EmployeeCode == code);
-        Role ByName(string name) => roles.First(r => r.Name == name);
+        var year2526 = years.FirstOrDefault(y => y.Name == "2025-2026");
+        var fall = year2526?.Semesters.FirstOrDefault(s => s.Name == "Fall");
+        if (year2526 == null || fall == null)
+        {
+            Console.WriteLine("[Seed] StaffRoles: aborting — academic year '2025-2026' or its 'Fall' semester missing.");
+            return;
+        }
 
-        context.StaffRoles.AddRange(
-            new StaffRoleAssignment(ByCode("ADMIN-001").Id, ByName("Super Admin").Id, "*", "*")
-                { StructureNodeId = Find("Capital University").Id, StructureNodePath = Find("Capital University").Path },
-            new StaffRoleAssignment(ByCode("FAC-001").Id, ByName("Faculty Admin").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Home Economics").Id, StructureNodePath = Find("Home Economics").Path },
-            new StaffRoleAssignment(ByCode("HOD-001").Id, ByName("Department Head").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Clinical Nutrition").Id, StructureNodePath = Find("Clinical Nutrition").Path },
-            new StaffRoleAssignment(ByCode("REG-001").Id, ByName("Registrar").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Capital University").Id, StructureNodePath = Find("Capital University").Path },
-            new StaffRoleAssignment(ByCode("ADV-001").Id, ByName("Academic Advisor").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Nutrition & Food Science").Id, StructureNodePath = Find("Nutrition & Food Science").Path },
-            new StaffRoleAssignment(ByCode("STF-001").Id, ByName("Staff").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Capital University").Id, StructureNodePath = Find("Capital University").Path },
-            new StaffRoleAssignment(ByCode("VWR-001").Id, ByName("Viewer").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Capital University").Id, StructureNodePath = Find("Capital University").Path },
-            new StaffRoleAssignment(ByCode("FAC-002").Id, ByName("Faculty Admin").Id, "2025-2026", "Fall")
-                { StructureNodeId = Find("Mataria").Id, StructureNodePath = Find("Mataria").Path }
-        );
+        var yearKey = year2526.Id.ToString();
+        var fallKey = fall.Id.ToString();
+
+        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
+
+        var defs = new (string EmpCode, string RoleName, string Year, string Semester, string NodeName)[]
+        {
+            ("ADMIN-001", "Super Admin",      "Global", "Global", "Capital University"),
+            ("FAC-001",   "Faculty Admin",    yearKey,  fallKey,  "Home Economics"),
+            ("HOD-001",   "Department Head",  yearKey,  fallKey,  "Clinical Nutrition"),
+            ("REG-001",   "Registrar",        yearKey,  fallKey,  "Capital University"),
+            ("ADV-001",   "Academic Advisor", yearKey,  fallKey,  "Nutrition & Food Science"),
+            ("STF-001",   "Staff",            yearKey,  fallKey,  "Capital University"),
+            ("VWR-001",   "Viewer",           yearKey,  fallKey,  "Capital University"),
+            ("FAC-002",   "Faculty Admin",    yearKey,  fallKey,  "Mataria"),
+        };
+
+        var existing = await context.StaffRoles.ToListAsync();
+        var added = 0;
+        foreach (var d in defs)
+        {
+            if (!staff.TryGetValue(d.EmpCode, out var s))
+            {
+                Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode} — staff row missing.");
+                continue;
+            }
+            if (!roles.TryGetValue(d.RoleName, out var r))
+            {
+                Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode}/{d.RoleName} — role missing.");
+                continue;
+            }
+            var node = FindNode(d.NodeName);
+            if (node == null)
+            {
+                Console.WriteLine($"[Seed] StaffRoles: skipping {d.EmpCode} — node '{d.NodeName}' not found.");
+                continue;
+            }
+
+            var alreadyAssigned = existing.Any(a =>
+                a.StaffId == s.Id &&
+                a.RoleId == r.Id &&
+                a.StructureNodeId == node.Id &&
+                a.Year == d.Year &&
+                a.Semester == d.Semester);
+
+            if (alreadyAssigned) continue;
+
+            context.StaffRoles.Add(new StaffRoleAssignment(s.Id, r.Id, d.Year, d.Semester)
+            {
+                StructureNodeId = node.Id,
+                StructureNodePath = node.Path,
+            });
+            added++;
+        }
 
         await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] StaffRoles: +{added} added.");
     }
 
     // ════════════════════════════════════════════════════════════════

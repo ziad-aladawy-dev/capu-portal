@@ -70,54 +70,17 @@ public class PermissionManagementService : IPermissionManagementService
         response.ActiveScope.Temporal.AcademicYearId = currentYear?.Id;
         response.ActiveScope.Temporal.SemesterId = currentSem?.Id;
 
+        response.ActiveScope.Structural.NodeId = user.StructureNodeId;
+
         if (user.Role == "Student")
         {
-            // Student Model: Contextual Scoping
-            response.ActiveScope.Structural.NodeId = user.StructureNodeId;
-
-            response.AuthorizedScopes.AllowedNodeIds = user.StructureNodeId.HasValue ? new List<Guid> { user.StructureNodeId.Value } : new List<Guid>();
-            response.AuthorizedScopes.AllowedAcademicYearIds = currentYear != null ? new List<Guid> { currentYear.Id } : new List<Guid>();
-            response.AuthorizedScopes.AllowedSemesterIds = currentSem != null ? new List<Guid> { currentSem.Id } : new List<Guid>();
-            
-            // Students have empty permissions (context-based)
+            // Students are context-scoped: no explicit permission grants. The frontend
+            // treats absence of a permission entry as "act inside the user's StructureNode".
             response.Permissions = new List<PermissionDto>();
         }
         else
         {
-            // Admin Model: Permission-Based Scoping
-            response.ActiveScope.Structural.NodeId = user.StructureNodeId; // Default to assigned node if any
-
-            // Populate Permissions
             response.Permissions = await GetEffectivePermissionsAsync(user.Id, cancellationToken);
-
-            // Populate Authorized Scopes from Assignments
-            var assignments = await _dbContext.StaffRoles
-                .Where(sr => sr.StaffId == user.Id)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-
-            response.AuthorizedScopes.IsGlobalStructural = assignments.Any(a => a.StructureNodeId == null);
-            response.AuthorizedScopes.AllowedNodeIds = assignments
-                .Where(a => a.StructureNodeId.HasValue)
-                .Select(a => a.StructureNodeId!.Value)
-                .Distinct()
-                .ToList();
-
-            response.AuthorizedScopes.IsGlobalYear = assignments.Any(a => a.Year == "Global");
-            response.AuthorizedScopes.AllowedAcademicYearIds = assignments
-                .Where(a => a.Year != "Global")
-                .Select(a => Guid.TryParse(a.Year, out var id) ? id : Guid.Empty)
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            response.AuthorizedScopes.IsGlobalSemester = assignments.Any(a => a.Semester == "Global");
-            response.AuthorizedScopes.AllowedSemesterIds = assignments
-                .Where(a => a.Semester != "Global")
-                .Select(a => Guid.TryParse(a.Semester, out var id) ? id : Guid.Empty)
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
         }
 
         return response;
@@ -162,29 +125,124 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<List<PermissionDto>> GetEffectivePermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var lookup = await GetPermissionLookupAsync(userId, cancellationToken);
-        
-        var dtos = new List<PermissionDto>();
-        foreach (var key in lookup)
+        // Bootstrap view: return every grant the user holds, each with its own scope attached.
+        // Do NOT filter through IRequestContext here — that intersection belongs to the runtime
+        // authorization check (GetPermissionLookupAsync), not to enumerating what the user has.
+        var assignments = await _dbContext.StaffRoles
+            .Where(sr => sr.StaffId == userId)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
+
+        var rolePerms = await _dbContext.RolePermissions
+            .Include(rp => rp.Service)
+                .ThenInclude(s => s.Module)
+            .Where(rp => roleIds.Contains(rp.RoleId))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var rolePermsByRole = rolePerms
+            .GroupBy(rp => rp.RoleId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var overrides = await _dbContext.StaffPermissions
+            .Include(sp => sp.Service)
+                .ThenInclude(s => s.Module)
+            .Where(sp => sp.StaffId == userId)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var maxLevelByScopeResource = new Dictionary<ScopedResourceKey, ActionLevel>();
+
+        foreach (var assignment in assignments)
         {
-            if (PermissionIdentity.TryParse(key, out var module, out var resource, out var action))
+            if (!rolePermsByRole.TryGetValue(assignment.RoleId, out var perms)) continue;
+
+            var scope = new ScopeKey(
+                assignment.StructureNodeId,
+                assignment.StructureNodePath,
+                assignment.Year,
+                assignment.Semester);
+
+            foreach (var rp in perms)
+            {
+                var key = new ScopedResourceKey(scope, rp.Service.Module.ModuleKey, rp.Resource);
+                if (!maxLevelByScopeResource.TryGetValue(key, out var existing) || rp.Level > existing)
+                {
+                    maxLevelByScopeResource[key] = rp.Level;
+                }
+            }
+        }
+
+        foreach (var ov in overrides.Where(o => o.Type == OverrideType.Allow))
+        {
+            var scope = new ScopeKey(ov.StructureNodeId, ov.StructureNodePath, ov.Year, ov.Semester);
+            var key = new ScopedResourceKey(scope, ov.Service.Module.ModuleKey, ov.Resource);
+            if (!maxLevelByScopeResource.TryGetValue(key, out var existing) || ov.Level > existing)
+            {
+                maxLevelByScopeResource[key] = ov.Level;
+            }
+        }
+
+        foreach (var ov in overrides.Where(o => o.Type == OverrideType.Deny))
+        {
+            var scope = new ScopeKey(ov.StructureNodeId, ov.StructureNodePath, ov.Year, ov.Semester);
+            var key = new ScopedResourceKey(scope, ov.Service.Module.ModuleKey, ov.Resource);
+            if (maxLevelByScopeResource.TryGetValue(key, out var existing) && existing >= ov.Level)
+            {
+                maxLevelByScopeResource[key] = (ActionLevel)((int)ov.Level - 1);
+            }
+        }
+
+        var dtos = new List<PermissionDto>();
+        foreach (var (key, level) in maxLevelByScopeResource)
+        {
+            if (level <= ActionLevel.None) continue;
+            var scopeDto = BuildScopeDto(key.Scope);
+            foreach (var action in GetActionsUpToLevel(level))
             {
                 dtos.Add(new PermissionDto
                 {
-                    Module = module,
-                    Resource = resource,
-                    Action = action
+                    Module = key.Module,
+                    Resource = key.Resource,
+                    Action = action,
+                    Scope = scopeDto
                 });
             }
         }
+
         return dtos;
+    }
+
+    private sealed record ScopeKey(Guid? StructureNodeId, string? StructureNodePath, string Year, string Semester);
+    private sealed record ScopedResourceKey(ScopeKey Scope, string Module, string Resource);
+
+    private static PermissionScopeDto BuildScopeDto(ScopeKey k)
+    {
+        var isGlobalYear = k.Year == "Global";
+        var isGlobalSemester = k.Semester == "Global";
+
+        return new PermissionScopeDto
+        {
+            IsGlobalStructural = !k.StructureNodeId.HasValue,
+            StructureNodeId = k.StructureNodeId,
+            StructureNodePath = k.StructureNodePath,
+            IsGlobalYear = isGlobalYear,
+            AcademicYearId = !isGlobalYear && Guid.TryParse(k.Year, out var y) ? y : null,
+            IsGlobalSemester = isGlobalSemester,
+            SemesterId = !isGlobalSemester && Guid.TryParse(k.Semester, out var s) ? s : null,
+        };
     }
 
     public async Task<HashSet<string>> GetPermissionLookupAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var year = _requestContext.ActiveAcademicYearId?.ToString() ?? "Global";
         var semester = _requestContext.ActiveSemesterId?.ToString() ?? "Global";
-        var cacheKey = $"perm_lookup_{userId}_{year}_{semester}";
+        var structureNodeId = _requestContext.ActiveStructureNodeId;
+        var structureKey = structureNodeId?.ToString() ?? "Global";
+        var version = await GetUserPermissionVersionAsync(userId, cancellationToken);
+        var cacheKey = $"perm_lookup_{userId}_{version}_{year}_{semester}_{structureKey}";
 
         var cachedLookup = await _cache.GetAsync<HashSet<string>>(cacheKey, cancellationToken);
         if (cachedLookup != null)
@@ -192,7 +250,7 @@ public class PermissionManagementService : IPermissionManagementService
             return new HashSet<string>(cachedLookup);
         }
 
-        var scope = await _scopeResolver.ResolveAsync(userId, year, semester, cancellationToken);
+        var scope = await _scopeResolver.ResolveAsync(userId, year, semester, structureNodeId, cancellationToken);
 
         var rawPermissions = await _permissionService.GetPermissionsAsync(userId, "*", scope, cancellationToken);
 
@@ -262,11 +320,25 @@ public class PermissionManagementService : IPermissionManagementService
         return lookup;
     }
 
-    private async Task InvalidateUserCacheAsync(Guid userId, string year, string semester)
+    // Rotating the per-user version orphans every cached perm_lookup_{userId}_{version}_*
+    // entry across all scope variants in a single write — no key enumeration needed.
+    private async Task InvalidateUserCacheAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"perm_lookup_{userId}_{year}_{semester}";
-        await _cache.RemoveAsync(cacheKey);
+        await _cache.SetAsync(VersionKey(userId), Guid.NewGuid().ToString("N"), TimeSpan.FromHours(24), cancellationToken);
     }
+
+    private async Task<string> GetUserPermissionVersionAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var key = VersionKey(userId);
+        var current = await _cache.GetAsync<string>(key, cancellationToken);
+        if (!string.IsNullOrEmpty(current)) return current;
+
+        var initial = "0";
+        await _cache.SetAsync(key, initial, TimeSpan.FromHours(24), cancellationToken);
+        return initial;
+    }
+
+    private static string VersionKey(Guid userId) => $"perm_lookup_v_{userId}";
 
     private IEnumerable<string> GetActionsUpToLevel(ActionLevel level)
     {
@@ -389,7 +461,7 @@ public class PermissionManagementService : IPermissionManagementService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         
-        await InvalidateUserCacheAsync(request.UserId, year, semester);
+        await InvalidateUserCacheAsync(request.UserId, cancellationToken);
 
         return new PermissionAssignmentResponse
         {
@@ -484,7 +556,7 @@ public class PermissionManagementService : IPermissionManagementService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         
-        await InvalidateUserCacheAsync(request.UserId, year, semester);
+        await InvalidateUserCacheAsync(request.UserId, cancellationToken);
 
         var finalRoles = await _dbContext.StaffRoles
             .Where(sr => sr.StaffId == request.UserId && 

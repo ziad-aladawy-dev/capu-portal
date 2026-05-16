@@ -17,12 +17,13 @@ public class ScopeResolver : IScopeResolver
         _academicYearService = academicYearService;
         _semesterService = semesterService;
     }
-public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, string semester, CancellationToken cancellationToken = default)
+public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, string semester, Guid? structureNodeId = null, CancellationToken cancellationToken = default)
 {
     var scope = new AuthorizationScope
     {
         Year = year,
-        Semester = semester
+        Semester = semester,
+        StructureNodeId = structureNodeId
     };
 
         // 1. Resolve Temporal Scope (Current if requested)
@@ -39,7 +40,9 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
         }
 
         // 2. Resolve Structural Scope
-        // Check if user is a Student
+        // For students, the assigned StructureNodeId is authoritative — the request
+        // context cannot widen or redirect it. For staff, the requested node (if any)
+        // is later intersected against the user's grant paths by PermissionService.
         var student = await _dbContext.Students
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
@@ -49,7 +52,6 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
             scope.StructureNodeId = student.StructureNodeId;
         }
 
-        // If a node ID is resolved (or was provided), resolve its path
         if (scope.StructureNodeId.HasValue)
         {
             var node = await _dbContext.StructureNodes
