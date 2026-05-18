@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Core.Domain.StudentInformation;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
@@ -48,6 +49,7 @@ public class CoreDbContext : DbContext
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<StudentProfileRecord> StudentProfileRecords => Set<StudentProfileRecord>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

@@ -10,6 +10,7 @@ public interface IUnitOfWork : IDisposable
     ICourseRepository Courses { get; }
     IAcademicPlanRepository AcademicPlans { get; }
     IInvoiceRepository Invoices { get; }
+    IStudentProfileRecordRepository StudentProfileRecords { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);
     Task CommitTransactionAsync(CancellationToken cancellationToken = default);

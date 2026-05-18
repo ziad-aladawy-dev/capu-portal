@@ -122,4 +122,19 @@ public static class PermissionNames
         public const string Open      = "payments.transactions.Open";
         public const string Delete    = "payments.transactions.Delete";
     }
+
+    /// <summary>
+    /// Student Information profile records (sparse, JSON-backed sensitive data).
+    /// Module = <c>student-information</c>, Resource = <c>profile-records</c>.
+    /// Bound by <see cref="StudentProfileRecordsController"/>; declared by
+    /// <c>StudentInformationPermissionManifest</c>.
+    /// </summary>
+    public static class StudentProfileRecords
+    {
+        public const string View      = "student-information.profile-records.View";
+        public const string Insert    = "student-information.profile-records.Insert";
+        public const string EditClose = "student-information.profile-records.EditClose";
+        public const string Open      = "student-information.profile-records.Open";
+        public const string Delete    = "student-information.profile-records.Delete";
+    }
 }
