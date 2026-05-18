@@ -107,6 +107,7 @@ public static class DependencyInjection
         services.AddScoped<ISemesterRepository, SemesterRepository>();
         services.AddScoped<ICourseRepository, CourseRepository>();
         services.AddScoped<IAcademicPlanRepository, AcademicPlanRepository>();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 
         services.AddScoped<IAcademicYearService, AcademicYearService>();
         services.AddScoped<ISemesterService, SemesterService>();
@@ -114,6 +115,12 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Application.Courses.CourseService>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.IAcademicPlanService,
                            CapitalUniversity.Core.Application.Courses.AcademicPlanService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IInvoiceService,
+                           CapitalUniversity.Core.Application.Payments.InvoiceService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IFeeCreationService,
+                           CapitalUniversity.Core.Application.Payments.FeeCreationService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IPaymentVerificationService,
+                           CapitalUniversity.Core.Application.Payments.PaymentVerificationService>();
 
         services.AddScoped<IValidator<CreateAcademicYearRequest>, CreateAcademicYearValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateAcademicYearRequest Request)>, UpdateAcademicYearValidator>();
@@ -129,6 +136,10 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Application.Courses.Validators.UpdateAcademicPlanValidator>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.AddPlanCourseRequest>,
                            CapitalUniversity.Core.Application.Courses.Validators.AddPlanCourseValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Payments.DTOs.CreateInvoiceRequest>,
+                           CapitalUniversity.Core.Application.Payments.Validators.CreateInvoiceValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Payments.DTOs.RecordPaymentRequest>,
+                           CapitalUniversity.Core.Application.Payments.Validators.RecordPaymentValidator>();
 
         services.AddHostedService<AcademicTimelineBackgroundService>();
 
@@ -183,6 +194,8 @@ public static class DependencyInjection
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.NotificationsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.CoursesPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PaymentsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PermissionManifestRegistry>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer,

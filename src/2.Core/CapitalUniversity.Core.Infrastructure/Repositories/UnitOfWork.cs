@@ -17,7 +17,8 @@ public class UnitOfWork : IUnitOfWork
         IAcademicYearRepository academicYears,
         ISemesterRepository semesters,
         ICourseRepository courses,
-        IAcademicPlanRepository academicPlans)
+        IAcademicPlanRepository academicPlans,
+        IInvoiceRepository invoices)
     {
         _context = context;
         Students = students;
@@ -27,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
         Semesters = semesters;
         Courses = courses;
         AcademicPlans = academicPlans;
+        Invoices = invoices;
     }
 
     public IStudentRepository Students { get; }
@@ -36,6 +38,7 @@ public class UnitOfWork : IUnitOfWork
     public ISemesterRepository Semesters { get; }
     public ICourseRepository Courses { get; }
     public IAcademicPlanRepository AcademicPlans { get; }
+    public IInvoiceRepository Invoices { get; }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

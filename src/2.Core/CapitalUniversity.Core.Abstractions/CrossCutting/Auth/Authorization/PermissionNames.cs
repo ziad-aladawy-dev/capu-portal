@@ -95,4 +95,31 @@ public static class PermissionNames
         public const string Open      = "courses.academic-plans.Open";
         public const string Delete    = "courses.academic-plans.Delete";
     }
+
+    /// <summary>
+    /// Invoice lifecycle (create / read / cancel). Module = <c>payments</c>,
+    /// Resource = <c>invoices</c>. Bound by <see cref="InvoicesController"/>;
+    /// declared by <c>PaymentsPermissionManifest</c>.
+    /// </summary>
+    public static class Invoices
+    {
+        public const string View      = "payments.invoices.View";
+        public const string Insert    = "payments.invoices.Insert";
+        public const string EditClose = "payments.invoices.EditClose";
+        public const string Open      = "payments.invoices.Open";
+        public const string Delete    = "payments.invoices.Delete";
+    }
+
+    /// <summary>
+    /// Payment provider transactions (record / view). Webhook handlers should
+    /// hold this without holding <see cref="Invoices"/>.
+    /// </summary>
+    public static class PaymentTransactions
+    {
+        public const string View      = "payments.transactions.View";
+        public const string Insert    = "payments.transactions.Insert";
+        public const string EditClose = "payments.transactions.EditClose";
+        public const string Open      = "payments.transactions.Open";
+        public const string Delete    = "payments.transactions.Delete";
+    }
 }
