@@ -76,10 +76,19 @@ public class PaymentVerificationService : IPaymentVerificationService
         }
         invoice.UpdatedAt = DateTime.UtcNow;
         _invoices.Update(invoice);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // P1.3 — narrow idempotency handling: the repo returns the existing
+        // row on a unique-index collision (2627/2601 on
+        // IX_PaymentTransactions_InvoiceId_IdempotencyKey). Any other
+        // DbUpdateException still rethrows.
+        var (savedTx, wasReplay) = await _invoices.SaveTransactionWithIdempotencyAsync(tx, cancellationToken);
+        if (wasReplay)
+        {
+            return ToResponse(savedTx);
+        }
 
         await _cache.RemoveAsync(InvoiceService.CacheKey(invoice.Id), cancellationToken);
-        return ToResponse(tx);
+        return ToResponse(savedTx);
     }
 
     public async Task<IReadOnlyList<PaymentTransactionResponse>> GetForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default)

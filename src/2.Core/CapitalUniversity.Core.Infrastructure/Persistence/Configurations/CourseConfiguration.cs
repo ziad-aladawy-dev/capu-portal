@@ -12,9 +12,12 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
 
         builder.HasKey(x => x.Id);
 
+        // Code is upper-cased in the entity setter; the case-insensitive
+        // collation is belt-and-braces in case rows arrive via raw SQL.
         builder.Property(x => x.Code)
             .IsRequired()
-            .HasMaxLength(32);
+            .HasMaxLength(32)
+            .UseCollation("SQL_Latin1_General_CP1_CI_AS");
 
         builder.Property(x => x.Title)
             .IsRequired()

@@ -9,7 +9,7 @@ namespace CapitalUniversity.Core.Domain.Payments;
 /// never duplicates the row. <see cref="RawPayloadJson"/> retains the
 /// provider's original message for audit.
 /// </summary>
-public class PaymentTransaction : BaseEntity
+public class PaymentTransaction : BaseEntity, ISoftDeletable
 {
     public Guid InvoiceId { get; set; }
     public Invoice? Invoice { get; set; }

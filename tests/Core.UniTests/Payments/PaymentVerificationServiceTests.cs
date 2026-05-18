@@ -31,6 +31,12 @@ public class PaymentVerificationServiceTests
         var repo = new Mock<IInvoiceRepository>();
         var uow = new Mock<IUnitOfWork>();
         var cache = new StubCache();
+
+        // Default: SaveTransactionWithIdempotencyAsync echoes the inserted tx
+        // back as a non-replay so non-race tests can ignore the contract.
+        repo.Setup(r => r.SaveTransactionWithIdempotencyAsync(It.IsAny<PaymentTransaction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PaymentTransaction tx, CancellationToken _) => (tx, false));
+
         return (new PaymentVerificationService(uow.Object, repo.Object, new RecordPaymentValidator(), cache), repo, uow, cache);
     }
 

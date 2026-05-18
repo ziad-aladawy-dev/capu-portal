@@ -19,10 +19,13 @@ namespace CapitalUniversity.Core.Domain.StudentInformation;
 /// for medical / disability / military records.
 /// </para>
 /// </summary>
-public class StudentProfileRecord : BaseEntity
+public class StudentProfileRecord : BaseEntity, ISoftDeletable
 {
     /// <summary>Cross-module reference to the owning student. No EF navigation — modularity rule.</summary>
     public Guid StudentId { get; set; }
+
+    /// <summary>SQL Server <c>rowversion</c>. EF maps this to optimistic concurrency.</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public StudentProfileCategory Category { get; set; } = StudentProfileCategory.Custom;
 

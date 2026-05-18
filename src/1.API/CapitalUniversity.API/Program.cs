@@ -44,15 +44,17 @@ if (builder.Environment.EnvironmentName != "Testing")
 {
     builder.Services.AddDbContext<CoreDbContext>(options =>
         options
-            .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-            // EF Core 9 escalates "model has pending changes" to a throw on
-            // MigrateAsync. We hand-shipped two migrations without regenerating
-            // the ModelSnapshot, which trips this even though the SQL is correct.
-            // Demote it to a log so startup migrations apply cleanly. Next time
-            // someone runs `dotnet ef migrations add` locally, the snapshot
-            // will catch up and this becomes a no-op.
-            .ConfigureWarnings(w => w.Ignore(
-                Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+            .UseSqlServer(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                // Transient SQL errors (deadlocks with retryable codes, brief
+                // connection drops) re-execute the command without surfacing as
+                // 500s. Six retries with EF's default exponential backoff is
+                // the SqlServer provider default. No retryable exceptions are
+                // added beyond the built-in list.
+                sql => sql.EnableRetryOnFailure(
+                    maxRetryCount: 6,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null)));
 }
 
 builder.Services.AddCoreServices(builder.Configuration);

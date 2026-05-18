@@ -14,10 +14,13 @@ namespace CapitalUniversity.Core.Domain.Payments;
 /// <c>InvoiceService.Recalculate</c>).
 /// </para>
 /// </summary>
-public class Invoice : BaseEntity
+public class Invoice : BaseEntity, ISoftDeletable
 {
     /// <summary>Cross-module reference to the owning student. No EF navigation per modularity rule.</summary>
     public Guid StudentId { get; set; }
+
+    /// <summary>SQL Server <c>rowversion</c>. EF maps this to optimistic concurrency.</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Pending;
 

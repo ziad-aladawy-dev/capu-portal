@@ -21,4 +21,12 @@ public interface ISessionVersionService
     /// if the user does not exist.
     /// </summary>
     Task<int?> IncrementVersionAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Drops any cached SessionVersion lookup for the user — including a
+    /// negative-cached "user not found" entry. Call on user creation so the
+    /// first authenticated request after sign-up doesn't see the stale miss.
+    /// No-op on the non-cached implementation.
+    /// </summary>
+    Task InvalidateCacheAsync(Guid userId, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
@@ -13,12 +14,16 @@ public class StudentService : IStudentService
 
     private readonly IStructureNodeRepository _structureRepository;
 
+    private readonly ISessionVersionService _sessionVersions;
+
     public StudentService(
         IStudentRepository repository,
-        IStructureNodeRepository structureRepository)
+        IStructureNodeRepository structureRepository,
+        ISessionVersionService sessionVersions)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _sessionVersions = sessionVersions;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -103,6 +108,10 @@ public class StudentService : IStudentService
         await _repository.AddAsync(student);
 
         await _repository.SaveChangesAsync();
+
+        // P2.6 — evict any negative-cached "user not found" entry so the new
+        // student's first authenticated request resolves cleanly.
+        await _sessionVersions.InvalidateCacheAsync(student.Id);
 
         return student.Id;
     }

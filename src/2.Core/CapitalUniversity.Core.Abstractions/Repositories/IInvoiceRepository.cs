@@ -12,4 +12,14 @@ public interface IInvoiceRepository
 
     Task<PaymentTransaction?> GetTransactionByKeyAsync(Guid invoiceId, string idempotencyKey, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PaymentTransaction>> GetTransactionsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists the tracked changes, special-casing a unique-index violation on
+    /// <c>(InvoiceId, IdempotencyKey)</c>: when a concurrent webhook wins the
+    /// race, this returns the existing transaction and reports <c>WasReplay</c>
+    /// = true. Any other <see cref="Microsoft.EntityFrameworkCore.DbUpdateException"/> rethrows.
+    /// </summary>
+    Task<(PaymentTransaction Saved, bool WasReplay)> SaveTransactionWithIdempotencyAsync(
+        PaymentTransaction newTransaction,
+        CancellationToken cancellationToken = default);
 }

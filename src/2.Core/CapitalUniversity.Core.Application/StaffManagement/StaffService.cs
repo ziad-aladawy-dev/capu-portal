@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
@@ -14,12 +15,16 @@ public class StaffService : IStaffService
     private readonly IStructureNodeRepository
         _structureRepository;
 
+    private readonly ISessionVersionService _sessionVersions;
+
     public StaffService(
         IStaffRepository repository,
-        IStructureNodeRepository structureRepository)
+        IStructureNodeRepository structureRepository,
+        ISessionVersionService sessionVersions)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _sessionVersions = sessionVersions;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
@@ -107,6 +112,10 @@ public class StaffService : IStaffService
         await _repository.AddAsync(staff);
 
         await _repository.SaveChangesAsync();
+
+        // P2.6 — evict any negative-cached "user not found" entry so the new
+        // staff's first authenticated request resolves cleanly.
+        await _sessionVersions.InvalidateCacheAsync(staff.Id);
 
         return staff.Id;
     }

@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Domain.Courses;
+using CapitalUniversity.Core.Domain.UniversityStructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,8 +20,16 @@ public class AcademicPlanConfiguration : IEntityTypeConfiguration<AcademicPlan>
         builder.Property(x => x.StructureNodeId).IsRequired();
         builder.Property(x => x.EffectiveFrom).IsRequired();
 
+        builder.Property(x => x.RowVersion).IsRowVersion();
+
         // Plan picker hot path: list active plans for a structure node.
         builder.HasIndex(x => new { x.StructureNodeId, x.IsActive });
+
+        // Schema-level FK to StructureNode. No navigation per the modularity rule.
+        builder.HasOne<StructureNode>()
+            .WithMany()
+            .HasForeignKey(x => x.StructureNodeId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(x => x.PlanCourses)
             .WithOne(x => x.AcademicPlan)

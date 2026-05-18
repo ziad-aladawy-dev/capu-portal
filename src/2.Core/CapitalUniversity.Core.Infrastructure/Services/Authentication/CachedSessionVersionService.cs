@@ -71,6 +71,16 @@ public class CachedSessionVersionService : ISessionVersionService
         return newVersion;
     }
 
+    public async Task InvalidateCacheAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // P2.6 — call on user creation/update to evict the negative-cached
+        // "user not found" entry. Otherwise the first auth request after
+        // sign-up sees `null` until the TTL expires.
+        await _cache.RemoveAsync(BuildKey(userId), cancellationToken);
+        // Forward to inner too so any composite decorator stays in sync.
+        await _inner.InvalidateCacheAsync(userId, cancellationToken);
+    }
+
     internal static string BuildKey(Guid userId) => $"{KeyPrefix}{userId:N}";
 
     public sealed class SessionVersionEntry

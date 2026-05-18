@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -17,8 +18,17 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)").IsRequired();
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(3);
 
+        builder.Property(x => x.RowVersion).IsRowVersion();
+
         // List-by-student is the hottest path (student portal "my invoices").
         builder.HasIndex(x => new { x.StudentId, x.Status });
+
+        // Schema-level FK to Student. No navigation per the modularity rule —
+        // we still want SQL to reject orphaned invoices.
+        builder.HasOne<Student>()
+            .WithMany()
+            .HasForeignKey(x => x.StudentId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(x => x.Items)
             .WithOne(x => x.Invoice)

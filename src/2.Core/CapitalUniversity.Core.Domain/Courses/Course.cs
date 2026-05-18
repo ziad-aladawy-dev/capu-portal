@@ -10,8 +10,14 @@ namespace CapitalUniversity.Core.Domain.Courses;
 /// </summary>
 public class Course : BaseEntity
 {
-    /// <summary>Unique short code (e.g. <c>"CS101"</c>). Case-insensitive but stored as entered.</summary>
-    public string Code { get; set; } = string.Empty;
+    private string _code = string.Empty;
+
+    /// <summary>Unique short code (e.g. <c>"CS101"</c>). Trimmed and upper-cased on set so the catalog cannot drift on whitespace or casing.</summary>
+    public string Code
+    {
+        get => _code;
+        set => _code = (value ?? string.Empty).Trim().ToUpperInvariant();
+    }
 
     /// <summary>Human-readable title (e.g. <c>"Introduction to Algorithms"</c>).</summary>
     public string Title { get; set; } = string.Empty;

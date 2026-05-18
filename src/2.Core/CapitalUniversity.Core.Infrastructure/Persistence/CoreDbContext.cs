@@ -9,6 +9,7 @@ using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
@@ -108,5 +109,50 @@ public class CoreDbContext : DbContext
 
         modelBuilder.Entity<StructureNode>()
             .HasQueryFilter(x => !x.IsDeleted);
+
+        // P0.6 / P1.5 — soft-delete global query filter for the three listed
+        // entities only. Other entities keep BaseEntity.IsDeleted but are not
+        // filtered (per the plan's "Apply ONLY to" rule).
+        modelBuilder.Entity<Invoice>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<StudentProfileRecord>().HasQueryFilter(x => !x.IsDeleted);
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        // P3.1 — UTC enforcement. SQL Server datetime2 has no tz info, so we
+        // standardise to UTC on the way in and tag DateTimeKind.Utc on the way
+        // out. Prevents the well-known "I read what I just wrote, but the Kind
+        // is Unspecified" trap that breaks DateTime comparisons.
+        configurationBuilder.Properties<DateTime>()
+            .HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>()
+            .HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
+    private sealed class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
+    {
+        // Kind=Local genuinely shifts to UTC. Kind=Unspecified is treated as
+        // already-UTC (the common case for `new DateTime(2026, 1, 1)` literals
+        // and EF in-memory seeded data) — only the Kind is normalised, no
+        // wall-clock shift. Reads always come back tagged Utc.
+        public UtcDateTimeConverter()
+            : base(
+                v => v.Kind == DateTimeKind.Local ? v.ToUniversalTime() : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+                v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+        { }
+    }
+
+    private sealed class NullableUtcDateTimeConverter : ValueConverter<DateTime?, DateTime?>
+    {
+        public NullableUtcDateTimeConverter()
+            : base(
+                v => v.HasValue
+                    ? (v.Value.Kind == DateTimeKind.Local ? v.Value.ToUniversalTime() : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+                    : (DateTime?)null,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null)
+        { }
     }
 }

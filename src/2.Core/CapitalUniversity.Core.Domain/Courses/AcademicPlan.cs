@@ -21,6 +21,9 @@ public class AcademicPlan : BaseEntity
     /// <summary>Owning structure node (Program or Department). FK without navigation — cross-module reference by ID per the modularity rule.</summary>
     public Guid StructureNodeId { get; set; }
 
+    /// <summary>SQL Server <c>rowversion</c>. EF maps this to optimistic concurrency.</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     /// <summary>Human-readable name (e.g. <c>"BSc Computer Science 2025"</c>).</summary>
     public string Name { get; set; } = string.Empty;
 
