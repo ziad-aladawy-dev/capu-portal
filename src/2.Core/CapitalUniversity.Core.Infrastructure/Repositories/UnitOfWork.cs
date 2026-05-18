@@ -15,7 +15,8 @@ public class UnitOfWork : IUnitOfWork
         IStaffRepository staff,
         IStructureNodeRepository structureNodes,
         IAcademicYearRepository academicYears,
-        ISemesterRepository semesters)
+        ISemesterRepository semesters,
+        ICourseRepository courses)
     {
         _context = context;
         Students = students;
@@ -23,6 +24,7 @@ public class UnitOfWork : IUnitOfWork
         StructureNodes = structureNodes;
         AcademicYears = academicYears;
         Semesters = semesters;
+        Courses = courses;
     }
 
     public IStudentRepository Students { get; }
@@ -30,6 +32,7 @@ public class UnitOfWork : IUnitOfWork
     public IStructureNodeRepository StructureNodes { get; }
     public IAcademicYearRepository AcademicYears { get; }
     public ISemesterRepository Semesters { get; }
+    public ICourseRepository Courses { get; }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

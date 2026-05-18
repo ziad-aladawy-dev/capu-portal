@@ -105,14 +105,21 @@ public static class DependencyInjection
 
         services.AddScoped<IAcademicYearRepository, AcademicYearRepository>();
         services.AddScoped<ISemesterRepository, SemesterRepository>();
+        services.AddScoped<ICourseRepository, CourseRepository>();
 
         services.AddScoped<IAcademicYearService, AcademicYearService>();
         services.AddScoped<ISemesterService, SemesterService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.ICourseService,
+                           CapitalUniversity.Core.Application.Courses.CourseService>();
 
         services.AddScoped<IValidator<CreateAcademicYearRequest>, CreateAcademicYearValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateAcademicYearRequest Request)>, UpdateAcademicYearValidator>();
         services.AddScoped<IValidator<CreateSemesterRequest>, CreateSemesterValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateSemesterRequest Request)>, UpdateSemesterValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateCourseRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.CreateCourseValidator>();
+        services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateCourseRequest Request)>,
+                           CapitalUniversity.Core.Application.Courses.Validators.UpdateCourseValidator>();
 
         services.AddHostedService<AcademicTimelineBackgroundService>();
 
@@ -165,6 +172,8 @@ public static class DependencyInjection
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AuthorizationPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.NotificationsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.CoursesPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PermissionManifestRegistry>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer,

@@ -65,4 +65,19 @@ public static class PermissionNames
         public const string Open      = "academics.academic-years.Open";
         public const string Delete    = "academics.academic-years.Delete";
     }
+
+    /// <summary>
+    /// Course catalog management (catalog-only, no registration/enrollment
+    /// concerns — those belong to a future Registration module).
+    /// Module = <c>courses</c>, Resource = <c>courses</c>. Bound by
+    /// <see cref="CoursesController"/>; declared by <c>CoursesPermissionManifest</c>.
+    /// </summary>
+    public static class Courses
+    {
+        public const string View      = "courses.courses.View";
+        public const string Insert    = "courses.courses.Insert";
+        public const string EditClose = "courses.courses.EditClose";
+        public const string Open      = "courses.courses.Open";
+        public const string Delete    = "courses.courses.Delete";
+    }
 }

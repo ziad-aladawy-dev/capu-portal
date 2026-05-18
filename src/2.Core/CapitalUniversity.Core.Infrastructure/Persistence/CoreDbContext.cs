@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.Semsters;
@@ -40,6 +41,7 @@ public class CoreDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<CapitalUniversity.Core.Domain.Outbox.OutboxMessage> OutboxMessages { get; set; }
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Course> Courses => Set<Course>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.Semsters;
@@ -28,6 +29,39 @@ public static class DataSeeder
         await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
         await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
         await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
+        await RunOnceAsync("Courses",         context.Courses,         () => SeedCoursesAsync(context));
+    }
+
+    /// <summary>
+    /// Seeds a small representative catalog so authorization, scope, localization,
+    /// and caching tests have realistic data per the platform plan's seeder
+    /// requirements. One-shot — skipped if any course rows exist.
+    /// </summary>
+    private static async Task SeedCoursesAsync(CoreDbContext context)
+    {
+        var seedCourses = new (string Code, string Title, int CreditHours, CourseCategory Category)[]
+        {
+            ("CS101", "Introduction to Computer Science", 3, CourseCategory.ProgramRequirement),
+            ("CS201", "Data Structures and Algorithms",  3, CourseCategory.ProgramRequirement),
+            ("MATH101", "Calculus I",                    4, CourseCategory.FacultyRequirement),
+            ("UNIV100", "Critical Thinking",             2, CourseCategory.UniversityRequirement),
+            ("GEN150", "Public Speaking",                2, CourseCategory.GeneralEducation),
+            ("CS-ELC1", "Topics in AI",                  3, CourseCategory.Elective),
+        };
+
+        foreach (var (code, title, hours, category) in seedCourses)
+        {
+            context.Courses.Add(new Course
+            {
+                Id = Guid.NewGuid(),
+                Code = code,
+                Title = title,
+                CreditHours = hours,
+                Category = category,
+                IsActive = true,
+            });
+        }
+        await context.SaveChangesAsync();
     }
 
     private static async Task RunOnceAsync<T>(string name, DbSet<T> set, Func<Task> seed) where T : class
