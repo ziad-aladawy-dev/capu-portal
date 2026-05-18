@@ -24,5 +24,13 @@ public sealed class CoursesPermissionManifest : IPermissionManifest
         PermissionDefinition.Create("courses", "EditClose", "Course Catalog", 0),
         PermissionDefinition.Create("courses", "Open",      "Course Catalog", 0),
         PermissionDefinition.Create("courses", "Delete",    "Course Catalog", 0),
+        // Academic-plan composition (curriculum layout). Lives under the same
+        // module as the catalog but uses its own Service row so it can be
+        // granted independently of catalog-edit rights.
+        PermissionDefinition.Create("academic-plans", "View",      "Academic Plans", 1),
+        PermissionDefinition.Create("academic-plans", "Insert",    "Academic Plans", 1),
+        PermissionDefinition.Create("academic-plans", "EditClose", "Academic Plans", 1),
+        PermissionDefinition.Create("academic-plans", "Open",      "Academic Plans", 1),
+        PermissionDefinition.Create("academic-plans", "Delete",    "Academic Plans", 1),
     };
 }

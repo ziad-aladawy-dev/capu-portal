@@ -106,11 +106,14 @@ public static class DependencyInjection
         services.AddScoped<IAcademicYearRepository, AcademicYearRepository>();
         services.AddScoped<ISemesterRepository, SemesterRepository>();
         services.AddScoped<ICourseRepository, CourseRepository>();
+        services.AddScoped<IAcademicPlanRepository, AcademicPlanRepository>();
 
         services.AddScoped<IAcademicYearService, AcademicYearService>();
         services.AddScoped<ISemesterService, SemesterService>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.ICourseService,
                            CapitalUniversity.Core.Application.Courses.CourseService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.IAcademicPlanService,
+                           CapitalUniversity.Core.Application.Courses.AcademicPlanService>();
 
         services.AddScoped<IValidator<CreateAcademicYearRequest>, CreateAcademicYearValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateAcademicYearRequest Request)>, UpdateAcademicYearValidator>();
@@ -120,6 +123,12 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Application.Courses.Validators.CreateCourseValidator>();
         services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateCourseRequest Request)>,
                            CapitalUniversity.Core.Application.Courses.Validators.UpdateCourseValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateAcademicPlanRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.CreateAcademicPlanValidator>();
+        services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateAcademicPlanRequest Request)>,
+                           CapitalUniversity.Core.Application.Courses.Validators.UpdateAcademicPlanValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.AddPlanCourseRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.AddPlanCourseValidator>();
 
         services.AddHostedService<AcademicTimelineBackgroundService>();
 

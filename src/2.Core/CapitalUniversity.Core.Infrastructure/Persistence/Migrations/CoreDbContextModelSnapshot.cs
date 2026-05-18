@@ -316,6 +316,85 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.AcademicPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("StructureNodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StructureNodeId", "IsActive");
+
+                    b.ToTable("AcademicPlans", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.AcademicPlanCourse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AcademicPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Semester")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcademicPlanId", "CourseId")
+                        .IsUnique();
+
+                    b.HasIndex("AcademicPlanId", "Level", "Semester");
+
+                    b.ToTable("AcademicPlanCourses", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -876,6 +955,17 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("StructureNode");
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.AcademicPlanCourse", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.AcademicPlan", "AcademicPlan")
+                        .WithMany("PlanCourses")
+                        .HasForeignKey("AcademicPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AcademicPlan");
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.Semester", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.Semsters.AcademicYear", "AcademicYear")
@@ -910,6 +1000,11 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
                 {
                     b.Navigation("Scopes");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.AcademicPlan", b =>
+                {
+                    b.Navigation("PlanCourses");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.AcademicYear", b =>

@@ -8,6 +8,7 @@ public interface IUnitOfWork : IDisposable
     IAcademicYearRepository AcademicYears { get; }
     ISemesterRepository Semesters { get; }
     ICourseRepository Courses { get; }
+    IAcademicPlanRepository AcademicPlans { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);
     Task CommitTransactionAsync(CancellationToken cancellationToken = default);

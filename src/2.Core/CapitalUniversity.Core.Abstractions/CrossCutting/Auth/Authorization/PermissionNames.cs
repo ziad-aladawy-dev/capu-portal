@@ -80,4 +80,19 @@ public static class PermissionNames
         public const string Open      = "courses.courses.Open";
         public const string Delete    = "courses.courses.Delete";
     }
+
+    /// <summary>
+    /// Curriculum composition (which catalog courses belong to which plan at
+    /// which level/semester). Module = <c>courses</c>, Resource = <c>academic-plans</c>.
+    /// Bound by <see cref="AcademicPlansController"/>; declared by
+    /// <c>CoursesPermissionManifest</c>.
+    /// </summary>
+    public static class AcademicPlans
+    {
+        public const string View      = "courses.academic-plans.View";
+        public const string Insert    = "courses.academic-plans.Insert";
+        public const string EditClose = "courses.academic-plans.EditClose";
+        public const string Open      = "courses.academic-plans.Open";
+        public const string Delete    = "courses.academic-plans.Delete";
+    }
 }
