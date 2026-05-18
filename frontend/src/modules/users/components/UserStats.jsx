@@ -21,7 +21,6 @@ const UserStats = ({ statistics, loading }) => {
             <span>{stat.label}</span>
             <h3>{stat.value.toLocaleString()}</h3>
           </div>
-
           <div className={`users-stat-icon ${stat.tone}`}>
             <stat.icon size={17} />
           </div>

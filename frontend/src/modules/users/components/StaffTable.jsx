@@ -1,6 +1,6 @@
 import React from 'react';
-import { Eye, Edit3, Key, Shield, ToggleRight, ToggleLeft, Trash2 } from 'lucide-react';
-import '../styles/userTable.css';
+import { Eye, Edit3 } from 'lucide-react';
+import '../styles/UserTable.css';
 
 const StaffTable = ({ 
   staff, 
@@ -8,39 +8,12 @@ const StaffTable = ({
   error, 
   pagination, 
   onPageChange,
-  onAction,
-  onResetPassword,
   onViewDetails,
-  onEdit,
-  onPermissions
+  onEdit
 }) => {
-  if (loading) {
-    return (
-      <div className="table-container loading-state">
-        <div className="loading-spinner"></div>
-        <p>Loading staff...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="table-container error-state">
-        <p style={{ color: '#dc2626' }}>Error occurred: {error}</p>
-        <button onClick={() => window.location.reload()}>Try Again</button>
-      </div>
-    );
-  }
-
-  if (!staff || staff.length === 0) {
-    return (
-      <div className="table-container">
-        <div className="empty-state">
-          <p>No staff found matching your criteria</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="table-container loading-state">Loading staff...</div>;
+  if (error) return <div className="table-container error-state">Error: {error}</div>;
+  if (!staff || staff.length === 0) return <div className="table-container"><div className="empty-state">No staff found</div></div>;
 
   const getPageNumbers = () => {
     const delta = 2;
@@ -49,42 +22,20 @@ const StaffTable = ({
     let l;
     const totalPages = pagination?.totalPages || 1;
     const currentPage = pagination?.pageNumber || 1;
-
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
         range.push(i);
       }
     }
-
     range.forEach((i) => {
       if (l) {
-        if (i - l === 2) {
-          rangeWithDots.push(l + 1);
-        } else if (i - l !== 1) {
-          rangeWithDots.push('...');
-        }
+        if (i - l === 2) rangeWithDots.push(l + 1);
+        else if (i - l !== 1) rangeWithDots.push('...');
       }
       rangeWithDots.push(i);
       l = i;
     });
-
     return rangeWithDots;
-  };
-
-  const isPasswordExpired = (staffMember) => {
-    return staffMember.isPasswordExpired || 
-      (staffMember.passwordExpiryDate && new Date(staffMember.passwordExpiryDate) < new Date());
-  };
-
-  const handleToggleActive = (staffMember) => {
-    onAction(staffMember.id, staffMember.isActive ? 'deactivate' : 'activate', 
-      staffMember.isActive ? 'Deactivate Staff' : 'Activate Staff');
-  };
-
-  const handleDelete = (staffMember) => {
-    if (window.confirm(`Are you sure you want to delete staff "${staffMember.fullNameEn}"?`)) {
-      onAction(staffMember.id, 'soft-delete', 'Delete Staff');
-    }
   };
 
   return (
@@ -95,8 +46,7 @@ const StaffTable = ({
             <th>#</th>
             <th>Staff Code</th>
             <th>National ID</th>
-            <th>Name (English)</th>
-            <th>Name (Arabic)</th>
+            <th>Name</th>
             <th>Email</th>
             <th>Status</th>
             <th>Password</th>
@@ -104,53 +54,31 @@ const StaffTable = ({
           </tr>
         </thead>
         <tbody>
-          {staff.map((staffMember) => (
-            <tr key={staffMember.id} className={staffMember.isDeleted ? 'deleted-row' : ''}>
-              <td>{staffMember.displayId || staffMember.id?.substring(0, 8)}</td>
-              <td style={{ fontFamily: 'Space Mono, monospace', fontWeight: 600 }}>{staffMember.staffCode}</td>
-              <td style={{ fontFamily: 'Space Mono, monospace' }}>{staffMember.nationalId}</td>
-              <td style={{ fontWeight: 600 }}>{staffMember.fullNameEn}</td>
-              <td>{staffMember.fullNameAr}</td>
-              <td>{staffMember.email}</td>
+          {staff.map((member, idx) => (
+            <tr key={member.id}>
+              <td>{((pagination.pageNumber - 1) * pagination.pageSize) + idx + 1}</td>
+              <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.employeeCode}</td>
+              <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.nationalId}</td>
+              <td>{member.name}</td>
+              <td>{member.email}</td>
               <td>
-                <span className={`status-badge ${staffMember.isActive ? 'status-active' : 'status-inactive'}`}>
+                <span className={`status-badge ${member.isActive ? 'status-active' : 'status-inactive'}`}>
                   <span className="status-dot"></span>
-                  {staffMember.isActive ? 'Active' : 'Inactive'}
+                  {member.isActive ? 'Active' : 'Inactive'}
                 </span>
-                {staffMember.isDeleted && (
-                  <span className="status-badge status-deleted">
-                    <span className="status-dot"></span>
-                    Deleted
-                  </span>
-                )}
               </td>
               <td>
-                <span className={`password-badge ${isPasswordExpired(staffMember) ? 'password-expired' : 'password-valid'}`}>
-                  {isPasswordExpired(staffMember) ? 'Expired' : 'Valid'}
+                <span className={`password-badge ${member.passwordStatus === 'Expired' ? 'password-expired' : 'password-valid'}`}>
+                  {member.passwordStatus || 'Valid'}
                 </span>
               </td>
               <td>
                 <div className="action-buttons">
-                  <button
-                    className="action-btn info-btn"
-                    onClick={() => onViewDetails(staffMember.id)}
-                    title="View Details"
-                  >
+                  <button className="action-btn info-btn" onClick={() => onViewDetails(member.id)} title="View Details">
                     <Eye size={16} />
                   </button>
-                  <button
-                    className="action-btn edit-btn"
-                    onClick={() => onEdit(staffMember.id)}
-                    title="Edit Staff"
-                  >
+                  <button className="action-btn edit-btn" onClick={() => onEdit(member.id)} title="Edit">
                     <Edit3 size={16} />
-                  </button>
-                  <button
-                    className="action-btn permission-btn"
-                    onClick={() => onPermissions(staffMember.id)}
-                    title="Manage Permissions"
-                  >
-                    <Shield size={16} />
                   </button>
                 </div>
               </td>
@@ -158,18 +86,11 @@ const StaffTable = ({
           ))}
         </tbody>
       </table>
-
-      {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
         <div className="pagination-container">
-          <button
-            className="pagination-btn"
-            onClick={() => onPageChange(pagination.pageNumber - 1)}
-            disabled={pagination.pageNumber === 1}
-          >
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.pageNumber - 1)} disabled={pagination.pageNumber === 1}>
             &lt;
           </button>
-          
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
@@ -180,12 +101,7 @@ const StaffTable = ({
               {page}
             </button>
           ))}
-          
-          <button
-            className="pagination-btn"
-            onClick={() => onPageChange(pagination.pageNumber + 1)}
-            disabled={pagination.pageNumber === pagination.totalPages}
-          >
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.pageNumber + 1)} disabled={pagination.pageNumber === pagination.totalPages}>
             &gt;
           </button>
         </div>

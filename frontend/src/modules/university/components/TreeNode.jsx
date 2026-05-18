@@ -12,6 +12,7 @@ import {
   Layers,
   BookOpen,
 } from "lucide-react";
+import { getAllowedChildTypes } from "../utils/nodeTypeHelpers";
 
 const typeIcons = {
   University: Building2,
@@ -19,6 +20,8 @@ const typeIcons = {
   Department: Layers,
   Program: BookOpen,
   Level: BookOpen,
+  System: Layers,
+  Specialization: BookOpen,
 };
 
 function TreeNode({
@@ -28,26 +31,67 @@ function TreeNode({
   onDelete,
   onRename,
   onMove,
+  onDropMove,
   selectedNode,
   setSelectedNode,
   matchedIds = [],
   search = "",
 }) {
-  const [open, setOpen] = useState(true);
-
+  const [open, setOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const hasChildren = node.children?.length > 0;
   const Icon = typeIcons[node.type] || Layers;
+  const canAddChildren = getAllowedChildTypes(node.type).length > 0;
 
   const isSelected = selectedNode?.id === node.id;
   const isMatched = search && matchedIds.includes(node.id);
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("text/plain", JSON.stringify({
+      draggedNodeId: node.id,
+      draggedNodeType: node.type,
+      draggedNodeParentId: parentId
+    }));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    try {
+      const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+      const { draggedNodeId, draggedNodeType } = data;
+      if (draggedNodeId === node.id) return;
+      if (onDropMove) {
+        onDropMove(draggedNodeId, node.id, node.children?.length || 0);
+      }
+    } catch (err) {
+      console.error("Drop error", err);
+    }
+  };
 
   return (
     <div className="tree-node">
       <div
         className={`tree-node-card ${isSelected ? "selected" : ""} ${
           isMatched ? "matched" : ""
-        }`}
+        } ${dragOver ? "drag-over" : ""}`}
         onClick={() => setSelectedNode(node)}
+        draggable
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <div className="tree-node-main">
           <button
@@ -77,19 +121,24 @@ function TreeNode({
         </div>
 
         <div className="tree-node-actions" onClick={(e) => e.stopPropagation()}>
-          <button type="button" title="Move up" onClick={() => onMove(parentId, node.id, "up")}>
+          <button type="button" title="Move up" onClick={() => onMove(node.id, "up", parentId)}>
             <ArrowUp size={13} />
           </button>
-
-          <button type="button" title="Move down" onClick={() => onMove(parentId, node.id, "down")}>
+          <button type="button" title="Move down" onClick={() => onMove(node.id, "down", parentId)}>
             <ArrowDown size={13} />
           </button>
 
-          <button type="button" title="Add child" onClick={() => onAdd(node.id)}>
-            <Plus size={13} />
-          </button>
+          {canAddChildren && (
+            <button
+              type="button"
+              title="Add child"
+              onClick={() => onAdd(node.id, node.children?.length || 0, node.type)}
+            >
+              <Plus size={13} />
+            </button>
+          )}
 
-          <button type="button" title="Rename" onClick={() => onRename(node.id)}>
+          <button type="button" title="Rename" onClick={() => onRename(node)}>
             <Pencil size={13} />
           </button>
 
@@ -116,6 +165,7 @@ function TreeNode({
               onDelete={onDelete}
               onRename={onRename}
               onMove={onMove}
+              onDropMove={onDropMove}
               selectedNode={selectedNode}
               setSelectedNode={setSelectedNode}
               matchedIds={matchedIds}

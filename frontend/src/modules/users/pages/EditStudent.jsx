@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  User,
-  Mail,
-  Phone,
-  Shield,
-  CheckCircle2,
-  UserCircle2,
-  BookOpen,
-  Building2,
-  Calendar,
-  Award,
-  XCircle,
-  AlertCircle,
+  User, Mail, Phone, CheckCircle2, UserCircle2, BookOpen, Building2,
+  Calendar, XCircle, AlertCircle, Award, Lock
 } from "lucide-react";
-
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import "../styles/userForms.css";
@@ -22,259 +11,184 @@ import "../styles/userForms.css";
 const EditStudent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const steps = ["Basic Information", "Academic Information"];
-
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [validationErrors, setValidationErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const [faculties, setFaculties] = useState([]);
-  const [filteredPrograms, setFilteredPrograms] = useState([]);
-  const [filteredLevels, setFilteredLevels] = useState([]);
-
   const [formData, setFormData] = useState({
-    fullNameAr: "",
-    fullNameEn: "",
+    name: "",
+    nationalId: "",
+    birthDate: "",
+    phoneNumber: "",
     email: "",
-    phone: "",
-    levelId: "",
-    facultyId: "",
-    programId: "",
-    status: "Active",
-    gpa: "",
-    dateOfBirth: "",
+    structureNodeId: "",
     isActive: true,
+    password: "",
+    confirmPassword: "",
   });
 
+  const [faculties, setFaculties] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [selectedFacultyId, setSelectedFacultyId] = useState("");
+  const [selectedProgramId, setSelectedProgramId] = useState("");
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
-    const loadData = async () => {
+    const loadStudent = async () => {
       setLoading(true);
-      setError(null);
-
       try {
-        const [studentData, facultiesData] = await Promise.all([
-          userService.getStudentById(id),
-          userService.getFaculties(),
-        ]);
-
-        if (!studentData) {
-          setError("Student not found");
-          return;
-        }
-
+        const student = await userService.getStudentById(id);
+        setFormData({
+          name: student.name || "",
+          nationalId: student.nationalId || "",
+          birthDate: student.birthDate ? student.birthDate.split("T")[0] : "",
+          phoneNumber: student.phoneNumber || "",
+          email: student.email || "",
+          structureNodeId: student.structureNodeId || "",
+          isActive: student.isActive !== undefined ? student.isActive : true,
+          password: "",
+          confirmPassword: "",
+        });
+        const facultiesData = await userService.getFaculties();
         setFaculties(facultiesData);
-
-        // Resolve IDs from names since backend returns only name strings
-        const matchedFaculty = facultiesData.find((f) => f.name === studentData.facultyName);
-        const resolvedFacultyId = matchedFaculty?.id || "";
-
-        let resolvedProgramId = "";
-        let resolvedLevelId = studentData.levelId || "";
-        if (resolvedFacultyId) {
-          const programsData = await userService.getDepartments(resolvedFacultyId);
-          setFilteredPrograms(programsData);
-          const matchedProgram = programsData.find((p) => p.name === studentData.programName);
-          resolvedProgramId = matchedProgram?.id || "";
-
-          if (resolvedProgramId) {
-            const levelsData = await userService.getLevels(resolvedProgramId);
-            setFilteredLevels(levelsData);
+        if (student.facultyId) {
+          setSelectedFacultyId(student.facultyId);
+          const progs = await userService.getPrograms(student.facultyId);
+          setPrograms(progs);
+          if (student.programId) {
+            setSelectedProgramId(student.programId);
+            const lvls = await userService.getLevels(student.programId);
+            setLevels(lvls);
           }
         }
-
-        setFormData({
-          fullNameAr: studentData.fullNameAr || "",
-          fullNameEn: studentData.fullNameEn || "",
-          email: studentData.email || "",
-          phone: studentData.phone || "",
-          levelId: resolvedLevelId,
-          facultyId: resolvedFacultyId,
-          programId: resolvedProgramId,
-          status: studentData.status || "Active",
-          gpa: studentData.gpa || "",
-          dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.split("T")[0] : "",
-          isActive: studentData.isActive !== undefined ? studentData.isActive : true,
-        });
       } catch (err) {
-        setError(err.message || "Failed to load student data");
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
-    loadData();
+    loadStudent();
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleFacultyChange = async (e) => {
     const facultyId = e.target.value;
-
-    setFormData((prev) => ({ ...prev, facultyId, programId: "", levelId: "" }));
-
-    if (!facultyId) {
-      setFilteredPrograms([]);
-      setFilteredLevels([]);
-      return;
-    }
-
-    try {
-      const programsData = await userService.getDepartments(facultyId);
-      setFilteredPrograms(programsData);
-      setFilteredLevels([]);
-    } catch {
-      setFilteredPrograms([]);
+    setSelectedFacultyId(facultyId);
+    setSelectedProgramId("");
+    setFormData(prev => ({ ...prev, structureNodeId: "" }));
+    if (facultyId) {
+      const progs = await userService.getPrograms(facultyId);
+      setPrograms(progs);
+      setLevels([]);
+    } else {
+      setPrograms([]);
+      setLevels([]);
     }
   };
 
   const handleProgramChange = async (e) => {
     const programId = e.target.value;
-
-    setFormData((prev) => ({ ...prev, programId, levelId: "" }));
-
-    if (!programId) {
-      setFilteredLevels([]);
-      return;
+    setSelectedProgramId(programId);
+    setFormData(prev => ({ ...prev, structureNodeId: "" }));
+    if (programId) {
+      const lvls = await userService.getLevels(programId);
+      setLevels(lvls);
+    } else {
+      setLevels([]);
     }
+  };
 
-    try {
-      const levelsData = await userService.getLevels(programId);
-      setFilteredLevels(levelsData);
-    } catch {
-      setFilteredLevels([]);
-    }
+  const handleLevelChange = (e) => {
+    setFormData(prev => ({ ...prev, structureNodeId: e.target.value }));
   };
 
   const validateStep = () => {
-    const errors = {};
-
+    const newErrors = {};
     if (currentStep === 0) {
-      if (!formData.fullNameAr.trim()) errors.fullNameAr = "Arabic name is required";
-      if (!formData.fullNameEn.trim()) errors.fullNameEn = "English name is required";
-
-      if (!formData.email.trim()) {
-        errors.email = "Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        errors.email = "Invalid email format";
-      }
+      if (!formData.name) newErrors.name = "Name is required";
+      if (!formData.nationalId) newErrors.nationalId = "National ID is required";
+      if (!formData.email) newErrors.email = "Email is required";
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email";
+      if (!formData.birthDate) newErrors.birthDate = "Date of birth is required";
     }
-
     if (currentStep === 1) {
-      if (!formData.levelId) errors.levelId = "Level is required";
-
-      if (formData.gpa && (formData.gpa < 0 || formData.gpa > 5)) {
-        errors.gpa = "GPA must be between 0 and 5";
-      }
+      if (!formData.structureNodeId) newErrors.structureNodeId = "Level is required";
+      if (formData.password && formData.password !== formData.confirmPassword)
+        newErrors.confirmPassword = "Passwords do not match";
+      if (formData.password && formData.password.length < 6)
+        newErrors.password = "Min 6 characters";
     }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const nextStep = () => {
-    if (!validateStep()) return;
-    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    if (validateStep()) setCurrentStep(prev => prev + 1);
   };
-
-  const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
+  const prevStep = () => setCurrentStep(prev => prev - 1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateStep()) return;
-
     setSubmitting(true);
-
+    const updateData = {
+      name: formData.name,
+      nationalId: formData.nationalId,
+      birthDate: formData.birthDate,
+      phoneNumber: formData.phoneNumber || null,
+      email: formData.email,
+      structureNodeId: formData.structureNodeId,
+      isActive: formData.isActive,
+      password: formData.password || null,
+      confirmPassword: formData.confirmPassword || null,
+    };
     try {
-      const updateData = {
-        fullNameAr: formData.fullNameAr || null,
-        fullNameEn: formData.fullNameEn || null,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        levelId: formData.levelId || null,
-        status: formData.status || null,
-        gpa: formData.gpa ? parseFloat(formData.gpa) : 0,
-        dateOfBirth: formData.dateOfBirth || null,
-        isActive: formData.isActive,
-      };
-
-      const result = await userService.updateStudent(id, updateData);
-
-      if (result.success) {
-        setShowSuccess(true);
-        setTimeout(() => navigate(`/admin/users/${id}`), 1400);
-      } else {
-        setError(result.message || "Failed to update student");
-      }
+      await userService.updateStudent(id, updateData);
+      setShowSuccess(true);
+      setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      setError(err.message || "An error occurred while updating");
+      alert(err.response?.data?.message || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <LoadingSpinner fullPage message="Loading student data..." />;
-
-  if (error) {
-    return (
-      <div className="form-loading">
-        <AlertCircle size={42} color="#dc2626" />
-        <h2 style={{ color: "#dc2626", marginTop: 12 }}>Error</h2>
-        <p>{error}</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner fullPage />;
+  if (error) return (
+    <div className="form-loading">
+      <AlertCircle size={42} color="#dc2626" />
+      <p>{error}</p>
+    </div>
+  );
 
   return (
     <div className="edit-user-page add-user-page">
       <div className="page-container compact-wizard">
         <div className="page-header compact-header wizard-header-with-status">
           <div className="header-content">
-            <div className="header-icon">
-              <UserCircle2 size={22} />
-            </div>
-
+            <div className="header-icon"><UserCircle2 size={22} /></div>
             <div className="header-text">
               <h1>Edit Student</h1>
               <div className="gold-line" />
-              <p>Update student information step by step</p>
+              <p>Update student information</p>
             </div>
           </div>
-
           <label className="account-status-toggle">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-            />
-
+            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
             <span className="account-status-switch">
               <span className="account-status-dot">
                 {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
               </span>
             </span>
-
-            <span className="account-status-text">
-              {formData.isActive ? "Active Account" : "Inactive Account"}
-            </span>
+            <span>{formData.isActive ? "Active Account" : "Inactive Account"}</span>
           </label>
         </div>
 
@@ -298,77 +212,47 @@ const EditStudent = () => {
           {currentStep === 0 && (
             <div className="form-card wizard-card">
               <div className="form-header">
-                <div className="form-icon">
-                  <User size={18} color="#e0c06a" />
-                </div>
-
-                <div className="form-title-wrapper">
-                  <h3>Basic Information</h3>
-                  <p>Personal identification details</p>
-                </div>
+                <div className="form-icon"><User size={18} color="#e0c06a" /></div>
+                <div className="form-title-wrapper"><h3>Basic Information</h3></div>
               </div>
-
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">Full Name Arabic *</label>
+                    <label className="form-label">National ID *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="fullNameAr"
-                        className={`form-input ${validationErrors.fullNameAr ? "error" : ""}`}
-                        value={formData.fullNameAr}
-                        onChange={handleChange}
-                        placeholder="الاسم بالعربية"
-                      />
+                      <input type="text" name="nationalId" value={formData.nationalId} onChange={handleChange} className="form-input" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {validationErrors.fullNameAr && <span className="error-message">{validationErrors.fullNameAr}</span>}
+                    {errors.nationalId && <span className="error-message">{errors.nationalId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">Full Name English *</label>
+                    <label className="form-label">Full Name *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="fullNameEn"
-                        className={`form-input ${validationErrors.fullNameEn ? "error" : ""}`}
-                        value={formData.fullNameEn}
-                        onChange={handleChange}
-                        placeholder="Name in English"
-                      />
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} className="form-input" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {validationErrors.fullNameEn && <span className="error-message">{validationErrors.fullNameEn}</span>}
+                    {errors.name && <span className="error-message">{errors.name}</span>}
                   </div>
-
                   <div className="form-group">
                     <label className="form-label">Email *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="email"
-                        name="email"
-                        className={`form-input ${validationErrors.email ? "error" : ""}`}
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="student@university.edu"
-                      />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
                       <Mail size={15} className="input-icon" />
                     </div>
-                    {validationErrors.email && <span className="error-message">{validationErrors.email}</span>}
+                    {errors.email && <span className="error-message">{errors.email}</span>}
                   </div>
-
+                  <div className="form-group">
+                    <label className="form-label">Date of Birth *</label>
+                    <div className="input-wrapper">
+                      <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" />
+                      <Calendar size={15} className="input-icon" />
+                    </div>
+                    {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
+                  </div>
                   <div className="form-group">
                     <label className="form-label">Phone</label>
                     <div className="input-wrapper">
-                      <input
-                        type="tel"
-                        name="phone"
-                        className="form-input"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+20 100 123 4567"
-                      />
+                      <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="form-input" />
                       <Phone size={15} className="input-icon" />
                     </div>
                   </div>
@@ -380,130 +264,56 @@ const EditStudent = () => {
           {currentStep === 1 && (
             <div className="form-card wizard-card">
               <div className="form-header">
-                <div className="form-icon">
-                  <BookOpen size={18} color="#e0c06a" />
-                </div>
-
-                <div className="form-title-wrapper">
-                  <h3>Academic Information</h3>
-                  <p>Faculty, program, level and academic status</p>
-                </div>
+                <div className="form-icon"><BookOpen size={18} color="#e0c06a" /></div>
+                <div className="form-title-wrapper"><h3>Academic Information</h3></div>
               </div>
-
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
                     <label className="form-label">Faculty</label>
                     <div className="input-wrapper">
-                      <select
-                        name="facultyId"
-                        className="form-select"
-                        value={formData.facultyId}
-                        onChange={handleFacultyChange}
-                      >
+                      <select value={selectedFacultyId} onChange={handleFacultyChange} className="form-select">
                         <option value="">Select Faculty</option>
-                        {faculties.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.nameEn}
-                          </option>
-                        ))}
+                        {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
                       <Building2 size={15} className="input-icon" />
                     </div>
                   </div>
-
                   <div className="form-group">
                     <label className="form-label">Program</label>
                     <div className="input-wrapper">
-                      <select
-                        name="programId"
-                        className="form-select"
-                        value={formData.programId}
-                        onChange={handleProgramChange}
-                        disabled={!formData.facultyId}
-                      >
+                      <select value={selectedProgramId} onChange={handleProgramChange} disabled={!selectedFacultyId} className="form-select">
                         <option value="">Select Program</option>
-                        {filteredPrograms.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nameEn}
-                          </option>
-                        ))}
+                        {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <BookOpen size={15} className="input-icon" />
                     </div>
                   </div>
-
                   <div className="form-group">
                     <label className="form-label">Level *</label>
                     <div className="input-wrapper">
-                      <select
-                        name="levelId"
-                        className={`form-select ${validationErrors.levelId ? "error" : ""}`}
-                        value={formData.levelId}
-                        onChange={handleChange}
-                        disabled={!formData.programId}
-                      >
+                      <select value={formData.structureNodeId} onChange={handleLevelChange} disabled={!selectedProgramId} className="form-select">
                         <option value="">Select Level</option>
-                        {filteredLevels.map((l) => (
-                          <option key={l.id} value={l.id}>
-                            {l.nameEn}
-                          </option>
-                        ))}
+                        {levels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                       <Award size={15} className="input-icon" />
                     </div>
-                    {validationErrors.levelId && <span className="error-message">{validationErrors.levelId}</span>}
+                    {errors.structureNodeId && <span className="error-message">{errors.structureNodeId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">Date of Birth</label>
+                    <label className="form-label">Password (leave blank to keep current)</label>
                     <div className="input-wrapper">
-                      <input
-                        type="date"
-                        name="dateOfBirth"
-                        className="form-input"
-                        value={formData.dateOfBirth}
-                        onChange={handleChange}
-                      />
-                      <Calendar size={15} className="input-icon" />
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} className="form-input" />
+                      <Lock size={15} className="input-icon" />
                     </div>
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">Academic Status</label>
+                    <label className="form-label">Confirm Password</label>
                     <div className="input-wrapper">
-                      <select
-                        name="status"
-                        className="form-select"
-                        value={formData.status}
-                        onChange={handleChange}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Graduated">Graduated</option>
-                        <option value="Suspended">Suspended</option>
-                        <option value="Probation">Probation</option>
-                      </select>
-                      <Shield size={15} className="input-icon" />
+                      <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="form-input" />
+                      <Lock size={15} className="input-icon" />
                     </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">GPA</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="number"
-                        name="gpa"
-                        className={`form-input ${validationErrors.gpa ? "error" : ""}`}
-                        value={formData.gpa}
-                        onChange={handleChange}
-                        step="0.01"
-                        min="0"
-                        max="5"
-                        placeholder="0.00 - 5.00"
-                      />
-                      <Award size={15} className="input-icon" />
-                    </div>
-                    {validationErrors.gpa && <span className="error-message">{validationErrors.gpa}</span>}
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
                   </div>
                 </div>
               </div>
@@ -519,7 +329,6 @@ const EditStudent = () => {
             >
               Back
             </button>
-
             {currentStep < steps.length - 1 ? (
               <button type="button" className="wizard-btn primary" onClick={nextStep}>
                 Next
@@ -531,20 +340,18 @@ const EditStudent = () => {
             )}
           </div>
         </form>
-
-        {showSuccess && (
-          <>
-            <div className="success-overlay" onClick={() => setShowSuccess(false)} />
-            <div className="success-message">
-              <div className="success-icon">
-                <CheckCircle2 size={38} color="#e0c06a" />
-              </div>
-              <div className="success-text">Updated Successfully!</div>
-              <p style={{ color: "#6b7280" }}>Redirecting to user details...</p>
-            </div>
-          </>
-        )}
       </div>
+
+      {showSuccess && (
+        <>
+          <div className="success-overlay" />
+          <div className="success-message">
+            <div className="success-icon"><CheckCircle2 size={38} color="#e0c06a" /></div>
+            <div className="success-text">Updated Successfully!</div>
+            <p>Redirecting to user details...</p>
+          </div>
+        </>
+      )}
     </div>
   );
 };

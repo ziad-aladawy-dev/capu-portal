@@ -1,239 +1,171 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
-import { Plus, Search, Network, Building2 } from "lucide-react";
-
+import { useState } from "react";
+import { Network, Search, Plus } from "lucide-react";
 import TreeNode from "../components/TreeNode";
-import { searchTree } from "../utils/treeSearch";
-import { getAncestors } from "../utils/treeUtils";
-
-import * as structureService from "../../../core/services/structureService";
-
+import { AddEditNodeModal } from "../components/AddEditNodeModal";
+import { MoveNodeModal } from "../components/MoveNodeModal";
+import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
+import { useUniversityStructure } from "../hooks/useUniversityStructure";
+import { universityStructureService } from "../services/universityStructureService";
+import { normalizeType, canMoveToParent } from "../utils/nodeTypeHelpers";
 import "../styles/universityStructure.css";
+import "../styles/scopeModal.css";
 
-const TYPE_MAP = {
-  1: "University",
-  2: "Faculty",
-  3: "System",
-  4: "Program",
-  5: "Level",
-  6: "Department",
-  7: "Specialization",
-};
+const UniversityStructurePage = () => {
+  const {
+    treeData,
+    loading,
+    error,
+    selectedNode,
+    setSelectedNode,
+    createNode,
+    updateNode,
+    deleteNode,
+    reorderNode,
+    moveNode,
+  } = useUniversityStructure();
 
-const TYPE_REVERSE = {
-  University: 1,
-  Faculty: 2,
-  System: 3,
-  Program: 4,
-  Level: 5,
-  Department: 6,
-  Specialization: 7,
-};
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [parentIdForAdd, setParentIdForAdd] = useState(null);
+  const [parentTypeForAdd, setParentTypeForAdd] = useState(null);
+  const [siblingsCount, setSiblingsCount] = useState(0);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [editParentType, setEditParentType] = useState(null);
+  const [nodeToDelete, setNodeToDelete] = useState(null);
 
-function flattenTree(node, nodesMap = {}) {
-  nodesMap[node.id] = {
-    id: node.id,
-    name: node.name,
-    type: TYPE_MAP[node.type] || "Department",
-    parentId: node.parentId,
-    childrenIds: (node.children || []).map((c) => c.id),
-    path: node.path || `${node.id}`,
-    depth: node.depth || 0,
-    order: node.order || 0,
-  };
-  (node.children || []).forEach((c) => flattenTree(c, nodesMap));
-  return nodesMap;
-}
-
-function convertTreeTypes(node) {
-  return {
-    ...node,
-    type: TYPE_MAP[node.type] || "Department",
-    children: (node.children || []).map(convertTreeTypes),
-  };
-}
-
-function UniversityStructurePage() {
-  const [treeData, setTreeData] = useState(null);
-  const [treeLoading, setTreeLoading] = useState(true);
-  const [treeError, setTreeError] = useState(null);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [search, setSearch] = useState("");
-
-  const loadTree = useCallback(async () => {
-    setTreeLoading(true);
-    setTreeError(null);
-    try {
-      const roots = await structureService.fetchStructureTree();
-      const rootsArray = Array.isArray(roots) ? roots : [];
-      const nodes = {};
-      rootsArray.forEach((root) => flattenTree(root, nodes));
-      setTreeData({ rootId: rootsArray.length > 0 ? rootsArray[0].id : null, nodes, roots: rootsArray });
-    } catch (err) {
-      setTreeError(err.message || "Failed to load structure");
-      setTreeData(null);
-    } finally {
-      setTreeLoading(false);
+  const findNodeInTree = (nodes, nodeId) => {
+    for (const node of nodes) {
+      if (node.id === nodeId) return node;
+      if (node.children && node.children.length) {
+        const found = findNodeInTree(node.children, nodeId);
+        if (found) return found;
+      }
     }
-  }, []);
+    return null;
+  };
 
-  useEffect(() => {
-    loadTree();
-  }, [loadTree]);
+  const getParentTypeForNode = (node) => {
+    if (!node || !node.parentId) return null;
+    const parent = findNodeInTree(treeData, node.parentId);
+    return parent ? parent.type : null;
+  };
 
-  const renderedTree = useMemo(() => {
-    if (!treeData?.roots?.length) return null;
-    if (treeData.roots.length === 1) return convertTreeTypes(treeData.roots[0]);
-    return {
-      id: "virtual-root",
-      name: "University Structure",
-      type: "University",
-      parentId: null,
-      children: treeData.roots.map(convertTreeTypes),
-      depth: 0,
-      path: "virtual-root",
-    };
-  }, [treeData]);
+  const handleAddClick = (parentId, currentChildrenCount, parentType) => {
+    setParentIdForAdd(parentId);
+    setSiblingsCount(currentChildrenCount);
+    setParentTypeForAdd(parentType || null);
+    setShowAddModal(true);
+  };
 
-  const searchResult = useMemo(() => {
-    if (!renderedTree || !search.trim()) return { matchedIds: [], visible: true };
-    return searchTree(renderedTree, search);
-  }, [renderedTree, search]);
-
-  const handleAddNode = async (parentId) => {
-    const nodeName = prompt("Node Name");
-    if (!nodeName) return;
-    const nodeTypeStr = prompt("Node Type: Faculty / Department / Program / Level", "Department") || "Department";
-    const nodeType = TYPE_REVERSE[nodeTypeStr] || 6;
-    try {
-      await structureService.createStructureNode({
-        name: nodeName,
-        type: nodeType,
-        parentId: parentId === "virtual-root" ? null : parentId,
-        order: 0,
-      });
-      await loadTree();
-    } catch (err) {
-      alert("Failed to create node: " + (err.message || "Unknown error"));
+  const handleSaveAdd = async (request) => {
+    const result = await createNode(request);
+    if (!result.success) {
+      alert(`Error: ${result.error}`);
     }
   };
 
-  const handleDeleteNode = async (nodeId) => {
-    if (nodeId === treeData?.rootId) return;
-    if (!window.confirm("Delete this node and all its children?")) return;
-    try {
-      await structureService.deleteStructureNode(nodeId);
-      if (selectedNode?.id === nodeId) setSelectedNode(null);
-      await loadTree();
-    } catch (err) {
-      alert("Failed to delete node: " + (err.message || "Unknown error"));
+  const handleEditClick = (nodeToEdit) => {
+    const targetNode = nodeToEdit || selectedNode;
+    if (targetNode) {
+      setSelectedNode(targetNode);
+      setEditParentType(getParentTypeForNode(targetNode));
+      setShowEditModal(true);
     }
   };
 
-  const handleRenameNode = async (nodeId) => {
-    const node = treeData?.nodes?.[nodeId];
-    const currentName = node?.name || "";
-    const newName = prompt("New Name", currentName);
-    if (!newName) return;
-    try {
-      await structureService.updateStructureNode(nodeId, { name: newName });
-      await loadTree();
-    } catch (err) {
-      alert("Failed to rename node: " + (err.message || "Unknown error"));
+  const handleSaveEdit = async (request, nodeId) => {
+    await updateNode(nodeId, request);
+  };
+
+  const handleMoveClick = () => {
+    if (selectedNode) setShowMoveModal(true);
+  };
+
+  const handleMove = async (newParentId, order) => {
+    if (!selectedNode) return;
+    const targetParentNode = newParentId ? findNodeInTree(treeData, newParentId) : null;
+    const targetParentType = targetParentNode ? targetParentNode.type : null;
+    if (!canMoveToParent(selectedNode.type, targetParentType)) {
+      alert(`Cannot move ${selectedNode.type} under ${targetParentType || "Root"}`);
+      return;
+    }
+    await moveNode(selectedNode.id, newParentId, order);
+    setSelectedNode(null);
+  };
+
+  const handleDragDropMove = async (draggedNodeId, targetNodeId, newOrder) => {
+    const draggedNode = findNodeInTree(treeData, draggedNodeId);
+    const targetNode = findNodeInTree(treeData, targetNodeId);
+    if (!draggedNode || !targetNode) return;
+
+    const targetParentType = targetNode.type;
+    if (!canMoveToParent(draggedNode.type, targetParentType)) {
+      alert(`Cannot move ${draggedNode.type} under ${targetParentType}`);
+      return;
+    }
+
+    await moveNode(draggedNodeId, targetNodeId, newOrder);
+  };
+
+  const handleDeleteClick = (nodeIdToDelete) => {
+    const nodeToDelete = nodeIdToDelete ? findNodeInTree(treeData, nodeIdToDelete) : selectedNode;
+    if (nodeToDelete && nodeToDelete.parentId !== null) {
+      setNodeToDelete(nodeToDelete);
+      setShowDeleteConfirm(true);
     }
   };
 
-  const handleMoveNode = async (parentId, nodeId, direction) => {
-    if (!parentId || parentId === "virtual-root") return;
-    try {
-      const parent = treeData?.nodes?.[parentId];
-      if (!parent) return;
-      const childrenIds = parent.childrenIds;
-      const index = childrenIds.indexOf(nodeId);
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= childrenIds.length) return;
-      await structureService.reorderStructureNode(nodeId, { newOrder: targetIndex + 1 });
-      await loadTree();
-    } catch (err) {
-      alert("Failed to move node: " + (err.message || "Unknown error"));
+  const handleConfirmDelete = async () => {
+    if (!nodeToDelete) return;
+    await deleteNode(nodeToDelete.id);
+    setSelectedNode(null);
+    setNodeToDelete(null);
+    setShowDeleteConfirm(false);
+  };
+
+  const handleReorder = async (nodeId, direction, parentId) => {
+    const node = findNodeInTree(treeData, nodeId);
+    if (!node) return;
+    let siblings = [];
+    if (parentId) {
+      const parent = findNodeInTree(treeData, parentId);
+      if (parent && parent.children) siblings = parent.children;
+    } else {
+      siblings = treeData;
+    }
+    const currentIndex = siblings.findIndex(child => child.id === nodeId);
+    if (currentIndex === -1) return;
+    let newOrder = currentIndex;
+    if (direction === 'up' && currentIndex > 0) newOrder = currentIndex - 1;
+    else if (direction === 'down' && currentIndex < siblings.length - 1) newOrder = currentIndex + 1;
+    else return;
+    await reorderNode(nodeId, newOrder);
+  };
+
+  const loadBreadcrumb = async (node) => {
+    if (node) {
+      try {
+        const bc = await universityStructureService.getBreadcrumb(node.id);
+        setBreadcrumb(bc);
+      } catch (err) {
+        console.error("Failed to load breadcrumb", err);
+        setBreadcrumb([]);
+      }
+    } else {
+      setBreadcrumb([]);
     }
   };
 
-  const breadcrumb = useMemo(() => {
-    if (!selectedNode || !treeData?.nodes) return [];
-    const ancestors = getAncestors(selectedNode.id, treeData.nodes);
-    return [...ancestors.map((item) => item.name), selectedNode.name];
-  }, [selectedNode, treeData]);
+  const handleSelectNode = (node) => {
+    setSelectedNode(node);
+    loadBreadcrumb(node);
+  };
 
-  const stats = useMemo(() => {
-    if (!treeData?.nodes) return { total: 0, faculties: 0, departments: 0, programs: 0 };
-    const nodes = Object.values(treeData.nodes);
-    return {
-      total: nodes.length,
-      faculties: nodes.filter((node) => node.type === "Faculty").length,
-      departments: nodes.filter((node) => node.type === "Department").length,
-      programs: nodes.filter((node) => node.type === "Program").length,
-    };
-  }, [treeData]);
-
-  if (treeLoading) {
-    return (
-      <div className="structure-page">
-        <div className="structure-header">
-          <div className="structure-title">
-            <div className="structure-title-icon">
-              <Network size={20} />
-            </div>
-            <div>
-              <span>University Module</span>
-              <h1>University Structure</h1>
-              <p>Loading structure...</p>
-            </div>
-          </div>
-        </div>
-        <div style={{ padding: 48, textAlign: "center", color: "var(--text-muted)" }}>
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  if (treeError) {
-    return (
-      <div className="structure-page">
-        <div className="structure-header">
-          <div className="structure-title">
-            <div className="structure-title-icon">
-              <Network size={20} />
-            </div>
-            <div>
-              <span>University Module</span>
-              <h1>University Structure</h1>
-              <p>{treeError}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!renderedTree) {
-    return (
-      <div className="structure-page">
-        <div className="structure-header">
-          <div className="structure-title">
-            <div className="structure-title-icon">
-              <Network size={20} />
-            </div>
-            <div>
-              <span>University Module</span>
-              <h1>University Structure</h1>
-              <p>No structure data available.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="structure-page">Loading...</div>;
+  if (error) return <div className="structure-page error">Error: {error}</div>;
 
   return (
     <div className="structure-page">
@@ -248,11 +180,19 @@ function UniversityStructurePage() {
             <p>Manage faculties, departments, programs and levels.</p>
           </div>
         </div>
+        <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
+          <Plus size={16} /> Add Root
+        </button>
       </div>
 
-      {selectedNode && (
+      {breadcrumb.length > 0 && (
         <div className="breadcrumb-bar page-card">
-          {breadcrumb.join(" / ")}
+          {breadcrumb.map((item, idx) => (
+            <span key={item.id}>
+              {item.name}
+              {idx < breadcrumb.length - 1 && " / "}
+            </span>
+          ))}
         </div>
       )}
 
@@ -261,88 +201,93 @@ function UniversityStructurePage() {
         <input
           type="text"
           placeholder="Search hierarchy..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       <div className="structure-layout">
         <div className="structure-tree-container page-card">
-          {renderedTree.id === "virtual-root" ? (
-            renderedTree.children.map((root) => (
-              <TreeNode
-                key={root.id}
-                node={root}
-                parentId={null}
-                onAdd={handleAddNode}
-                onDelete={handleDeleteNode}
-                onRename={handleRenameNode}
-                onMove={handleMoveNode}
-                selectedNode={selectedNode}
-                setSelectedNode={setSelectedNode}
-                matchedIds={searchResult.matchedIds}
-                search={search}
-              />
-            ))
-          ) : (
+          {treeData.map((root) => (
             <TreeNode
-              node={renderedTree}
+              key={root.id}
+              node={root}
               parentId={null}
-              onAdd={handleAddNode}
-              onDelete={handleDeleteNode}
-              onRename={handleRenameNode}
-              onMove={handleMoveNode}
+              onAdd={handleAddClick}
+              onDelete={handleDeleteClick}
+              onRename={handleEditClick}
+              onMove={handleReorder}
+              onDropMove={handleDragDropMove}
               selectedNode={selectedNode}
-              setSelectedNode={setSelectedNode}
-              matchedIds={searchResult.matchedIds}
-              search={search}
+              setSelectedNode={handleSelectNode}
+              matchedIds={[]}
+              search={searchTerm}
             />
-          )}
+          ))}
         </div>
 
         <div className="details-panel page-card">
           {selectedNode ? (
             <>
               <div className="details-title">
-                <Building2 size={17} />
                 <h3>Node Details</h3>
               </div>
               <div className="details-grid">
-                <div>
-                  <span>Name</span>
-                  <strong>{selectedNode.name}</strong>
-                </div>
-                <div>
-                  <span>Type</span>
-                  <strong>{selectedNode.type}</strong>
-                </div>
-                <div>
-                  <span>Depth</span>
-                  <strong>{selectedNode.depth}</strong>
-                </div>
-                <div>
-                  <span>Path</span>
-                  <strong>{selectedNode.path}</strong>
-                </div>
-                <div>
-                  <span>Children</span>
-                  <strong>{selectedNode.childrenIds?.length || (selectedNode.children || []).length}</strong>
-                </div>
-                <div>
-                  <span>ID</span>
-                  <strong>{selectedNode.id}</strong>
-                </div>
+                <div><span>Name</span><strong>{selectedNode.name}</strong></div>
+                <div><span>Type</span><strong>{normalizeType(selectedNode.type)}</strong></div>
+                <div><span>Depth</span><strong>{selectedNode.depth}</strong></div>
+                <div><span>Children Count</span><strong>{selectedNode.children?.length || 0}</strong></div>
+              </div>
+              <div className="details-actions" style={{ marginTop: 16, display: "flex", gap: 8 }}>
+                <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>Edit</button>
+                {selectedNode.parentId !== null && (
+                  <button className="btn-secondary" onClick={handleMoveClick}>Move</button>
+                )}
+                {selectedNode.parentId !== null && (
+                  <button className="btn-danger" onClick={handleDeleteClick}>Delete</button>
+                )}
               </div>
             </>
           ) : (
-            <div className="empty-selection">
-              Select a node to view details.
-            </div>
+            <div className="empty-selection">Select a node to view details.</div>
           )}
         </div>
       </div>
+
+      <AddEditNodeModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleSaveAdd}
+        parentId={parentIdForAdd}
+        parentType={parentTypeForAdd}
+        siblingsCount={siblingsCount}
+      />
+
+      {selectedNode && (
+        <>
+          <AddEditNodeModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSave={handleSaveEdit}
+            node={selectedNode}
+            currentParentType={editParentType}
+          />
+          <MoveNodeModal
+            isOpen={showMoveModal}
+            onClose={() => setShowMoveModal(false)}
+            onMove={handleMove}
+            currentNode={selectedNode}
+          />
+          <ConfirmDeleteModal
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleConfirmDelete}
+            nodeName={nodeToDelete?.name}
+          />
+        </>
+      )}
     </div>
   );
-}
+};
 
 export default UniversityStructurePage;

@@ -1,219 +1,165 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  User,
-  Mail,
-  Phone,
-  Shield,
-  CheckCircle2,
-  UserCircle2,
-  Briefcase,
-  Building2,
-  XCircle,
-  AlertCircle,
+  User, Mail, Phone, Shield, CheckCircle2, UserCircle2, Briefcase,
+  Building2, XCircle, AlertCircle, Calendar, Lock
 } from "lucide-react";
-
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { ScopeTreeModal } from "../../university/components/ScopeTreeModal";
 import "../styles/userForms.css";
 
 const EditStaff = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const steps = ["Basic Information", "Employment Information"];
-
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const [validationErrors, setValidationErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
-
-  const [roles, setRoles] = useState([]);
-  const [universities, setUniversities] = useState([]);
+  const [showStructureModal, setShowStructureModal] = useState(false);
 
   const [formData, setFormData] = useState({
-    fullNameAr: "",
-    fullNameEn: "",
+    name: "",
+    nationalId: "",
+    birthDate: "",
+    phoneNumber: "",
     email: "",
-    phone: "",
-    staffRoleId: "",
-    universityId: "",
-    position: "",
+    role: "",
+    jobTitle: "",
+    structureNodeId: "",
     isActive: true,
+    password: "",
+    confirmPassword: "",
   });
+  const [roles, setRoles] = useState([]);
+  const [selectedNodeName, setSelectedNodeName] = useState("");
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      setError(null);
-
       try {
-        const [staffData, rolesData, universitiesData] = await Promise.all([
-          userService.getStaffById(id),
-          userService.getRoles(),
-          userService.getUniversities(),
-        ]);
-
-        if (!staffData) {
-          setError("Staff not found");
-          return;
-        }
-
-        setRoles(rolesData);
-        setUniversities(universitiesData);
-
-        // Resolve IDs from names since backend returns name/role strings
-        const matchedRole = rolesData.find((r) => r.name === staffData.staffRoleName);
-        const matchedUni = universitiesData.find((u) => u.name === staffData.universityName);
-
+        const staff = await userService.getStaffById(id);
         setFormData({
-          fullNameAr: staffData.fullNameAr || "",
-          fullNameEn: staffData.fullNameEn || "",
-          email: staffData.email || "",
-          phone: staffData.phone || "",
-          staffRoleId: matchedRole?.id || staffData.staffRoleId || "",
-          universityId: matchedUni?.id || staffData.universityId || "",
-          position: staffData.position || "",
-          isActive: staffData.isActive !== undefined ? staffData.isActive : true,
+          name: staff.name || "",
+          nationalId: staff.nationalId || "",
+          birthDate: staff.birthDate ? staff.birthDate.split("T")[0] : "",
+          phoneNumber: staff.phoneNumber || "",
+          email: staff.email || "",
+          role: staff.role || "",
+          jobTitle: staff.jobTitle || "",
+          structureNodeId: staff.structureNodeId || "",
+          isActive: staff.isActive !== undefined ? staff.isActive : true,
+          password: "",
+          confirmPassword: "",
         });
+        setSelectedNodeName(`${staff.structureNodeName || "Node"} (${staff.structureNodeType || ""})`);
+        const rolesData = await userService.getRoles();
+        setRoles(rolesData);
       } catch (err) {
-        setError(err.message || "Failed to load staff data");
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+  const handleNodeSelect = (node) => {
+    setFormData(prev => ({ ...prev, structureNodeId: node.id }));
+    setSelectedNodeName(`${node.name} (${node.type})`);
+    setShowStructureModal(false);
   };
 
   const validateStep = () => {
-    const errors = {};
-
+    const newErrors = {};
     if (currentStep === 0) {
-      if (!formData.fullNameAr.trim()) errors.fullNameAr = "Arabic name is required";
-      if (!formData.fullNameEn.trim()) errors.fullNameEn = "English name is required";
-
-      if (!formData.email.trim()) {
-        errors.email = "Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        errors.email = "Invalid email format";
-      }
+      if (!formData.name) newErrors.name = "Name is required";
+      if (!formData.nationalId) newErrors.nationalId = "National ID is required";
+      if (!formData.email) newErrors.email = "Email is required";
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email";
+      if (!formData.birthDate) newErrors.birthDate = "Date of birth is required";
     }
-
     if (currentStep === 1) {
-      if (!formData.staffRoleId) errors.staffRoleId = "Role is required";
-      if (!formData.universityId) errors.universityId = "University is required";
+      if (!formData.role) newErrors.role = "Role is required";
+      if (!formData.structureNodeId) newErrors.structureNodeId = "Structure node required";
+      if (formData.password && formData.password !== formData.confirmPassword)
+        newErrors.confirmPassword = "Passwords do not match";
+      if (formData.password && formData.password.length < 6)
+        newErrors.password = "Min 6 characters";
     }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const nextStep = () => {
-    if (!validateStep()) return;
-    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+    if (validateStep()) setCurrentStep(prev => prev + 1);
   };
-
-  const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
+  const prevStep = () => setCurrentStep(prev => prev - 1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateStep()) return;
-
     setSubmitting(true);
-
+    const updateData = {
+      name: formData.name,
+      nationalId: formData.nationalId,
+      birthDate: formData.birthDate,
+      phoneNumber: formData.phoneNumber || null,
+      email: formData.email,
+      role: formData.role,
+      jobTitle: formData.jobTitle || null,
+      structureNodeId: formData.structureNodeId,
+      isActive: formData.isActive,
+      password: formData.password || null,
+      confirmPassword: formData.confirmPassword || null,
+    };
     try {
-      const selectedRole = roles.find((r) => r.id === formData.staffRoleId);
-      const updateData = {
-        fullNameAr: formData.fullNameAr || null,
-        fullNameEn: formData.fullNameEn || null,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        staffRoleId: formData.staffRoleId || null,
-        staffRoleName: selectedRole?.name,
-        position: formData.position || null,
-        structureNodeId: formData.universityId || null,
-        isActive: formData.isActive,
-      };
-
-      const result = await userService.updateStaff(id, updateData);
-
-      if (result.success) {
-        setShowSuccess(true);
-        setTimeout(() => navigate(`/admin/users/${id}`), 1400);
-      } else {
-        setError(result.message || "Failed to update staff");
-      }
+      await userService.updateStaff(id, updateData);
+      setShowSuccess(true);
+      setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      setError(err.message || "An error occurred while updating");
+      alert(err.response?.data?.message || err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <LoadingSpinner fullPage message="Loading staff data..." />;
-
-  if (error) {
-    return (
-      <div className="form-loading">
-        <AlertCircle size={42} color="#dc2626" />
-        <h2 style={{ color: "#dc2626", marginTop: 12 }}>Error</h2>
-        <p>{error}</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner fullPage />;
+  if (error) return (
+    <div className="form-loading">
+      <AlertCircle size={42} color="#dc2626" />
+      <p>{error}</p>
+    </div>
+  );
 
   return (
     <div className="edit-user-page add-user-page">
       <div className="page-container compact-wizard">
         <div className="page-header compact-header wizard-header-with-status">
           <div className="header-content">
-            <div className="header-icon">
-              <UserCircle2 size={22} />
-            </div>
-
+            <div className="header-icon"><UserCircle2 size={22} /></div>
             <div className="header-text">
               <h1>Edit Staff Member</h1>
               <div className="gold-line" />
-              <p>Update staff information step by step</p>
+              <p>Update staff information</p>
             </div>
           </div>
-
           <label className="account-status-toggle">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-            />
-
+            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
             <span className="account-status-switch">
               <span className="account-status-dot">
                 {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
               </span>
             </span>
-
-            <span className="account-status-text">
-              {formData.isActive ? "Active Account" : "Inactive Account"}
-            </span>
+            <span>{formData.isActive ? "Active Account" : "Inactive Account"}</span>
           </label>
         </div>
 
@@ -237,77 +183,43 @@ const EditStaff = () => {
           {currentStep === 0 && (
             <div className="form-card wizard-card">
               <div className="form-header">
-                <div className="form-icon">
-                  <User size={18} color="#e0c06a" />
-                </div>
-
-                <div className="form-title-wrapper">
-                  <h3>Basic Information</h3>
-                  <p>Personal identification details</p>
-                </div>
+                <div className="form-icon"><User size={18} color="#e0c06a" /></div>
+                <div className="form-title-wrapper"><h3>Basic Information</h3></div>
               </div>
-
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">Full Name Arabic *</label>
+                    <label className="form-label">National ID *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="fullNameAr"
-                        className={`form-input ${validationErrors.fullNameAr ? "error" : ""}`}
-                        value={formData.fullNameAr}
-                        onChange={handleChange}
-                        placeholder="الاسم بالعربية"
-                      />
+                      <input type="text" name="nationalId" value={formData.nationalId} onChange={handleChange} className="form-input" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {validationErrors.fullNameAr && <span className="error-message">{validationErrors.fullNameAr}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">Full Name English *</label>
+                    <label className="form-label">Full Name *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="fullNameEn"
-                        className={`form-input ${validationErrors.fullNameEn ? "error" : ""}`}
-                        value={formData.fullNameEn}
-                        onChange={handleChange}
-                        placeholder="Name in English"
-                      />
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} className="form-input" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {validationErrors.fullNameEn && <span className="error-message">{validationErrors.fullNameEn}</span>}
                   </div>
-
                   <div className="form-group">
                     <label className="form-label">Email *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="email"
-                        name="email"
-                        className={`form-input ${validationErrors.email ? "error" : ""}`}
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="staff@university.edu"
-                      />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
                       <Mail size={15} className="input-icon" />
                     </div>
-                    {validationErrors.email && <span className="error-message">{validationErrors.email}</span>}
                   </div>
-
+                  <div className="form-group">
+                    <label className="form-label">Date of Birth *</label>
+                    <div className="input-wrapper">
+                      <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" />
+                      <Calendar size={15} className="input-icon" />
+                    </div>
+                  </div>
                   <div className="form-group">
                     <label className="form-label">Phone</label>
                     <div className="input-wrapper">
-                      <input
-                        type="tel"
-                        name="phone"
-                        className="form-input"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Phone number"
-                      />
+                      <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="form-input" />
                       <Phone size={15} className="input-icon" />
                     </div>
                   </div>
@@ -319,73 +231,58 @@ const EditStaff = () => {
           {currentStep === 1 && (
             <div className="form-card wizard-card">
               <div className="form-header">
-                <div className="form-icon">
-                  <Briefcase size={18} color="#e0c06a" />
-                </div>
-
-                <div className="form-title-wrapper">
-                  <h3>Employment Information</h3>
-                  <p>Role, university and position details</p>
-                </div>
+                <div className="form-icon"><Briefcase size={18} color="#e0c06a" /></div>
+                <div className="form-title-wrapper"><h3>Employment Information</h3></div>
               </div>
-
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
                     <label className="form-label">Role *</label>
                     <div className="input-wrapper">
-                      <select
-                        name="staffRoleId"
-                        className={`form-select ${validationErrors.staffRoleId ? "error" : ""}`}
-                        value={formData.staffRoleId}
-                        onChange={handleChange}
-                      >
+                      <select name="role" value={formData.role} onChange={handleChange} className="form-select">
                         <option value="">Select Role</option>
-                        {roles.map((role) => (
-                          <option key={role.id} value={role.id}>
-                            {role.name}
-                          </option>
-                        ))}
+                        {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                       </select>
                       <Shield size={15} className="input-icon" />
                     </div>
-                    {validationErrors.staffRoleId && <span className="error-message">{validationErrors.staffRoleId}</span>}
+                    {errors.role && <span className="error-message">{errors.role}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">University *</label>
+                    <label className="form-label">Job Title</label>
                     <div className="input-wrapper">
-                      <select
-                        name="universityId"
-                        className={`form-select ${validationErrors.universityId ? "error" : ""}`}
-                        value={formData.universityId}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select University</option>
-                        {universities.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.nameEn}
-                          </option>
-                        ))}
-                      </select>
-                      <Building2 size={15} className="input-icon" />
+                      <input type="text" name="jobTitle" value={formData.jobTitle} onChange={handleChange} className="form-input" />
+                      <Briefcase size={15} className="input-icon" />
                     </div>
-                    {validationErrors.universityId && <span className="error-message">{validationErrors.universityId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">Position</label>
+                    <label className="form-label">Structure Node *</label>
                     <div className="input-wrapper">
                       <input
                         type="text"
-                        name="position"
+                        value={selectedNodeName}
+                        readOnly
+                        onClick={() => setShowStructureModal(true)}
                         className="form-input"
-                        value={formData.position}
-                        onChange={handleChange}
-                        placeholder="e.g., Department Head"
+                        placeholder="Select node"
                       />
-                      <Briefcase size={15} className="input-icon" />
+                      <Building2 size={15} className="input-icon" />
                     </div>
+                    {errors.structureNodeId && <span className="error-message">{errors.structureNodeId}</span>}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Password (optional)</label>
+                    <div className="input-wrapper">
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} className="form-input" />
+                      <Lock size={15} className="input-icon" />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Confirm Password</label>
+                    <div className="input-wrapper">
+                      <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="form-input" />
+                      <Lock size={15} className="input-icon" />
+                    </div>
+                    {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
                   </div>
                 </div>
               </div>
@@ -401,7 +298,6 @@ const EditStaff = () => {
             >
               Back
             </button>
-
             {currentStep < steps.length - 1 ? (
               <button type="button" className="wizard-btn primary" onClick={nextStep}>
                 Next
@@ -413,20 +309,25 @@ const EditStaff = () => {
             )}
           </div>
         </form>
-
-        {showSuccess && (
-          <>
-            <div className="success-overlay" onClick={() => setShowSuccess(false)} />
-            <div className="success-message">
-              <div className="success-icon">
-                <CheckCircle2 size={38} color="#e0c06a" />
-              </div>
-              <div className="success-text">Updated Successfully!</div>
-              <p style={{ color: "#6b7280" }}>Redirecting to user details...</p>
-            </div>
-          </>
-        )}
       </div>
+
+      <ScopeTreeModal
+        isOpen={showStructureModal}
+        onClose={() => setShowStructureModal(false)}
+        onSelect={handleNodeSelect}
+        initialScopeId={formData.structureNodeId}
+      />
+
+      {showSuccess && (
+        <>
+          <div className="success-overlay" />
+          <div className="success-message">
+            <div className="success-icon"><CheckCircle2 size={38} color="#e0c06a" /></div>
+            <div className="success-text">Updated Successfully!</div>
+            <p>Redirecting to user details...</p>
+          </div>
+        </>
+      )}
     </div>
   );
 };
