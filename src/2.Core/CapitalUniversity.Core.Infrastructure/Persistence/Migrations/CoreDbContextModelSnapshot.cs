@@ -546,6 +546,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPoisoned")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastError")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -559,6 +562,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("PoisonedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
 
@@ -566,6 +572,8 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsPoisoned", "PoisonedAt");
 
                     b.HasIndex("ProcessedAt", "EnqueuedAt");
 

@@ -123,7 +123,18 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
-        services.AddScoped<ISessionVersionService, SessionVersionService>();
+
+        // SessionVersion is checked on every authenticated request via the
+        // middleware. The decorator caches the per-user lookup through
+        // ICacheService and invalidates write-through on Increment.
+        services.AddOptions<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions>()
+            .Bind(configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions.SectionName));
+        services.AddScoped<SessionVersionService>();
+        services.AddScoped<ISessionVersionService>(sp => new CachedSessionVersionService(
+            sp.GetRequiredService<SessionVersionService>(),
+            sp.GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.ICacheService>(),
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<
+                CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions>>()));
 
         services.AddOptions<RefreshTokenSettings>()
             .Bind(configuration.GetSection(RefreshTokenSettings.SectionName));
@@ -138,6 +149,12 @@ public static class DependencyInjection
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
         services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
+
+        // Security-event audit logger (PR-B4) — routes denials, auth failures,
+        // token revocations + role assignment changes through the async audit
+        // pipeline. Wired as Scoped so it picks up the per-request HttpContext.
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit.IAuthAuditLogger,
+                           CapitalUniversity.Core.Infrastructure.Services.Authorization.AuthAuditLogger>();
 
         // Permission Manifest System (PR-B1) — each module declares its own permissions
         // via an IPermissionManifest. The registry validates duplicates at startup; the
@@ -163,6 +180,8 @@ public static class DependencyInjection
             configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.OutboxOptions.SectionName));
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutbox,
                            CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutboxPoisonQueue,
+                           CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxPoisonQueue>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutboxMessageHandler,
                            CapitalUniversity.Core.Infrastructure.Services.Outbox.NotificationOutboxHandler>();
         services.AddHostedService<CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxDispatcher>();

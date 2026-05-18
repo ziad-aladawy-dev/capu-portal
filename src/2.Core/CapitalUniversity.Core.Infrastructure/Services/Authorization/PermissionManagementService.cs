@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
@@ -22,6 +23,7 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly ICurrentUser _currentUser;
     private readonly PermissionCacheOptions _cacheOptions;
     private readonly IPermissionCacheInvalidator? _cacheInvalidator;
+    private readonly IAuthAuditLogger? _audit;
 
     public PermissionManagementService(
         IPermissionService permissionService,
@@ -31,7 +33,8 @@ public class PermissionManagementService : IPermissionManagementService
         ICacheService cache,
         ICurrentUser currentUser,
         Microsoft.Extensions.Options.IOptions<PermissionCacheOptions>? cacheOptions = null,
-        IPermissionCacheInvalidator? cacheInvalidator = null)
+        IPermissionCacheInvalidator? cacheInvalidator = null,
+        IAuthAuditLogger? audit = null)
     {
         _permissionService = permissionService;
         _requestContext = requestContext;
@@ -41,6 +44,7 @@ public class PermissionManagementService : IPermissionManagementService
         _currentUser = currentUser;
         _cacheOptions = cacheOptions?.Value ?? new PermissionCacheOptions();
         _cacheInvalidator = cacheInvalidator;
+        _audit = audit;
     }
 
     public async Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -487,8 +491,17 @@ public class PermissionManagementService : IPermissionManagementService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        
+
         await InvalidateUserCacheAsync(request.UserId, cancellationToken);
+
+        if (_audit is not null)
+        {
+            var added = request.RoleIds.Where(r => !existingRoles.Contains(r)).ToArray();
+            if (added.Length > 0)
+            {
+                await _audit.LogRoleAssignmentChangedAsync(request.UserId, added, Array.Empty<Guid>(), cancellationToken);
+            }
+        }
 
         return new PermissionAssignmentResponse
         {
@@ -582,8 +595,18 @@ public class PermissionManagementService : IPermissionManagementService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        
+
         await InvalidateUserCacheAsync(request.UserId, cancellationToken);
+
+        if (_audit is not null && (request.RolesToAdd.Count > 0 || request.RolesToRemove.Count > 0))
+        {
+            var added = request.RolesToAdd.Where(r => !request.RolesToRemove.Contains(r)).ToArray();
+            var removed = request.RolesToRemove.Where(r => !request.RolesToAdd.Contains(r)).ToArray();
+            if (added.Length > 0 || removed.Length > 0)
+            {
+                await _audit.LogRoleAssignmentChangedAsync(request.UserId, added, removed, cancellationToken);
+            }
+        }
 
         var finalRoles = await _dbContext.StaffRoles
             .Where(sr => sr.StaffId == request.UserId && 

@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
@@ -12,6 +13,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly IPermissionManagementService _permissionManagementService;
     private readonly ISessionVersionService _sessionVersionService;
     private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IAuthAuditLogger? _audit;
 
     public AuthenticationService(
         IUserCredentialResolver credentialResolver,
@@ -19,7 +21,8 @@ public class AuthenticationService : IAuthenticationService
         ITokenService tokenService,
         IPermissionManagementService permissionManagementService,
         ISessionVersionService sessionVersionService,
-        IRefreshTokenService refreshTokenService)
+        IRefreshTokenService refreshTokenService,
+        IAuthAuditLogger? audit = null)
     {
         _credentialResolver = credentialResolver;
         _passwordHasher = passwordHasher;
@@ -27,12 +30,15 @@ public class AuthenticationService : IAuthenticationService
         _permissionManagementService = permissionManagementService;
         _sessionVersionService = sessionVersionService;
         _refreshTokenService = refreshTokenService;
+        _audit = audit;
     }
 
     public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
+            if (_audit is not null && request is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier ?? string.Empty, "missing_credentials", cancellationToken);
             return null;
         }
 
@@ -44,11 +50,15 @@ public class AuthenticationService : IAuthenticationService
 
         if (credential == null || !isPasswordValid)
         {
+            if (_audit is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier, "invalid_credentials", cancellationToken);
             return null;
         }
 
         if (credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry)
         {
+            if (_audit is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier, "password_expired", cancellationToken);
             return null;
         }
 
@@ -66,6 +76,8 @@ public class AuthenticationService : IAuthenticationService
     {
         await _refreshTokenService.RevokeAllForUserAsync(userId, "logout", cancellationToken);
         var newVersion = await _sessionVersionService.IncrementVersionAsync(userId, cancellationToken);
+        if (_audit is not null && newVersion.HasValue)
+            await _audit.LogLogoutAsync(userId, cancellationToken);
         return newVersion.HasValue;
     }
 

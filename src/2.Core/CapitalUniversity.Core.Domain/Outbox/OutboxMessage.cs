@@ -34,4 +34,14 @@ public class OutboxMessage : BaseEntity
 
     /// <summary>Captured for diagnostics on the most recent failure.</summary>
     public string? LastError { get; set; }
+
+    /// <summary>
+    /// True once <see cref="AttemptCount"/> has hit the configured cap without
+    /// success — the row is parked in the table for inspection rather than
+    /// silently consuming retry slots. <see cref="PoisonedAt"/> stamps when.
+    /// </summary>
+    public bool IsPoisoned { get; set; }
+
+    /// <summary>UTC instant the row was first marked poisoned.</summary>
+    public DateTime? PoisonedAt { get; set; }
 }

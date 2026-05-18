@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -16,17 +17,20 @@ public class RefreshTokenService : IRefreshTokenService
     private readonly IUserCredentialResolver _credentialResolver;
     private readonly ISessionVersionService _sessionVersionService;
     private readonly RefreshTokenSettings _settings;
+    private readonly IAuthAuditLogger? _audit;
 
     public RefreshTokenService(
         CoreDbContext dbContext,
         IUserCredentialResolver credentialResolver,
         ISessionVersionService sessionVersionService,
-        IOptions<RefreshTokenSettings> settings)
+        IOptions<RefreshTokenSettings> settings,
+        IAuthAuditLogger? audit = null)
     {
         _dbContext = dbContext;
         _credentialResolver = credentialResolver;
         _sessionVersionService = sessionVersionService;
         _settings = settings.Value;
+        _audit = audit;
     }
 
     public async Task<RefreshTokenIssuance> IssueAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -66,6 +70,8 @@ public class RefreshTokenService : IRefreshTokenService
             {
                 await RevokeChainAsync(existing, cancellationToken);
                 await _sessionVersionService.IncrementVersionAsync(existing.UserId, cancellationToken);
+                if (_audit is not null)
+                    await _audit.LogRefreshReplayAsync(existing.UserId, cancellationToken);
             }
             return null;
         }
@@ -116,6 +122,8 @@ public class RefreshTokenService : IRefreshTokenService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        if (_audit is not null)
+            await _audit.LogTokenRevokedAsync(userId, reason, active.Count, cancellationToken);
     }
 
     private async Task RevokeChainAsync(RefreshToken start, CancellationToken cancellationToken)

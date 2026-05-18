@@ -85,6 +85,14 @@ public class OutboxDispatcher : BackgroundService
             if (!handlers.TryGetValue(row.MessageType, out var handler))
             {
                 row.LastError = $"No handler registered for message type '{row.MessageType}'.";
+                if (!row.IsPoisoned && row.AttemptCount >= _options.MaxAttempts)
+                {
+                    row.IsPoisoned = true;
+                    row.PoisonedAt = DateTime.UtcNow;
+                    _logger.LogError(
+                        "Outbox message {MessageId} of type '{Type}' poisoned: no handler registered.",
+                        row.Id, row.MessageType);
+                }
                 continue;
             }
 
@@ -98,6 +106,19 @@ public class OutboxDispatcher : BackgroundService
             {
                 row.LastError = $"{ex.GetType().Name}: {ex.Message}";
                 _logger.LogWarning(ex, "Outbox handler '{Type}' failed (attempt {Attempt}).", row.MessageType, row.AttemptCount);
+
+                // First time we hit the retry cap, mark the row poisoned so it's
+                // visible to operators (and to OutboxService.GetPoisonedAsync).
+                // The row stays in the table — never auto-purged — so on-call can
+                // inspect the payload + LastError before requeuing or dropping.
+                if (!row.IsPoisoned && row.AttemptCount >= _options.MaxAttempts)
+                {
+                    row.IsPoisoned = true;
+                    row.PoisonedAt = DateTime.UtcNow;
+                    _logger.LogError(
+                        "Outbox message {MessageId} of type '{Type}' poisoned after {Attempts} attempts. LastError: {LastError}",
+                        row.Id, row.MessageType, row.AttemptCount, row.LastError);
+                }
             }
         }
 
