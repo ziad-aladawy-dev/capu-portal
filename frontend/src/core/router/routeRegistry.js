@@ -15,6 +15,13 @@ import StaffDirectory from "../../modules/staff/pages/StaffDirectory";
 import StudentDirectory from "../../modules/students/pages/StudentDirectory";
 import PermissionsPage from "../../modules/permissions/pages/PermissionsPage";
 import RolesPage from "../../modules/permissions/pages/RolesPage";
+import CoursesPage from "../../modules/courses/pages/CoursesPage";
+import AcademicPlansPage from "../../modules/academicPlans/pages/AcademicPlansPage";
+import InvoicesPage from "../../modules/invoices/pages/InvoicesPage";
+import InvoiceDetailsPage from "../../modules/invoices/pages/InvoiceDetailsPage";
+import NotificationsPage from "../../modules/notifications/pages/NotificationsPage";
+import StudentProfileRecordsPage from "../../modules/studentProfileRecords/pages/StudentProfileRecordsPage";
+import PermissionTreePage from "../../modules/authorization/pages/PermissionTreePage";
 
 const COMPONENT_MAP = {
   AdminDashboard,
@@ -29,6 +36,13 @@ const COMPONENT_MAP = {
   StudentDirectory,
   PermissionsPage,
   RolesPage,
+  CoursesPage,
+  AcademicPlansPage,
+  InvoicesPage,
+  InvoiceDetailsPage,
+  NotificationsPage,
+  StudentProfileRecordsPage,
+  PermissionTreePage,
 };
 
 function Placeholder({ title = "Page" }) {
@@ -70,11 +84,15 @@ export function buildProtectedRoutes() {
     const Component = getComponent(r.component);
     const props = r.props || {};
 
+    const guardProps = r.permission
+      ? { resource: r.permission, minLevel: 1 }
+      : { resource: null, minLevel: 0 };
+
     routes.push({
       path: r.path,
       element: createElement(
         RouteGuard,
-        { resource: r.permission, minLevel: 1 },
+        guardProps,
         createElement(Component, props)
       ),
       permission: r.permission,

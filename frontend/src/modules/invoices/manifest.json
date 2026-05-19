@@ -1,0 +1,39 @@
+{
+  "id": "invoices",
+  "name": "Invoices & Payments",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/invoices",
+      "component": "InvoicesPage",
+      "permission": "payments.invoices.view",
+      "moduleId": "invoices"
+    },
+    {
+      "path": "/admin/invoices/:invoiceId",
+      "component": "InvoiceDetailsPage",
+      "permission": "payments.invoices.view",
+      "moduleId": "invoices"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Finance",
+      "label": "Invoices",
+      "path": "/admin/invoices",
+      "icon": "Receipt",
+      "permission": "payments.invoices.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "payments.invoices.view",
+      "payments.invoices.insert",
+      "payments.invoices.editclose",
+      "payments.invoices.delete",
+      "payments.transactions.view",
+      "payments.transactions.insert"
+    ]
+  }
+}

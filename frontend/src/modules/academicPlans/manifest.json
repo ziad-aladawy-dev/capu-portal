@@ -1,0 +1,31 @@
+{
+  "id": "academic-plans",
+  "name": "Academic Plans",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/academic-plans",
+      "component": "AcademicPlansPage",
+      "permission": "courses.academic-plans.view",
+      "moduleId": "academic-plans"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Academic",
+      "label": "Academic Plans",
+      "path": "/admin/academic-plans",
+      "icon": "ClipboardList",
+      "permission": "courses.academic-plans.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "courses.academic-plans.view",
+      "courses.academic-plans.insert",
+      "courses.academic-plans.editclose",
+      "courses.academic-plans.delete"
+    ]
+  }
+}

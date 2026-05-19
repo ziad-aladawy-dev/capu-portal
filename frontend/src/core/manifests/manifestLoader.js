@@ -5,6 +5,12 @@ import usersManifest from "../../modules/users/manifest.json";
 import staffManifest from "../../modules/staff/manifest.json";
 import studentsManifest from "../../modules/students/manifest.json";
 import permissionsManifest from "../../modules/permissions/manifest.json";
+import coursesManifest from "../../modules/courses/manifest.json";
+import academicPlansManifest from "../../modules/academicPlans/manifest.json";
+import invoicesManifest from "../../modules/invoices/manifest.json";
+import notificationsManifest from "../../modules/notifications/manifest.json";
+import studentProfileRecordsManifest from "../../modules/studentProfileRecords/manifest.json";
+import authorizationManifest from "../../modules/authorization/manifest.json";
 
 const MODULE_MANIFESTS = [
   landingManifest,
@@ -14,6 +20,12 @@ const MODULE_MANIFESTS = [
   staffManifest,
   studentsManifest,
   permissionsManifest,
+  coursesManifest,
+  academicPlansManifest,
+  invoicesManifest,
+  notificationsManifest,
+  studentProfileRecordsManifest,
+  authorizationManifest,
 ];
 
 export function getAllRoutes() {

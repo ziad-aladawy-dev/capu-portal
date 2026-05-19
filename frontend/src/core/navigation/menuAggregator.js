@@ -7,6 +7,12 @@ import {
   Plug,
   GraduationCap,
   UserCog,
+  BookOpen,
+  ClipboardList,
+  Receipt,
+  Bell,
+  FolderTree,
+  FileText,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../manifests/manifestLoader";
 
@@ -19,6 +25,12 @@ const ICON_MAP = {
   Plug,
   GraduationCap,
   UserCog,
+  BookOpen,
+  ClipboardList,
+  Receipt,
+  Bell,
+  FolderTree,
+  FileText,
 };
 
 function resolveIcon(iconName) {

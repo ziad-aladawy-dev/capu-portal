@@ -14,7 +14,7 @@ function RouteGuard({ resource, minLevel = 1, fallback = "/admin/dashboard", chi
     return <Navigate to="/admin/login" replace />;
   }
 
-  if (!can(resource, minLevel)) {
+  if (resource && !can(resource, minLevel)) {
     return <Navigate to={fallback} replace />;
   }
 

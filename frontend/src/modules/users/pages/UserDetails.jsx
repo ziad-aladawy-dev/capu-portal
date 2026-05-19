@@ -523,6 +523,14 @@ const UserDetails = () => {
               <button className="bottom-action-btn soft-gold" onClick={() => setShowResetConfirm(true)} disabled={user.isDeleted}>
                 <Key size={18} /> Reset Password
               </button>
+              {userType === 'student' && (
+                <button
+                  className="bottom-action-btn soft-gold"
+                  onClick={() => navigate(`/admin/students/${id}/profile-records`)}
+                >
+                  <BookOpen size={18} /> Profile Records
+                </button>
+              )}
               <span className="action-separator"></span>
               <button className={`bottom-action-btn ${user.isActive ? 'soft-red' : 'soft-green'}`} onClick={handleToggleActive} disabled={user.isDeleted}>
                 {user.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
