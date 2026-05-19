@@ -11,6 +11,8 @@ namespace CapitalUniversity.Core.Application.Semesters;
 
 public class SemesterService : ISemesterService
 {
+    private const string SemesterField = "Semester";
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateSemesterRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateSemesterRequest Request)> _updateValidator;
@@ -63,12 +65,12 @@ public class SemesterService : ISemesterService
 
         if (request.StartDate < year.StartDate || request.EndDate > year.EndDate)
         {
-            throw new ValidationException("Semester", "Semester dates must be within the academic year range.");
+            throw new ValidationException(SemesterField, "Semester dates must be within the academic year range.");
         }
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(request.AcademicYearId, request.StartDate, request.EndDate))
         {
-            throw new ValidationException("Semester", "Semester dates overlap with an existing semester in the same academic year.");
+            throw new ValidationException(SemesterField, "Semester dates overlap with an existing semester in the same academic year.");
         }
 
         var semester = _mapper.MapToEntity(request);
@@ -110,12 +112,12 @@ public class SemesterService : ISemesterService
 
         if (startDate < year.StartDate || endDate > year.EndDate)
         {
-            throw new ValidationException("Semester", "Semester dates must be within the academic year range.");
+            throw new ValidationException(SemesterField, "Semester dates must be within the academic year range.");
         }
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(semester.AcademicYearId, startDate, endDate, id))
         {
-            throw new ValidationException("Semester", "Semester dates overlap with an existing semester in the same academic year.");
+            throw new ValidationException(SemesterField, "Semester dates overlap with an existing semester in the same academic year.");
         }
 
         _mapper.UpdateEntity(request, semester);
@@ -179,8 +181,6 @@ public class SemesterService : ISemesterService
         }
     }
 
-    private bool IsDateInRange(DateTime date, DateTime start, DateTime end)
-    {
-        return date >= start && date <= end;
-    }
+    private static bool IsDateInRange(DateTime date, DateTime start, DateTime end) =>
+        date >= start && date <= end;
 }

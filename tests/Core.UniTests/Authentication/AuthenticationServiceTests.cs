@@ -128,7 +128,7 @@ public class AuthenticationServiceTests
     [InlineData("user", null)]
     [InlineData("user", "")]
     [InlineData(null, null)]
-    public async Task AuthenticateAsync_InvalidRequest_ReturnsNull(string identifier, string password)
+    public async Task AuthenticateAsync_InvalidRequest_ReturnsNull(string? identifier, string? password)
     {
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
@@ -136,7 +136,7 @@ public class AuthenticationServiceTests
         var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
-        var request = new LoginRequestDto { Identifier = identifier, Password = password };
+        var request = new LoginRequestDto { Identifier = identifier!, Password = password! };
         var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 
         // Act

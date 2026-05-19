@@ -52,13 +52,15 @@ public class AcademicPlanServiceTests
         var scope = new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.IEffectiveScope>();
         scope.Setup(s => s.CanAccessStudentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var validators = new AcademicPlanValidators(
+            new CreateAcademicPlanValidator(),
+            new UpdateAcademicPlanValidator(),
+            new AddPlanCourseValidator());
         var service = new AcademicPlanService(
             uow.Object,
             plans.Object,
             courses.Object,
-            new CreateAcademicPlanValidator(),
-            new UpdateAcademicPlanValidator(),
-            new AddPlanCourseValidator(),
+            validators,
             cache,
             scope.Object);
         return (service, plans, courses, uow, cache);

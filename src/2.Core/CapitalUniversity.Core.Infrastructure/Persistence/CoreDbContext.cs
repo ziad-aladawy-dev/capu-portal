@@ -2,15 +2,12 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
-
-using CapitalUniversity.Core.Domain.StudentInformation;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System.Text.Json;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
 
@@ -58,12 +55,13 @@ public class CoreDbContext : DbContext
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<AcademicPlan> AcademicPlans => Set<AcademicPlan>();
     public DbSet<AcademicPlanCourse> AcademicPlanCourses => Set<AcademicPlanCourse>();
-    // Invoice / InvoiceItem / PaymentTransaction DbSets removed — those types
-    // now live in the Module.Payments project, which Core.Infrastructure must
-    // not reference (cycle). Module code uses <c>_context.Set&lt;Invoice&gt;()</c>
-    // instead. EF still tracks the entities because Module.Payments contributes
-    // its assembly to <see cref="ModuleConfigurationAssemblies"/>.
-    public DbSet<StudentProfileRecord> StudentProfileRecords => Set<StudentProfileRecord>();
+    // Invoice / InvoiceItem / PaymentTransaction / StudentProfileRecord
+    // DbSets removed — those types now live in their respective module
+    // projects (Module.Payments, Module.Student), which Core.Infrastructure
+    // must not reference (cycle). Module code uses
+    // <c>_context.Set&lt;T&gt;()</c> instead. EF still tracks the entities
+    // because each module contributes its assembly to
+    // <see cref="ModuleConfigurationAssemblies"/>.
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -131,11 +129,11 @@ public class CoreDbContext : DbContext
         modelBuilder.Entity<StructureNode>()
             .HasQueryFilter(x => !x.IsDeleted);
 
-        // P0.6 / P1.5 — soft-delete global query filter for StudentProfileRecord.
-        // The Invoice + PaymentTransaction filters are declared inside their
-        // IEntityTypeConfiguration impls in Module.Payments (those types live
-        // outside this assembly).
-        modelBuilder.Entity<StudentProfileRecord>().HasQueryFilter(x => !x.IsDeleted);
+        // P0.6 / P1.5 — soft-delete global query filters for module-owned
+        // entities (StudentProfileRecord, Invoice, PaymentTransaction) are
+        // declared inside their IEntityTypeConfiguration impls in their
+        // respective module projects, since those types live outside this
+        // assembly.
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -169,10 +167,13 @@ public class CoreDbContext : DbContext
     {
         public NullableUtcDateTimeConverter()
             : base(
-                v => v.HasValue
-                    ? (v.Value.Kind == DateTimeKind.Local ? v.Value.ToUniversalTime() : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
-                    : (DateTime?)null,
+                v => v.HasValue ? NormaliseToUtc(v.Value) : (DateTime?)null,
                 v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null)
         { }
+
+        private static DateTime NormaliseToUtc(DateTime value) =>
+            value.Kind == DateTimeKind.Local
+                ? value.ToUniversalTime()
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
     }
 }

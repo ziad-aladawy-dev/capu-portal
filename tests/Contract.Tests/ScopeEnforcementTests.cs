@@ -57,11 +57,11 @@ public class ScopeEnforcementTests : IClassFixture<WebApplicationFactory<Modules
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
                 services.AddDbContext<CoreDbContext>(opts => opts.UseInMemoryDatabase(dbName));
 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>());
             });
         });

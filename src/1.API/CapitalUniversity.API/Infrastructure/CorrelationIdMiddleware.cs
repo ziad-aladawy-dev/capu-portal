@@ -64,10 +64,7 @@ public class CorrelationIdMiddleware
         if (candidate.Length > MaxAcceptedLength) return null;
         // Anything not visibly safe (control chars, newlines that could split log lines)
         // is dropped — the response header echoes this value back to clients.
-        foreach (var ch in candidate)
-        {
-            if (ch < 0x20 || ch == 0x7F) return null;
-        }
+        if (candidate.Any(ch => ch < 0x20 || ch == 0x7F)) return null;
         return candidate;
     }
 }

@@ -1,12 +1,13 @@
 using System;
-using System.Collections.Generic;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs.Management;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 
-public class GetPermissionTreeRequest
-{
-}
+/// <summary>
+/// Marker request for the global permission-tree query — no inputs (current
+/// user is taken from the ambient request context). Record so it stays a
+/// distinct type for the handler dispatch without tripping S2094.
+/// </summary>
+public sealed record GetPermissionTreeRequest;
 
 public class GetRolePermissionsRequest
 {

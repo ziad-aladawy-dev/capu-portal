@@ -67,17 +67,15 @@ public class PermissionLookupCacheTests
         scopeResolver.Setup(s => s.ResolveAsync(userId, "Global", "Global", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AuthorizationScope { Year = "Global", Semester = "Global" });
 
-        var currentUser = new Mock<ICurrentUser>();
-        currentUser.Setup(u => u.Id).Returns(userId);
-
         var service = new PermissionManagementService(
             probe,
             requestContext.Object,
             scopeResolver.Object,
             db,
-            cache,
-            currentUser.Object,
-            Options.Create(new PermissionCacheOptions { LookupTtlMinutes = 20, VersionTtlHours = 24 }));
+            new PermissionCacheCoordinator(
+                cache,
+                new PermissionCacheOptions { LookupTtlMinutes = 20, VersionTtlHours = 24 },
+                null));
 
         return (service, db, cache, probe);
     }

@@ -4,6 +4,7 @@ using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Student;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -64,6 +65,7 @@ builder.Services.AddCoreServices(builder.Configuration);
 // infrastructure (cache, UoW, scope services) is already in the container
 // before the module wires its services that depend on those interfaces.
 builder.Services.AddPaymentsModule();
+builder.Services.AddStudentModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
@@ -71,15 +73,13 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddOptions<SessionVersionOptions>()
     .Bind(builder.Configuration.GetSection(SessionVersionOptions.SectionName));
 
-builder.Services.AddAuthorization(options =>
-{
-    // Every endpoint requires an authenticated principal by default. Login, refresh
-    // (anon — caller carries an expired/expiring token), health, and swagger opt out
-    // with [AllowAnonymous] or anonymous mappings below.
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+// Every endpoint requires an authenticated principal by default. Login, refresh
+// (anon — caller carries an expired/expiring token), health, and swagger opt out
+// with [AllowAnonymous] or anonymous mappings below.
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
-        .Build();
-});
+        .Build());
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
@@ -146,7 +146,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.MapControllers();
-app.Run();
+await app.RunAsync();
 
 // Required by WebApplicationFactory<TEntryPoint> in integration tests.
-public partial class Program { }
+public static partial class Program { }

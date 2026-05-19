@@ -1,7 +1,6 @@
-using CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 
-namespace CapitalUniversity.Core.Abstractions.StudentInformation;
+namespace CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 
 /// <summary>
 /// Manages flexible profile records for a student. The service owns the

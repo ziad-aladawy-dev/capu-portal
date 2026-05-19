@@ -85,7 +85,7 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
     private static List<ModulePermissionTreeDto> BuildTree(
         IReadOnlyList<ModuleRow> modules,
         IReadOnlyList<ServiceRow> services,
-        IReadOnlyDictionary<Guid, ActionLevel>? rolePermissionLevelsByService)
+        Dictionary<Guid, ActionLevel>? rolePermissionLevelsByService)
     {
         var servicesByModule = services
             .GroupBy(s => s.ModuleId)
@@ -95,41 +95,9 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
 
         foreach (var m in modules)
         {
-            var resourceDtos = new List<ResourcePermissionTreeDto>();
-
-            if (servicesByModule.TryGetValue(m.Id, out var moduleServices))
-            {
-                foreach (var s in moduleServices)
-                {
-                    var canonicalResource = PermissionIdentity.ResourceFor(m.ModuleKey, s.DisplayName);
-                    var grantedLevel = rolePermissionLevelsByService is not null
-                        && rolePermissionLevelsByService.TryGetValue(s.Id, out var lvl)
-                            ? lvl
-                            : (ActionLevel?)null;
-
-                    var permissions = new List<PermissionActionDto>(PermissionActions.Length);
-                    foreach (var pa in PermissionActions)
-                    {
-                        permissions.Add(new PermissionActionDto
-                        {
-                            PermissionId = $"{s.Id}_{pa.Level}",
-                            PermissionName = PermissionIdentity.Create(m.ModuleKey, canonicalResource, pa.Action),
-                            Action = pa.Action,
-                            Description = pa.Description,
-                            IsAssigned = rolePermissionLevelsByService is null
-                                ? null
-                                : grantedLevel is { } gl && gl >= pa.Level,
-                        });
-                    }
-
-                    resourceDtos.Add(new ResourcePermissionTreeDto
-                    {
-                        ResourceId = s.Id,
-                        ResourceName = s.DisplayName,
-                        Permissions = permissions,
-                    });
-                }
-            }
+            var resourceDtos = servicesByModule.TryGetValue(m.Id, out var moduleServices)
+                ? moduleServices.Select(s => BuildResourceDto(m.ModuleKey, s, rolePermissionLevelsByService)).ToList()
+                : new List<ResourcePermissionTreeDto>();
 
             result.Add(new ModulePermissionTreeDto
             {
@@ -140,6 +108,38 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         }
 
         return result;
+    }
+
+    private static ResourcePermissionTreeDto BuildResourceDto(
+        string moduleKey,
+        ServiceRow service,
+        Dictionary<Guid, ActionLevel>? rolePermissionLevelsByService)
+    {
+        var canonicalResource = PermissionIdentity.ResourceFor(moduleKey, service.DisplayName);
+        var grantedLevel = rolePermissionLevelsByService is not null
+            && rolePermissionLevelsByService.TryGetValue(service.Id, out var lvl)
+                ? lvl
+                : (ActionLevel?)null;
+
+        var permissions = PermissionActions
+            .Select(pa => new PermissionActionDto
+            {
+                PermissionId = $"{service.Id}_{pa.Level}",
+                PermissionName = PermissionIdentity.Create(moduleKey, canonicalResource, pa.Action),
+                Action = pa.Action,
+                Description = pa.Description,
+                IsAssigned = rolePermissionLevelsByService is null
+                    ? null
+                    : grantedLevel is { } gl && gl >= pa.Level,
+            })
+            .ToList();
+
+        return new ResourcePermissionTreeDto
+        {
+            ResourceId = service.Id,
+            ResourceName = service.DisplayName,
+            Permissions = permissions,
+        };
     }
 
     private sealed record ModuleRow(Guid Id, string ModuleKey, string DisplayName);

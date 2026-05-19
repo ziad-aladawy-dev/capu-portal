@@ -1,6 +1,7 @@
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
+using CapitalUniversity.Modules.Student.Domain;
 
-namespace CapitalUniversity.Core.Abstractions.Repositories;
+namespace CapitalUniversity.Modules.Student.Repositories;
 
 public interface IStudentProfileRecordRepository
 {

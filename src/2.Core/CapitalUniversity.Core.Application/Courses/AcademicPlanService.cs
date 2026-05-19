@@ -12,6 +12,16 @@ using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.Vali
 namespace CapitalUniversity.Core.Application.Courses;
 
 /// <summary>
+/// Bundle of the FluentValidation validators used by <see cref="AcademicPlanService"/>.
+/// Keeps the service constructor under the 7-parameter limit without sacrificing
+/// the per-validator explicit injection.
+/// </summary>
+public sealed record AcademicPlanValidators(
+    IValidator<CreateAcademicPlanRequest> Create,
+    IValidator<(Guid Id, UpdateAcademicPlanRequest Request)> Update,
+    IValidator<AddPlanCourseRequest> AddCourse);
+
+/// <summary>
 /// Manages academic plans + their course composition. Cache strategy:
 ///   <list type="bullet">
 ///     <item><c>academicplan:object:{id}</c> — full plan + composition, per
@@ -23,14 +33,14 @@ namespace CapitalUniversity.Core.Application.Courses;
 public class AcademicPlanService : IAcademicPlanService
 {
     internal const string CacheKeyPrefix = "academicplan:object:";
+    private const string AcademicPlanNotFound = "Academic plan not found.";
+    private const string PlanCourseEntryNotFound = "Plan course entry not found.";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAcademicPlanRepository _plans;
     private readonly ICourseRepository _courses;
-    private readonly IValidator<CreateAcademicPlanRequest> _createValidator;
-    private readonly IValidator<(Guid Id, UpdateAcademicPlanRequest Request)> _updateValidator;
-    private readonly IValidator<AddPlanCourseRequest> _addCourseValidator;
+    private readonly AcademicPlanValidators _validators;
     private readonly ICacheService _cache;
     private readonly IEffectiveScope _scope;
     private readonly AcademicPlanMapper _mapper = new();
@@ -39,18 +49,14 @@ public class AcademicPlanService : IAcademicPlanService
         IUnitOfWork unitOfWork,
         IAcademicPlanRepository plans,
         ICourseRepository courses,
-        IValidator<CreateAcademicPlanRequest> createValidator,
-        IValidator<(Guid Id, UpdateAcademicPlanRequest Request)> updateValidator,
-        IValidator<AddPlanCourseRequest> addCourseValidator,
+        AcademicPlanValidators validators,
         ICacheService cache,
         IEffectiveScope scope)
     {
         _unitOfWork = unitOfWork;
         _plans = plans;
         _courses = courses;
-        _createValidator = createValidator;
-        _updateValidator = updateValidator;
-        _addCourseValidator = addCourseValidator;
+        _validators = validators;
         _cache = cache;
         _scope = scope;
     }
@@ -101,7 +107,7 @@ public class AcademicPlanService : IAcademicPlanService
 
     public async Task<Guid> CreateAsync(CreateAcademicPlanRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await _createValidator.ValidateAsync(request, cancellationToken);
+        var validation = await _validators.Create.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
         // Reject creation targeted at a node the caller cannot see.
@@ -118,15 +124,15 @@ public class AcademicPlanService : IAcademicPlanService
 
     public async Task UpdateAsync(Guid id, UpdateAcademicPlanRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await _updateValidator.ValidateAsync((id, request), cancellationToken);
+        var validation = await _validators.Update.ValidateAsync((id, request), cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
         var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
-            ?? throw new NotFoundException("Academic plan not found.");
+            ?? throw new NotFoundException(AcademicPlanNotFound);
 
         if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
         {
-            throw new NotFoundException("Academic plan not found.");
+            throw new NotFoundException(AcademicPlanNotFound);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Name)) plan.Name = request.Name;
@@ -148,11 +154,11 @@ public class AcademicPlanService : IAcademicPlanService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
-            ?? throw new NotFoundException("Academic plan not found.");
+            ?? throw new NotFoundException(AcademicPlanNotFound);
 
         if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
         {
-            throw new NotFoundException("Academic plan not found.");
+            throw new NotFoundException(AcademicPlanNotFound);
         }
 
         _plans.Delete(plan);
@@ -162,15 +168,15 @@ public class AcademicPlanService : IAcademicPlanService
 
     public async Task<Guid> AddCourseAsync(Guid planId, AddPlanCourseRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await _addCourseValidator.ValidateAsync(request, cancellationToken);
+        var validation = await _validators.AddCourse.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
         var plan = await _plans.GetByIdAsync(planId, includeCourses: false, cancellationToken)
-            ?? throw new NotFoundException("Academic plan not found.");
+            ?? throw new NotFoundException(AcademicPlanNotFound);
 
         if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
         {
-            throw new NotFoundException("Academic plan not found.");
+            throw new NotFoundException(AcademicPlanNotFound);
         }
 
         var course = await _courses.GetByIdAsync(request.CourseId, cancellationToken)
@@ -199,20 +205,20 @@ public class AcademicPlanService : IAcademicPlanService
     public async Task RemoveCourseAsync(Guid planId, Guid planCourseId, CancellationToken cancellationToken = default)
     {
         var entry = await _plans.GetPlanCourseAsync(planCourseId, cancellationToken)
-            ?? throw new NotFoundException("Plan course entry not found.");
+            ?? throw new NotFoundException(PlanCourseEntryNotFound);
 
         if (entry.AcademicPlanId != planId)
         {
-            throw new NotFoundException("Plan course entry not found.");
+            throw new NotFoundException(PlanCourseEntryNotFound);
         }
 
         // Resolve owning plan to scope-check the removal; the entry itself
         // doesn't carry StructureNodeId.
         var plan = await _plans.GetByIdAsync(planId, includeCourses: false, cancellationToken)
-            ?? throw new NotFoundException("Plan course entry not found.");
+            ?? throw new NotFoundException(PlanCourseEntryNotFound);
         if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
         {
-            throw new NotFoundException("Plan course entry not found.");
+            throw new NotFoundException(PlanCourseEntryNotFound);
         }
 
         _plans.RemovePlanCourse(entry);

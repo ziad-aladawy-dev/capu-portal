@@ -9,10 +9,9 @@ public interface IUnitOfWork : IDisposable
     ISemesterRepository Semesters { get; }
     ICourseRepository Courses { get; }
     IAcademicPlanRepository AcademicPlans { get; }
-    // Invoices repository removed — IInvoiceRepository now lives in
-    // Module.Payments.Abstractions; Core.Abstractions has no module dependency.
-    // Payments services inject IInvoiceRepository directly.
-    IStudentProfileRecordRepository StudentProfileRecords { get; }
+    // IInvoiceRepository + IStudentProfileRecordRepository removed — those
+    // contracts now live alongside their implementations in
+    // Module.Payments / Module.Student. Module services inject the
+    // repositories directly; Core.Abstractions has no module dependency.
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
-

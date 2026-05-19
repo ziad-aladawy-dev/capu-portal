@@ -19,15 +19,13 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
-        if (policyName.StartsWith(PermissionIdentity.Prefix, StringComparison.OrdinalIgnoreCase))
+        if (policyName.StartsWith(PermissionIdentity.Prefix, StringComparison.OrdinalIgnoreCase)
+            && PermissionIdentity.TryParse(policyName, out var module, out var resource, out var action))
         {
-            if (PermissionIdentity.TryParse(policyName, out var module, out var resource, out var action))
-            {
-                var canonicalPermission = PermissionIdentity.Create(module, resource, action);
-                var policy = new AuthorizationPolicyBuilder();
-                policy.AddRequirements(new PermissionRequirement(canonicalPermission));
-                return Task.FromResult<AuthorizationPolicy?>(policy.Build());
-            }
+            var canonicalPermission = PermissionIdentity.Create(module, resource, action);
+            var policy = new AuthorizationPolicyBuilder();
+            policy.AddRequirements(new PermissionRequirement(canonicalPermission));
+            return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 
         return FallbackPolicyProvider.GetPolicyAsync(policyName);

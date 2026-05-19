@@ -34,15 +34,15 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
 
                 services.AddDbContext<CoreDbContext>(options =>
                 {
                     options.UseInMemoryDatabase(dbName);
                 });
 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>());
             });
         });
@@ -80,8 +80,8 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         db.Staffs.Add(new Staff
         {
             Id = userId,
-            EmployeeCode = "TEST-" + userId.ToString("N").Substring(0, 8),
-            NationalId = "TEST" + userId.ToString("N").Substring(0, 11),
+            EmployeeCode = string.Concat("TEST-", userId.ToString("N").AsSpan(0, 8)),
+            NationalId = string.Concat("TEST", userId.ToString("N").AsSpan(0, 11)),
             PasswordHash = "test-hash",
             Name = "Test Admin",
             Role = "Admin",

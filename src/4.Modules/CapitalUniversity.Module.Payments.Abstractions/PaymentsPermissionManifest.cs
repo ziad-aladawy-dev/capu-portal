@@ -14,6 +14,11 @@ namespace CapitalUniversity.Modules.Payments.Abstractions.Manifest;
 /// </summary>
 public sealed class PaymentsPermissionManifest : IPermissionManifest
 {
+    private const string ResourceInvoices = "invoices";
+    private const string DisplayInvoices = "Invoices";
+    private const string ResourceTransactions = "transactions";
+    private const string DisplayPaymentTransactions = "Payment Transactions";
+
     public string Module => "payments";
     public string DisplayName => "Payments";
     public string? Icon => "CreditCard";
@@ -21,16 +26,16 @@ public sealed class PaymentsPermissionManifest : IPermissionManifest
 
     public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
     {
-        PermissionDefinition.Create("invoices",     "View",      "Invoices", 0),
-        PermissionDefinition.Create("invoices",     "Insert",    "Invoices", 0),
-        PermissionDefinition.Create("invoices",     "EditClose", "Invoices", 0),
-        PermissionDefinition.Create("invoices",     "Open",      "Invoices", 0),
-        PermissionDefinition.Create("invoices",     "Delete",    "Invoices", 0),
+        PermissionDefinition.Create(ResourceInvoices,     "View",      DisplayInvoices, 0),
+        PermissionDefinition.Create(ResourceInvoices,     "Insert",    DisplayInvoices, 0),
+        PermissionDefinition.Create(ResourceInvoices,     "EditClose", DisplayInvoices, 0),
+        PermissionDefinition.Create(ResourceInvoices,     "Open",      DisplayInvoices, 0),
+        PermissionDefinition.Create(ResourceInvoices,     "Delete",    DisplayInvoices, 0),
 
-        PermissionDefinition.Create("transactions", "View",      "Payment Transactions", 1),
-        PermissionDefinition.Create("transactions", "Insert",    "Payment Transactions", 1),
-        PermissionDefinition.Create("transactions", "EditClose", "Payment Transactions", 1),
-        PermissionDefinition.Create("transactions", "Open",      "Payment Transactions", 1),
-        PermissionDefinition.Create("transactions", "Delete",    "Payment Transactions", 1),
+        PermissionDefinition.Create(ResourceTransactions, "View",      DisplayPaymentTransactions, 1),
+        PermissionDefinition.Create(ResourceTransactions, "Insert",    DisplayPaymentTransactions, 1),
+        PermissionDefinition.Create(ResourceTransactions, "EditClose", DisplayPaymentTransactions, 1),
+        PermissionDefinition.Create(ResourceTransactions, "Open",      DisplayPaymentTransactions, 1),
+        PermissionDefinition.Create(ResourceTransactions, "Delete",    DisplayPaymentTransactions, 1),
     };
 }

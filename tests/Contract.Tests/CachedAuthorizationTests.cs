@@ -40,20 +40,20 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
                 services.AddDbContext<CoreDbContext>(options => options.UseInMemoryDatabase(capturedName));
 
                 // Mock MongoDB and Logging
-                services.RemoveAll(typeof(IMongoClient));
+                services.RemoveAll<IMongoClient>();
                 services.AddSingleton(_ => new Mock<IMongoClient>().Object);
-                services.RemoveAll(typeof(IMongoDatabase));
+                services.RemoveAll<IMongoDatabase>();
                 services.AddScoped(_ => new Mock<IMongoDatabase>().Object);
                 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>().Object);
                 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>();
                 services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>().Object);
             });
         });

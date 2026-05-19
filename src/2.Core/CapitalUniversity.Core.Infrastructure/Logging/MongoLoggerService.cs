@@ -25,7 +25,7 @@ public class MongoLoggerService : IAppLogger
         _logsCollection = database.GetCollection<LogEntry>(settings.LogsCollection);
     }
 
-    private string? GetClientIp(HttpContext? context)
+    private static string? GetClientIp(HttpContext? context)
     {
         if (context == null) return null;
 
@@ -58,7 +58,7 @@ public class MongoLoggerService : IAppLogger
         return ip;
     }
 
-    private LogEntry CreateLogEntry(
+    private static LogEntry CreateLogEntry(
         LogLevelType level,
         string message,
         string source,

@@ -18,6 +18,20 @@ public class AuthAuditLogger : IAuthAuditLogger
 {
     internal const string Source = "AuthAudit";
 
+    // Metadata dictionary keys. Constants so a typo in one call site fails
+    // alongside every other read of the same key, and the audit-log schema
+    // stays consistent across event types.
+    internal const string MetaEventType = "EventType";
+    internal const string MetaUserId = "UserId";
+    internal const string MetaReason = "Reason";
+    internal const string MetaPath = "Path";
+    internal const string MetaRequiredPermission = "RequiredPermission";
+    internal const string MetaIdentifierHash = "IdentifierHash";
+    internal const string MetaTokenCount = "TokenCount";
+    internal const string MetaTargetUserId = "TargetUserId";
+    internal const string MetaRolesAdded = "RolesAdded";
+    internal const string MetaRolesRemoved = "RolesRemoved";
+
     private readonly IAppLogger _appLogger;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -34,10 +48,10 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.PermissionDenied,
-                ["UserId"] = userId,
-                ["RequiredPermission"] = requiredPermission,
-                ["Path"] = path ?? _httpContextAccessor.HttpContext?.Request?.Path.Value ?? string.Empty,
+                [MetaEventType] = AuthAuditEventTypes.PermissionDenied,
+                [MetaUserId] = userId,
+                [MetaRequiredPermission] = requiredPermission,
+                [MetaPath] = path ?? _httpContextAccessor.HttpContext?.Request?.Path.Value ?? string.Empty,
             }));
 
     public Task LogAuthenticationFailedAsync(string identifier, string reason, CancellationToken cancellationToken = default) =>
@@ -47,11 +61,11 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.AuthFailed,
+                [MetaEventType] = AuthAuditEventTypes.AuthFailed,
                 // Hash the identifier so we can correlate brute-force attempts
                 // without retaining the raw value.
-                ["IdentifierHash"] = HashIdentifier(identifier),
-                ["Reason"] = reason,
+                [MetaIdentifierHash] = HashIdentifier(identifier),
+                [MetaReason] = reason,
             }));
 
     public Task LogLogoutAsync(Guid userId, CancellationToken cancellationToken = default) =>
@@ -61,8 +75,8 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.Logout,
-                ["UserId"] = userId,
+                [MetaEventType] = AuthAuditEventTypes.Logout,
+                [MetaUserId] = userId,
             }));
 
     public Task LogTokenRevokedAsync(Guid userId, string reason, int tokenCount, CancellationToken cancellationToken = default) =>
@@ -72,10 +86,10 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.TokenRevoked,
-                ["UserId"] = userId,
-                ["Reason"] = reason,
-                ["TokenCount"] = tokenCount,
+                [MetaEventType] = AuthAuditEventTypes.TokenRevoked,
+                [MetaUserId] = userId,
+                [MetaReason] = reason,
+                [MetaTokenCount] = tokenCount,
             }));
 
     public Task LogRefreshReplayAsync(Guid userId, CancellationToken cancellationToken = default) =>
@@ -85,8 +99,8 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.RefreshReplay,
-                ["UserId"] = userId,
+                [MetaEventType] = AuthAuditEventTypes.RefreshReplay,
+                [MetaUserId] = userId,
             }));
 
     public Task LogRoleAssignmentChangedAsync(
@@ -100,10 +114,10 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
-                ["EventType"] = AuthAuditEventTypes.RoleAssignmentChanged,
-                ["TargetUserId"] = targetUserId,
-                ["RolesAdded"] = rolesAdded.ToArray(),
-                ["RolesRemoved"] = rolesRemoved.ToArray(),
+                [MetaEventType] = AuthAuditEventTypes.RoleAssignmentChanged,
+                [MetaTargetUserId] = targetUserId,
+                [MetaRolesAdded] = rolesAdded.ToArray(),
+                [MetaRolesRemoved] = rolesRemoved.ToArray(),
             }));
 
     private static async Task SafeLogAsync(Task pending)

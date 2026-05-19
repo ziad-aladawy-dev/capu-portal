@@ -22,18 +22,18 @@ namespace CapitalUniversity.Modules.Payments.Application;
 /// </summary>
 public class PaymentVerificationService : IPaymentVerificationService
 {
-    private readonly IUnitOfWork _unitOfWork;
     private readonly IInvoiceRepository _invoices;
     private readonly IValidator<RecordPaymentRequest> _validator;
     private readonly ICacheService _cache;
 
+    // SaveChanges is funneled through IInvoiceRepository.SaveTransactionWithIdempotencyAsync,
+    // so IUnitOfWork isn't needed here — the repository persists directly on its
+    // CoreDbContext and surfaces the idempotency-replay outcome to this service.
     public PaymentVerificationService(
-        IUnitOfWork unitOfWork,
         IInvoiceRepository invoices,
         IValidator<RecordPaymentRequest> validator,
         ICacheService cache)
     {
-        _unitOfWork = unitOfWork;
         _invoices = invoices;
         _validator = validator;
         _cache = cache;

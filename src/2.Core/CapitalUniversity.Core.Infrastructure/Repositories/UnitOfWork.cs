@@ -3,30 +3,35 @@ using CapitalUniversity.Core.Infrastructure.Persistence;
 
 namespace CapitalUniversity.Core.Infrastructure.Repositories;
 
-public class UnitOfWork : IUnitOfWork
+/// <summary>
+/// Bundles the repositories surfaced by <see cref="IUnitOfWork"/>. Lets
+/// <see cref="UnitOfWork"/> stay under the 7-parameter constructor limit
+/// without losing the explicit per-repository property surface used by
+/// callers.
+/// </summary>
+public sealed record UnitOfWorkRepositories(
+    IStudentRepository Students,
+    IStaffRepository Staff,
+    IStructureNodeRepository StructureNodes,
+    IAcademicYearRepository AcademicYears,
+    ISemesterRepository Semesters,
+    ICourseRepository Courses,
+    IAcademicPlanRepository AcademicPlans);
+
+public sealed class UnitOfWork : IUnitOfWork
 {
     private readonly CoreDbContext _context;
 
-    public UnitOfWork(
-        CoreDbContext context,
-        IStudentRepository students,
-        IStaffRepository staff,
-        IStructureNodeRepository structureNodes,
-        IAcademicYearRepository academicYears,
-        ISemesterRepository semesters,
-        ICourseRepository courses,
-        IAcademicPlanRepository academicPlans,
-        IStudentProfileRecordRepository studentProfileRecords)
+    public UnitOfWork(CoreDbContext context, UnitOfWorkRepositories repositories)
     {
         _context = context;
-        Students = students;
-        Staff = staff;
-        StructureNodes = structureNodes;
-        AcademicYears = academicYears;
-        Semesters = semesters;
-        Courses = courses;
-        AcademicPlans = academicPlans;
-        StudentProfileRecords = studentProfileRecords;
+        Students = repositories.Students;
+        Staff = repositories.Staff;
+        StructureNodes = repositories.StructureNodes;
+        AcademicYears = repositories.AcademicYears;
+        Semesters = repositories.Semesters;
+        Courses = repositories.Courses;
+        AcademicPlans = repositories.AcademicPlans;
     }
 
     public IStudentRepository Students { get; }
@@ -36,16 +41,13 @@ public class UnitOfWork : IUnitOfWork
     public ISemesterRepository Semesters { get; }
     public ICourseRepository Courses { get; }
     public IAcademicPlanRepository AcademicPlans { get; }
-    public IStudentProfileRecordRepository StudentProfileRecords { get; }
 
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.SaveChangesAsync(cancellationToken);
-    }
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        _context.SaveChangesAsync(cancellationToken);
 
-    public void Dispose()
-    {
-        _context.Dispose();
-    }
+    // CoreDbContext + repositories are scoped DI services; the DI container
+    // already disposes them at scope end. UnitOfWork itself owns no
+    // disposable resources — SuppressFinalize keeps CA1816 quiet and the
+    // sealed type means no derived class can introduce a finalizer.
+    public void Dispose() => GC.SuppressFinalize(this);
 }
-

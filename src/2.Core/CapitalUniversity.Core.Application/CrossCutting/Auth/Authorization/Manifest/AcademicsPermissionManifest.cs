@@ -19,17 +19,20 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Man
 /// </summary>
 public sealed class AcademicsPermissionManifest : IPermissionManifest
 {
+    private const string ResourceAcademicYears = "academic-years";
+    private const string DisplayAcademicTimeline = "Academic Timeline";
+
     public string Module => "academics";
-    public string DisplayName => "Academic Timeline";
+    public string DisplayName => DisplayAcademicTimeline;
     public string? Icon => "Calendar";
     public int? OrderNumber => 6;
 
     public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
     {
-        PermissionDefinition.Create("academic-years", "View",      "Academic Timeline", 0),
-        PermissionDefinition.Create("academic-years", "Insert",    "Academic Timeline", 0),
-        PermissionDefinition.Create("academic-years", "EditClose", "Academic Timeline", 0),
-        PermissionDefinition.Create("academic-years", "Open",      "Academic Timeline", 0),
-        PermissionDefinition.Create("academic-years", "Delete",    "Academic Timeline", 0),
+        PermissionDefinition.Create(ResourceAcademicYears, "View",      DisplayAcademicTimeline, 0),
+        PermissionDefinition.Create(ResourceAcademicYears, "Insert",    DisplayAcademicTimeline, 0),
+        PermissionDefinition.Create(ResourceAcademicYears, "EditClose", DisplayAcademicTimeline, 0),
+        PermissionDefinition.Create(ResourceAcademicYears, "Open",      DisplayAcademicTimeline, 0),
+        PermissionDefinition.Create(ResourceAcademicYears, "Delete",    DisplayAcademicTimeline, 0),
     };
 }

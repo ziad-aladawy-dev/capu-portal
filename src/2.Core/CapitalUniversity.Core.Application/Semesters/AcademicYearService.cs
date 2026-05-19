@@ -152,8 +152,6 @@ public class AcademicYearService : IAcademicYearService
         }
     }
 
-    private bool IsDateInRange(DateTime date, DateTime start, DateTime end)
-    {
-        return date >= start && date <= end;
-    }
+    private static bool IsDateInRange(DateTime date, DateTime start, DateTime end) =>
+        date >= start && date <= end;
 }

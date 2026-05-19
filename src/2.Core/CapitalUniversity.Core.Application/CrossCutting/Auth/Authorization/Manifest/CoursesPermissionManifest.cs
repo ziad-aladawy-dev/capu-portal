@@ -12,25 +12,30 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Man
 /// </summary>
 public sealed class CoursesPermissionManifest : IPermissionManifest
 {
-    public string Module => "courses";
-    public string DisplayName => "Course Catalog";
+    private const string ResourceCourses = "courses";
+    private const string DisplayCourseCatalog = "Course Catalog";
+    private const string ResourceAcademicPlans = "academic-plans";
+    private const string DisplayAcademicPlans = "Academic Plans";
+
+    public string Module => ResourceCourses;
+    public string DisplayName => DisplayCourseCatalog;
     public string? Icon => "BookOpen";
     public int? OrderNumber => 7;
 
     public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
     {
-        PermissionDefinition.Create("courses", "View",      "Course Catalog", 0),
-        PermissionDefinition.Create("courses", "Insert",    "Course Catalog", 0),
-        PermissionDefinition.Create("courses", "EditClose", "Course Catalog", 0),
-        PermissionDefinition.Create("courses", "Open",      "Course Catalog", 0),
-        PermissionDefinition.Create("courses", "Delete",    "Course Catalog", 0),
+        PermissionDefinition.Create(ResourceCourses, "View",      DisplayCourseCatalog, 0),
+        PermissionDefinition.Create(ResourceCourses, "Insert",    DisplayCourseCatalog, 0),
+        PermissionDefinition.Create(ResourceCourses, "EditClose", DisplayCourseCatalog, 0),
+        PermissionDefinition.Create(ResourceCourses, "Open",      DisplayCourseCatalog, 0),
+        PermissionDefinition.Create(ResourceCourses, "Delete",    DisplayCourseCatalog, 0),
         // Academic-plan composition (curriculum layout). Lives under the same
         // module as the catalog but uses its own Service row so it can be
         // granted independently of catalog-edit rights.
-        PermissionDefinition.Create("academic-plans", "View",      "Academic Plans", 1),
-        PermissionDefinition.Create("academic-plans", "Insert",    "Academic Plans", 1),
-        PermissionDefinition.Create("academic-plans", "EditClose", "Academic Plans", 1),
-        PermissionDefinition.Create("academic-plans", "Open",      "Academic Plans", 1),
-        PermissionDefinition.Create("academic-plans", "Delete",    "Academic Plans", 1),
+        PermissionDefinition.Create(ResourceAcademicPlans, "View",      DisplayAcademicPlans, 1),
+        PermissionDefinition.Create(ResourceAcademicPlans, "Insert",    DisplayAcademicPlans, 1),
+        PermissionDefinition.Create(ResourceAcademicPlans, "EditClose", DisplayAcademicPlans, 1),
+        PermissionDefinition.Create(ResourceAcademicPlans, "Open",      DisplayAcademicPlans, 1),
+        PermissionDefinition.Create(ResourceAcademicPlans, "Delete",    DisplayAcademicPlans, 1),
     };
 }

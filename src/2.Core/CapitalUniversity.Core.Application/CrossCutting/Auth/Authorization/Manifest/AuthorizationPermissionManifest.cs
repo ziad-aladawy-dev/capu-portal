@@ -11,7 +11,10 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Man
 /// </summary>
 public sealed class AuthorizationPermissionManifest : IPermissionManifest
 {
-    public string Module => "permissions";
+    private const string ResourcePermissions = "permissions";
+    private const string ResourceRoles = "roles";
+
+    public string Module => ResourcePermissions;
     public string DisplayName => "Permissions & Roles";
     public string? Icon => "Shield";
     public int? OrderNumber => 4;
@@ -19,17 +22,17 @@ public sealed class AuthorizationPermissionManifest : IPermissionManifest
     public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
     {
         // ── Permissions sub-resource ───────────────────────────────────────
-        PermissionDefinition.Create("permissions", "View",      "View Permissions",   0),
-        PermissionDefinition.Create("permissions", "Insert",    "Create Permissions", 1),
-        PermissionDefinition.Create("permissions", "EditClose", "Manage Permissions", 2),
-        PermissionDefinition.Create("permissions", "Open",      "Open Permissions",   3),
-        PermissionDefinition.Create("permissions", "Delete",    "Delete Permissions", 4),
+        PermissionDefinition.Create(ResourcePermissions, "View",      "View Permissions",   0),
+        PermissionDefinition.Create(ResourcePermissions, "Insert",    "Create Permissions", 1),
+        PermissionDefinition.Create(ResourcePermissions, "EditClose", "Manage Permissions", 2),
+        PermissionDefinition.Create(ResourcePermissions, "Open",      "Open Permissions",   3),
+        PermissionDefinition.Create(ResourcePermissions, "Delete",    "Delete Permissions", 4),
 
         // ── Roles sub-resource ─────────────────────────────────────────────
-        PermissionDefinition.Create("roles", "View",      "View Roles",   5),
-        PermissionDefinition.Create("roles", "Insert",    "Create Roles", 6),
-        PermissionDefinition.Create("roles", "EditClose", "Manage Roles", 7),
-        PermissionDefinition.Create("roles", "Open",      "Open Roles",   8),
-        PermissionDefinition.Create("roles", "Delete",    "Delete Roles", 9),
+        PermissionDefinition.Create(ResourceRoles, "View",      "View Roles",   5),
+        PermissionDefinition.Create(ResourceRoles, "Insert",    "Create Roles", 6),
+        PermissionDefinition.Create(ResourceRoles, "EditClose", "Manage Roles", 7),
+        PermissionDefinition.Create(ResourceRoles, "Open",      "Open Roles",   8),
+        PermissionDefinition.Create(ResourceRoles, "Delete",    "Delete Roles", 9),
     };
 }

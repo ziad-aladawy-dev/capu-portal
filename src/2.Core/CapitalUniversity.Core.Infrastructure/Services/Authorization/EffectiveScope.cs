@@ -71,14 +71,9 @@ public sealed class EffectiveScope : IEffectiveScope
         return PathCoveredByGrants(nodePath);
     }
 
-    private bool PathCoveredByGrants(string targetPath)
-    {
-        foreach (var grant in _userScope.AuthorizedNodePaths)
-        {
-            if (targetPath.StartsWith(grant, StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
-    }
+    private bool PathCoveredByGrants(string targetPath) =>
+        _userScope.AuthorizedNodePaths
+            .Any(grant => targetPath.StartsWith(grant, StringComparison.OrdinalIgnoreCase));
 
     private async Task<string?> ResolveStudentPathAsync(Guid studentId, CancellationToken cancellationToken)
     {

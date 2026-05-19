@@ -34,7 +34,7 @@ public class PermissionManagementServiceTests
         return ctx;
     }
 
-    private PermissionManagementService CreateService(
+    private static PermissionManagementService CreateService(
         CoreDbContext dbContext,
         out Mock<IPermissionService> mockPermissionService,
         out Mock<IRequestContext> mockRequestContext,
@@ -53,8 +53,7 @@ public class PermissionManagementServiceTests
             mockRequestContext.Object,
             mockScopeResolver.Object,
             dbContext,
-            mockCache.Object,
-            mockCurrentUser.Object);
+            new PermissionCacheCoordinator(mockCache.Object, new PermissionCacheOptions(), null));
     }
 
     [Fact]

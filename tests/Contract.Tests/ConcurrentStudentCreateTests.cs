@@ -37,8 +37,8 @@ public class ConcurrentStudentCreateTests : IClassFixture<WebApplicationFactory<
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
                 services.AddDbContext<CoreDbContext>(o => o.UseInMemoryDatabase(dbName));
                 services.AddScoped(_ => new Mock<IAppLogger>().Object);
                 services.AddScoped(_ => new Mock<ILoggerService>().Object);

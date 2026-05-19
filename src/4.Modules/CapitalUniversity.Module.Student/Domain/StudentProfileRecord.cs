@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 
-namespace CapitalUniversity.Core.Domain.StudentInformation;
+namespace CapitalUniversity.Modules.Student.Domain;
 
 /// <summary>
 /// Sparse, optional, regulation-driven facts about a single student. Stored

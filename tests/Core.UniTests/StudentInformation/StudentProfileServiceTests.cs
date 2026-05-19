@@ -1,10 +1,12 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.Repositories;
-using CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
-using CapitalUniversity.Core.Application.StudentInformation;
-using CapitalUniversity.Core.Application.StudentInformation.Validators;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
+using CapitalUniversity.Modules.Student.Application;
+using CapitalUniversity.Modules.Student.Application.Validators;
+using CapitalUniversity.Modules.Student.Domain;
+using CapitalUniversity.Modules.Student.Repositories;
 using FluentAssertions;
 using Moq;
 using Xunit;

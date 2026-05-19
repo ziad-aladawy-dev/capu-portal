@@ -1,6 +1,4 @@
-using CapitalUniversity.Core.Domain.StudentInformation;
-
-namespace CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
+namespace CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 
 public class StudentProfileRecordResponse
 {

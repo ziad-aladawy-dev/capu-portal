@@ -1,14 +1,15 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.Repositories;
-using CapitalUniversity.Core.Abstractions.StudentInformation;
-using CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
+using CapitalUniversity.Modules.Student.Domain;
+using CapitalUniversity.Modules.Student.Repositories;
 using FluentValidation;
 using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException;
 
-namespace CapitalUniversity.Core.Application.StudentInformation;
+namespace CapitalUniversity.Modules.Student.Application;
 
 /// <summary>
 /// Owns the flexible JSON-backed profile records. Upsert keys on
@@ -21,6 +22,7 @@ namespace CapitalUniversity.Core.Application.StudentInformation;
 public class StudentProfileService : IStudentProfileService
 {
     internal const string CacheKeyPrefix = "studentprofile:object:";
+    private const string ProfileRecordNotFound = "Profile record not found.";
     private static readonly TimeSpan StandardTtl = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan SensitiveTtl = TimeSpan.FromMinutes(2);
 
@@ -149,11 +151,11 @@ public class StudentProfileService : IStudentProfileService
         }
 
         var record = await _records.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Profile record not found.");
+            ?? throw new NotFoundException(ProfileRecordNotFound);
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
-            throw new NotFoundException("Profile record not found.");
+            throw new NotFoundException(ProfileRecordNotFound);
         }
 
         record.VerifiedBy = request.VerifiedBy;
@@ -167,11 +169,11 @@ public class StudentProfileService : IStudentProfileService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var record = await _records.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Profile record not found.");
+            ?? throw new NotFoundException(ProfileRecordNotFound);
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
-            throw new NotFoundException("Profile record not found.");
+            throw new NotFoundException(ProfileRecordNotFound);
         }
 
         _records.Delete(record);

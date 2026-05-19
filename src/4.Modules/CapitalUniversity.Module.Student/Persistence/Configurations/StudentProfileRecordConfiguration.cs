@@ -1,9 +1,14 @@
-using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
+// Alias the Student entity to avoid the name clash with the enclosing
+// `CapitalUniversity.Modules.Student` namespace — `using` of
+// CapitalUniversity.Core.Domain.Identity makes the unqualified `Student`
+// identifier ambiguous with the parent namespace.
+using StudentEntity = CapitalUniversity.Core.Domain.Identity.Student;
+
+namespace CapitalUniversity.Modules.Student.Persistence.Configurations;
 
 public class StudentProfileRecordConfiguration : IEntityTypeConfiguration<StudentProfileRecord>
 {
@@ -21,8 +26,14 @@ public class StudentProfileRecordConfiguration : IEntityTypeConfiguration<Studen
 
         builder.Property(x => x.RowVersion).IsRowVersion();
 
+        // P0.6 / P1.5 — soft-delete global query filter. Declared here because
+        // the StudentProfileRecord type lives in Module.Student; CoreDbContext
+        // (Core.Infrastructure) cannot reference this type at the
+        // modelBuilder.Entity<T>() call site.
+        builder.HasQueryFilter(x => !x.IsDeleted);
+
         // Schema-level FK to Student. No navigation per the modularity rule.
-        builder.HasOne<Student>()
+        builder.HasOne<StudentEntity>()
             .WithMany()
             .HasForeignKey(x => x.StudentId)
             .OnDelete(DeleteBehavior.Restrict);

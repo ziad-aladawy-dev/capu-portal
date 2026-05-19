@@ -1,6 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 
-namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
+namespace CapitalUniversity.Modules.Student.Abstractions.Manifest;
 
 /// <summary>
 /// Declares the Student Information module's permission surface. Profile
@@ -10,6 +10,9 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Man
 /// </summary>
 public sealed class StudentInformationPermissionManifest : IPermissionManifest
 {
+    private const string ResourceProfileRecords = "profile-records";
+    private const string DisplayProfileRecords = "Profile Records";
+
     public string Module => "student-information";
     public string DisplayName => "Student Information";
     public string? Icon => "IdCard";
@@ -17,10 +20,10 @@ public sealed class StudentInformationPermissionManifest : IPermissionManifest
 
     public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
     {
-        PermissionDefinition.Create("profile-records", "View",      "Profile Records", 0),
-        PermissionDefinition.Create("profile-records", "Insert",    "Profile Records", 0),
-        PermissionDefinition.Create("profile-records", "EditClose", "Profile Records", 0),
-        PermissionDefinition.Create("profile-records", "Open",      "Profile Records", 0),
-        PermissionDefinition.Create("profile-records", "Delete",    "Profile Records", 0),
+        PermissionDefinition.Create(ResourceProfileRecords, "View",      DisplayProfileRecords, 0),
+        PermissionDefinition.Create(ResourceProfileRecords, "Insert",    DisplayProfileRecords, 0),
+        PermissionDefinition.Create(ResourceProfileRecords, "EditClose", DisplayProfileRecords, 0),
+        PermissionDefinition.Create(ResourceProfileRecords, "Open",      DisplayProfileRecords, 0),
+        PermissionDefinition.Create(ResourceProfileRecords, "Delete",    DisplayProfileRecords, 0),
     };
 }

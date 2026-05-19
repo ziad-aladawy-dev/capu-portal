@@ -20,7 +20,7 @@ public sealed class UserScope : IUserScope
     private bool _isStudent;
     private Guid? _ownNodeId;
     private string? _ownPath;
-    private HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
     private bool _global;
 
     public UserScope(ICurrentUser currentUser, CoreDbContext dbContext)
@@ -82,72 +82,82 @@ public sealed class UserScope : IUserScope
             }
 
             _userId = _currentUser.Id;
-
-            // Staff first, then Student — the JWT Id matches one of the two.
-            var staff = await _dbContext.Staffs
-                .AsNoTracking()
-                .Where(s => s.Id == _userId)
-                .Select(s => new { s.StructureNodeId })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (staff is not null)
-            {
-                _isStudent = false;
-                _ownNodeId = staff.StructureNodeId;
-            }
-            else
-            {
-                var student = await _dbContext.Students
-                    .AsNoTracking()
-                    .Where(s => s.Id == _userId)
-                    .Select(s => new { s.StructureNodeId })
-                    .FirstOrDefaultAsync(cancellationToken);
-                if (student is not null)
-                {
-                    _isStudent = true;
-                    _ownNodeId = student.StructureNodeId;
-                }
-            }
-
-            if (_ownNodeId is Guid nodeId)
-            {
-                _ownPath = await _dbContext.StructureNodes
-                    .AsNoTracking()
-                    .Where(n => n.Id == nodeId)
-                    .Select(n => n.Path)
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
-
-            // Staff grants only — students don't use the authorized-paths set
-            // because their visibility is computed relative to their own path
-            // (see EffectiveScope).
-            if (!_isStudent)
-            {
-                var grants = await _dbContext.StaffRoles
-                    .AsNoTracking()
-                    .Where(r => r.StaffId == _userId)
-                    .Select(r => new { r.StructureNodeId, r.StructureNodePath })
-                    .ToListAsync(cancellationToken);
-
-                foreach (var g in grants)
-                {
-                    if (g.StructureNodeId is null)
-                    {
-                        _global = true;
-                        continue;
-                    }
-                    if (!string.IsNullOrWhiteSpace(g.StructureNodePath))
-                    {
-                        _paths.Add(g.StructureNodePath);
-                    }
-                }
-            }
+            await ResolveIdentityAndOwnNodeAsync(cancellationToken);
+            await ResolveOwnPathAsync(cancellationToken);
+            await PopulateStaffGrantsAsync(cancellationToken);
 
             _loaded = true;
         }
         finally
         {
             _gate.Release();
+        }
+    }
+
+    /// <summary>Resolve whether the caller is staff or student and their owning node.</summary>
+    private async Task ResolveIdentityAndOwnNodeAsync(CancellationToken cancellationToken)
+    {
+        // Staff first, then Student — the JWT Id matches one of the two.
+        var staff = await _dbContext.Staffs
+            .AsNoTracking()
+            .Where(s => s.Id == _userId)
+            .Select(s => new { s.StructureNodeId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (staff is not null)
+        {
+            _isStudent = false;
+            _ownNodeId = staff.StructureNodeId;
+            return;
+        }
+
+        var student = await _dbContext.Students
+            .AsNoTracking()
+            .Where(s => s.Id == _userId)
+            .Select(s => new { s.StructureNodeId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (student is not null)
+        {
+            _isStudent = true;
+            _ownNodeId = student.StructureNodeId;
+        }
+    }
+
+    private async Task ResolveOwnPathAsync(CancellationToken cancellationToken)
+    {
+        if (_ownNodeId is not Guid nodeId) return;
+
+        _ownPath = await _dbContext.StructureNodes
+            .AsNoTracking()
+            .Where(n => n.Id == nodeId)
+            .Select(n => n.Path)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Students don't use the authorized-paths set — their visibility is
+    /// computed relative to their own path (see EffectiveScope).
+    /// </summary>
+    private async Task PopulateStaffGrantsAsync(CancellationToken cancellationToken)
+    {
+        if (_isStudent) return;
+
+        var grants = await _dbContext.StaffRoles
+            .AsNoTracking()
+            .Where(r => r.StaffId == _userId)
+            .Select(r => new { r.StructureNodeId, r.StructureNodePath })
+            .ToListAsync(cancellationToken);
+
+        foreach (var g in grants)
+        {
+            if (g.StructureNodeId is null)
+            {
+                _global = true;
+            }
+            else if (!string.IsNullOrWhiteSpace(g.StructureNodePath))
+            {
+                _paths.Add(g.StructureNodePath);
+            }
         }
     }
 }

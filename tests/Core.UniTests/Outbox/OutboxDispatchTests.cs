@@ -125,7 +125,7 @@ public class OutboxDispatchTests
     }
 
     [Fact]
-    public void EnqueueAsync_DoesNotCommit_LeavingTransactionalAtomicityToTheCaller()
+    public async Task EnqueueAsync_DoesNotCommit_LeavingTransactionalAtomicityToTheCaller()
     {
         // The outbox must NOT call SaveChanges internally — the whole point of the
         // pattern is that the row commits in the same txn as the business state it
@@ -134,7 +134,7 @@ public class OutboxDispatchTests
         var (provider, db, _, _) = Build();
         var outbox = new OutboxService(db);
 
-        outbox.EnqueueAsync(TestMessageType, new { x = 1 }).GetAwaiter().GetResult();
+        await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
 
         db.OutboxMessages.Local.Should().HaveCount(1);
         db.ChangeTracker.Entries<OutboxMessage>().Should().HaveCount(1);

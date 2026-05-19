@@ -1,9 +1,9 @@
 using System.Text.Json;
-using CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 using FluentValidation;
 
-namespace CapitalUniversity.Core.Application.StudentInformation.Validators;
+namespace CapitalUniversity.Modules.Student.Application.Validators;
 
 public class UpsertStudentProfileRecordValidator : AbstractValidator<UpsertStudentProfileRecordRequest>
 {

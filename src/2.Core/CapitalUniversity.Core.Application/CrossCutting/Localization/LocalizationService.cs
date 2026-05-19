@@ -7,8 +7,6 @@ using Microsoft.Extensions.Logging;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Localization
 {
-    public class SharedResource {}
-
     public class LocalizationService : ILocalizationService
     {
         private const string DefaultLanguage = "ar";

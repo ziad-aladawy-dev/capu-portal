@@ -1,8 +1,7 @@
 using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.StudentInformation;
-using CapitalUniversity.Core.Abstractions.StudentInformation.DTOs;
-using CapitalUniversity.Core.Domain.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
+using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
