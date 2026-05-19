@@ -1,5 +1,5 @@
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,6 +19,11 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(3);
 
         builder.Property(x => x.RowVersion).IsRowVersion();
+
+        // P0.6 / P1.5 — soft-delete global query filter. Declared here because
+        // the Invoice type lives in Module.Payments; CoreDbContext (Core.Infra)
+        // cannot reference this type at the modelBuilder.Entity<T>() call site.
+        builder.HasQueryFilter(x => !x.IsDeleted);
 
         // List-by-student is the hottest path (student portal "my invoices").
         builder.HasIndex(x => new { x.StudentId, x.Status });

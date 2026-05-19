@@ -16,14 +16,18 @@ public class StudentService : IStudentService
 
     private readonly ISessionVersionService _sessionVersions;
 
+    private readonly IUnitOfWork _unitOfWork;
+
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
-        ISessionVersionService sessionVersions)
+        ISessionVersionService sessionVersions,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _sessionVersions = sessionVersions;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -107,7 +111,7 @@ public class StudentService : IStudentService
 
         await _repository.AddAsync(student);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         // P2.6 — evict any negative-cached "user not found" entry so the new
         // student's first authenticated request resolves cleanly.
@@ -198,7 +202,7 @@ public class StudentService : IStudentService
 
         await _repository.UpdateAsync(student);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -211,7 +215,7 @@ public class StudentService : IStudentService
 
         await _repository.SoftDeleteAsync(id);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -227,7 +231,7 @@ public class StudentService : IStudentService
 
         await _repository.ToggleStatusAsync(id);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<StudentDto?> GetByIdAsync(Guid id)

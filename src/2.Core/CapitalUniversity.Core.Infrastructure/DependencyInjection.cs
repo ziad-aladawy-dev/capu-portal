@@ -107,7 +107,7 @@ public static class DependencyInjection
         services.AddScoped<ISemesterRepository, SemesterRepository>();
         services.AddScoped<ICourseRepository, CourseRepository>();
         services.AddScoped<IAcademicPlanRepository, AcademicPlanRepository>();
-        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        // IInvoiceRepository moved to Module.Payments — registered by AddPaymentsModule().
         services.AddScoped<IStudentProfileRecordRepository, StudentProfileRecordRepository>();
 
         services.AddScoped<IAcademicYearService, AcademicYearService>();
@@ -116,12 +116,8 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Application.Courses.CourseService>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.IAcademicPlanService,
                            CapitalUniversity.Core.Application.Courses.AcademicPlanService>();
-        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IInvoiceService,
-                           CapitalUniversity.Core.Application.Payments.InvoiceService>();
-        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IFeeCreationService,
-                           CapitalUniversity.Core.Application.Payments.FeeCreationService>();
-        services.AddScoped<CapitalUniversity.Core.Abstractions.Payments.IPaymentVerificationService,
-                           CapitalUniversity.Core.Application.Payments.PaymentVerificationService>();
+        // IInvoiceService / IFeeCreationService / IPaymentVerificationService
+        // moved to Module.Payments — registered by AddPaymentsModule().
         services.AddScoped<CapitalUniversity.Core.Abstractions.StudentInformation.IStudentProfileService,
                            CapitalUniversity.Core.Application.StudentInformation.StudentProfileService>();
 
@@ -139,10 +135,8 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Application.Courses.Validators.UpdateAcademicPlanValidator>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.AddPlanCourseRequest>,
                            CapitalUniversity.Core.Application.Courses.Validators.AddPlanCourseValidator>();
-        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Payments.DTOs.CreateInvoiceRequest>,
-                           CapitalUniversity.Core.Application.Payments.Validators.CreateInvoiceValidator>();
-        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Payments.DTOs.RecordPaymentRequest>,
-                           CapitalUniversity.Core.Application.Payments.Validators.RecordPaymentValidator>();
+        // CreateInvoiceRequest + RecordPaymentRequest validators moved to
+        // Module.Payments — registered by AddPaymentsModule().
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.StudentInformation.DTOs.UpsertStudentProfileRecordRequest>,
                            CapitalUniversity.Core.Application.StudentInformation.Validators.UpsertStudentProfileRecordValidator>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.StudentInformation.DTOs.VerifyStudentProfileRecordRequest>,
@@ -181,6 +175,13 @@ public static class DependencyInjection
         // Permission Services
         services.AddScoped<IScopeResolver, ScopeResolver>();
         services.AddScoped<IPermissionService, PermissionService>();
+
+        // P1.1 — row-level scoped authorization for Invoice / AcademicPlan /
+        // StudentProfileRecord. Scoped so the per-request memoisation in
+        // UserScope and EffectiveScope holds for the lifetime of one HTTP
+        // request and disposes with the request DbContext.
+        services.AddScoped<IUserScope, CapitalUniversity.Core.Infrastructure.Services.Authorization.UserScope>();
+        services.AddScoped<IEffectiveScope, CapitalUniversity.Core.Infrastructure.Services.Authorization.EffectiveScope>();
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
         services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
 
@@ -201,8 +202,8 @@ public static class DependencyInjection
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.NotificationsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.CoursesPermissionManifest>();
-        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
-                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PaymentsPermissionManifest>();
+        // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
+        // registered by AddPaymentsModule().
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.StudentInformationPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,

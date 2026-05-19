@@ -1,4 +1,5 @@
-using CapitalUniversity.Core.Domain.Payments;
+
+using CapitalUniversity.Modules.Payments.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

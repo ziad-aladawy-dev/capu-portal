@@ -1,6 +1,6 @@
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Abstractions;
 
-namespace CapitalUniversity.Core.Abstractions.Payments.DTOs;
+namespace CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 
 public class InvoiceResponse
 {

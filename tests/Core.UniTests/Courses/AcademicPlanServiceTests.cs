@@ -49,6 +49,9 @@ public class AcademicPlanServiceTests
         var courses = new Mock<ICourseRepository>();
         var uow = new Mock<IUnitOfWork>();
         var cache = new StubCache();
+        var scope = new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.IEffectiveScope>();
+        scope.Setup(s => s.CanAccessStudentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var service = new AcademicPlanService(
             uow.Object,
             plans.Object,
@@ -56,7 +59,8 @@ public class AcademicPlanServiceTests
             new CreateAcademicPlanValidator(),
             new UpdateAcademicPlanValidator(),
             new AddPlanCourseValidator(),
-            cache);
+            cache,
+            scope.Object);
         return (service, plans, courses, uow, cache);
     }
 

@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 
@@ -34,6 +35,10 @@ public class GlobalExceptionHandler : IExceptionHandler
             ForbiddenException    => ((int)HttpStatusCode.Forbidden,          LocalizedKeys.Permissions.Forbidden,          "https://tools.ietf.org/html/rfc7231#section-6.5.3"),
             NotFoundException     => ((int)HttpStatusCode.NotFound,           LocalizedKeys.Infrastructure.NotFound,        "https://tools.ietf.org/html/rfc7231#section-6.5.4"),
             ConflictException     => ((int)HttpStatusCode.Conflict,           LocalizedKeys.Infrastructure.Conflict,        "https://tools.ietf.org/html/rfc7231#section-6.5.8"),
+            // P0.8 / P1.4 — RowVersion mismatch means another writer beat us.
+            // Map to 409 so the client knows to refresh-and-retry instead of
+            // seeing the raw EF infra exception as a 500.
+            DbUpdateConcurrencyException => ((int)HttpStatusCode.Conflict,    LocalizedKeys.Infrastructure.Conflict,        "https://tools.ietf.org/html/rfc7231#section-6.5.8"),
             _                     => ((int)HttpStatusCode.InternalServerError, LocalizedKeys.Infrastructure.ServerError,    "https://tools.ietf.org/html/rfc7231#section-6.6.1")
         };
 

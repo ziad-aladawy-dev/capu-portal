@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Modules.Payments.Domain;
 
-namespace CapitalUniversity.Core.Domain.Payments;
+namespace CapitalUniversity.Modules.Payments.Domain;
 
 /// <summary>
 /// One line on an <see cref="Invoice"/>. Authored by an upstream module

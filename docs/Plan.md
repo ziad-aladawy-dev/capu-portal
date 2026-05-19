@@ -1,501 +1,658 @@
-# Scoped Infrastructure & Authorization Hardening Plan
+# University Platform — Implementation Plan & Architectural Constraints
 
-# Ownership & Boundary Rules
+# Goal
 
-## My Scope ONLY
+This document defines:
 
-The implementation scope is strictly limited to:
+- module boundaries
+- architectural rules
+- persistence rules
+- authorization integration
+- localization integration
+- scope filtering integration
+- caching constraints
+- performance expectations
+- implementation phases
 
-- Cross-Cutting infrastructure
-- Authentication
-- Authorization
-- Session/token lifecycle
-- Permission infrastructure
-- Logging/audit infrastructure
-- Notification infrastructure
-- Localization infrastructure
-- Semesters module
-- AcademicYears module
-
----
-
-# Explicitly Out of Scope
-
-The following domains and implementations must NOT be modified:
-
-- Students module
-- StructureNode / UniversityStructure module
-- Staff/Admin business workflows
-- Teammate-owned services
-- Teammate-owned repositories
-- Teammate-owned controllers
-- Teammate domain entities
-- Teammate DTOs
-- Teammate validation flows
-
-This includes:
-
-- No business logic changes
-- No transactional changes
-- No service refactors
-- No repository refactors
-- No middleware injection into teammate flows
-- No endpoint behavior changes
-- No hierarchy redesign
-- No CQRS migration
-- No aggregate redesign
-- No query redesign
+The implementation MUST strictly follow the existing platform architecture.
 
 ---
 
-# Middleware Restriction
+# Mandatory References Before Implementation
 
-Infrastructure middleware/components MAY be created and fully prepared for future usage, BUT:
+Before implementing any feature, Claude MUST read and follow:
 
-- they must NOT be attached to teammate pipelines
-- they must NOT modify teammate request flows
-- they must NOT enforce behavior automatically outside my scope
-- they must NOT require teammate code modifications
+```text
+RequestPipeline_Context_Authorization_and_Localization.md
+Authorization_Model.md
+```
 
-Allowed:
-- creating middleware
-- creating extension methods
-- creating interfaces/contracts
-- registering optional infrastructure
+These documents define:
 
-NOT allowed:
-- enabling middleware globally for teammate modules
-- forcing controller behavior outside my scope
-- modifying teammate endpoint execution order
+- request context resolution
+- authorization flow
+- localization flow
+- scope filtering
+- permission resolution
+- tenant/scope behavior
+- middleware expectations
 
----
-
-# Core Authorization Architecture Fix
-
-## Problem
-
-The current authorization model relies on:
-- scattered permission constants
-- manually seeded permissions
-- disconnected `[HasPermission(...)]` usage
-
-This creates:
-- permission drift
-- missing DB permissions
-- inconsistent authorization mapping
-- runtime mismatches between code and database
+Implementation MUST integrate with them exactly.
 
 ---
 
-# New Permission Manifest Architecture (P0)
+# Critical Architectural Rules
 
-## Goal
+# Never Touch Logic Outside Module Scope
 
-Every module owns its permissions through a centralized manifest definition.
+Claude MUST NOT:
 
-The system should work similarly to:
-- modular DbContext registration
-- schema/module wiring
+- modify unrelated services
+- modify unrelated business logic
+- rewrite existing workflows
+- bypass existing abstractions
+- tightly couple modules together
 
-Each module declares:
-- its permissions
-- its groups
-- its scopes
-- its metadata
+Changes must remain isolated to the target module/feature.
 
-The infrastructure layer auto-discovers and syncs them into the database.
+If integration is needed:
+
+- use contracts
+- use interfaces
+- use middleware
+- use extension points
+
+Never break module boundaries.
 
 ---
 
-# Permission Manifest Design
+# Core Layer Responsibilities
 
-## Introduce
+Core contains only:
+
+- stable academic concepts
+- foundational abstractions
+- shared domain models
+- shared contracts
+- structure hierarchy
+- academic planning
+
+Core MUST remain abstract and extensible.
+
+Core MUST NOT contain:
+
+- operational workflows
+- registration workflows
+- transcript workflows
+- GPA logic
+- payment workflows
+- dynamic profile workflows
+
+---
+
+# Module Responsibilities
+
+# Courses Module (Core Layer)
+
+Courses module owns:
+
+- course catalog
+- academic plans
+- curriculum structure
+
+Courses module MUST NOT own:
+
+- prerequisites
+- blocking rules
+- registration validation
+- enrollment logic
+- transcript logic
+- GPA logic
+
+Those belong to future Registration module.
+
+---
+
+# Payments Module
+
+Payments module owns:
+
+- invoices
+- invoice items
+- transactions
+- payment state
+- gateway integration
+
+Payments module acts as centralized financial infrastructure.
+
+Other modules may create fees through contracts only.
+
+---
+
+# Student Information Module
+
+Student Information owns:
+
+- dynamic student profile data
+- sparse student information
+- sensitive optional records
+
+The module must remain flexible and extensible.
+
+---
+
+# Persistence Rules
+
+# CoreDbContext Rules
+
+CoreDbContext contains only:
+
+```csharp
+DbSet<T>
+```
+
+Do NOT place configurations inside CoreDbContext.
+
+---
+
+# EF Configurations
+
+Each module owns its configurations.
+
+Example:
+
+```text
+Module
+ └── Infrastructure
+      └── Persistence
+           └── Configurations
+```
+
+Load using:
+
+```csharp
+ApplyConfigurationsFromAssembly(...)
+```
+
+---
+
+# Cross Module Rules
+
+Modules MUST NOT:
+
+- use cross-module EF navigations
+- reference foreign persistence implementations
+- directly manipulate another module's entities
+
+Communication must happen through:
+
+- contracts
+- IDs
+- events
+- application services
+
+---
+
+# Authorization Integration
+
+Implementation MUST integrate with the authorization model.
+
+Reference:
+
+```text
+Authorization_Model.md
+```
+
+---
+
+# Permission Manifest Requirement
+
+Every module MUST expose:
 
 ```csharp
 IPermissionManifest
 ```
 
-OR
+Purpose:
 
-```csharp
-PermissionManifestBase
+- static permission discovery
+- DB synchronization
+- centralized authorization visibility
+
+---
+
+# Permission Sync Rules
+
+Application startup should:
+
+1. scan assemblies
+2. discover manifests
+3. synchronize permissions
+4. preserve assignments
+5. avoid duplication
+
+---
+
+# Scope Filtering Rules
+
+Scope filtering MUST follow:
+
+```text
+RequestPipeline_Context_Authorization_and_Localization.md
+```
+
+The request context extracted from headers MUST participate in:
+
+- query filtering
+- authorization
+- cache key generation
+- data visibility
+
+Never bypass scope filtering.
+
+---
+
+# Localization Rules
+
+Localization MUST integrate with the request pipeline.
+
+All user-facing messages MUST:
+
+- use localization abstractions
+- avoid hardcoded strings
+- support multilingual expansion
+
+Localized cache entries MUST include culture-aware keys.
+
+Example:
+
+```text
+course:object:{id}:culture:en
+course:object:{id}:culture:ar
 ```
 
 ---
 
-# Example
+# Middleware Rules
 
-```csharp
-public sealed class SemesterPermissionManifest : IPermissionManifest
-{
-    public string Module => "Semesters";
+If required, custom middleware may be added.
 
-    public IReadOnlyCollection<PermissionDefinition> Permissions => new[]
-    {
-        PermissionDefinition.Create("semesters.view"),
-        PermissionDefinition.Create("semesters.create"),
-        PermissionDefinition.Create("semesters.update"),
-        PermissionDefinition.Create("semesters.delete")
-    };
-}
+Middleware MUST:
+
+- follow existing request pipeline conventions
+- remain isolated
+- avoid breaking authorization flow
+- avoid bypassing localization flow
+
+Potential valid middleware:
+
+- request context enrichment
+- scope propagation
+- cache invalidation dispatching
+
+---
+
+# Performance Requirements
+
+The implementation must support:
+
+- 10k+ concurrent users
+- low DB contention
+- low Redis memory pressure
+- horizontal scalability
+- low serialization overhead
+
+Avoid architecture decisions that scale poorly.
+
+---
+
+# Mandatory Caching Strategy
+
+The system uses:
+
+- shared object caching
+- user/scope reference caching
+
+Reference:
+
+```text
+caching-strategy.md
 ```
 
 ---
 
-# Infrastructure Responsibilities
+# Cache Rules
 
-## Permission Discovery
+Do NOT:
 
-At startup:
+- duplicate payloads per user
+- cache EF entities directly
+- cache unrestricted global datasets
+- bypass scope filtering
+- store large nested object graphs
 
-- scan assemblies
-- discover manifests
-- aggregate permissions
-- validate duplicates
-- validate naming consistency
+Cache DTO/read models only.
 
 ---
 
-## Permission Synchronization
+# Seeder Requirements
 
-Infrastructure auto-syncs:
+All modules MUST provide realistic seed data.
+
+Seeder data should include:
+
+- structure nodes
+- academic plans
+- sample courses
+- invoices
+- transactions
+- student profile records
 - permissions
-- groups/modules
-- metadata
+- localization examples
 
-into database seed/state.
+Seeder data should support:
 
-No manual scattered permission registration.
-
----
-
-## Authorization Consistency
-
-`[HasPermission(...)]` values MUST come only from:
-- manifest-generated constants
-OR
-- strongly typed permission references
-
-No raw literals.
+- integration testing
+- authorization testing
+- scope filtering testing
+- localization testing
+- caching behavior testing
 
 ---
 
-# Scope Restriction
+# Courses Module Design
 
-## IMPORTANT
+# Entities
 
-Authorization attributes/tags may ONLY be added inside:
-
-- Cross-cutting scope
-- Semesters module
-- AcademicYears module
-
----
-
-# Forbidden Authorization Changes
-
-Do NOT add:
-- `[Authorize]`
-- `[HasPermission]`
-- scope validation
-
-to:
-- Students
-- StructureNodes
-- teammate modules
-
-Even if insecure.
-
-Document issues only.
-
----
-
-# Phase A — Authentication Infrastructure
-
-## A1. Real Refresh Tokens (P0)
-
-### Allowed Scope
-- `AuthController`
-- `AuthenticationService`
-- Token entities/config
-- Cross-cutting auth infrastructure
-
-### Tasks
-- Create `RefreshToken` entity
-- Store hashed refresh tokens
-- Add expiration
-- Add rotation
-- Add revocation
-- Revoke on logout/password change
-
-### Forbidden
-- Modifying teammate auth workflows
-- Modifying student/admin logic
-
-### Required Tests
-- Refresh rotation
-- Expired refresh rejection
-- Replay attack rejection
-- Revoked token rejection
-
----
-
-## A2. SessionVersion Optimization (P1)
-
-### Tasks
-- Optional cache layer for SessionVersion lookup
-- Infrastructure-only optimization
-
-### Forbidden
-- Modifying teammate repositories/services
-
----
-
-# Phase B — Authorization Infrastructure
-
-## B1. Permission Manifest System (P0)
-
-### Allowed Scope
-- Cross-cutting authorization infrastructure
-- Semesters module
-- AcademicYears module
-
-### Tasks
-- Create `IPermissionManifest`
-- Create manifest discovery system
-- Create permission synchronization pipeline
-- Generate strongly typed permission constants
-- Validate duplicates/conflicts
-- Remove scattered manual permission definitions
-
-### Goal
-Single source of truth for permissions.
-
----
-
-## B2. Scoped Authorization Attributes (P0)
-
-### Allowed Modules
-ONLY:
-- Semesters
-- AcademicYears
-- Cross-cutting endpoints
-
-### Tasks
-Add:
+## Course
 
 ```csharp
-[HasPermission(...)]
-```
-
-ONLY inside owned modules.
-
-### Forbidden
-- Touching Students module
-- Touching StructureNodes module
-- Touching teammate controllers/services
-
----
-
-## B3. Redis Permission Cache (P1)
-
-### Allowed Scope
-- `PermissionHandler`
-- `PermissionManagementService`
-- `RedisCacheService`
-- Cross-cutting auth infrastructure
-
-### Tasks
-- Distributed permission cache
-- Cache versioning
-- Invalidation hooks
-
-### Forbidden
-- RBAC redesign
-- Semester redesign
-- Structure redesign
-
----
-
-## B4. Authorization Audit Logging (P2)
-
-### Tasks
-Log:
-- permission denied
-- failed auth
-- token revocation
-- role assignment
-
-### Constraint
-Infrastructure-only logging.
-
-No business/domain modifications.
-
----
-
-# Phase C — Notification Infrastructure
-
-## C1. Outbox Enforcement (P1)
-
-### Allowed Scope
-- Notification infrastructure
-- Dispatcher
-- Handlers
-- Outbox abstractions
-
-### Tasks
-- Route notifications through outbox infrastructure
-
-### Forbidden
-- Modifying teammate workflows
-- Changing domain behavior
-
----
-
-## C2. Retry / Poison Queue Handling (P2)
-
-### Tasks
-- Retry caps
-- Dead-letter handling
-- Failure visibility
-
-### Forbidden
-- Notification business logic redesign
-
----
-
-# Phase D — Logging / Audit Infrastructure
-
-## D1. Async Audit Logging (P1)
-
-### Tasks
-- Buffered logging
-OR
-- Outbox-backed audit pipeline
-
-### Constraint
-Infrastructure-only.
-
-No service/business modifications.
-
----
-
-## D2. Correlation IDs (P2)
-
-### Tasks
-Add:
-- Request correlation IDs
-- Auth tracing IDs
-
-### Constraint
-No request-flow modifications outside owned modules.
-
----
-
-## D3. Sensitive Logging Protection (P1)
-
-### Tasks
-Sanitize:
-- JWTs
-- Refresh tokens
-- Passwords
-- Claims
-
-### Forbidden
-- DTO redesign
-- Domain modifications
-
----
-
-# Phase E — Localization Infrastructure
-
-## E1. Centralized Exception Localization (P2)
-
-### Allowed Scope
-- Middleware
-- Localization service
-- Exception mapper
-
-### Tasks
-Localize:
-- auth errors
-- permission errors
-- infrastructure validation messages
-
-### Forbidden
-- Rewriting teammate business messages
-
----
-
-## E2. Localization Key Safety (P3)
-
-### Tasks
-- Strongly typed localization keys
-OR
-- Validation tests for missing keys
-
-Infrastructure-only.
-
----
-
-# Explicitly Deferred (Document Only)
-
-The following may be documented but must NOT be implemented:
-
-- Student concurrency redesign
-- Structure hierarchy redesign
-- Semester business redesign
-- CQRS migration
-- Aggregate refactors
-- UnitOfWork redesign
-- Soft-delete redesign
-- Repository cleanup outside owned scope
-- Query redesign in teammate modules
-- Domain encapsulation/private setters
-
----
-
-# Safe Execution Order
-
-| Phase | Scope | Risk |
-|---|---|---|
-| A1 | Real refresh tokens | Critical |
-| B1 | Permission manifest system | Critical |
-| B2 | Scoped permission attributes | Critical |
-| B3 | Redis permission cache | High |
-| C1 | Notification outbox enforcement | High |
-| D1 | Async audit logging | High |
-| D3 | Sensitive log sanitization | High |
-| E1 | Exception localization | Medium |
-
----
-
-# Mandatory Boundary Rule
-
-If a fix requires:
-- modifying teammate business logic
-- changing domain behavior
-- redesigning structure hierarchy
-- touching Students module
-- touching StructureNodes module
-- changing teammate repositories/services/controllers
-- changing request flow outside owned scope
-
-Then:
-
-```text
-Document the issue.
-Do NOT implement the change.
+Course
+- Id
+- Code
+- Title
+- CreditHours
+- CourseCategory
+- IsActive
 ```
 
 ---
 
-# Guiding Principle
+## AcademicPlan
 
-```text
-Infrastructure hardening only.
-Scoped authorization only.
-Module-owned permission manifests.
-No teammate workflow modification.
-No invasive domain refactoring.
+```csharp
+AcademicPlan
+- Id
+- StructureNodeId
+- Name
+- EffectiveFrom
+- EffectiveTo
+- IsActive
 ```
+
+---
+
+## AcademicPlanCourse
+
+```csharp
+AcademicPlanCourse
+- Id
+- AcademicPlanId
+- CourseId
+- Level
+- Semester
+- IsMandatory
+```
+
+---
+
+# Explicit Non-Goals
+
+Do NOT implement:
+
+- prerequisites
+- registration validation
+- enrollment workflows
+- transcripts
+- GPA logic
+- blocking logic
+
+---
+
+# Payments Module Design
+
+# Required Entities
+
+## Invoice
+
+```csharp
+Invoice
+- Id
+- StudentId
+- Status
+- TotalAmount
+- CreatedAt
+```
+
+---
+
+## InvoiceItem
+
+```csharp
+InvoiceItem
+- Id
+- InvoiceId
+- Amount
+- FeeType
+- SourceModule
+- ReferenceId
+- Description
+```
+
+---
+
+## PaymentTransaction
+
+```csharp
+PaymentTransaction
+- Id
+- InvoiceId
+- Provider
+- ProviderTransactionId
+- Status
+- RawPayloadJson
+- IdempotencyKey
+- CreatedAt
+```
+
+---
+
+# Required Contracts
+
+```csharp
+IFeeCreationService
+IPaymentVerificationService
+```
+
+---
+
+# Student Information Design
+
+# Entity
+
+## StudentProfileRecord
+
+```csharp
+StudentProfileRecord
+- Id
+- StudentId
+- Category
+- SchemaVersion
+- DataJson
+- VerifiedBy
+- VerifiedAt
+- IsSensitive
+```
+
+---
+
+# Categories
+
+```csharp
+MilitaryInformation
+VaccinationInformation
+EmergencyContact
+DisabilityInformation
+HousingInformation
+Custom
+```
+
+---
+
+# Student Information Rules
+
+Do NOT:
+
+- create key-value tables
+- create hardcoded tables per profile type
+- tightly couple schemas to regulations
+
+Use JSON document records.
+
+---
+
+# API Rules
+
+APIs MUST:
+
+- follow existing conventions
+- integrate authorization
+- integrate localization
+- integrate scope filtering
+- support caching strategy
+- avoid leaking unrelated data
+
+---
+
+# Logging & Auditing
+
+Sensitive operations MUST support:
+
+- audit logging
+- correlation IDs
+- request tracing
+- payment tracing
+- security visibility
+
+Especially for:
+
+- payments
+- sensitive student records
+- authorization-sensitive operations
+
+---
+
+# Testing Requirements
+
+Implementation MUST include:
+
+- unit tests
+- integration tests
+- authorization tests
+- scope filtering tests
+- localization tests
+- caching behavior tests
+
+---
+
+# Forbidden Shortcuts
+
+Do NOT:
+
+- bypass authorization
+- bypass localization
+- bypass scope filtering
+- directly access unrelated services
+- create god services
+- tightly couple modules
+- duplicate cache payloads
+- place operational workflows in Core
+
+---
+
+# Phase 1 — Courses Foundations
+
+Implement:
+
+- Course
+- AcademicPlan
+- AcademicPlanCourse
+- configurations
+- migrations
+- permissions
+- APIs
+- localization
+- caching integration
+- tests
+- seeders
+
+Explicitly exclude registration logic.
+
+---
+
+# Phase 2 — Payments Foundations
+
+Implement:
+
+- Invoice
+- InvoiceItem
+- PaymentTransaction
+- fee contracts
+- payment verification
+- authorization integration
+- localization
+- caching integration
+- tests
+- seeders
+
+---
+
+# Phase 3 — Student Information Foundations
+
+Implement:
+
+- StudentProfileRecord
+- category enum
+- JSON profile storage
+- sensitive data handling
+- authorization integration
+- localization
+- caching integration
+- tests
+- seeders
+
+---
+
+# Phase 4 — Permission Manifest Integration
+
+Implement:
+
+- IPermissionManifest
+- manifest scanning
+- DB synchronization
+- permission seeders
+
+---
+
+# Final Constraint
+
+The implementation must preserve:
+
+- modularity
+- extensibility
+- authorization integrity
+- localization integrity
+- scope isolation
+- performance scalability
+- clean architecture boundaries
+- future registration extensibility

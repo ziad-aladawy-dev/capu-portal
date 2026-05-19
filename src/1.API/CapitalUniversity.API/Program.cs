@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Modules.Payments;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -58,6 +59,11 @@ if (builder.Environment.EnvironmentName != "Testing")
 }
 
 builder.Services.AddCoreServices(builder.Configuration);
+
+// Module registrations — must run after AddCoreServices so any shared
+// infrastructure (cache, UoW, scope services) is already in the container
+// before the module wires its services that depend on those interfaces.
+builder.Services.AddPaymentsModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();

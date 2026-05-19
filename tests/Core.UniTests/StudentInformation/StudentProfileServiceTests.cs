@@ -38,7 +38,10 @@ public class StudentProfileServiceTests
         var repo = new Mock<IStudentProfileRecordRepository>();
         var uow = new Mock<IUnitOfWork>();
         var cache = new StubCache();
-        return (new StudentProfileService(uow.Object, repo.Object, new UpsertStudentProfileRecordValidator(), new VerifyStudentProfileRecordValidator(), cache),
+        var scope = new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.IEffectiveScope>();
+        scope.Setup(s => s.CanAccessStudentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        return (new StudentProfileService(uow.Object, repo.Object, new UpsertStudentProfileRecordValidator(), new VerifyStudentProfileRecordValidator(), cache, scope.Object),
                 repo, uow, cache);
     }
 

@@ -1,6 +1,8 @@
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Modules.Payments.Domain;
+using CapitalUniversity.Modules.Payments.Abstractions;
 
-namespace CapitalUniversity.Core.Domain.Payments;
+namespace CapitalUniversity.Modules.Payments.Domain;
 
 /// <summary>
 /// Financial obligation for a single student. Composed of one or more

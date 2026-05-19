@@ -1,13 +1,14 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
-using CapitalUniversity.Core.Abstractions.Payments;
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Domain;
 using FluentValidation;
 using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException;
+using CapitalUniversity.Modules.Payments.Repositories;
 
-namespace CapitalUniversity.Core.Application.Payments;
+namespace CapitalUniversity.Modules.Payments.Application;
 
 /// <summary>
 /// Records gateway-reported transactions and reflects the settled total

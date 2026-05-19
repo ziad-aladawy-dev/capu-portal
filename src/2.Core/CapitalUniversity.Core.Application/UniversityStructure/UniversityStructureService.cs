@@ -10,11 +10,14 @@ namespace CapitalUniversity.Core.Application.UniversityStructure;
 public class UniversityStructureService : IUniversityStructureService
 {
     private readonly IStructureNodeRepository _repository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public UniversityStructureService(
-        IStructureNodeRepository repository)
+        IStructureNodeRepository repository,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<StructureNodeDto>> GetTreeAsync()
@@ -144,7 +147,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.AddAsync(node);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return node.Id;
     }
@@ -165,7 +168,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.UpdateAsync(node);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteNodeAsync(Guid id)
@@ -177,7 +180,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.RecursiveSoftDeleteAsync(node.Path);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task MoveNodeAsync(
@@ -481,6 +484,6 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.UpdateRangeAsync(siblings);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 }

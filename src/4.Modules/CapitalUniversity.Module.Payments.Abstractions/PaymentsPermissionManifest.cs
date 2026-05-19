@@ -1,6 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 
-namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
+namespace CapitalUniversity.Modules.Payments.Abstractions.Manifest;
 
 /// <summary>
 /// Declares the Payments module's permission surface. Two resources:

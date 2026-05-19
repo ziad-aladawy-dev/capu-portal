@@ -1,10 +1,12 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
-using CapitalUniversity.Core.Application.Payments;
-using CapitalUniversity.Core.Application.Payments.Validators;
+using CapitalUniversity.Modules.Payments.Application;
+using CapitalUniversity.Modules.Payments.Application.Validators;
+using CapitalUniversity.Modules.Payments.Repositories;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Domain;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -36,7 +38,12 @@ public class InvoiceServiceTests
         var repo = new Mock<IInvoiceRepository>();
         var uow = new Mock<IUnitOfWork>();
         var cache = new StubCache();
-        return (new InvoiceService(uow.Object, repo.Object, new CreateInvoiceValidator(), cache), repo, uow, cache);
+        var scope = new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.IEffectiveScope>();
+        // Default: every student is in-scope so existing service tests keep
+        // their pre-P1.1 semantics.
+        scope.Setup(s => s.CanAccessStudentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        return (new InvoiceService(uow.Object, repo.Object, new CreateInvoiceValidator(), cache, scope.Object), repo, uow, cache);
     }
 
     private static CreateInvoiceRequest ValidRequest(Guid? studentId = null) => new()

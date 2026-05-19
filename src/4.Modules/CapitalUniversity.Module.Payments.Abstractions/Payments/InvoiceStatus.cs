@@ -1,4 +1,4 @@
-namespace CapitalUniversity.Core.Domain.Payments;
+namespace CapitalUniversity.Modules.Payments.Abstractions;
 
 /// <summary>
 /// Lifecycle states for an <see cref="Invoice"/>. Stored as int — values are

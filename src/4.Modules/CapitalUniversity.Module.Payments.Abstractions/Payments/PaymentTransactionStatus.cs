@@ -1,4 +1,4 @@
-namespace CapitalUniversity.Core.Domain.Payments;
+namespace CapitalUniversity.Modules.Payments.Abstractions;
 
 /// <summary>
 /// Provider-reported state of a <see cref="PaymentTransaction"/>. Stored as

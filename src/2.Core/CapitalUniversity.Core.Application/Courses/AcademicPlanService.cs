@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Application.Courses.Mappings;
@@ -31,6 +32,7 @@ public class AcademicPlanService : IAcademicPlanService
     private readonly IValidator<(Guid Id, UpdateAcademicPlanRequest Request)> _updateValidator;
     private readonly IValidator<AddPlanCourseRequest> _addCourseValidator;
     private readonly ICacheService _cache;
+    private readonly IEffectiveScope _scope;
     private readonly AcademicPlanMapper _mapper = new();
 
     public AcademicPlanService(
@@ -40,7 +42,8 @@ public class AcademicPlanService : IAcademicPlanService
         IValidator<CreateAcademicPlanRequest> createValidator,
         IValidator<(Guid Id, UpdateAcademicPlanRequest Request)> updateValidator,
         IValidator<AddPlanCourseRequest> addCourseValidator,
-        ICacheService cache)
+        ICacheService cache,
+        IEffectiveScope scope)
     {
         _unitOfWork = unitOfWork;
         _plans = plans;
@@ -49,16 +52,26 @@ public class AcademicPlanService : IAcademicPlanService
         _updateValidator = updateValidator;
         _addCourseValidator = addCourseValidator;
         _cache = cache;
+        _scope = scope;
     }
 
     public async Task<AcademicPlanResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var key = CacheKey(id);
+
+        // P1.1 — cached projection carries StructureNodeId; scope is enforced
+        // against the owning node on every read so the shared cache cannot
+        // leak across callers. Out-of-scope returns null → controller 404.
         var cached = await _cache.GetAsync<AcademicPlanResponse>(key, cancellationToken);
-        if (cached is not null) return cached;
+        if (cached is not null)
+        {
+            return await _scope.CanAccessStructureNodeAsync(cached.StructureNodeId, cancellationToken) ? cached : null;
+        }
 
         var plan = await _plans.GetByIdAsync(id, includeCourses: true, cancellationToken);
         if (plan is null) return null;
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken)) return null;
 
         var dto = ToResponse(plan);
         await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
@@ -67,6 +80,11 @@ public class AcademicPlanService : IAcademicPlanService
 
     public async Task<IReadOnlyList<AcademicPlanResponse>> GetForStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
     {
+        if (!await _scope.CanAccessStructureNodeAsync(structureNodeId, cancellationToken))
+        {
+            return Array.Empty<AcademicPlanResponse>();
+        }
+
         var plans = await _plans.GetForStructureNodeAsync(structureNodeId, cancellationToken);
         // List read does not eager-load PlanCourses (avoids N+1) — list responses
         // are slim summaries; callers re-fetch by ID for full composition.
@@ -86,6 +104,12 @@ public class AcademicPlanService : IAcademicPlanService
         var validation = await _createValidator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
+        // Reject creation targeted at a node the caller cannot see.
+        if (!await _scope.CanAccessStructureNodeAsync(request.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException("Structure node not found.");
+        }
+
         var plan = _mapper.MapToEntity(request);
         await _plans.AddAsync(plan, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -99,6 +123,11 @@ public class AcademicPlanService : IAcademicPlanService
 
         var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
             ?? throw new NotFoundException("Academic plan not found.");
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException("Academic plan not found.");
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Name)) plan.Name = request.Name;
         if (request.EffectiveFrom.HasValue) plan.EffectiveFrom = request.EffectiveFrom.Value;
@@ -121,6 +150,11 @@ public class AcademicPlanService : IAcademicPlanService
         var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
             ?? throw new NotFoundException("Academic plan not found.");
 
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException("Academic plan not found.");
+        }
+
         _plans.Delete(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
@@ -133,6 +167,11 @@ public class AcademicPlanService : IAcademicPlanService
 
         var plan = await _plans.GetByIdAsync(planId, includeCourses: false, cancellationToken)
             ?? throw new NotFoundException("Academic plan not found.");
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException("Academic plan not found.");
+        }
 
         var course = await _courses.GetByIdAsync(request.CourseId, cancellationToken)
             ?? throw new NotFoundException("Course not found.");
@@ -163,6 +202,15 @@ public class AcademicPlanService : IAcademicPlanService
             ?? throw new NotFoundException("Plan course entry not found.");
 
         if (entry.AcademicPlanId != planId)
+        {
+            throw new NotFoundException("Plan course entry not found.");
+        }
+
+        // Resolve owning plan to scope-check the removal; the entry itself
+        // doesn't carry StructureNodeId.
+        var plan = await _plans.GetByIdAsync(planId, includeCourses: false, cancellationToken)
+            ?? throw new NotFoundException("Plan course entry not found.");
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
         {
             throw new NotFoundException("Plan course entry not found.");
         }

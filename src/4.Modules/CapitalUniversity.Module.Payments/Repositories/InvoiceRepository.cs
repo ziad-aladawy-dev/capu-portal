@@ -1,6 +1,8 @@
 using CapitalUniversity.Core.Abstractions.Repositories;
-using CapitalUniversity.Core.Domain.Payments;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Domain;
+using CapitalUniversity.Modules.Payments.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,37 +19,37 @@ public class InvoiceRepository : IInvoiceRepository
 
     public Task<Invoice?> GetByIdAsync(Guid id, bool includeItems = true, bool includeTransactions = false, CancellationToken cancellationToken = default)
     {
-        var query = _context.Invoices.AsQueryable();
+        var query = _context.Set<Invoice>().AsQueryable();
         if (includeItems) query = query.Include(i => i.Items);
         if (includeTransactions) query = query.Include(i => i.Transactions);
         return query.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
     public async Task<IReadOnlyList<Invoice>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default) =>
-        await _context.Invoices
+        await _context.Set<Invoice>()
             .AsNoTracking()
             .Where(i => i.StudentId == studentId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
 
     public Task<Invoice?> GetPendingForStudentAsync(Guid studentId, string currency, CancellationToken cancellationToken = default) =>
-        _context.Invoices
+        _context.Set<Invoice>()
             .Include(i => i.Items)
             .FirstOrDefaultAsync(
                 i => i.StudentId == studentId && i.Currency == currency && i.Status == InvoiceStatus.Pending,
                 cancellationToken);
 
     public async Task AddAsync(Invoice invoice, CancellationToken cancellationToken = default) =>
-        await _context.Invoices.AddAsync(invoice, cancellationToken);
+        await _context.Set<Invoice>().AddAsync(invoice, cancellationToken);
 
-    public void Update(Invoice invoice) => _context.Invoices.Update(invoice);
+    public void Update(Invoice invoice) => _context.Set<Invoice>().Update(invoice);
 
     public Task<PaymentTransaction?> GetTransactionByKeyAsync(Guid invoiceId, string idempotencyKey, CancellationToken cancellationToken = default) =>
-        _context.PaymentTransactions
+        _context.Set<PaymentTransaction>()
             .FirstOrDefaultAsync(t => t.InvoiceId == invoiceId && t.IdempotencyKey == idempotencyKey, cancellationToken);
 
     public async Task<IReadOnlyList<PaymentTransaction>> GetTransactionsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default) =>
-        await _context.PaymentTransactions
+        await _context.Set<PaymentTransaction>()
             .AsNoTracking()
             .Where(t => t.InvoiceId == invoiceId)
             .OrderByDescending(t => t.CreatedAt)
@@ -72,7 +74,7 @@ public class InvoiceRepository : IInvoiceRepository
             // trying to push it on subsequent saves in this scope.
             _context.Entry(newTransaction).State = EntityState.Detached;
 
-            var winner = await _context.PaymentTransactions
+            var winner = await _context.Set<PaymentTransaction>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     t => t.InvoiceId == newTransaction.InvoiceId

@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.StudentInformation;
@@ -28,29 +29,40 @@ public class StudentProfileService : IStudentProfileService
     private readonly IValidator<UpsertStudentProfileRecordRequest> _upsertValidator;
     private readonly IValidator<VerifyStudentProfileRecordRequest> _verifyValidator;
     private readonly ICacheService _cache;
+    private readonly IEffectiveScope _scope;
 
     public StudentProfileService(
         IUnitOfWork unitOfWork,
         IStudentProfileRecordRepository records,
         IValidator<UpsertStudentProfileRecordRequest> upsertValidator,
         IValidator<VerifyStudentProfileRecordRequest> verifyValidator,
-        ICacheService cache)
+        ICacheService cache,
+        IEffectiveScope scope)
     {
         _unitOfWork = unitOfWork;
         _records = records;
         _upsertValidator = upsertValidator;
         _verifyValidator = verifyValidator;
         _cache = cache;
+        _scope = scope;
     }
 
     public async Task<StudentProfileRecordResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var key = CacheKey(id);
+
+        // P1.1 — sensitive records hit shared cache; scope is enforced on every
+        // read against the cached StudentId. Out-of-scope returns null → 404.
         var cached = await _cache.GetAsync<StudentProfileRecordResponse>(key, cancellationToken);
-        if (cached is not null) return cached;
+        if (cached is not null)
+        {
+            return await _scope.CanAccessStudentAsync(cached.StudentId, cancellationToken) ? cached : null;
+        }
 
         var record = await _records.GetByIdAsync(id, cancellationToken);
         if (record is null) return null;
+
+        if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken)) return null;
 
         var dto = ToResponse(record);
         await _cache.SetAsync(key, dto, TtlFor(dto), cancellationToken);
@@ -59,12 +71,19 @@ public class StudentProfileService : IStudentProfileService
 
     public async Task<IReadOnlyList<StudentProfileRecordResponse>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
+        if (!await _scope.CanAccessStudentAsync(studentId, cancellationToken))
+        {
+            return Array.Empty<StudentProfileRecordResponse>();
+        }
+
         var records = await _records.GetForStudentAsync(studentId, cancellationToken);
         return records.Select(ToResponse).ToList();
     }
 
     public async Task<StudentProfileRecordResponse?> GetForStudentCategoryAsync(Guid studentId, StudentProfileCategory category, string? customCategoryKey = null, CancellationToken cancellationToken = default)
     {
+        if (!await _scope.CanAccessStudentAsync(studentId, cancellationToken)) return null;
+
         var record = await _records.GetForStudentCategoryAsync(studentId, category, customCategoryKey ?? string.Empty, cancellationToken);
         return record is null ? null : ToResponse(record);
     }
@@ -77,6 +96,11 @@ public class StudentProfileService : IStudentProfileService
             throw new ValidationException(validation.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray()));
+        }
+
+        if (!await _scope.CanAccessStudentAsync(studentId, cancellationToken))
+        {
+            throw new NotFoundException("Student not found.");
         }
 
         var customKey = request.Category == StudentProfileCategory.Custom
@@ -127,6 +151,11 @@ public class StudentProfileService : IStudentProfileService
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Profile record not found.");
 
+        if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
+        {
+            throw new NotFoundException("Profile record not found.");
+        }
+
         record.VerifiedBy = request.VerifiedBy;
         record.VerifiedAt = DateTime.UtcNow;
         record.UpdatedAt = DateTime.UtcNow;
@@ -139,6 +168,12 @@ public class StudentProfileService : IStudentProfileService
     {
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException("Profile record not found.");
+
+        if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
+        {
+            throw new NotFoundException("Profile record not found.");
+        }
+
         _records.Delete(record);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);

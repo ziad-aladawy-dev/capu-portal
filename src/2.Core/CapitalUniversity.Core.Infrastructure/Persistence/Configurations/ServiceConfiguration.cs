@@ -18,6 +18,12 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
             .HasForeignKey(s => s.ModuleId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(s => new { s.ModuleId, s.OrderNumber }).IsUnique();
+        // OrderNumber is a UI sort hint, not an identity. Multiple services
+        // within a module can legitimately share an OrderNumber — e.g. the
+        // legacy DataSeeder rows ("View Permissions" at 0) coexisting with
+        // manifest-declared rows ("Create Permissions" at 1) that the
+        // PermissionManifestSynchronizer adds keyed on (ModuleId, DisplayName).
+        // The previous unique index collided that flow on every fresh-DB boot.
+        builder.HasIndex(s => new { s.ModuleId, s.OrderNumber });
     }
 }

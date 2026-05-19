@@ -2,7 +2,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.Payments;
+
 using CapitalUniversity.Core.Domain.StudentInformation;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Domain.Semsters;
@@ -18,7 +18,18 @@ public class CoreDbContext : DbContext
 {
     private readonly IAppLogger? _logger;
 
-    public CoreDbContext(DbContextOptions<CoreDbContext> options, IAppLogger? logger = null) : base(options) 
+    /// <summary>
+    /// Modules register their EF configuration assemblies here from their
+    /// <c>AddXxxModule()</c> DI extension. <see cref="OnModelCreating"/>
+    /// scans each registered assembly for <c>IEntityTypeConfiguration&lt;&gt;</c>
+    /// implementations. Static so the registration completes before the first
+    /// DbContext is instantiated (modules wire DI at startup, the context is
+    /// scoped per-request). No reverse project reference from Core to Module
+    /// projects — each module adds itself.
+    /// </summary>
+    public static List<System.Reflection.Assembly> ModuleConfigurationAssemblies { get; } = new();
+
+    public CoreDbContext(DbContextOptions<CoreDbContext> options, IAppLogger? logger = null) : base(options)
     {
         _logger = logger;
     }
@@ -47,9 +58,11 @@ public class CoreDbContext : DbContext
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<AcademicPlan> AcademicPlans => Set<AcademicPlan>();
     public DbSet<AcademicPlanCourse> AcademicPlanCourses => Set<AcademicPlanCourse>();
-    public DbSet<Invoice> Invoices => Set<Invoice>();
-    public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
-    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    // Invoice / InvoiceItem / PaymentTransaction DbSets removed — those types
+    // now live in the Module.Payments project, which Core.Infrastructure must
+    // not reference (cycle). Module code uses <c>_context.Set&lt;Invoice&gt;()</c>
+    // instead. EF still tracks the entities because Module.Payments contributes
+    // its assembly to <see cref="ModuleConfigurationAssemblies"/>.
     public DbSet<StudentProfileRecord> StudentProfileRecords => Set<StudentProfileRecord>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -107,14 +120,21 @@ public class CoreDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(CoreDbContext).Assembly);
 
+        // Module-provided EF configurations. Each module (e.g. Payments) calls
+        // CoreDbContext.ModuleConfigurationAssemblies.Add(...) from its
+        // AddXxxModule() DI extension before the context is first used.
+        foreach (var assembly in ModuleConfigurationAssemblies)
+        {
+            modelBuilder.ApplyConfigurationsFromAssembly(assembly);
+        }
+
         modelBuilder.Entity<StructureNode>()
             .HasQueryFilter(x => !x.IsDeleted);
 
-        // P0.6 / P1.5 — soft-delete global query filter for the three listed
-        // entities only. Other entities keep BaseEntity.IsDeleted but are not
-        // filtered (per the plan's "Apply ONLY to" rule).
-        modelBuilder.Entity<Invoice>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<PaymentTransaction>().HasQueryFilter(x => !x.IsDeleted);
+        // P0.6 / P1.5 — soft-delete global query filter for StudentProfileRecord.
+        // The Invoice + PaymentTransaction filters are declared inside their
+        // IEntityTypeConfiguration impls in Module.Payments (those types live
+        // outside this assembly).
         modelBuilder.Entity<StudentProfileRecord>().HasQueryFilter(x => !x.IsDeleted);
     }
 

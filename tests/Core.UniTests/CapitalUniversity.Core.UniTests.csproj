@@ -4,4 +4,6 @@
     <ProjectReference Include="..\..\src\2.Core\CapitalUniversity.Core.Application\CapitalUniversity.Core.Application.csproj" />
     <ProjectReference Include="..\..\src\2.Core\CapitalUniversity.Core.Infrastructure\CapitalUniversity.Core.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\1.API\CapitalUniversity.API\CapitalUniversity.API.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Payments.Abstractions\CapitalUniversity.Module.Payments.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Payments\CapitalUniversity.Module.Payments.csproj" />
   </ItemGroup></Project>

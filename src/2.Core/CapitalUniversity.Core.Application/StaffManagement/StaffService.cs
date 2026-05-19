@@ -17,14 +17,18 @@ public class StaffService : IStaffService
 
     private readonly ISessionVersionService _sessionVersions;
 
+    private readonly IUnitOfWork _unitOfWork;
+
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
-        ISessionVersionService sessionVersions)
+        ISessionVersionService sessionVersions,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _sessionVersions = sessionVersions;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
@@ -111,7 +115,7 @@ public class StaffService : IStaffService
 
         await _repository.AddAsync(staff);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         // P2.6 — evict any negative-cached "user not found" entry so the new
         // staff's first authenticated request resolves cleanly.
@@ -200,7 +204,7 @@ public class StaffService : IStaffService
 
         await _repository.UpdateAsync(staff);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -213,7 +217,7 @@ public class StaffService : IStaffService
 
         await _repository.SoftDeleteAsync(id);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -229,7 +233,7 @@ public class StaffService : IStaffService
 
         await _repository.ToggleStatusAsync(id);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<StaffDto?> GetByIdAsync(Guid id)

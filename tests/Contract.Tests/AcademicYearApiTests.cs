@@ -114,9 +114,9 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         // Arrange
         var request = new CreateAcademicYearRequest
         {
-            Name = "Year 2025-2026",
-            StartDate = DateTime.UtcNow.AddDays(1),
-            EndDate = DateTime.UtcNow.AddDays(300)
+            Name = "Year 2030-2031",
+            StartDate = new DateTime(2030, 9, 1),
+            EndDate = new DateTime(2031, 8, 31)
         };
 
         // Act
@@ -131,12 +131,15 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
     [Fact]
     public async Task Create_OverlappingYear_ReturnsBadRequest()
     {
+        // Fixed dates well outside DataSeeder's 2023–2027 seeded years so
+        // year1 doesn't collide with the seed (a real failure mode this test
+        // used to hit whenever DateTime.UtcNow drifted into the seeded window).
         // Arrange
         var year1 = new CreateAcademicYearRequest
         {
             Name = "Year 1",
-            StartDate = DateTime.UtcNow.AddDays(1),
-            EndDate = DateTime.UtcNow.AddDays(100)
+            StartDate = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2030, 4, 10, 0, 0, 0, DateTimeKind.Utc)
         };
         var resp1 = await _client.PostAsJsonAsync("/api/academic-years", year1);
         resp1.EnsureSuccessStatusCode();
@@ -144,8 +147,8 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         var year2 = new CreateAcademicYearRequest
         {
             Name = "Year 2",
-            StartDate = DateTime.UtcNow.AddDays(50),
-            EndDate = DateTime.UtcNow.AddDays(150)
+            StartDate = new DateTime(2030, 2, 20, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2030, 6, 1, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act

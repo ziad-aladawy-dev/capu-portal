@@ -1,7 +1,7 @@
 using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.Payments;
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;

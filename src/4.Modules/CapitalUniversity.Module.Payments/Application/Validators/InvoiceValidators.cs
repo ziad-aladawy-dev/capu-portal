@@ -1,7 +1,7 @@
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using FluentValidation;
 
-namespace CapitalUniversity.Core.Application.Payments.Validators;
+namespace CapitalUniversity.Modules.Payments.Application.Validators;
 
 public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequest>
 {

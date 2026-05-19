@@ -1,4 +1,5 @@
-using CapitalUniversity.Core.Domain.Payments;
+
+using CapitalUniversity.Modules.Payments.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -23,5 +24,9 @@ public class PaymentTransactionConfiguration : IEntityTypeConfiguration<PaymentT
         // is a coincidence, not a replay. Unique index enforces idempotency at
         // the schema level so a retried webhook can never double-record.
         builder.HasIndex(x => new { x.InvoiceId, x.IdempotencyKey }).IsUnique();
+
+        // P0.6 / P1.5 — soft-delete global query filter, declared here for the
+        // same reason as InvoiceConfiguration's filter (type lives outside Core).
+        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

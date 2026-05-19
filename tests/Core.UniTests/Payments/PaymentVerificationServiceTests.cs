@@ -1,10 +1,12 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
-using CapitalUniversity.Core.Application.Payments;
-using CapitalUniversity.Core.Application.Payments.Validators;
+using CapitalUniversity.Modules.Payments.Application;
+using CapitalUniversity.Modules.Payments.Application.Validators;
+using CapitalUniversity.Modules.Payments.Repositories;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Domain;
 using FluentAssertions;
 using Moq;
 using Xunit;

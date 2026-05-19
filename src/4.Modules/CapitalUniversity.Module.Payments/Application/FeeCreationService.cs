@@ -1,10 +1,12 @@
-using CapitalUniversity.Core.Abstractions.Payments;
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
-using CapitalUniversity.Core.Domain.Payments;
+using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Domain;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
+using CapitalUniversity.Modules.Payments.Repositories;
 
-namespace CapitalUniversity.Core.Application.Payments;
+
+namespace CapitalUniversity.Modules.Payments.Application;
 
 /// <summary>
 /// The seam upstream modules use to author fees. Centralises both code paths

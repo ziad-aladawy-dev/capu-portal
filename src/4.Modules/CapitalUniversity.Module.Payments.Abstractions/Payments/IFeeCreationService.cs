@@ -1,6 +1,8 @@
-using CapitalUniversity.Core.Abstractions.Payments.DTOs;
 
-namespace CapitalUniversity.Core.Abstractions.Payments;
+
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
+
+namespace CapitalUniversity.Modules.Payments.Abstractions;
 
 /// <summary>
 /// Contract used by upstream modules (registration, library, housing, …) to

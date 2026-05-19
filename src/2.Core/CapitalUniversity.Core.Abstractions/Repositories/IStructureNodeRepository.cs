@@ -22,8 +22,6 @@ public interface IStructureNodeRepository
 
     Task<bool> ExistsAsync(Guid id);
 
-    Task SaveChangesAsync();
-
     Task<List<StructureNode>> GetDescendantsAsync(string path);
 
     Task UpdateRangeAsync(List<StructureNode> nodes);
@@ -37,4 +35,5 @@ public interface IStructureNodeRepository
     Task<List<StructureNode>> GetAncestorsAsync(List<Guid> ids);
 
     Task<List<StructureNode>> GetSiblingsAsync(Guid? parentId);
+    Task SaveChangesAsync();
 }

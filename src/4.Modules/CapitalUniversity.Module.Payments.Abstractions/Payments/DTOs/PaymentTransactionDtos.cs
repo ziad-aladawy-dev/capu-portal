@@ -1,6 +1,5 @@
-using CapitalUniversity.Core.Domain.Payments;
 
-namespace CapitalUniversity.Core.Abstractions.Payments.DTOs;
+namespace CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 
 public class PaymentTransactionResponse
 {

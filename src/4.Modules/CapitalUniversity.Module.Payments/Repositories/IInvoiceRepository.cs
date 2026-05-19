@@ -1,6 +1,8 @@
-using CapitalUniversity.Core.Domain.Payments;
 
-namespace CapitalUniversity.Core.Abstractions.Repositories;
+
+using CapitalUniversity.Modules.Payments.Domain;
+
+namespace CapitalUniversity.Modules.Payments.Repositories;
 
 public interface IInvoiceRepository
 {

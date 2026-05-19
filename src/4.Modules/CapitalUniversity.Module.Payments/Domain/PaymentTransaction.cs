@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Modules.Payments.Abstractions;
 
-namespace CapitalUniversity.Core.Domain.Payments;
+namespace CapitalUniversity.Modules.Payments.Domain;
 
 /// <summary>
 /// Single recorded interaction with a payment provider for an

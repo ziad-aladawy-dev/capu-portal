@@ -212,8 +212,7 @@ public class StaffRepository : IStaffRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
+    // P0.7 — services/UoW own the transaction boundary. This delegate exists
+    // for legacy callers; new code MUST go through IUnitOfWork.SaveChangesAsync.
+    public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
 }
