@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,6 +82,22 @@ builder.Services.AddAuthorizationBuilder()
         .RequireAuthenticatedUser()
         .Build());
 builder.Services.AddControllers();
+
+// Runtime Hardening Plan §1.1 — Validation pipeline consolidation.
+// Suppress MVC's automatic 400 short-circuit on invalid ModelState so every
+// request reaches the application service. The service layer owns FluentValidation
+// invocation and throws our domain ValidationException; GlobalExceptionHandler
+// then produces a single, localized ProblemDetails shape for every validation
+// failure. Without this, FluentValidation's auto-validation filter would emit
+// MVC's default {errors:{...}} payload before our services run, producing
+// inconsistent responses and bypassing localization.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+// AddFluentValidationAutoValidation is retained for validator discovery / DI
+// registration only — the filter still runs but no longer triggers the
+// short-circuit since SuppressModelStateInvalidFilter is true.
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

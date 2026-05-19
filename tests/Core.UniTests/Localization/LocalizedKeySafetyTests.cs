@@ -21,12 +21,14 @@ public class LocalizedKeySafetyTests
 {
     private static readonly string[] ShippedCultures = { "en", "ar" };
 
-    public static IEnumerable<object[]> AllKeys()
+    public static TheoryData<string> AllKeys()
     {
+        var data = new TheoryData<string>();
         foreach (var key in EnumerateKeys(typeof(LocalizedKeys)))
         {
-            yield return new object[] { key };
+            data.Add(key);
         }
+        return data;
     }
 
     [Theory]

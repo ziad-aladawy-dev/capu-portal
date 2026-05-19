@@ -46,7 +46,7 @@ public class AcademicYearServiceTests
             .ReturnsAsync(false);
 
         _repoMock.Setup(x => x.GetCurrentAsync())
-            .ReturnsAsync((AcademicYear)null);
+            .ReturnsAsync((AcademicYear?)null);
 
         // Act
         var id = await _service.CreateAsync(request);

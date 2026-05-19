@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +67,15 @@ public class OutboxDispatcher : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+        // Runtime Hardening Plan §3.2 + §3.4 — outbox runs without an HttpContext.
+        // Stamp the system actor on every log line emitted from inside the batch
+        // so audit / correlation searches do not see anonymous mutations.
+        using var actorScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["Actor"] = SystemActors.OutboxDispatcher,
+            ["ActorKind"] = SystemActors.DisplayName,
+        });
         var handlers = scope.ServiceProvider.GetServices<IOutboxMessageHandler>()
             .GroupBy(h => h.MessageType)
             .ToDictionary(g => g.Key, g => g.First());

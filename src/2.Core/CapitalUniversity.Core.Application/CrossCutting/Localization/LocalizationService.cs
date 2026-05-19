@@ -87,5 +87,7 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
             if (string.IsNullOrEmpty(key)) return string.Empty;
             return LocalizedStrings.Resolve(key, _culture.Language);
         }
+
+        public bool ContainsKey(string? key) => LocalizedStrings.ContainsKey(key);
     }
 }

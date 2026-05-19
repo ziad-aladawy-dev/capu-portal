@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
@@ -57,7 +58,7 @@ public class PaymentVerificationService : IPaymentVerificationService
         }
 
         var invoice = await _invoices.GetByIdAsync(request.InvoiceId, includeItems: false, includeTransactions: true, cancellationToken: cancellationToken)
-            ?? throw new NotFoundException("Invoice not found.");
+            ?? throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
 
         var tx = new PaymentTransaction
         {

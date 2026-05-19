@@ -183,7 +183,7 @@ public class PermissionManagementService : IPermissionManagementService
 
     private static void ApplyRoleGrants(
         IEnumerable<StaffRoleAssignment> assignments,
-        IReadOnlyDictionary<Guid, List<RolePermission>> rolePermsByRole,
+        Dictionary<Guid, List<RolePermission>> rolePermsByRole,
         Dictionary<ScopedResourceKey, ActionLevel> target)
     {
         foreach (var assignment in assignments)

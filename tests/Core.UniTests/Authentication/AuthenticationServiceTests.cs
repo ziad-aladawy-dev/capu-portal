@@ -158,7 +158,7 @@ public class AuthenticationServiceTests
         var request = new LoginRequestDto { Identifier = "nonexistent", Password = "password" };
 
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IUserCredential)null);
+            .ReturnsAsync((IUserCredential?)null);
 
         var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 

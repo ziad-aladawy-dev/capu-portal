@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
@@ -57,7 +58,7 @@ public class AcademicYearService : IAcademicYearService
 
         if (await _unitOfWork.AcademicYears.HasOverlapAsync(request.StartDate, request.EndDate))
         {
-            throw new ValidationException("AcademicYear", "Academic year dates overlap with an existing academic year.");
+            throw new ValidationException("AcademicYear", LocalizedKeys.Semesters.YearDatesOverlap);
         }
 
         var year = _mapper.MapToEntity(request);
@@ -84,19 +85,19 @@ public class AcademicYearService : IAcademicYearService
         }
 
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        if (year == null) throw new NotFoundException("Academic year not found.");
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
 
         var startDate = request.StartDate ?? year.StartDate;
         var endDate = request.EndDate ?? year.EndDate;
 
         if (endDate <= startDate)
         {
-            throw new ValidationException("EndDate", "EndDate must be greater than StartDate");
+            throw new ValidationException("EndDate", LocalizedKeys.Semesters.EndAfterStart);
         }
 
         if (await _unitOfWork.AcademicYears.HasOverlapAsync(startDate, endDate, id))
         {
-            throw new ValidationException("AcademicYear", "Academic year dates overlap with an existing academic year.");
+            throw new ValidationException("AcademicYear", LocalizedKeys.Semesters.YearDatesOverlap);
         }
 
         _mapper.UpdateEntity(request, year);
@@ -115,7 +116,7 @@ public class AcademicYearService : IAcademicYearService
     public async Task DeleteAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        if (year == null) throw new NotFoundException("Academic year not found.");
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
 
         _unitOfWork.AcademicYears.Delete(year);
         await _unitOfWork.SaveChangesAsync();

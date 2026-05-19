@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
@@ -22,7 +23,7 @@ namespace CapitalUniversity.Modules.Student.Application;
 public class StudentProfileService : IStudentProfileService
 {
     internal const string CacheKeyPrefix = "studentprofile:object:";
-    private const string ProfileRecordNotFound = "Profile record not found.";
+    private const string ProfileRecordNotFound = LocalizedKeys.StudentInformation.ProfileRecordNotFound;
     private static readonly TimeSpan StandardTtl = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan SensitiveTtl = TimeSpan.FromMinutes(2);
 
@@ -102,7 +103,7 @@ public class StudentProfileService : IStudentProfileService
 
         if (!await _scope.CanAccessStudentAsync(studentId, cancellationToken))
         {
-            throw new NotFoundException("Student not found.");
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
         }
 
         var customKey = request.Category == StudentProfileCategory.Custom

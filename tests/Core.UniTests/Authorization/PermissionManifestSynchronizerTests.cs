@@ -18,6 +18,8 @@ namespace CapitalUniversity.Core.UniTests.Authorization;
 /// </summary>
 public class PermissionManifestSynchronizerTests
 {
+    private static readonly string[] ExpectedThingServiceNames = { "View Things", "Create Things" };
+
     private static CoreDbContext NewDb() =>
         new(new DbContextOptionsBuilder<CoreDbContext>()
             .UseInMemoryDatabase("ManifestSync_" + Guid.NewGuid())
@@ -59,7 +61,7 @@ public class PermissionManifestSynchronizerTests
 
         (await db.Modules.AsNoTracking().SingleAsync()).ModuleKey.Should().Be("alpha");
         var services = await db.Services.AsNoTracking().ToListAsync();
-        services.Select(s => s.DisplayName).Should().BeEquivalentTo(new[] { "View Things", "Create Things" });
+        services.Select(s => s.DisplayName).Should().BeEquivalentTo(ExpectedThingServiceNames);
     }
 
     [Fact]

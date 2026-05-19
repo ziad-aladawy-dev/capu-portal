@@ -1,8 +1,9 @@
-using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Modules.Payments.Abstractions;
-using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
+using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Payments.Repositories;
 
 
@@ -36,7 +37,7 @@ public class FeeCreationService : IFeeCreationService
         CancellationToken cancellationToken = default)
     {
         if (items.Count == 0)
-            throw new ArgumentException("At least one item is required.", nameof(items));
+            throw new ArgumentException(LocalizedKeys.Payments.AtLeastOneItem, nameof(items));
 
         Invoice? invoice = null;
         if (mergeWithPending)

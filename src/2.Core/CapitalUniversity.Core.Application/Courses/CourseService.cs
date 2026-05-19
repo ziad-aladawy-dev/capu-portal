@@ -1,6 +1,7 @@
 using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
@@ -77,7 +78,7 @@ public class CourseService : ICourseService
 
         if (await _courses.CodeExistsAsync(request.Code, cancellationToken: cancellationToken))
         {
-            throw new ConflictException($"Course code '{request.Code}' is already in use.");
+            throw new ConflictException(LocalizedKeys.Courses.CodeInUse);
         }
 
         var course = _mapper.MapToEntity(request);
@@ -97,7 +98,7 @@ public class CourseService : ICourseService
         }
 
         var course = await _courses.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Course not found.");
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
         if (!string.IsNullOrWhiteSpace(request.Title)) course.Title = request.Title;
         if (request.CreditHours.HasValue) course.CreditHours = request.CreditHours.Value;
@@ -114,7 +115,7 @@ public class CourseService : ICourseService
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var course = await _courses.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("Course not found.");
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
         _courses.Delete(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using FluentValidation;
 
@@ -9,7 +10,7 @@ public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceRequest>
     {
         RuleFor(x => x.StudentId).NotEmpty();
         RuleFor(x => x.Currency).NotEmpty().Length(3);
-        RuleFor(x => x.Items).NotEmpty().WithMessage("At least one invoice item is required.");
+        RuleFor(x => x.Items).NotEmpty().WithMessage(LocalizedKeys.Payments.AtLeastOneItem);
         RuleForEach(x => x.Items).SetValidator(new CreateInvoiceItemValidator());
     }
 }

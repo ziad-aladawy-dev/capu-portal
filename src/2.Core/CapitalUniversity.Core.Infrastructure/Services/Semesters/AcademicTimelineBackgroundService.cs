@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -46,7 +47,17 @@ public class AcademicTimelineBackgroundService : BackgroundService
         var yearService = scope.ServiceProvider.GetRequiredService<IAcademicYearService>();
         var semesterService = scope.ServiceProvider.GetRequiredService<ISemesterService>();
 
-        _logger.LogInformation("Resolving current academic year and semester...");
+        // Runtime Hardening Plan §3.2/§3.4 — explicit system-actor stamping so
+        // audit logs do not silently lose actor identity. There is no HttpContext
+        // here; surface that on the log line so operators can recognise the
+        // background origin in correlation searches.
+        using var logScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["Actor"] = SystemActors.AcademicTimeline,
+            ["ActorKind"] = SystemActors.DisplayName,
+        });
+
+        _logger.LogInformation("Resolving current academic year and semester (system actor).");
 
         await yearService.ResolveCurrentYearAsync();
         await semesterService.ResolveCurrentSemesterAsync();

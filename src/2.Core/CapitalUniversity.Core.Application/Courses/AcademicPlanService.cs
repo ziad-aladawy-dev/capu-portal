@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
@@ -33,8 +34,8 @@ public sealed record AcademicPlanValidators(
 public class AcademicPlanService : IAcademicPlanService
 {
     internal const string CacheKeyPrefix = "academicplan:object:";
-    private const string AcademicPlanNotFound = "Academic plan not found.";
-    private const string PlanCourseEntryNotFound = "Plan course entry not found.";
+    private const string AcademicPlanNotFound = LocalizedKeys.Courses.PlanNotFound;
+    private const string PlanCourseEntryNotFound = LocalizedKeys.Courses.PlanCourseEntryNotFound;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
 
     private readonly IUnitOfWork _unitOfWork;
@@ -113,7 +114,7 @@ public class AcademicPlanService : IAcademicPlanService
         // Reject creation targeted at a node the caller cannot see.
         if (!await _scope.CanAccessStructureNodeAsync(request.StructureNodeId, cancellationToken))
         {
-            throw new NotFoundException("Structure node not found.");
+            throw new NotFoundException(LocalizedKeys.Courses.StructureNodeNotFound);
         }
 
         var plan = _mapper.MapToEntity(request);
@@ -142,7 +143,7 @@ public class AcademicPlanService : IAcademicPlanService
 
         if (plan.EffectiveTo.HasValue && plan.EffectiveTo <= plan.EffectiveFrom)
         {
-            throw new ValidationException("EffectiveTo", "EffectiveTo must be greater than EffectiveFrom.");
+            throw new ValidationException("EffectiveTo", LocalizedKeys.Courses.EffectiveToAfterFrom);
         }
 
         plan.UpdatedAt = DateTime.UtcNow;
@@ -180,11 +181,11 @@ public class AcademicPlanService : IAcademicPlanService
         }
 
         var course = await _courses.GetByIdAsync(request.CourseId, cancellationToken)
-            ?? throw new NotFoundException("Course not found.");
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
         if (await _plans.ContainsCourseAsync(planId, request.CourseId, cancellationToken))
         {
-            throw new ConflictException("Course already present in this plan.");
+            throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
         }
 
         var entry = new AcademicPlanCourse

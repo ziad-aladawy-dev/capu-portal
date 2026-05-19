@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
@@ -60,17 +61,17 @@ public class SemesterService : ISemesterService
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(request.AcademicYearId);
         if (year == null)
         {
-            throw new ValidationException("AcademicYearId", "Academic year does not exist.");
+            throw new ValidationException("AcademicYearId", LocalizedKeys.Semesters.AcademicYearMissing);
         }
 
         if (request.StartDate < year.StartDate || request.EndDate > year.EndDate)
         {
-            throw new ValidationException(SemesterField, "Semester dates must be within the academic year range.");
+            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOutsideAcademicYear);
         }
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(request.AcademicYearId, request.StartDate, request.EndDate))
         {
-            throw new ValidationException(SemesterField, "Semester dates overlap with an existing semester in the same academic year.");
+            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOverlap);
         }
 
         var semester = _mapper.MapToEntity(request);
@@ -97,27 +98,27 @@ public class SemesterService : ISemesterService
         }
 
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
-        if (semester == null) throw new NotFoundException("Semester not found.");
+        if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
 
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(semester.AcademicYearId);
-        if (year == null) throw new NotFoundException("Academic year not found.");
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
 
         var startDate = request.StartDate ?? semester.StartDate;
         var endDate = request.EndDate ?? semester.EndDate;
 
         if (endDate <= startDate)
         {
-            throw new ValidationException("EndDate", "EndDate must be greater than StartDate");
+            throw new ValidationException("EndDate", LocalizedKeys.Semesters.EndAfterStart);
         }
 
         if (startDate < year.StartDate || endDate > year.EndDate)
         {
-            throw new ValidationException(SemesterField, "Semester dates must be within the academic year range.");
+            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOutsideAcademicYear);
         }
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(semester.AcademicYearId, startDate, endDate, id))
         {
-            throw new ValidationException(SemesterField, "Semester dates overlap with an existing semester in the same academic year.");
+            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOverlap);
         }
 
         _mapper.UpdateEntity(request, semester);
@@ -136,7 +137,7 @@ public class SemesterService : ISemesterService
     public async Task DeleteAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
-        if (semester == null) throw new NotFoundException("Semester not found.");
+        if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
 
         _unitOfWork.Semesters.Delete(semester);
         await _unitOfWork.SaveChangesAsync();

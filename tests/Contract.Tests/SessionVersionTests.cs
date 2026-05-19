@@ -52,13 +52,13 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
         });
     }
 
-    private async Task<string> LoginAsSuperAdminAsync(HttpClient client)
+    private static async Task<string> LoginAsSuperAdminAsync(HttpClient client)
     {
         var (access, _) = await LoginAsSuperAdminPairAsync(client);
         return access;
     }
 
-    private async Task<(string Access, string Refresh)> LoginAsSuperAdminPairAsync(HttpClient client)
+    private static async Task<(string Access, string Refresh)> LoginAsSuperAdminPairAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login",
             new LoginRequestDto { Identifier = SuperAdminNid, Password = SuperAdminPwd });

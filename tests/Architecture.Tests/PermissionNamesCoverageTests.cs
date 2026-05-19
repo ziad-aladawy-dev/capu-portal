@@ -12,10 +12,10 @@ namespace CapitalUniversity.Architecture.Tests;
 /// a value defined on <see cref="PermissionNames"/>. Catches typos and unaudited
 /// new attribute usages at build/test time instead of in production.
 /// </summary>
-public class PermissionNamesCoverageTests
+public partial class PermissionNamesCoverageTests
 {
-    private static readonly Regex HasPermissionLiteral =
-        new("""\[HasPermission\("(?<v>[^"]+)"\)\]""", RegexOptions.Compiled);
+    [GeneratedRegex("""\[HasPermission\("(?<v>[^"]+)"\)\]""")]
+    private static partial Regex HasPermissionLiteralRegex();
 
     [Fact]
     public void EveryHasPermissionLiteral_MapsToAConstantOnPermissionNames()
@@ -25,6 +25,7 @@ public class PermissionNamesCoverageTests
 
         var sourceRoot = LocateSrcDirectory();
         var offenders = new List<(string File, int Line, string Literal)>();
+        var regex = HasPermissionLiteralRegex();
 
         foreach (var file in Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories))
         {
@@ -32,7 +33,7 @@ public class PermissionNamesCoverageTests
             var lines = File.ReadAllLines(file);
             for (var i = 0; i < lines.Length; i++)
             {
-                var match = HasPermissionLiteral.Match(lines[i]);
+                var match = regex.Match(lines[i]);
                 if (!match.Success) continue;
                 var literal = match.Groups["v"].Value;
                 if (!allConstants.Contains(literal))

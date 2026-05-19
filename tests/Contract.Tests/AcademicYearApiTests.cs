@@ -101,7 +101,7 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
-    private async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
+    private static async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(content);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 using FluentValidation;
@@ -13,12 +14,12 @@ public class UpsertStudentProfileRecordValidator : AbstractValidator<UpsertStude
         RuleFor(x => x.DataJson)
             .NotEmpty()
             .Must(BeValidJson)
-            .WithMessage("DataJson must be a syntactically valid JSON document.");
+            .WithMessage(LocalizedKeys.StudentInformation.InvalidJson);
         RuleFor(x => x.CustomCategoryKey)
             .NotEmpty()
             .MaximumLength(64)
             .When(x => x.Category == StudentProfileCategory.Custom)
-            .WithMessage("CustomCategoryKey is required when Category is Custom.");
+            .WithMessage(LocalizedKeys.StudentInformation.CustomCategoryKeyRequired);
     }
 
     private static bool BeValidJson(string value)

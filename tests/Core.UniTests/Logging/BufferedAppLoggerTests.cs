@@ -63,7 +63,7 @@ public class BufferedAppLoggerTests
         queue.Count.Should().Be(2, "overflow drops the third entry per DropWrite policy");
     }
 
-    private static async Task<LogEntry> DrainOneAsync(IAuditLogQueue queue)
+    private static async Task<LogEntry> DrainOneAsync(ChannelAuditLogQueue queue)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         await foreach (var entry in queue.ReadAllAsync(cts.Token))

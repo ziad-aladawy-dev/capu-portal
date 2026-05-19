@@ -7,9 +7,10 @@ namespace CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 /// middleware out of the raw literal business.
 ///
 /// <para>
-/// Naming: <c>{Area}.{Reason}</c>. Areas are limited to cross-cutting infrastructure
-/// (Auth, Permissions, Infrastructure validation) — teammate business messages stay
-/// out of this catalogue per the scoping rules.
+/// Naming: <c>{Area}.{Reason}</c>. Areas cover both cross-cutting infrastructure
+/// (Auth, Permissions, Infrastructure validation) AND owned business modules
+/// (Courses, Semesters, Payments, StudentInformation) per the Runtime Hardening
+/// Plan section 2.
 /// </para>
 /// </summary>
 public static class LocalizedKeys
@@ -34,5 +35,46 @@ public static class LocalizedKeys
         public const string NotFound        = "infrastructure.not_found";
         public const string Conflict        = "infrastructure.conflict";
         public const string ServerError     = "infrastructure.server_error";
+        public const string DuplicateKey    = "infrastructure.duplicate_key";
+        public const string ForeignKeyViolation = "infrastructure.foreign_key_violation";
+    }
+
+    public static class Courses
+    {
+        public const string NotFound                  = "courses.not_found";
+        public const string CodeInUse                 = "courses.code_in_use";
+        public const string CreditHoursOutOfRange     = "courses.credit_hours_out_of_range";
+        public const string PlanNotFound              = "courses.plan_not_found";
+        public const string PlanCourseEntryNotFound   = "courses.plan_course_entry_not_found";
+        public const string PlanCourseAlreadyPresent  = "courses.plan_course_already_present";
+        public const string StructureNodeNotFound     = "courses.structure_node_not_found";
+        public const string EffectiveToAfterFrom      = "courses.effective_to_after_from";
+    }
+
+    public static class Semesters
+    {
+        public const string NotFound                  = "semesters.not_found";
+        public const string AcademicYearNotFound      = "semesters.academic_year_not_found";
+        public const string AcademicYearMissing       = "semesters.academic_year_missing";
+        public const string DatesOverlap              = "semesters.dates_overlap";
+        public const string DatesOutsideAcademicYear  = "semesters.dates_outside_academic_year";
+        public const string EndAfterStart             = "semesters.end_after_start";
+        public const string YearDatesOverlap          = "semesters.year_dates_overlap";
+    }
+
+    public static class Payments
+    {
+        public const string InvoiceNotFound           = "payments.invoice_not_found";
+        public const string StudentNotFound           = "payments.student_not_found";
+        public const string AtLeastOneItem            = "payments.at_least_one_item";
+        public const string PaidCannotCancel          = "payments.paid_cannot_cancel";
+    }
+
+    public static class StudentInformation
+    {
+        public const string ProfileRecordNotFound = "studentinfo.profile_record_not_found";
+        public const string StudentNotFound       = "studentinfo.student_not_found";
+        public const string InvalidJson           = "studentinfo.invalid_json";
+        public const string CustomCategoryKeyRequired = "studentinfo.custom_category_key_required";
     }
 }

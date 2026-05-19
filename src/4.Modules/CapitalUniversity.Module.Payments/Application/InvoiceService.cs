@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
@@ -104,7 +105,7 @@ public class InvoiceService : IInvoiceService
         // student exists.
         if (!await _scope.CanAccessStudentAsync(request.StudentId, cancellationToken))
         {
-            throw new NotFoundException("Student not found.");
+            throw new NotFoundException(LocalizedKeys.Payments.StudentNotFound);
         }
 
         var invoice = new Invoice
@@ -136,17 +137,17 @@ public class InvoiceService : IInvoiceService
     public async Task CancelAsync(Guid id, CancelInvoiceRequest request, CancellationToken cancellationToken = default)
     {
         var invoice = await _invoices.GetByIdAsync(id, includeItems: false, includeTransactions: true, cancellationToken: cancellationToken)
-            ?? throw new NotFoundException("Invoice not found.");
+            ?? throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
 
         // Out-of-scope is reported as not-found — caller cannot distinguish.
         if (!await _scope.CanAccessStudentAsync(invoice.StudentId, cancellationToken))
         {
-            throw new NotFoundException("Invoice not found.");
+            throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
         }
 
         if (invoice.Status == InvoiceStatus.Paid)
         {
-            throw new ConflictException("Paid invoices cannot be cancelled — issue a refund instead.");
+            throw new ConflictException(LocalizedKeys.Payments.PaidCannotCancel);
         }
         if (invoice.Status == InvoiceStatus.Cancelled)
         {

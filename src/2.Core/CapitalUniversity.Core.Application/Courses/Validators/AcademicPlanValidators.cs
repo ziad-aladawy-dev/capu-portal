@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using FluentValidation;
 
 namespace CapitalUniversity.Core.Application.Courses.Validators;
@@ -13,7 +14,7 @@ public class CreateAcademicPlanValidator : AbstractValidator<CreateAcademicPlanR
         RuleFor(x => x.EffectiveTo!.Value)
             .GreaterThan(x => x.EffectiveFrom)
             .When(x => x.EffectiveTo.HasValue)
-            .WithMessage("EffectiveTo must be greater than EffectiveFrom.");
+            .WithMessage(LocalizedKeys.Courses.EffectiveToAfterFrom);
     }
 }
 

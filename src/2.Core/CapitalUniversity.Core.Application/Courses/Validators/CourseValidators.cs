@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using FluentValidation;
 
 namespace CapitalUniversity.Core.Application.Courses.Validators;
@@ -10,7 +11,7 @@ public class CreateCourseValidator : AbstractValidator<CreateCourseRequest>
         RuleFor(x => x.Code).NotEmpty().MaximumLength(32);
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.CreditHours).InclusiveBetween(0, 12)
-            .WithMessage("CreditHours must be between 0 and 12.");
+            .WithMessage(LocalizedKeys.Courses.CreditHoursOutOfRange);
     }
 }
 
@@ -25,6 +26,6 @@ public class UpdateCourseValidator : AbstractValidator<(Guid Id, UpdateCourseReq
         RuleFor(x => x.Request.CreditHours!.Value)
             .InclusiveBetween(0, 12)
             .When(x => x.Request.CreditHours.HasValue)
-            .WithMessage("CreditHours must be between 0 and 12.");
+            .WithMessage(LocalizedKeys.Courses.CreditHoursOutOfRange);
     }
 }

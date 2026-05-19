@@ -45,7 +45,7 @@ public class PermissionsControllerTests
         var mockUser = new Mock<ICurrentUser>();
 
         mockService.Setup(s => s.GetAssignmentAsync(It.IsAny<GetPermissionAssignmentQueryDto>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PermissionAssignmentResponse)null);
+            .ReturnsAsync((PermissionAssignmentResponse?)null);
 
         var controller = new PermissionsController(mockService.Object, mockUser.Object);
 

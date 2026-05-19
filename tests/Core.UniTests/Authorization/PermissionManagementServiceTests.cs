@@ -22,7 +22,7 @@ namespace CapitalUniversity.Core.UniTests.Authorization;
 
 public class PermissionManagementServiceTests
 {
-    private CoreDbContext GetDbContext()
+    private static CoreDbContext GetDbContext()
     {
         var options = new DbContextOptionsBuilder<CoreDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())

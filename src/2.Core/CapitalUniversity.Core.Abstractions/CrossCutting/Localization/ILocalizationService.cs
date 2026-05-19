@@ -13,4 +13,12 @@ public interface ILocalizationService
     /// the call is always safe even before a translation lands.
     /// </summary>
     string GetString(string key);
+
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="key"/> exists in the underlying
+    /// translation table. Used by cross-cutting handlers (e.g. the global
+    /// exception handler) to decide whether to localize a message or pass it
+    /// through verbatim.
+    /// </summary>
+    bool ContainsKey(string? key);
 }

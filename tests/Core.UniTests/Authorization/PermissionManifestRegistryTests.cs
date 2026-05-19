@@ -12,6 +12,8 @@ namespace CapitalUniversity.Core.UniTests.Authorization;
 /// </summary>
 public class PermissionManifestRegistryTests
 {
+    private static readonly string[] ExpectedCanonicalNames = { "alpha.x.View", "alpha.x.Insert", "beta.y.View" };
+
     private sealed class StubManifest : IPermissionManifest
     {
         public string Module { get; init; } = string.Empty;
@@ -47,7 +49,7 @@ public class PermissionManifestRegistryTests
         var registry = new PermissionManifestRegistry(manifests);
 
         registry.Manifests.Should().HaveCount(2);
-        registry.AllCanonicalNames.Should().BeEquivalentTo(new[] { "alpha.x.View", "alpha.x.Insert", "beta.y.View" });
+        registry.AllCanonicalNames.Should().BeEquivalentTo(ExpectedCanonicalNames);
         registry.Contains("alpha.x.View").Should().BeTrue();
         registry.Contains("missing.thing.View").Should().BeFalse();
     }

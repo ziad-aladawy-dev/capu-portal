@@ -7,12 +7,12 @@ public enum LogLevelType
     Error = 3,
     Critical = 4
 }
-public enum SystemTypeEnum
+public enum SystemType
 {
     [Localized("نظام الفصول", "Semester System")]
     SemesterSystem = 1,
     [Localized("نظام الساعات المعتمدة", "Credit Hours System")]
-    CreditHoursSystem = 2 
+    CreditHoursSystem = 2
 }
 
 public enum StudentStatusEnum
@@ -27,14 +27,14 @@ public enum StudentStatusEnum
     Transferred = 4
 }
 
-public enum ProgramTypeEnum
+public enum ProgramType
 {
     [Localized("مستوى", "Level Based")]
     LevelBased = 1,
     [Localized("الساعات المعتمدة", "Credit Hours")]
-    CreditHours = 2 
+    CreditHours = 2
 }
-public enum SemesterNameEnum
+public enum SemesterName
 {
     [Localized("خريف", "Fall")]
     Fall = 1,

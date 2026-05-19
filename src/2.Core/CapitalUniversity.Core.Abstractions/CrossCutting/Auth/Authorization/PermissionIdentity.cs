@@ -6,6 +6,9 @@ public static class PermissionIdentity
 {
     public const string Prefix = "Permission:";
 
+    // CA1861: hoisted so Normalize() doesn't re-allocate the separator array on every call.
+    private static readonly char[] NormalizeSeparators = { ' ', '-', '_' };
+
     public static string Create(string module, string resource, string action)
     {
         return $"{Normalize(module)}.{Normalize(resource)}.{Normalize(action)}";
@@ -66,7 +69,7 @@ public static class PermissionIdentity
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var trimmed = value.Trim();
 
-        var parts = trimmed.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = trimmed.Split(NormalizeSeparators, StringSplitOptions.RemoveEmptyEntries);
         var normalizedParts = parts.Select(p => 
         {
             if (p.Length == 0) return string.Empty;

@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using FluentValidation;
 
@@ -10,7 +11,7 @@ public class CreateSemesterValidator : AbstractValidator<CreateSemesterRequest>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.StartDate).NotEmpty();
         RuleFor(x => x.EndDate).NotEmpty().GreaterThan(x => x.StartDate)
-            .WithMessage("EndDate must be greater than StartDate");
+            .WithMessage(LocalizedKeys.Semesters.EndAfterStart);
     }
 }
 
