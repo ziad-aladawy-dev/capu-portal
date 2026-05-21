@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
@@ -25,8 +26,10 @@ namespace CapitalUniversity.API.Infrastructure;
 /// </summary>
 public class CorrelationIdMiddleware
 {
-    public const string HeaderName = "X-Correlation-Id";
-    public const string ItemKey = "CorrelationId";
+    // Aliases for back-compat with any existing caller that referenced
+    // these on the middleware; canonical strings live on CorrelationContext.
+    public const string HeaderName = CorrelationContext.HeaderName;
+    public const string ItemKey = CorrelationContext.ItemKey;
     private const int MaxAcceptedLength = 128;
 
     private readonly RequestDelegate _next;

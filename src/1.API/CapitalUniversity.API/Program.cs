@@ -3,7 +3,9 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -67,6 +69,11 @@ builder.Services.AddCoreServices(builder.Configuration);
 // before the module wires its services that depend on those interfaces.
 builder.Services.AddPaymentsModule();
 builder.Services.AddStudentModule();
+builder.Services.AddCourseOfferingModule();
+// Schedule depends on ICourseOfferingService for parent existence + scope
+// checks — registered AFTER CourseOffering so the resolver finds the
+// dependency at construction time.
+builder.Services.AddScheduleModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();

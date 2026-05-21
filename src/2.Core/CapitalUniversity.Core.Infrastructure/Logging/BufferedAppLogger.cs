@@ -3,6 +3,8 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Logging;
 using Microsoft.AspNetCore.Http;
+// CorrelationContext lives in CapitalUniversity.Core.Abstractions.CrossCutting.Logging
+// (same namespace as IAppLogger above — no extra using needed).
 
 namespace CapitalUniversity.Core.Infrastructure.Logging;
 
@@ -88,9 +90,23 @@ public class BufferedAppLogger : IAppLogger
             entry.RequestPath = context.Request.Path;
             entry.HttpMethod = context.Request.Method;
             entry.UserId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            entry.CorrelationId = ResolveCorrelationId(context);
         }
 
         return entry;
+    }
+
+    /// <summary>
+    /// Snapshots the correlation id set by <c>CorrelationIdMiddleware</c> so
+    /// it travels with the entry through the async queue → Mongo flush. Null
+    /// when the middleware didn't run (background work) or when the stored
+    /// value isn't a string we can serialize — never throws, so a malformed
+    /// upstream injection can't take down the log pipeline.
+    /// </summary>
+    private static string? ResolveCorrelationId(HttpContext context)
+    {
+        if (!context.Items.TryGetValue(CorrelationContext.ItemKey, out var raw)) return null;
+        return raw as string;
     }
 
     private static string? ResolveClientIp(HttpContext context)

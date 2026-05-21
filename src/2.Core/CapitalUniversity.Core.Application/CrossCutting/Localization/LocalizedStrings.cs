@@ -66,6 +66,18 @@ public static class LocalizedStrings
                 [LocalizedKeys.StudentInformation.StudentNotFound]          = "Student not found.",
                 [LocalizedKeys.StudentInformation.InvalidJson]              = "DataJson must be a syntactically valid JSON document.",
                 [LocalizedKeys.StudentInformation.CustomCategoryKeyRequired] = "CustomCategoryKey is required when Category is Custom.",
+
+                [LocalizedKeys.CourseOfferings.NotFound]              = "Course offering not found.",
+                [LocalizedKeys.CourseOfferings.SectionInUse]          = "A course offering with this section already exists for the same course, term, and structure node.",
+                [LocalizedKeys.CourseOfferings.CapacityNegative]      = "Capacity must be non-negative.",
+                [LocalizedKeys.CourseOfferings.CapacityBelowCount]    = "Capacity cannot be reduced below the current registration count.",
+                [LocalizedKeys.CourseOfferings.SectionCodeRequired]   = "Section code is required.",
+                [LocalizedKeys.CourseOfferings.IllegalStateTransition] = "The requested status or registration state is not allowed from the offering's current state.",
+
+                [LocalizedKeys.Schedule.NotFound]       = "Schedule slot not found.",
+                [LocalizedKeys.Schedule.DuplicateSlot]  = "A schedule slot for this offering already exists at the same day and time.",
+                [LocalizedKeys.Schedule.EndBeforeStart] = "End time must be strictly greater than start time.",
+                [LocalizedKeys.Schedule.SlotConflict]   = "The proposed time overlaps an existing schedule slot for this offering on the same day.",
             },
             ["ar"] = new(StringComparer.Ordinal)
             {
@@ -108,6 +120,18 @@ public static class LocalizedStrings
                 [LocalizedKeys.StudentInformation.StudentNotFound]          = "الطالب غير موجود.",
                 [LocalizedKeys.StudentInformation.InvalidJson]              = "يجب أن تكون قيمة DataJson مستند JSON صالحًا.",
                 [LocalizedKeys.StudentInformation.CustomCategoryKeyRequired] = "حقل CustomCategoryKey مطلوب عندما تكون الفئة Custom.",
+
+                [LocalizedKeys.CourseOfferings.NotFound]              = "طرح المقرر غير موجود.",
+                [LocalizedKeys.CourseOfferings.SectionInUse]          = "يوجد طرح آخر بنفس الشُعبة لنفس المقرر والفصل والعقدة التنظيمية.",
+                [LocalizedKeys.CourseOfferings.CapacityNegative]      = "يجب أن تكون السعة قيمة غير سالبة.",
+                [LocalizedKeys.CourseOfferings.CapacityBelowCount]    = "لا يمكن خفض السعة إلى أقل من عدد المسجلين الحاليين.",
+                [LocalizedKeys.CourseOfferings.SectionCodeRequired]   = "كود الشُعبة مطلوب.",
+                [LocalizedKeys.CourseOfferings.IllegalStateTransition] = "الحالة أو حالة التسجيل المطلوبة غير مسموح بها انطلاقًا من حالة الطرح الحالية.",
+
+                [LocalizedKeys.Schedule.NotFound]       = "موعد الجدول الدراسي غير موجود.",
+                [LocalizedKeys.Schedule.DuplicateSlot]  = "يوجد موعد آخر لنفس الطرح في نفس اليوم والتوقيت.",
+                [LocalizedKeys.Schedule.EndBeforeStart] = "يجب أن يكون وقت النهاية بعد وقت البداية تمامًا.",
+                [LocalizedKeys.Schedule.SlotConflict]   = "التوقيت المقترح يتعارض مع موعد آخر لنفس الطرح في نفس اليوم.",
             },
         };
 

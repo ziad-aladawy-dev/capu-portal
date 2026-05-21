@@ -31,5 +31,9 @@
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Payments\CapitalUniversity.Module.Payments.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Student.Abstractions\CapitalUniversity.Module.Student.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Student\CapitalUniversity.Module.Student.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.CourseOffering.Abstractions\CapitalUniversity.Module.CourseOffering.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.CourseOffering\CapitalUniversity.Module.CourseOffering.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Schedule.Abstractions\CapitalUniversity.Module.Schedule.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Schedule\CapitalUniversity.Module.Schedule.csproj" />
   </ItemGroup>
 </Project>

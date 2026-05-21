@@ -77,4 +77,22 @@ public static class LocalizedKeys
         public const string InvalidJson           = "studentinfo.invalid_json";
         public const string CustomCategoryKeyRequired = "studentinfo.custom_category_key_required";
     }
+
+    public static class CourseOfferings
+    {
+        public const string NotFound                 = "course_offerings.not_found";
+        public const string SectionInUse             = "course_offerings.section_in_use";
+        public const string CapacityNegative         = "course_offerings.capacity_negative";
+        public const string CapacityBelowCount       = "course_offerings.capacity_below_count";
+        public const string SectionCodeRequired      = "course_offerings.section_code_required";
+        public const string IllegalStateTransition   = "course_offerings.illegal_state_transition";
+    }
+
+    public static class Schedule
+    {
+        public const string NotFound        = "schedule.not_found";
+        public const string DuplicateSlot   = "schedule.duplicate_slot";
+        public const string EndBeforeStart  = "schedule.end_before_start";
+        public const string SlotConflict    = "schedule.slot_conflict";
+    }
 }
