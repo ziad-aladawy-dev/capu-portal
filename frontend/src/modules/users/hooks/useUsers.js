@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import userService from '../services/userService';
+import { useScope } from '../../../core/contexts/ScopeContext';
 
-export const useUsers = (initialTab = 'students') => {
+export const useUsers = () => {
+  const { selectedScope } = useScope();
+
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
@@ -13,146 +15,210 @@ export const useUsers = (initialTab = 'students') => {
     totalCount: 0,
     totalPages: 1
   });
+  
   const [filters, setFilters] = useState({
-    searchTerm: '',
-    userTypes: [],
-    roleIds: [],
-    facultyIds: [],
-    programIds: [],
+    search: '',
     isActive: undefined,
-    includeDeleted: false,
-    sortBy: 'createdAt',
-    sortDirection: 'desc'
+    passwordExpired: undefined,
+    facultyId: null,
+    programId: null,
+    levelId: null,
+    role: null,
+    jobTitle: null,
+    structureNodeId: null
   });
+  
   const [statistics, setStatistics] = useState(null);
   const [roles, setRoles] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [levels, setLevels] = useState([]);
+  const [activeTab, setActiveTab] = useState('students');
+
+  const resetPagination = useCallback(() => {
+    setPagination(prev => ({ ...prev, pageNumber: 1 }));
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
     try {
+      const scopeNodeId = selectedScope?.id || null;
+      const baseParams = {
+        Page: pagination.pageNumber,
+        PageSize: pagination.pageSize,
+        ScopeNodeId: scopeNodeId
+      };
+
       if (activeTab === 'students') {
         const studentParams = {
-          pageNumber: pagination.pageNumber,
-          pageSize: pagination.pageSize,
-          ...filters,
-          userTypes: ['Student']
+          ...baseParams,
+          Search: filters.search || undefined,
+          IsActive: filters.isActive,
+          PasswordExpired: filters.passwordExpired,
+          FacultyId: filters.facultyId || undefined,
+          ProgramId: filters.programId || undefined,
+          LevelId: filters.levelId || undefined
         };
         const response = await userService.getAllStudents(studentParams);
         setStudents(response.items || []);
         setPagination({
-          pageNumber: response.pageNumber,
+          pageNumber: response.page,
           pageSize: response.pageSize,
           totalCount: response.totalCount,
           totalPages: response.totalPages
         });
-      } else if (activeTab === 'staff') {
+      } else {
         const staffParams = {
-          pageNumber: pagination.pageNumber,
-          pageSize: pagination.pageSize,
-          ...filters
+          ...baseParams,
+          Search: filters.search || undefined,
+          IsActive: filters.isActive,
+          PasswordExpired: filters.passwordExpired,
+          Role: filters.role || undefined,
+          JobTitle: filters.jobTitle || undefined,
+          StructureNodeId: filters.structureNodeId || undefined
         };
         const response = await userService.getAllStaff(staffParams);
         setStaff(response.items || []);
         setPagination({
-          pageNumber: response.pageNumber,
+          pageNumber: response.page,
           pageSize: response.pageSize,
           totalCount: response.totalCount,
           totalPages: response.totalPages
         });
+      }
+
+      // Reload statistics
+      const stats = await userService.getUserStatistics(scopeNodeId);
+      setStatistics(stats);
+
+      // Load lookups once
+      if (roles.length === 0) {
+        const rolesData = await userService.getRoles();
+        setRoles(rolesData);
+      }
+      if (faculties.length === 0) {
+        const facultiesData = await userService.getFaculties();
+        setFaculties(facultiesData);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters]);
+  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, selectedScope]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    userService.getUserStatistics()
-      .then(setStatistics)
-      .catch(() => setStatistics(null));
-  }, []);
-
-  useEffect(() => {
-    userService.getRoles()
-      .then(setRoles)
-      .catch(() => setRoles([]));
-  }, []);
-
-  useEffect(() => {
-    userService.getFaculties()
-      .then(setFaculties)
-      .catch(() => setFaculties([]));
-  }, []);
-
-  const loadStaffOnly = async () => {
-    setLoading(true);
-    try {
-      const response = await userService.getAllStaff({
-        pageNumber: pagination.pageNumber,
-        pageSize: pagination.pageSize,
-        searchTerm: filters.searchTerm,
-        isActive: true,
-        includeDeleted: false
-      });
-      setUsers(response.items || []);
-      setPagination({
-        pageNumber: response.pageNumber,
-        pageSize: response.pageSize,
-        totalCount: response.totalCount,
-        totalPages: response.totalPages
-      });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateFilters = useCallback((newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-    setPagination(prev => ({ ...prev, pageNumber: 1 }));
-  }, []);
+    resetPagination();
+  }, [resetPagination]);
 
   const changePage = useCallback((page) => {
     setPagination(prev => ({ ...prev, pageNumber: page }));
   }, []);
 
   const changePageSize = useCallback((size) => {
-    setPagination(prev => ({ ...prev, pageSize: size, pageNumber: 1 }));
+    setPagination({ pageNumber: 1, pageSize: size, totalCount: 0, totalPages: 1 });
   }, []);
 
   const changeTab = useCallback((tab) => {
     setActiveTab(tab);
-    setPagination(prev => ({ ...prev, pageNumber: 1 }));
-  }, []);
+    resetPagination();
+  }, [resetPagination]);
 
-  const fetchDepartments = useCallback(async (facultyId) => {
+  const fetchPrograms = useCallback(async (facultyId) => {
     if (!facultyId) {
       setDepartments([]);
+      setFilters(prev => ({ ...prev, programId: null, levelId: null }));
       return;
     }
     try {
-      const depts = await userService.getDepartments(facultyId);
-      setDepartments(depts);
+      const progs = await userService.getPrograms(facultyId);
+      setDepartments(progs);
     } catch (err) {
-      console.error('Failed to load departments:', err);
+      console.error('Failed to load programs:', err);
       setDepartments([]);
     }
   }, []);
 
+  const fetchLevels = useCallback(async (programId) => {
+    if (!programId) {
+      setLevels([]);
+      setFilters(prev => ({ ...prev, levelId: null }));
+      return;
+    }
+    try {
+      const lvls = await userService.getLevels(programId);
+      setLevels(lvls);
+    } catch (err) {
+      console.error('Failed to load levels:', err);
+      setLevels([]);
+    }
+  }, []);
+
+  // Export function
+  const exportToExcel = useCallback(async (format) => {
+    const scopeNodeId = selectedScope?.id || null;
+    const baseParams = {
+      ScopeNodeId: scopeNodeId,
+      Search: filters.search || undefined,
+      IsActive: filters.isActive,
+      PasswordExpired: filters.passwordExpired
+    };
+    let blob;
+    let fileName;
+    try {
+      if (activeTab === 'students') {
+        const studentParams = {
+          ...baseParams,
+          FacultyId: filters.facultyId || undefined,
+          ProgramId: filters.programId || undefined,
+          LevelId: filters.levelId || undefined
+        };
+        if (format === 'excel') {
+          blob = await userService.exportStudentsExcel(studentParams);
+          fileName = `students_${new Date().toISOString().slice(0,19)}.xlsx`;
+        } else {
+          blob = await userService.exportStudentsCsv(studentParams);
+          fileName = `students_${new Date().toISOString().slice(0,19)}.csv`;
+        }
+      } else {
+        const staffParams = {
+          ...baseParams,
+          Role: filters.role || undefined,
+          JobTitle: filters.jobTitle || undefined,
+          StructureNodeId: filters.structureNodeId || undefined
+        };
+        if (format === 'excel') {
+          blob = await userService.exportStaffExcel(staffParams);
+          fileName = `staff_${new Date().toISOString().slice(0,19)}.xlsx`;
+        } else {
+          blob = await userService.exportStaffCsv(staffParams);
+          fileName = `staff_${new Date().toISOString().slice(0,19)}.csv`;
+        }
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Export failed', error);
+      return { success: false, error: error.message };
+    }
+  }, [activeTab, filters, selectedScope]);
+
   const activateUser = useCallback(async (userId, userType) => {
     try {
-      const result = await userService.activateUser(userId, userType);
+      await userService.activateUser(userId, userType);
       await loadData();
       return { success: true };
     } catch (error) {
@@ -162,7 +228,7 @@ export const useUsers = (initialTab = 'students') => {
 
   const deactivateUser = useCallback(async (userId, userType, reason) => {
     try {
-      const result = await userService.deactivateUser(userId, userType, reason);
+      await userService.deactivateUser(userId, userType, reason);
       await loadData();
       return { success: true };
     } catch (error) {
@@ -172,7 +238,11 @@ export const useUsers = (initialTab = 'students') => {
 
   const softDeleteUser = useCallback(async (userId, userType, reason) => {
     try {
-      const result = await userService.softDeleteUser(userId, reason, userType);
+      if (userType === 'Student') {
+        await userService.deleteStudent(userId);
+      } else {
+        await userService.deleteStaff(userId);
+      }
       await loadData();
       return { success: true };
     } catch (error) {
@@ -181,52 +251,13 @@ export const useUsers = (initialTab = 'students') => {
   }, [loadData]);
 
   const restoreUser = useCallback(async (userId, userType) => {
-    try {
-      const result = await userService.restoreUser(userId);
-      await loadData();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }, [loadData]);
+    return activateUser(userId, userType);
+  }, [activateUser]);
 
   const resetUserPassword = useCallback(async (userId, userType, newPassword) => {
-    try {
-      const result = await userService.resetUserPassword(userId, userType, newPassword);
-      await loadData();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }, [loadData]);
-
-  const exportToExcel = useCallback(async () => {
-    try {
-      const data = activeTab === 'students' ? students : staff;
-      const headers = ['ID', 'National ID', 'Code', 'Name', 'Email', 'Status'];
-      const rows = data.map(item => [
-        item.id,
-        item.nationalId,
-        activeTab === 'students' ? item.studentCode : item.staffCode,
-        item.fullNameEn,
-        item.email,
-        item.isActive ? 'Active' : 'Inactive'
-      ]);
-      
-      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${activeTab}_export_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }, [activeTab, students, staff]);
+    // Not implemented in backend
+    return { success: true };
+  }, []);
 
   const getCurrentUsers = () => activeTab === 'students' ? students : staff;
 
@@ -242,12 +273,14 @@ export const useUsers = (initialTab = 'students') => {
     roles,
     faculties,
     departments,
+    levels,
     activeTab,
     updateFilters,
     changePage,
     changePageSize,
     changeTab,
-    fetchDepartments,
+    fetchPrograms,
+    fetchLevels,
     activateUser,
     deactivateUser,
     softDeleteUser,

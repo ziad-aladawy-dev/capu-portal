@@ -344,7 +344,11 @@ function RolesPage() {
                   Cancel
                 </button>
                 <button type="submit" className="roles-btn roles-btn-primary" disabled={saving}>
-                  {saving ? "Saving…" : modalMode === "create" ? "Create" : "Save Changes"}
+                  {(() => {
+                    if (saving) return "Saving…";
+                    if (modalMode === "create") return "Create";
+                    return "Save Changes";
+                  })()}
                 </button>
               </div>
             </form>

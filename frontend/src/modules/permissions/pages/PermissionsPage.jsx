@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Shield, Search, X, Save, RotateCcw, Plus, User, AlertTriangle,
-  Building2, CalendarRange, BookOpen, Check, CheckCircle, Globe,
+  Building2, Check, CheckCircle, Globe,
 } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import * as staffService from "../../../core/services/staffService";
@@ -168,6 +168,12 @@ function PermissionsPage() {
   const selectedUserCode = selectedUser?.code || "";
   const selectedUserType = selectedUser?.type || "";
 
+  const saveButtonContent = (() => {
+    if (saving) return "Saving…";
+    if (saved) return <><CheckCircle size={13} /> Saved!</>;
+    return <><Save size={13} /> Save Changes</>;
+  })();
+
   return (
     <div className="permissions-page">
       <div className="perm-header">
@@ -190,7 +196,7 @@ function PermissionsPage() {
             onClick={handleSave}
             disabled={!dirty || saving || !selectedUser}
           >
-            {saving ? "Saving…" : saved ? "Saved!" : <><Save size={13} /> Save Changes</>}
+            {saveButtonContent}
           </button>
         </div>
       </div>

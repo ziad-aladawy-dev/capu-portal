@@ -598,7 +598,7 @@ body {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: rgba(26, 31, 94, 0.08);
+  background: rgba(26, 31, 94, 0.22);
   color: #1a1f5e;
   display: flex;
   align-items: center;
@@ -717,7 +717,7 @@ body {
   height: 54px;
   border-radius: 16px;
   margin: 0 auto 14px;
-  background: rgba(26, 31, 94, 0.08);
+  background: rgba(26, 31, 94, 0.22);
   color: #1a1f5e;
   display: flex;
   align-items: center;
@@ -837,7 +837,7 @@ body {
   height: 72px;
   border-radius: 50%;
   margin: 0 auto 18px;
-  background: rgba(26, 31, 94, 0.08);
+  background: rgba(26, 31, 94, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;

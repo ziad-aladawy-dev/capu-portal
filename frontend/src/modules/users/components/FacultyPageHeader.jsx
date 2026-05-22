@@ -1,9 +1,13 @@
+import React from "react";
+import PropTypes from "prop-types";
+
 function FacultyPageHeader({
   title,
   icon: Icon,
   onAdd,
   onExport,
   showActions = true,
+  exportButtonRef,
 }) {
   return (
     <section className="users-page-header">
@@ -13,20 +17,17 @@ function FacultyPageHeader({
             <Icon size={16} />
           </div>
         )}
-
         <div>
           <span className="users-page-kicker">Users Module</span>
           <h1>{title}</h1>
           <p>Manage users, roles and permissions.</p>
         </div>
       </div>
-
       {showActions && (
         <div className="users-page-actions">
-          <button type="button" className="users-secondary-btn" onClick={onExport}>
+          <button type="button" className="users-secondary-btn" onClick={onExport} ref={exportButtonRef}>
             Export
           </button>
-
           <button type="button" className="users-primary-btn" onClick={onAdd}>
             Add User
           </button>
@@ -35,5 +36,14 @@ function FacultyPageHeader({
     </section>
   );
 }
+
+FacultyPageHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.elementType,
+  onAdd: PropTypes.func.isRequired,
+  onExport: PropTypes.func,
+  showActions: PropTypes.bool,
+  exportButtonRef: PropTypes.shape({ current: PropTypes.any }),
+};
 
 export default FacultyPageHeader;

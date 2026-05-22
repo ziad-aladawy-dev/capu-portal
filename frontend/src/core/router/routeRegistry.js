@@ -14,7 +14,6 @@ import UserDetails from "../../modules/users/pages/UserDetails";
 import StaffDirectory from "../../modules/staff/pages/StaffDirectory";
 import StudentDirectory from "../../modules/students/pages/StudentDirectory";
 import PermissionsPage from "../../modules/permissions/pages/PermissionsPage";
-import RolesPage from "../../modules/permissions/pages/RolesPage";
 import CoursesPage from "../../modules/courses/pages/CoursesPage";
 import AcademicPlansPage from "../../modules/academicPlans/pages/AcademicPlansPage";
 import InvoicesPage from "../../modules/invoices/pages/InvoicesPage";
@@ -22,6 +21,7 @@ import InvoiceDetailsPage from "../../modules/invoices/pages/InvoiceDetailsPage"
 import NotificationsPage from "../../modules/notifications/pages/NotificationsPage";
 import StudentProfileRecordsPage from "../../modules/studentProfileRecords/pages/StudentProfileRecordsPage";
 import PermissionTreePage from "../../modules/authorization/pages/PermissionTreePage";
+import AcademicCalendarPage from "../../modules/academic/pages/AcademicCalendarPage";
 
 const COMPONENT_MAP = {
   AdminDashboard,
@@ -43,6 +43,7 @@ const COMPONENT_MAP = {
   NotificationsPage,
   StudentProfileRecordsPage,
   PermissionTreePage,
+  AcademicCalendarPage,
 };
 
 function Placeholder({ title = "Page" }) {

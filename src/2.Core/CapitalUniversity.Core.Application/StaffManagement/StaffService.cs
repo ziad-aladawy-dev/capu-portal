@@ -5,7 +5,6 @@ using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.Application.StaffManagement;
 
@@ -16,6 +15,8 @@ public class StaffService : IStaffService
     private readonly IStructureNodeRepository
         _structureRepository;
 
+    private readonly IPasswordHasher _passwordHasher;
+
     private readonly ISessionVersionService _sessionVersions;
 
     private readonly IUnitOfWork _unitOfWork;
@@ -25,12 +26,14 @@ public class StaffService : IStaffService
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
+        IPasswordHasher passwordHasher,
         ISessionVersionService sessionVersions,
         IUnitOfWork unitOfWork,
         ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
         _localization = localization;
@@ -59,6 +62,8 @@ public class StaffService : IStaffService
             throw new Exception(
                 "Passwords do not match");
         }
+
+        var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
         var structureNode = await _structureRepository
             .GetByIdAsync(request.StructureNodeId);
@@ -93,7 +98,7 @@ public class StaffService : IStaffService
 
             EmployeeCode = request.EmployeeCode,
 
-            PasswordHash = request.Password,
+            PasswordHash = hashedPassword,
 
             Name = request.Name,
 
@@ -183,8 +188,7 @@ public class StaffService : IStaffService
                     "Passwords do not match");
             }
 
-            staff.PasswordHash =
-                request.Password;
+            staff.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
         staff.Name = request.Name;

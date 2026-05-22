@@ -6,6 +6,7 @@ using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using CapitalUniversity.Core.Application.DTOs.UniversityStructure;
 using CapitalUniversity.Core.Application.UniversityStructure.UniversityStructureRules;
 using CapitalUniversity.Core.Domain.UniversityStructure;
+using System.Text.Json;
 
 namespace CapitalUniversity.Core.Application.UniversityStructure;
 
@@ -28,11 +29,6 @@ public class UniversityStructureService : IUniversityStructureService
         _permissionCacheInvalidator = permissionCacheInvalidator;
     }
 
-    /// <summary>
-    /// Decode <c>StructureNode.Name</c> against the current culture. The
-    /// stored value is the canonical <c>{"ar":"…","en":"…"}</c> JSON; legacy
-    /// plain-text rows pass through unchanged.
-    /// </summary>
     private string LocalizedName(StructureNode node) =>
         _localization.Get<string>(node.Name);
 
@@ -40,29 +36,13 @@ public class UniversityStructureService : IUniversityStructureService
     {
         var allNodes = await _repository.GetAllAsync();
 
-        var dtoMap = allNodes.ToDictionary(
-            x => x.Id,
-            x => new StructureNodeDto
-            {
-                Id = x.Id,
-                Name = LocalizedName(x),
-                Type = x.Type,
-                ParentId = x.ParentId,
-                Order = x.Order,
-                Path = x.Path,
-                Depth = x.Depth,
-                IsActive = x.IsActive,
-                Children = new List<StructureNodeDto>()
-            });
+        var dtoMap = allNodes.ToDictionary(x => x.Id, MapToDto);
 
         foreach (var node in dtoMap.Values)
         {
-            if (node.ParentId.HasValue &&
-                dtoMap.ContainsKey(node.ParentId.Value))
+            if (node.ParentId.HasValue && dtoMap.ContainsKey(node.ParentId.Value))
             {
-                dtoMap[node.ParentId.Value]
-                    .Children
-                    .Add(node);
+                dtoMap[node.ParentId.Value].Children.Add(node);
             }
         }
 
@@ -76,20 +56,7 @@ public class UniversityStructureService : IUniversityStructureService
     {
         var allNodes = await _repository.GetAllAsync();
 
-        var dtoMap = allNodes.ToDictionary(
-            x => x.Id,
-            x => new StructureNodeDto
-            {
-                Id = x.Id,
-                Name = LocalizedName(x),
-                Type = x.Type,
-                ParentId = x.ParentId,
-                Order = x.Order,
-                Path = x.Path,
-                Depth = x.Depth,
-                IsActive = x.IsActive,
-                Children = new List<StructureNodeDto>()
-            });
+        var dtoMap = allNodes.ToDictionary(x => x.Id, MapToDto);
 
         foreach (var node in dtoMap.Values)
         {
@@ -106,6 +73,41 @@ public class UniversityStructureService : IUniversityStructureService
             ? dtoMap[id]
             : null;
     }
+
+    //public async Task<StructureNodeDto?> GetByIdAsync(Guid id)
+    //{
+    //    var allNodes = await _repository.GetAllAsync();
+
+    //    var dtoMap = allNodes.ToDictionary(
+    //        x => x.Id,
+    //        x => new StructureNodeDto
+    //        {
+    //            Id = x.Id,
+    //            Name = x.Name,
+    //            Type = x.Type,
+    //            ParentId = x.ParentId,
+    //            Order = x.Order,
+    //            Path = x.Path,
+    //            Depth = x.Depth,
+    //            IsActive = x.IsActive,
+    //            Children = new List<StructureNodeDto>()
+    //        });
+
+    //    foreach (var node in dtoMap.Values)
+    //    {
+    //        if (node.ParentId.HasValue &&
+    //            dtoMap.ContainsKey(node.ParentId.Value))
+    //        {
+    //            dtoMap[node.ParentId.Value]
+    //                .Children
+    //                .Add(node);
+    //        }
+    //    }
+
+    //    return dtoMap.ContainsKey(id)
+    //        ? dtoMap[id]
+    //        : null;
+    //}
 
     public async Task<Guid> CreateNodeAsync(CreateStructureNodeRequest request)
     {
@@ -148,10 +150,16 @@ public class UniversityStructureService : IUniversityStructureService
             path = parent.Path;
         }
 
+        var nameJson = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            { "ar", request.Name },
+            { "en", request.NameEn }
+        });
+
         var node = new StructureNode
         {
             Id = Guid.NewGuid(),
-            Name = request.Name,
+            Name = nameJson,
             Type = request.Type,
             ParentId = request.ParentId,
             Order = request.Order,
@@ -168,24 +176,56 @@ public class UniversityStructureService : IUniversityStructureService
         return node.Id;
     }
 
-    public async Task UpdateNodeAsync(
-        Guid id,
-        UpdateStructureNodeRequest request)
+    public async Task UpdateNodeAsync(Guid id, UpdateStructureNodeRequest request)
     {
         var node = await _repository.GetByIdAsync(id);
 
         if (node == null)
             throw new Exception("Node not found");
 
-        node.Name = request.Name;
+        if (!string.IsNullOrEmpty(request.Name))
+        {
+            if (!string.IsNullOrEmpty(request.NameEn))
+            {
+                var dict = new Dictionary<string, string>();
+                try { dict = JsonSerializer.Deserialize<Dictionary<string, string>>(node.Name) ?? new(); }
+                catch { dict = new(); }
+                dict["ar"] = request.Name;
+                dict["en"] = request.NameEn;
+                node.Name = JsonSerializer.Serialize(dict);
+            }
+            else
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(node.Name) ?? new();
+                dict["ar"] = request.Name;
+                node.Name = JsonSerializer.Serialize(dict);
+            }
+        }
+        else if (!string.IsNullOrEmpty(request.NameEn))
+        {
+            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(node.Name) ?? new();
+            dict["en"] = request.NameEn;
+            node.Name = JsonSerializer.Serialize(dict);
+        }
+
         node.Type = request.Type;
         node.Order = request.Order;
         node.IsActive = request.IsActive;
+        node.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(node);
 
         await _unitOfWork.SaveChangesAsync();
     }
+    //    node.Name = request.Name;
+    //    node.Type = request.Type;
+    //    node.Order = request.Order;
+    //    node.IsActive = request.IsActive;
+
+    //    await _repository.UpdateAsync(node);
+
+    //    await _repository.SaveChangesAsync();
+    //}
 
     public async Task DeleteNodeAsync(Guid id)
     {
@@ -343,35 +383,14 @@ public class UniversityStructureService : IUniversityStructureService
     {
         var roots = await _repository.GetRootsAsync();
 
-        return roots.Select(x => new StructureNodeDto
-        {
-            Id = x.Id,
-            Name = LocalizedName(x),
-            Type = x.Type,
-            ParentId = x.ParentId,
-            Order = x.Order,
-            Path = x.Path,
-            Depth = x.Depth,
-            IsActive = x.IsActive
-        }).ToList();
+        return roots.Select(MapToDto).ToList();
     }
 
     public async Task<List<StructureNodeDto>> GetChildrenAsync(Guid parentId)
     {
-        var children = await _repository
-            .GetChildrenOnlyAsync(parentId);
+        var children = await _repository.GetChildrenOnlyAsync(parentId);
 
-        return children.Select(x => new StructureNodeDto
-        {
-            Id = x.Id,
-            Name = LocalizedName(x),
-            Type = x.Type,
-            ParentId = x.ParentId,
-            Order = x.Order,
-            Path = x.Path,
-            Depth = x.Depth,
-            IsActive = x.IsActive
-        }).ToList();
+        return children.Select(MapToDto).ToList();
     }
 
     public async Task<List<BreadcrumbItemDto>> GetBreadcrumbAsync(Guid nodeId)
@@ -414,20 +433,7 @@ public class UniversityStructureService : IUniversityStructureService
         var allNodes = await _repository
             .GetDescendantsTreeAsync(node.Path);
 
-        var dtoMap = allNodes.ToDictionary(
-            x => x.Id,
-            x => new StructureNodeDto
-            {
-                Id = x.Id,
-                Name = LocalizedName(x),
-                Type = x.Type,
-                ParentId = x.ParentId,
-                Order = x.Order,
-                Path = x.Path,
-                Depth = x.Depth,
-                IsActive = x.IsActive,
-                Children = new List<StructureNodeDto>()
-            });
+        var dtoMap = allNodes.ToDictionary(x => x.Id, MapToDto);
 
         foreach (var item in dtoMap.Values)
         {
@@ -467,20 +473,7 @@ public class UniversityStructureService : IUniversityStructureService
                 ancestors.First(x => x.Id == id))
             .ToList();
 
-        return ordered.Select(x =>
-        new StructureNodeDto
-        {
-            Id = x.Id,
-            Name = LocalizedName(x),
-            Type = x.Type,
-            ParentId = x.ParentId,
-            Order = x.Order,
-            Path = x.Path,
-            Depth = x.Depth,
-            IsActive = x.IsActive,
-            Children = new List<StructureNodeDto>()
-        })
-        .ToList();
+        return ordered.Select(MapToDto).ToList();
     }
 
     public async Task ReorderNodeAsync(Guid nodeId, ReorderNodeRequest request)
@@ -514,5 +507,23 @@ public class UniversityStructureService : IUniversityStructureService
         await _repository.UpdateRangeAsync(siblings);
 
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private StructureNodeDto MapToDto(StructureNode node)
+    {
+        return new StructureNodeDto
+        {
+            Id = node.Id,
+            Name = node.Name,
+            LocalizedName = _localization.Get<string>(node.Name),
+            Type = node.Type,
+            ParentId = node.ParentId,
+            Order = node.Order,
+            Path = node.Path,
+            Depth = node.Depth,
+            IsActive = node.IsActive,
+            TypeNameLocalized = _localization.Get(node.Type),
+            Children = new List<StructureNodeDto>()
+        };
     }
 }

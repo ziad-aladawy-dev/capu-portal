@@ -11,6 +11,7 @@ const ACTION_LEVEL_MAP = {
 };
 
 function transformApiPermissions(apiPermissions) {
+  if (!apiPermissions) return [];
   return apiPermissions.map((p) => {
     const resource = `${p.module}.${p.resource}.${p.action}`.toLowerCase();
     const level = ACTION_LEVEL_MAP[p.action] || 0;
@@ -19,7 +20,7 @@ function transformApiPermissions(apiPermissions) {
 }
 
 export async function login(identifier, password) {
-  const response = await api.post("/auth/login", { identifier, password });
+  const response = await api.post("/api/auth/login", { identifier, password });
   api.setToken(response.token);
 
   return {
@@ -39,13 +40,13 @@ export async function login(identifier, password) {
 }
 
 export async function logout() {
-  try { await api.post("/auth/logout"); } catch { }
+  try { await api.post("/api/auth/logout"); } catch { }
   api.clearTokens();
 }
 
 export async function getCurrentUser() {
   try {
-    const response = await api.get("/auth/me");
+    const response = await api.get("/api/auth/me");
     return {
       ...response.user,
       permissions: response.permissions ? transformApiPermissions(response.permissions) : [],
@@ -62,4 +63,14 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  return api.post("/api/auth/change-password", { currentPassword, newPassword });
+}
+
+export async function refreshToken() {
+  const response = await api.post("/api/auth/refresh");
+  api.setToken(response.token);
+  return response;
 }

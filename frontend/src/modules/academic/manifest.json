@@ -1,0 +1,31 @@
+{
+  "id": "academic",
+  "name": "Academic Calendar",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/academic-calendar",
+      "component": "AcademicCalendarPage",
+      "permission": "academic.calendar.view",
+      "moduleId": "academic"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Administration",
+      "label": "Academic Calendar",
+      "path": "/admin/academic-calendar",
+      "icon": "CalendarRange",
+      "permission": "academic.calendar.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "academic.calendar.view",
+      "academic.calendar.insert",
+      "academic.calendar.editclose",
+      "academic.calendar.delete"
+    ]
+  }
+}

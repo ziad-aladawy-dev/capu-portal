@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Users, UserCheck, UserX, GraduationCap, Briefcase } from "lucide-react";
 
 const UserStats = ({ statistics, loading }) => {
@@ -21,7 +22,6 @@ const UserStats = ({ statistics, loading }) => {
             <span>{stat.label}</span>
             <h3>{stat.value.toLocaleString()}</h3>
           </div>
-
           <div className={`users-stat-icon ${stat.tone}`}>
             <stat.icon size={17} />
           </div>
@@ -29,6 +29,17 @@ const UserStats = ({ statistics, loading }) => {
       ))}
     </div>
   );
+};
+
+UserStats.propTypes = {
+  statistics: PropTypes.shape({
+    totalUsers: PropTypes.number,
+    activeUsers: PropTypes.number,
+    inactiveUsers: PropTypes.number,
+    studentsCount: PropTypes.number,
+    staffCount: PropTypes.number,
+  }),
+  loading: PropTypes.bool,
 };
 
 export default UserStats;

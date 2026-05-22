@@ -7,6 +7,7 @@
     {
       "path": "/admin/notifications",
       "component": "NotificationsPage",
+      "permission": "notifications.view",
       "moduleId": "notifications"
     }
   ],
@@ -15,10 +16,14 @@
       "category": "Overview",
       "label": "Notifications",
       "path": "/admin/notifications",
-      "icon": "Bell"
+      "icon": "Bell",
+      "permission": "notifications.view"
     }
   ],
   "permissions": {
-    "resources": []
+    "resources": [
+      "notifications.view",
+      "notifications.manage"
+    ]
   }
 }

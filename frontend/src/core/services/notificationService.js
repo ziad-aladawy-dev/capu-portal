@@ -16,14 +16,18 @@ export function getNotificationTypeLabel(value) {
   return NOTIFICATION_TYPE_LABELS[value] || "Info";
 }
 
+export async function fetchNotifications() {
+  return api.get("/api/notifications");
+}
+
 export async function fetchAllNotifications() {
-  return api.get("/Notifications");
+  return api.get("/api/notifications");
 }
 
 export async function fetchUnreadNotifications() {
-  return api.get("/Notifications/unread");
+  return api.get("/api/notifications/unread");
 }
 
 export async function markNotificationRead(id) {
-  return api.put(`/Notifications/${id}/read`);
+  return api.put(`/api/notifications/${id}/read`);
 }

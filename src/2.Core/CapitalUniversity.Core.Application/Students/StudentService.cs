@@ -15,6 +15,8 @@ public class StudentService : IStudentService
 
     private readonly IStructureNodeRepository _structureRepository;
 
+    private readonly IPasswordHasher _passwordHasher;
+
     private readonly ISessionVersionService _sessionVersions;
 
     private readonly IUnitOfWork _unitOfWork;
@@ -24,12 +26,14 @@ public class StudentService : IStudentService
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
+        IPasswordHasher passwordHasher,
         ISessionVersionService sessionVersions,
         IUnitOfWork unitOfWork,
         ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
         _localization = localization;
@@ -66,6 +70,8 @@ public class StudentService : IStudentService
             throw new Exception(
                 "Passwords do not match");
         }
+
+        var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
         var structureNode = await _structureRepository
             .GetByIdAsync(request.StructureNodeId);
@@ -107,7 +113,7 @@ public class StudentService : IStudentService
 
             StructureNodeId = request.StructureNodeId,
 
-            PasswordHash = request.Password,
+            PasswordHash = hashedPassword,
 
             PasswordExpiry = request.PasswordExpiry,
 
@@ -182,8 +188,7 @@ public class StudentService : IStudentService
                     "Passwords do not match");
             }
 
-            student.PasswordHash =
-                request.Password;
+            student.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
         student.Name = request.Name;
@@ -323,6 +328,8 @@ public class StudentService : IStudentService
     private StudentDto MapInstance(
             Student student)
     {
+        var levelNode = student.StructureNode;
+
         string facultyName = string.Empty;
 
         string programName = string.Empty;
@@ -330,23 +337,48 @@ public class StudentService : IStudentService
         string levelName =
             _localization.Get<string>(student.StructureNode.Name);
 
-        var programNode =
-            student.StructureNode.Parent;
+        var currentNode = levelNode?.Parent;
 
-        if (programNode != null)
+        while (currentNode != null)
         {
-            programName =
-                _localization.Get<string>(programNode.Name);
+            if (currentNode.Type == StructureNodeType.Program)
+            {
+                programName =
+                    _localization.Get<string>(currentNode.Name);
+                break;
+            }
+            currentNode = currentNode.Parent;
         }
 
-        var facultyNode =
-            programNode?.Parent;
-
-        if (facultyNode != null)
+        currentNode = levelNode?.Parent;
+        while (currentNode != null)
         {
-            facultyName =
-                _localization.Get<string>(facultyNode.Name);
+            if (currentNode.Type == StructureNodeType.Faculty)
+            {
+                facultyName =
+                    _localization.Get<string>(currentNode.Name);
+                break;
+            }
+            currentNode = currentNode.Parent;
         }
+
+        //var programNode =
+        //    student.StructureNode.Parent;
+
+        //if (programNode != null)
+        //{
+        //    programName =
+        //        programNode.Name;
+        //}
+
+        //var facultyNode =
+        //    programNode?.Parent;
+
+        //if (facultyNode != null)
+        //{
+        //    facultyName =
+        //        facultyNode.Name;
+        //}
 
         return new StudentDto
         {
@@ -372,7 +404,7 @@ public class StudentService : IStudentService
                 student.StructureNodeId,
 
             StructureNodeName =
-                _localization.Get<string>(student.StructureNode.Name),
+                levelName,
 
             FacultyName =
                 facultyName,

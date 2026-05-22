@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useCallback, useEffect, useReducer } from "react";
 import { useNavigate } from "react-router-dom";
 import * as authService from "./authService";
@@ -146,3 +147,7 @@ function AuthProvider({ children }) {
 }
 
 export { AuthContext, AuthProvider };
+
+AuthProvider.propTypes = {
+  children: PropTypes.node,
+};

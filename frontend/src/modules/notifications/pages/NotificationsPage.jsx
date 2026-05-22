@@ -1,198 +1,188 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  Bell, Info, AlertTriangle, AlertCircle, CheckCheck, RefreshCw, X,
+  Bell, BellOff, Info, AlertTriangle, AlertCircle, CheckCheck, X,
+  RefreshCw, Mail, MailOpen, Calendar
 } from "lucide-react";
 import * as notificationService from "../../../core/services/notificationService";
 import "../styles/notifications.css";
 
-const TYPE_ICON = {
-  1: Info,
-  2: AlertTriangle,
-  3: AlertCircle,
+const TYPE_CONFIG = {
+  1: { icon: Info, label: "Info", className: "nt-type-info" },
+  2: { icon: AlertTriangle, label: "Warning", className: "nt-type-warning" },
+  3: { icon: AlertCircle, label: "Error", className: "nt-type-error" },
 };
 
 function NotificationsPage() {
-  const [tab, setTab] = useState("all"); // 'all' | 'unread'
-  const [items, setItems] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [marking, setMarking] = useState(null);
+  const [filter, setFilter] = useState("all");
 
-  const load = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = tab === "unread"
-        ? await notificationService.fetchUnreadNotifications()
-        : await notificationService.fetchAllNotifications();
-      setItems(Array.isArray(data) ? data : []);
+      const all = await notificationService.fetchNotifications();
+      setNotifications(all || []);
     } catch (err) {
       setError(err.message || "Failed to load notifications");
-      setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleMarkRead = async (id) => {
-    setMarking(id);
     try {
       await notificationService.markNotificationRead(id);
-      setItems((prev) =>
-        tab === "unread"
-          ? prev.filter((n) => n.id !== id)
-          : prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {
       setError(err.message || "Failed to mark as read");
-    } finally {
-      setMarking(null);
     }
   };
 
   const handleMarkAllRead = async () => {
-    const unread = items.filter((n) => !n.isRead);
-    if (unread.length === 0) return;
+    const unread = notifications.filter((n) => !n.isRead);
     try {
-      await Promise.all(
-        unread.map((n) => notificationService.markNotificationRead(n.id))
-      );
-      await load();
+      await Promise.all(unread.map((n) => notificationService.markNotificationRead(n.id)));
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (err) {
       setError(err.message || "Failed to mark all as read");
     }
   };
 
-  const formatTime = (iso) => {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)} d ago`;
-    return d.toLocaleDateString();
+  const formatDateTime = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return d.toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
+    } catch { return ""; }
   };
 
-  const unreadCount = useMemo(
-    () => items.filter((n) => !n.isRead).length,
-    [items]
-  );
+  const filtered = filter === "all" ? notifications : notifications.filter((n) => !n.isRead);
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  return (
-    <div className="notifications-page">
-      <div className="notifications-header">
-        <div className="notifications-header-left">
-          <Bell size={22} />
-          <div>
-            <h1>Notifications</h1>
-            <p>System notifications, alerts and warnings.</p>
+  if (loading && notifications.length === 0) {
+    return (
+      <div className="nt-page">
+        <div className="nt-loading">
+          <div className="nt-spinner" />
+          <p>Loading notifications…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && notifications.length === 0) {
+    return (
+      <div className="nt-page">
+        <div className="nt-header">
+          <div className="nt-header-left">
+            <Bell size={20} />
+            <div><h1>Notifications</h1><p>System notifications and alerts</p></div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="notifications-btn notifications-btn-outline" onClick={load}>
-            <RefreshCw size={13} />
-            Refresh
-          </button>
+        <div className="nt-error">
+          <BellOff size={36} />
+          <h3>Failed to load notifications</h3>
+          <p>{error}</p>
+          <button className="nt-btn nt-btn-outline" onClick={fetchData}><RefreshCw size={13} /> Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="nt-page">
+      <div className="nt-header">
+        <div className="nt-header-left">
+          <div className="nt-header-icon"><Bell size={20} /></div>
+          <div>
+            <h1>Notifications</h1>
+            <p>System notifications and alerts</p>
+          </div>
+        </div>
+        <div className="nt-header-actions">
           {unreadCount > 0 && (
-            <button
-              className="notifications-btn notifications-btn-outline"
-              onClick={handleMarkAllRead}
-            >
-              <CheckCheck size={13} />
-              Mark all read
+            <button className="nt-btn nt-btn-primary" onClick={handleMarkAllRead}>
+              <CheckCheck size={13} /> Mark All Read
             </button>
           )}
+          <button className="nt-btn nt-btn-soft" onClick={fetchData}>
+            <RefreshCw size={13} /> Refresh
+          </button>
         </div>
       </div>
 
-      <div className="notifications-toolbar">
-        <button
-          className={`notifications-tab ${tab === "all" ? "active" : ""}`}
-          onClick={() => setTab("all")}
-        >
-          All
-        </button>
-        <button
-          className={`notifications-tab ${tab === "unread" ? "active" : ""}`}
-          onClick={() => setTab("unread")}
-        >
-          Unread {unreadCount > 0 && tab !== "unread" && `(${unreadCount})`}
-        </button>
+      <div className="nt-toolbar">
+        <div className="nt-filter-tabs">
+          <button className={`nt-filter-tab ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
+            All ({notifications.length})
+          </button>
+          <button className={`nt-filter-tab ${filter === "unread" ? "active" : ""}`} onClick={() => setFilter("unread")}>
+            Unread ({unreadCount})
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div className="notifications-error-banner">
-          <AlertTriangle size={16} />
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c" }}
-          >
-            <X size={14} />
-          </button>
+        <div className="nt-banner nt-banner-error">
+          <AlertTriangle size={14} /><span>{error}</span>
+          <button onClick={() => setError(null)}><X size={12} /></button>
         </div>
       )}
 
-      {loading ? (
-        <div className="notifications-loading">
-          <div className="notifications-spinner" />
-          <p>Loading notifications…</p>
-        </div>
-      ) : items.length === 0 ? (
-        <div className="notifications-empty">
-          <Bell size={40} />
-          <h3>{tab === "unread" ? "No unread notifications" : "No notifications"}</h3>
-          <p>
-            {tab === "unread"
-              ? "You're all caught up."
-              : "When the system has something for you, it will appear here."}
-          </p>
+      {filtered.length === 0 ? (
+        <div className="nt-empty">
+          <BellOff size={40} />
+          <h3>{filter === "unread" ? "No unread notifications" : "No notifications found"}</h3>
+          <p>{filter === "unread" ? "You're all caught up!" : "Notifications will appear here."}</p>
         </div>
       ) : (
-        <div className="notifications-list">
-          {items.map((n) => {
-            const Icon = TYPE_ICON[n.type] || Info;
+        <div className="nt-list">
+          {filtered.map((n) => {
+            const TypeIcon = TYPE_CONFIG[n.type]?.icon || Info;
+            const typeClass = TYPE_CONFIG[n.type]?.className || "nt-type-info";
+
             return (
               <div
                 key={n.id}
-                className={`notification-item ${!n.isRead ? "is-unread" : ""}`}
+                className={`nt-item ${n.isRead ? "nt-read" : "nt-unread"}`}
+                onClick={() => !n.isRead && handleMarkRead(n.id)}
+                onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.isRead) { e.preventDefault(); handleMarkRead(n.id); } }}
+                role="button"
+                tabIndex={0}
+                aria-label={n.isRead ? "Read notification" : "Mark as read"}
               >
-                <div className={`notification-icon type-${n.type}`}>
-                  <Icon size={16} />
+                <div className={`nt-type-icon ${typeClass}`}>
+                  <TypeIcon size={15} />
                 </div>
-                <div className="notification-body">
-                  <h4 className="notification-title">{n.title}</h4>
-                  <p className="notification-message">{n.message}</p>
-                  <div className="notification-meta">
-                    <span>{notificationService.getNotificationTypeLabel(n.type)}</span>
-                    <span>·</span>
-                    <span>{formatTime(n.createdAt)}</span>
-                    {n.referenceType && (
-                      <>
-                        <span>·</span>
-                        <span style={{ fontFamily: "Space Mono, monospace" }}>
-                          {n.referenceType}
-                        </span>
-                      </>
-                    )}
+                <div className="nt-content">
+                  <div className="nt-title-row">
+                    <strong>{n.title}</strong>
+                    {!n.isRead && <span className="nt-unread-dot" />}
+                  </div>
+                  <p className="nt-message">{n.message}</p>
+                  <div className="nt-meta">
+                    <span className="nt-time"><Calendar size={10} />{formatDateTime(n.createdAt)}</span>
+                    {n.referenceType && <span className="nt-ref">{n.referenceType}</span>}
                   </div>
                 </div>
-                {!n.isRead && (
-                  <div className="notification-actions">
-                    <button
-                      className="notification-mark-read"
-                      disabled={marking === n.id}
-                      onClick={() => handleMarkRead(n.id)}
-                    >
-                      {marking === n.id ? "…" : "Mark read"}
-                    </button>
-                  </div>
-                )}
+                <div className="nt-actions">
+                  {n.isRead ? <MailOpen size={13} className="nt-read-icon" /> : <Mail size={13} className="nt-mail-icon" />}
+                </div>
               </div>
             );
           })}

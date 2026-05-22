@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
 
 function CountUp({ end, suffix = "" }) {
@@ -48,3 +49,8 @@ function CountUp({ end, suffix = "" }) {
 }
 
 export default CountUp;
+
+CountUp.propTypes = {
+  end: PropTypes.number.isRequired,
+  suffix: PropTypes.string,
+};

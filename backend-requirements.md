@@ -1,129 +1,122 @@
 # Backend Requirements & Issues Discovered During Frontend Audit
 
 Items in this file are observations, missing endpoints, malformed responses, CORS
-issues, or auth gaps discovered while wiring the frontend. **No backend code has
-been modified** — this is a structured request to the backend team.
+issues, or auth gaps discovered while wiring the frontend.
 
 ---
 
-## Phase 1 — Discovery (audit only)
+## Phase 2 — Gap Analysis
 
-No backend changes were required during this read-only mapping phase. The audit
-inventory of the API surface is captured in `frontend-changes.md`.
+### Issue 1: Missing `GET /api/auth/me` Endpoint
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Missing Endpoint
+- **Context:** Frontend `authService.getCurrentUser()` calls `GET /api/auth/me` to load the currently authenticated user on page refresh. This endpoint does not exist in `AuthController.cs`.
+- **Required Action:** Add a `[HttpGet("me")]` endpoint to `AuthController` that returns the current user's info (user details, permissions, authorized scopes) based on the JWT claims.
+- **Files affected:** `src/1.API/CapitalUniversity.API/Controllers/AuthController.cs`
+
+### Issue 2: Role Response Missing `createdAt` Field
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Bad Data Shape
+- **Context:** Frontend `RolesPage.jsx` displays `role.createdAt` for each role. The backend `RoleResponse` DTO only has `Id`, `Name`, `IsSystemRole`.
+- **Required Action:** Add `CreatedAt` (DateTime) and optionally `CreatedBy` fields to the `RoleResponse` DTO.
+- **Files affected:** `src/2.Core/CapitalUniversity.Core.Infrastructure/Services/Roles/Queries/GetRoleByIdQuery.cs`
+
+### Issue 3: Structure Lookup Route Mismatch
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Bad Data Shape / Missing Endpoint
+- **Context:** Frontend `userService.getPrograms(facultyId)` attempted to call `/api/structure/lookups/faculties/{facultyId}/programs` which does not exist.
+- **Resolution:** Frontend updated to use `/{parentId}/children/Program`. No backend changes required.
+
+### Issue 4: Frontend Core Services URL Mismatch
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Inconsistency
+- **Context:** Core frontend services used paths like `/students` instead of `/api/students`.
+- **Resolution:** Frontend updated. No backend changes required.
+
+### Issue 5: Dashboard Static Data
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Missing Frontend Integration
+- **Context:** AdminDashboard displays hardcoded mock/static data.
+- **Required Action (Optional):** Consider adding `GET /api/dashboard/stats` or similar endpoint.
+
+### Issue 6: Bulk Import Endpoints Lack Frontend UI
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Missing Frontend
+- **Context:** Backend has bulk-import endpoints but no frontend UI exists.
+- **Required Action:** Frontend-only concern. Planned for future iteration.
+
+### Issue 7: No Notification Count Unread Endpoint
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Enhancement
+- **Required Action (Optional):** Add `GET /api/notifications/unread/count`.
+
+### Issue 8: Semester `Order` Field Used Ambiguously
+
+- **Date/Iteration:** Phase 2 - Analysis
+- **Issue Type:** Documentation/Clarification
+- **Required Action:** Clarify in Swagger/docs.
+
+### Issue 9: Academic Year/Semester Missing Dedicated Frontend Response
+
+- **Date/Iteration:** Phase 2 - Gap Analysis
+- **Issue Type:** Enhancement
+- **Resolution:** All verified as working with the new Academic Calendar page.
 
 ---
 
 ## Phase 3 — Frontend Implementation (issues surfaced while wiring)
 
-The following observations came up while building the seven new pages. None
-blocked Phase 3, but each represents either a documented backend gap or an
-ergonomic improvement that would noticeably improve the frontend experience.
-
 ### 1. Invoices — no "list invoices" endpoint (only `by-student`)
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Missing Endpoint
-- **Context:** `frontend/src/modules/invoices/pages/InvoicesPage.jsx` — the
-  Invoices page can only list invoices once a student is selected, because
-  `InvoicesController` only exposes `GET /api/invoices/{id}` and
-  `GET /api/invoices/by-student/{studentId}`. There is no
-  cross-student list endpoint (e.g. for a finance officer browsing all unpaid
-  invoices).
-- **Required Action:** Add a paginated `GET /api/invoices` endpoint with
-  filters (`status`, `dueBefore`, `currency`, `studentId?`) returning a
-  `PaginatedResult<InvoiceResponse>` so the page can render a real finance
-  dashboard instead of forcing a per-student drill-down.
+- **Required Action:** Add paginated `GET /api/invoices` endpoint with filters.
 
 ### 2. Payment transactions — no list-by-status / global ledger endpoint
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Missing Endpoint
-- **Context:** Frontend invoice details page already lists transactions
-  per-invoice (`GET /api/payments/invoices/{id}/transactions`), but there is no
-  way to surface a finance-wide payment journal (e.g. "all successful payments
-  this month").
-- **Required Action:** Add a paginated `GET /api/payments/transactions`
-  endpoint with filters (`status`, `provider`, `from`, `to`,
-  `invoiceId?`) for finance officers' reporting needs.
+- **Required Action:** Add paginated `GET /api/payments/transactions` endpoint.
 
 ### 3. Notifications — no "mark all read" endpoint
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Missing Endpoint
-- **Context:** `frontend/src/modules/notifications/pages/NotificationsPage.jsx`
-  implements "Mark all read" by issuing one `PUT /api/Notifications/{id}/read`
-  per unread item. With many unread notifications this becomes a fan-out.
-- **Required Action:** Add `PUT /api/Notifications/read-all` that flips every
-  unread notification for the caller to read in a single call.
+- **Required Action:** Add `PUT /api/Notifications/read-all`.
 
 ### 4. Notifications controller route casing
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Inconsistent Naming
-- **Context:** Every other controller is mounted under the lowercase plural
-  resource path (`/api/students`, `/api/invoices`, `/api/courses`, etc.),
-  but `NotificationsController` uses `[Route("api/[controller]")]` which
-  produces `/api/Notifications` (Pascal-cased). The frontend service uses the
-  Pascal form to match the actual route. ASP.NET routing is case-insensitive by
-  default so it works either way, but the inconsistency stands out in network
-  panels and tests.
-- **Required Action:** Either change the route to `[Route("api/notifications")]`
-  for consistency, or leave a comment on `NotificationsController` explaining
-  why it differs. Frontend will follow whichever form is chosen.
+- **Required Action:** Align route casing with other controllers.
 
 ### 5. Student profile records — no audit-friendly verifier resolution
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** UX/Bad Data Shape
-- **Context:**
-  `frontend/src/modules/studentProfileRecords/pages/StudentProfileRecordsPage.jsx`
-  shows verification status (`Verified` / `Unverified`), but the
-  `StudentProfileRecordResponse.VerifiedBy` is a raw GUID. There is no way to
-  display *who* verified a record without a second lookup against the staff
-  endpoint, and no batch endpoint to resolve user names.
-- **Required Action:** Either embed a `VerifiedByName` (and optionally
-  `VerifiedAtUtc`) in the response DTO, or expose `GET /api/staff?ids=…` for
-  batch resolution. The first option is cheaper and avoids an N+1 on the
-  frontend.
+- **Required Action:** Embed `VerifiedByName` in response DTO or expose batch staff resolution.
 
 ### 6. Authorization permission tree — pagination + assignment context
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Bad Data Shape (mild)
-- **Context:** `GET /api/authorization/permissions/tree` returns the complete
-  tree at once. For the full system this is fine, but the same endpoint serves
-  the per-role variant (`GET /api/authorization/roles/{id}/permissions`) where
-  `PermissionActionDto.IsAssigned` is only populated on the role-context call.
-  The two shapes are merged but only the role variant actually populates
-  `IsAssigned`. The full-tree call returns `IsAssigned: null` for every node,
-  which the frontend correctly renders as "no chip state".
-- **Required Action:** No code change required, but document this contract on
-  the controller so future consumers don't assume `IsAssigned` is reliable on
-  the full-tree call. Bonus: a `GET /api/authorization/users/{id}/permissions`
-  variant for the staff details panel would let the "Roles & Permissions" tab
-  in `UserDetails.jsx` switch from the current free-text resource list to a
-  proper tree picker.
+- **Required Action:** Document contract; consider user-specific permission variant.
 
 ### 7. Bulk import / Excel import endpoints are unused
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Documentation / Scope question
-- **Context:** `StudentsController.BulkImport`,
-  `StudentsController.ImportExcel`, and the staff counterparts are exposed but
-  nothing in the frontend invokes them. The current `UserManagement` page does
-  a *client-side* CSV export instead of calling the backend `export/csv` route.
-- **Required Action:** Either remove the unused endpoints, or confirm they are
-  intentional and we should build the import UI next. Logged here so it does
-  not get lost.
+- **Context:** Endpoints exist but no frontend invokes them.
 
 ### 8. Auth — `change-password` / `refresh` have no UI yet
 
 - **Date/Iteration:** 2026-05-19 (Phase 3)
 - **Issue Type:** Documentation / Scope question
-- **Context:** `POST /api/auth/refresh` and `POST /api/auth/change-password`
-  exist on the backend but have no frontend hook today. Out of scope for this
-  pass.
-- **Required Action:** No action required. Logged for a follow-up "Account
-  Settings" page.
-
----
+- **Required Action:** Logged for follow-up "Account Settings" page.

@@ -1,11 +1,10 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
-import { useAuth } from "../useAuth";
 
 function LoginForm({ type, redirectPath, onForgotClick }) {
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -26,19 +25,38 @@ function LoginForm({ type, redirectPath, onForgotClick }) {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     setIsLoading(true);
     setError("");
 
-    try {
-      await login(formData.nationalId, formData.password);
-      navigate(redirectPath || "/admin/dashboard");
-    } catch (err) {
-      setError(err.message || "Invalid National ID or Password");
+    setTimeout(() => {
+      // Demo Admin
+      if (
+        type === "admin" &&
+        formData.nationalId === "12345678901234" &&
+        formData.password === "admin123"
+      ) {
+        localStorage.setItem("role", "admin");
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      // Demo Student
+      if (
+        type === "student" &&
+        formData.nationalId === "11111111111111" &&
+        formData.password === "student123"
+      ) {
+        localStorage.setItem("role", "student");
+        navigate("/student/profile");
+        return;
+      }
+
+      setError("Invalid National ID or Password");
       setIsLoading(false);
-    }
+    }, 800);
   };
 
   return (
@@ -129,3 +147,9 @@ function LoginForm({ type, redirectPath, onForgotClick }) {
 }
 
 export default LoginForm;
+
+LoginForm.propTypes = {
+  type: PropTypes.oneOf(["admin", "student"]).isRequired,
+  redirectPath: PropTypes.string,
+  onForgotClick: PropTypes.func.isRequired,
+};

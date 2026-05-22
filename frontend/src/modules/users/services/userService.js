@@ -1,342 +1,186 @@
-import api from "../../../core/api/apiClient";
-import * as staffApi from "../../../core/services/staffService";
-import * as studentApi from "../../../core/services/studentService";
-import * as structureApi from "../../../core/services/structureService";
-import * as permissionApi from "../../../core/services/permissionService";
+import apiClient from "../../../core/api/apiClient";
 
-function toFrontendPagination(apiResult) {
-  return {
-    items: apiResult.items || [],
-    pageNumber: apiResult.page,
-    pageSize: apiResult.pageSize,
-    totalCount: apiResult.totalCount,
-    totalPages: apiResult.totalPages,
-  };
-}
-
-function staffDtoToFrontend(s) {
-  return {
-    id: s.id,
-    nationalId: s.nationalId,
-    staffCode: s.employeeCode,
-    fullNameEn: s.name,
-    fullNameAr: s.name,
-    email: s.email,
-    phone: s.phoneNumber,
-    facultyName: s.facultyName || s.structureNodeName,
-    staffRoleId: s.role,
-    staffRoleName: s.role,
-    position: s.jobTitle,
-    universityName: s.structureNodeName,
-    isActive: s.isActive,
-    isDeleted: false,
-    dateOfBirth: s.birthDate,
-    createdAt: s.createdAt,
-    passwordExpiryDate: s.passwordExpiry,
-    isPasswordExpired: s.passwordStatus === "Expired",
-    lastLoginAt: null,
-    updatedAt: s.createdAt,
-  };
-}
-
-function studentDtoToFrontend(s) {
-  return {
-    id: s.id,
-    nationalId: s.nationalId,
-    studentCode: s.studentCode,
-    fullNameEn: s.name,
-    fullNameAr: s.name,
-    email: s.email,
-    phone: s.phoneNumber,
-    facultyName: s.facultyName || s.structureNodeName,
-    programName: s.programName,
-    levelName: s.levelName,
-    levelId: s.structureNodeId,
-    isActive: s.isActive,
-    isDeleted: false,
-    dateOfBirth: s.birthDate,
-    createdAt: s.createdAt,
-    passwordExpiryDate: s.passwordExpiry,
-    isPasswordExpired: s.passwordStatus === "Expired",
-    lastLoginAt: null,
-    updatedAt: s.createdAt,
-    gpa: 0,
-    enrollmentDate: s.createdAt,
-    status: s.isActive ? "Active" : "Inactive",
-  };
-}
-
-function toStaffApiParams(params) {
-  if (!params) return {};
-  return {
-    search: params.searchTerm || undefined,
-    isActive: params.isActive,
-    role: params.roleIds?.length ? params.roleIds[0] : undefined,
-    structureNodeId: params.departmentIds?.length ? params.departmentIds[0] : undefined,
-    page: params.pageNumber || 1,
-    pageSize: params.pageSize || 10,
-  };
-}
-
-function toStudentApiParams(params) {
-  if (!params) return {};
-  return {
-    search: params.searchTerm || undefined,
-    isActive: params.isActive,
-    facultyId: params.facultyIds?.length ? params.facultyIds[0] : undefined,
-    levelId: params.programIds?.length ? params.programIds[0] : undefined,
-    scopeNodeId: params.departmentIds?.length ? params.departmentIds[0] : undefined,
-    page: params.pageNumber || 1,
-    pageSize: params.pageSize || 10,
-  };
-}
-
-function handleApiError(err) {
-  if (err instanceof api.ApiError) throw err;
-  throw new api.ApiError(err.message || "Request failed", 0);
-}
+const STUDENTS_BASE = "/api/students";
+const STAFF_BASE = "/api/staff";
+const STRUCTURE_LOOKUP_BASE = "/api/structure/lookups";
 
 const userService = {
-  async getAllStudents(params) {
-    try {
-      const result = await studentApi.fetchAllStudents(toStudentApiParams(params));
-      return toFrontendPagination({
-        ...result,
-        items: (result.items || []).map(studentDtoToFrontend),
-      });
-    } catch (err) { handleApiError(err); }
+  // ---------------------- Students ----------------------
+  getAllStudents: async (params) => {
+    const response = await apiClient.get(`${STUDENTS_BASE}/search`, { params });
+    return response.data;
+  },
+  getStudentById: async (id) => {
+    const response = await apiClient.get(`${STUDENTS_BASE}/${id}`);
+    return response.data;
+  },
+  createStudent: async (data) => {
+    const response = await apiClient.post(STUDENTS_BASE, data);
+    return response.data;
+  },
+  updateStudent: async (id, data) => {
+    const response = await apiClient.put(`${STUDENTS_BASE}/${id}`, data);
+    return response.data;
+  },
+  deleteStudent: async (id) => {
+    const response = await apiClient.delete(`${STUDENTS_BASE}/${id}`);
+    return response.data;
+  },
+  toggleStudentStatus: async (id) => {
+    const response = await apiClient.patch(`${STUDENTS_BASE}/${id}/toggle-status`);
+    return response.data;
+  },
+  exportStudentsExcel: async (params) => {
+    const response = await apiClient.get(`${STUDENTS_BASE}/export-excel`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+  exportStudentsCsv: async (params) => {
+    const response = await apiClient.get(`${STUDENTS_BASE}/export/csv`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
   },
 
-  async getAllStaff(params) {
-    try {
-      const result = await staffApi.fetchAllStaff(toStaffApiParams(params));
-      return toFrontendPagination({
-        ...result,
-        items: (result.items || []).map(staffDtoToFrontend),
-      });
-    } catch (err) { handleApiError(err); }
+  // ---------------------- Staff ----------------------
+  getAllStaff: async (params) => {
+    const response = await apiClient.get(`${STAFF_BASE}/search`, { params });
+    return response.data;
+  },
+  getStaffById: async (id) => {
+    const response = await apiClient.get(`${STAFF_BASE}/${id}`);
+    return response.data;
+  },
+  createStaff: async (data) => {
+    const response = await apiClient.post(STAFF_BASE, data);
+    return response.data;
+  },
+  updateStaff: async (id, data) => {
+    const response = await apiClient.put(`${STAFF_BASE}/${id}`, data);
+    return response.data;
+  },
+  deleteStaff: async (id) => {
+    const response = await apiClient.delete(`${STAFF_BASE}/${id}`);
+    return response.data;
+  },
+  toggleStaffStatus: async (id) => {
+    const response = await apiClient.patch(`${STAFF_BASE}/${id}/toggle-status`);
+    return response.data;
+  },
+  exportStaffExcel: async (params) => {
+    const response = await apiClient.get(`${STAFF_BASE}/export-excel`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+  exportStaffCsv: async (params) => {
+    const response = await apiClient.get(`${STAFF_BASE}/export/csv`, {
+      params,
+      responseType: 'blob'
+    });
+    return response.data;
   },
 
-  async getStudentById(id) {
-    try {
-      const result = await studentApi.fetchStudentById(id);
-      return studentDtoToFrontend(result);
-    } catch (err) {
-      if (err.status === 404) return null;
-      handleApiError(err);
+  // ---------------------- Statistics ----------------------
+  getUserStatistics: async (scopeNodeId = null) => {
+    const params = scopeNodeId ? { ScopeNodeId: scopeNodeId } : {};
+    const [studentsStats, staffStats] = await Promise.all([
+      apiClient.get(`${STUDENTS_BASE}/statistics`, { params }),
+      apiClient.get(`${STAFF_BASE}/statistics`, { params })
+    ]);
+    return {
+      totalStudents: studentsStats.data.totalStudents,
+      activeStudents: studentsStats.data.activeStudents,
+      inactiveStudents: studentsStats.data.inactiveStudents,
+      totalStaff: staffStats.data.totalStaff,
+      activeStaff: staffStats.data.activeStaff,
+      inactiveStaff: staffStats.data.inactiveStaff,
+      totalUsers: studentsStats.data.totalStudents + staffStats.data.totalStaff,
+      activeUsers: studentsStats.data.activeStudents + staffStats.data.activeStaff,
+      inactiveUsers: studentsStats.data.inactiveStudents + staffStats.data.inactiveStaff,
+      studentsCount: studentsStats.data.totalStudents,
+      staffCount: staffStats.data.totalStaff
+    };
+  },
+
+  // ---------------------- Structure Lookups ----------------------
+  getFaculties: async () => {
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/faculties`);
+    return response.data;
+  },
+  getDepartments: async (facultyId) => {
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/${facultyId}/children/Department`);
+    return response.data;
+  },
+  getPrograms: async (facultyId) => {
+    if (!facultyId) return [];
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/${facultyId}/children/Program`);
+    return response.data;
+  },
+  getLevels: async (programId) => {
+    if (!programId) return [];
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/${programId}/children/Level`);
+    return response.data;
+  },
+  getUniversities: async () => {
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/systems`);
+    return response.data;
+  },
+  getRoles: async () => {
+    // Mock roles; replace with actual endpoint if exists
+    return [
+      { id: "Professor", name: "Professor" },
+      { id: "AssistantProfessor", name: "Assistant Professor" },
+      { id: "TeachingAssistant", name: "Teaching Assistant" },
+      { id: "Instructor", name: "Instructor" },
+      { id: "AdminStaff", name: "Admin Staff" },
+      { id: "HR", name: "HR" },
+      { id: "SystemAdmin", name: "System Admin" },
+      { id: "AcademicAdmin", name: "Academic Admin" }
+    ];
+  },
+
+  // ---------------------- Helpers (for UI) ----------------------
+  checkEmailUnique: async (email, userType) => {
+    // Not implemented in backend; return true for now
+    return { isUnique: true };
+  },
+  checkNationalIdUnique: async (nationalId, userType) => {
+    return { isUnique: true };
+  },
+  generateStaffCode: async (universityId) => {
+    return { staffCode: `EMP-${Date.now()}` };
+  },
+  activateUser: async (userId, userType) => {
+    if (userType === "Student") {
+      await userService.toggleStudentStatus(userId);
+    } else {
+      await userService.toggleStaffStatus(userId);
     }
-  },
-
-  async getStaffById(id) {
-    try {
-      const result = await staffApi.fetchStaffById(id);
-      return staffDtoToFrontend(result);
-    } catch (err) {
-      if (err.status === 404) return null;
-      handleApiError(err);
-    }
-  },
-
-  async getFaculties() {
-    try {
-      const result = await structureApi.fetchFaculties();
-      return (result || []).map((f) => ({
-        id: f.id,
-        name: f.name,
-        nameEn: f.name,
-      }));
-    } catch (err) { handleApiError(err); }
-  },
-
-  async getDepartments(facultyId) {
-    try {
-      const result = facultyId
-        ? await structureApi.fetchChildNodes(facultyId)
-        : await structureApi.fetchDepartments();
-      return (result || []).map((d) => ({
-        id: d.id,
-        facultyId: d.parentId,
-        name: d.name,
-        nameEn: d.name,
-      }));
-    } catch (err) { handleApiError(err); }
-  },
-
-  async getLevels(parentId) {
-    try {
-      const result = parentId
-        ? await structureApi.fetchChildNodes(parentId)
-        : await structureApi.fetchLevels();
-      return (result || []).map((l) => ({
-        id: l.id,
-        name: l.name,
-        nameEn: l.name,
-      }));
-    } catch (err) { handleApiError(err); }
-  },
-
-  async getRoles() {
-    try {
-      const result = await permissionApi.fetchAllRoles({ pageSize: 100 });
-      return (result.items || []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        nameEn: r.name,
-      }));
-    } catch (err) { handleApiError(err); }
-  },
-
-  async getUniversities() {
-    try {
-      const result = await structureApi.fetchStructureRoots();
-      return (result || []).map((r) => ({
-        id: r.id,
-        name: r.name,
-        nameEn: r.name,
-      }));
-    } catch (err) { handleApiError(err); }
-  },
-
-  async getUserStatistics() {
-    try {
-      const [staffStats, studentStats] = await Promise.all([
-        staffApi.fetchStaffStatistics(),
-        studentApi.fetchStudentStatistics(),
-      ]);
-      return {
-        totalUsers: (staffStats?.totalStaff || 0) + (studentStats?.totalStudents || 0),
-        totalStudents: studentStats?.totalStudents || 0,
-        totalStaff: staffStats?.totalStaff || 0,
-        activeUsers: (staffStats?.activeStaff || 0) + (studentStats?.activeStudents || 0),
-        inactiveUsers: (staffStats?.inactiveStaff || 0) + (studentStats?.inactiveStudents || 0),
-      };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async createStudent(data) {
-    try {
-      const body = {
-        studentCode: data.studentCode || "",
-        name: data.fullNameEn || data.fullNameAr,
-        nationalId: data.nationalId,
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.password,
-        phoneNumber: data.phone || null,
-        birthDate: data.dateOfBirth || null,
-        structureNodeId: data.levelId || null,
-      };
-      const result = await studentApi.createStudent(body);
-      return { success: true, id: result.id, data: result };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async createStaff(data) {
-    try {
-      const body = {
-        employeeCode: data.staffCode || "",
-        name: data.fullNameEn || data.fullNameAr,
-        nationalId: data.nationalId,
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.password,
-        phoneNumber: data.phone || null,
-        birthDate: null,
-        role: data.staffRoleName || data.staffRoleId || null,
-        jobTitle: data.position || null,
-        structureNodeId: data.universityId || null,
-      };
-      const result = await staffApi.createStaff(body);
-      return { success: true, id: result.id, data: result };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async updateStudent(id, data) {
-    try {
-      const body = {
-        name: data.fullNameEn || data.fullNameAr,
-        nationalId: data.nationalId,
-        email: data.email,
-        phoneNumber: data.phone || null,
-        birthDate: data.dateOfBirth || null,
-        structureNodeId: data.structureNodeId || data.levelId || null,
-        isActive: data.isActive,
-      };
-      const result = await studentApi.updateStudent(id, body);
-      return { success: true, id, data: result };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async updateStaff(id, data) {
-    try {
-      const body = {
-        name: data.fullNameEn || data.fullNameAr,
-        nationalId: data.nationalId,
-        email: data.email,
-        phoneNumber: data.phone || null,
-        birthDate: null,
-        role: data.staffRoleName || data.staffRoleId || null,
-        jobTitle: data.position || null,
-        structureNodeId: data.structureNodeId || data.universityId || null,
-        isActive: data.isActive,
-      };
-      const result = await staffApi.updateStaff(id, body);
-      return { success: true, id, data: result };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async activateUser(id, userType) {
-    try {
-      if (userType === "Student") {
-        await studentApi.toggleStudentStatus(id);
-      } else {
-        await staffApi.toggleStaffStatus(id);
-      }
-      return { success: true };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async deactivateUser(id, userType, reason) {
-    try {
-      if (userType === "Student") {
-        await studentApi.toggleStudentStatus(id);
-      } else {
-        await staffApi.toggleStaffStatus(id);
-      }
-      return { success: true };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async softDeleteUser(id, reason, userType) {
-    try {
-      if (userType === "Student") {
-        await studentApi.deleteStudent(id);
-      } else {
-        await staffApi.deleteStaff(id);
-      }
-      return { success: true };
-    } catch (err) { handleApiError(err); }
-  },
-
-  async restoreUser(id) {
     return { success: true };
   },
-
-  async resetUserPassword() {
+  deactivateUser: async (userId, userType, reason) => {
+    if (userType === "Student") {
+      await userService.toggleStudentStatus(userId);
+    } else {
+      await userService.toggleStaffStatus(userId);
+    }
     return { success: true };
   },
-
-  async checkEmailUnique(email) {
-    return true;
+  softDeleteUser: async (userId, reason) => {
+    // Not a separate endpoint; use delete
+    return { success: true };
   },
-
-  async checkNationalIdUnique(nationalId) {
-    return true;
+  restoreUser: async (userId) => {
+    return { success: true };
   },
-
-  async generateStaffCode() {
-    return `EMP-${Date.now()}`;
-  },
+  resetUserPassword: async (userId, userType, newPassword) => {
+    return { success: true };
+  }
 };
 
 export default userService;

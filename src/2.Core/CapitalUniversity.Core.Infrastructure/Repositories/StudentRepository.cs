@@ -21,7 +21,8 @@ public class StudentRepository : IStudentRepository
         return await _context.Students
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
+                    .ThenInclude(x => x.Parent)
+                        .ThenInclude(x => x.Parent)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 

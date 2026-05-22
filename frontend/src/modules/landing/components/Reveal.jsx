@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
 
 function Reveal({ children }) {
@@ -28,3 +29,7 @@ function Reveal({ children }) {
 }
 
 export default Reveal;
+
+Reveal.propTypes = {
+  children: PropTypes.node,
+};

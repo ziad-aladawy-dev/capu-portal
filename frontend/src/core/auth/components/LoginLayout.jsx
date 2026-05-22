@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import LoginForm from "./LoginForm";
@@ -53,3 +54,11 @@ function LoginLayout({
 }
 
 export default LoginLayout;
+
+LoginLayout.propTypes = {
+  type: PropTypes.oneOf(["admin", "student"]).isRequired,
+  title: PropTypes.string,
+  subtitle: PropTypes.string,
+  redirectPath: PropTypes.string,
+  contactText: PropTypes.string,
+};

@@ -58,7 +58,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(224, 192, 106, 0.14);
+  background: rgba(224, 192, 106, 0.35);
   color: var(--users-gold-light);
   display: flex;
   align-items: center;
@@ -225,11 +225,11 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.users-stat-icon.navy { background: rgba(26, 31, 94, 0.09); color: var(--users-navy); }
-.users-stat-icon.green { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
-.users-stat-icon.red { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
-.users-stat-icon.blue { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
-.users-stat-icon.purple { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
+.users-stat-icon.navy { background: rgba(26, 31, 94, 0.22); color: var(--users-navy); }
+.users-stat-icon.green { background: rgba(22, 163, 74, 0.30); color: #16a34a; }
+.users-stat-icon.red { background: rgba(220, 38, 38, 0.25); color: #dc2626; }
+.users-stat-icon.blue { background: rgba(37, 99, 235, 0.25); color: #2563eb; }
+.users-stat-icon.purple { background: rgba(124, 58, 237, 0.25); color: #7c3aed; }
 
 .users-tabs {
   display: flex;
