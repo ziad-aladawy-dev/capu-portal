@@ -6,8 +6,6 @@ public class UpdateStructureNodeRequest
 {
     public string Name { get; set; } = string.Empty;
 
-    public string? NameEn { get; set; }
-
     public StructureNodeType Type { get; set; }
 
     public int Order { get; set; }

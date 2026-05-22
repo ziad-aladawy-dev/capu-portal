@@ -318,18 +318,9 @@ public class StudentService : IStudentService
         };
     }
 
-    /// <summary>
-    /// Project a <see cref="Student"/> onto its DTO, decoding every bilingual
-    /// string against the caller's culture. Personal <c>Name</c> is also
-    /// decoded — operators store the canonical
-    /// <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON for bilingual records
-    /// and plain text for single-language data; the resolver round-trips both.
-    /// </summary>
     private StudentDto MapInstance(
             Student student)
     {
-        var levelNode = student.StructureNode;
-
         string facultyName = string.Empty;
 
         string programName = string.Empty;
@@ -337,48 +328,23 @@ public class StudentService : IStudentService
         string levelName =
             _localization.Get<string>(student.StructureNode.Name);
 
-        var currentNode = levelNode?.Parent;
+        var programNode =
+            student.StructureNode.Parent;
 
-        while (currentNode != null)
+        if (programNode != null)
         {
-            if (currentNode.Type == StructureNodeType.Program)
-            {
-                programName =
-                    _localization.Get<string>(currentNode.Name);
-                break;
-            }
-            currentNode = currentNode.Parent;
+            programName =
+                _localization.Get<string>(programNode.Name);
         }
 
-        currentNode = levelNode?.Parent;
-        while (currentNode != null)
+        var facultyNode =
+            programNode?.Parent;
+
+        if (facultyNode != null)
         {
-            if (currentNode.Type == StructureNodeType.Faculty)
-            {
-                facultyName =
-                    _localization.Get<string>(currentNode.Name);
-                break;
-            }
-            currentNode = currentNode.Parent;
+            facultyName =
+                _localization.Get<string>(facultyNode.Name);
         }
-
-        //var programNode =
-        //    student.StructureNode.Parent;
-
-        //if (programNode != null)
-        //{
-        //    programName =
-        //        programNode.Name;
-        //}
-
-        //var facultyNode =
-        //    programNode?.Parent;
-
-        //if (facultyNode != null)
-        //{
-        //    facultyName =
-        //        facultyNode.Name;
-        //}
 
         return new StudentDto
         {
@@ -404,7 +370,7 @@ public class StudentService : IStudentService
                 student.StructureNodeId,
 
             StructureNodeName =
-                levelName,
+                _localization.Get<string>(student.StructureNode.Name),
 
             FacultyName =
                 facultyName,

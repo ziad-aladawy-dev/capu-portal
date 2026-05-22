@@ -6,8 +6,6 @@ public class StructureNodeLookupDto
 
     public string Name { get; set; } = string.Empty;
 
-    public string LocalizedName { get; set; } = string.Empty;
-
     public int Type { get; set; }
 
     public Guid? ParentId { get; set; }
