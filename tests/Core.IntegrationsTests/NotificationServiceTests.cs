@@ -6,6 +6,7 @@ using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Notifications;
+using CapitalUniversity.Core.IntegrationsTests._Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -24,7 +25,7 @@ public class NotificationServiceTests
             .Options;
 
         _context = new CoreDbContext(options);
-        _sut = new NotificationService(_context);
+        _sut = new NotificationService(_context, new TestLocalizationService());
     }
 
     [Fact]

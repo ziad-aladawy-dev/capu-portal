@@ -7,6 +7,8 @@ public class AcademicYearResponse
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public bool IsCurrent { get; set; }
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
 }
 
 public class CreateAcademicYearRequest

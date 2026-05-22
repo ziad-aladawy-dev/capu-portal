@@ -3,12 +3,17 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Modules.CourseOffering;
+using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Schedule;
+using CapitalUniversity.Modules.Student;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,10 +48,32 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 if (builder.Environment.EnvironmentName != "Testing")
 {
     builder.Services.AddDbContext<CoreDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options
+            .UseSqlServer(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                // Transient SQL errors (deadlocks with retryable codes, brief
+                // connection drops) re-execute the command without surfacing as
+                // 500s. Six retries with EF's default exponential backoff is
+                // the SqlServer provider default. No retryable exceptions are
+                // added beyond the built-in list.
+                sql => sql.EnableRetryOnFailure(
+                    maxRetryCount: 6,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null)));
 }
 
 builder.Services.AddCoreServices(builder.Configuration);
+
+// Module registrations — must run after AddCoreServices so any shared
+// infrastructure (cache, UoW, scope services) is already in the container
+// before the module wires its services that depend on those interfaces.
+builder.Services.AddPaymentsModule();
+builder.Services.AddStudentModule();
+builder.Services.AddCourseOfferingModule();
+// Schedule depends on ICourseOfferingService for parent existence + scope
+// checks — registered AFTER CourseOffering so the resolver finds the
+// dependency at construction time.
+builder.Services.AddScheduleModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
@@ -54,16 +81,30 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddOptions<SessionVersionOptions>()
     .Bind(builder.Configuration.GetSection(SessionVersionOptions.SectionName));
 
-builder.Services.AddAuthorization(options =>
-{
-    // Every endpoint requires an authenticated principal by default. Login, refresh
-    // (anon — caller carries an expired/expiring token), health, and swagger opt out
-    // with [AllowAnonymous] or anonymous mappings below.
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+// Every endpoint requires an authenticated principal by default. Login, refresh
+// (anon — caller carries an expired/expiring token), health, and swagger opt out
+// with [AllowAnonymous] or anonymous mappings below.
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
-        .Build();
-});
+        .Build());
 builder.Services.AddControllers();
+
+// Runtime Hardening Plan §1.1 — Validation pipeline consolidation.
+// Suppress MVC's automatic 400 short-circuit on invalid ModelState so every
+// request reaches the application service. The service layer owns FluentValidation
+// invocation and throws our domain ValidationException; GlobalExceptionHandler
+// then produces a single, localized ProblemDetails shape for every validation
+// failure. Without this, FluentValidation's auto-validation filter would emit
+// MVC's default {errors:{...}} payload before our services run, producing
+// inconsistent responses and bypassing localization.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+// AddFluentValidationAutoValidation is retained for validator discovery / DI
+// registration only — the filter still runs but no longer triggers the
+// short-circuit since SuppressModelStateInvalidFilter is true.
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -80,6 +121,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
@@ -103,6 +145,14 @@ using (var scope = app.Services.CreateScope())
     await UniversityStructureSeeder.SeedAsync(db);
     await DataSeeder.SeedAsync(db, passwordHasher);
     await IdentitySeeder.SeedAsync(db);
+
+    // Reconcile manifest-declared permissions against the DB. Additive only —
+    // every module owns its permissions through IPermissionManifest, and the
+    // synchroniser fills in any missing Module/Service rows without touching
+    // teammate-seeded ones. Safe on every startup.
+    var manifestSync = scope.ServiceProvider
+        .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
+    await manifestSync.SynchronizeAsync();
 }
 
 if (app.Environment.IsDevelopment())
@@ -120,7 +170,7 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.MapControllers();
-app.Run();
+await app.RunAsync();
 
 // Required by WebApplicationFactory<TEntryPoint> in integration tests.
-public partial class Program { }
+public static partial class Program { }

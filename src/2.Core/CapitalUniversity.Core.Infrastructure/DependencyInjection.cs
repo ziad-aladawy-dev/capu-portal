@@ -105,17 +105,48 @@ public static class DependencyInjection
 
         services.AddScoped<IAcademicYearRepository, AcademicYearRepository>();
         services.AddScoped<ISemesterRepository, SemesterRepository>();
+        services.AddScoped<ICourseRepository, CourseRepository>();
+        services.AddScoped<IAcademicPlanRepository, AcademicPlanRepository>();
+        // IInvoiceRepository moved to Module.Payments — registered by AddPaymentsModule().
+        // IStudentProfileRecordRepository moved to Module.Student — registered by AddStudentModule().
 
         services.AddScoped<IAcademicYearService, AcademicYearService>();
         services.AddScoped<ISemesterService, SemesterService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.ICourseService,
+                           CapitalUniversity.Core.Application.Courses.CourseService>();
+        services.AddScoped<CapitalUniversity.Core.Application.Courses.AcademicPlanValidators>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.IAcademicPlanService,
+                           CapitalUniversity.Core.Application.Courses.AcademicPlanService>();
+        // IInvoiceService / IFeeCreationService / IPaymentVerificationService
+        // moved to Module.Payments — registered by AddPaymentsModule().
+        // IStudentProfileService moved to Module.Student — registered by AddStudentModule().
 
         services.AddScoped<IValidator<CreateAcademicYearRequest>, CreateAcademicYearValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateAcademicYearRequest Request)>, UpdateAcademicYearValidator>();
         services.AddScoped<IValidator<CreateSemesterRequest>, CreateSemesterValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateSemesterRequest Request)>, UpdateSemesterValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.CreateRoleRequest>,
+                           CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.CreateRoleValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleRequest>,
+                           CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.UpdateRoleValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateCourseRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.CreateCourseValidator>();
+        services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateCourseRequest Request)>,
+                           CapitalUniversity.Core.Application.Courses.Validators.UpdateCourseValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateAcademicPlanRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.CreateAcademicPlanValidator>();
+        services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateAcademicPlanRequest Request)>,
+                           CapitalUniversity.Core.Application.Courses.Validators.UpdateAcademicPlanValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.AddPlanCourseRequest>,
+                           CapitalUniversity.Core.Application.Courses.Validators.AddPlanCourseValidator>();
+        // CreateInvoiceRequest + RecordPaymentRequest validators moved to
+        // Module.Payments — registered by AddPaymentsModule().
+        // UpsertStudentProfileRecordRequest + VerifyStudentProfileRecordRequest
+        // validators moved to Module.Student — registered by AddStudentModule().
 
         services.AddHostedService<AcademicTimelineBackgroundService>();
 
+        services.AddScoped<UnitOfWorkRepositories>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Auth Services
@@ -123,7 +154,22 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
-        services.AddScoped<ISessionVersionService, SessionVersionService>();
+
+        // SessionVersion is checked on every authenticated request via the
+        // middleware. The decorator caches the per-user lookup through
+        // ICacheService and invalidates write-through on Increment.
+        services.AddOptions<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions>()
+            .Bind(configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions.SectionName));
+        services.AddScoped<SessionVersionService>();
+        services.AddScoped<ISessionVersionService>(sp => new CachedSessionVersionService(
+            sp.GetRequiredService<SessionVersionService>(),
+            sp.GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.ICacheService>(),
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<
+                CapitalUniversity.Core.Abstractions.CrossCutting.Caching.SessionVersionCacheOptions>>()));
+
+        services.AddOptions<RefreshTokenSettings>()
+            .Bind(configuration.GetSection(RefreshTokenSettings.SectionName));
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<ICurrentUser, CurrentUser>();
@@ -132,7 +178,49 @@ public static class DependencyInjection
         // Permission Services
         services.AddScoped<IScopeResolver, ScopeResolver>();
         services.AddScoped<IPermissionService, PermissionService>();
+
+        // P1.1 — row-level scoped authorization for Invoice / AcademicPlan /
+        // StudentProfileRecord. Scoped so the per-request memoisation in
+        // UserScope and EffectiveScope holds for the lifetime of one HTTP
+        // request and disposes with the request DbContext.
+        services.AddScoped<IUserScope, CapitalUniversity.Core.Infrastructure.Services.Authorization.UserScope>();
+        services.AddScoped<IEffectiveScope, CapitalUniversity.Core.Infrastructure.Services.Authorization.EffectiveScope>();
+        services.AddScoped<PermissionCacheCoordinator>(sp => new PermissionCacheCoordinator(
+            sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<IOptions<PermissionCacheOptions>>().Value,
+            sp.GetService<IPermissionCacheInvalidator>()));
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
+        services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
+
+        // Security-event audit logger (PR-B4) — routes denials, auth failures,
+        // token revocations + role assignment changes through the async audit
+        // pipeline. Wired as Scoped so it picks up the per-request HttpContext.
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit.IAuthAuditLogger,
+                           CapitalUniversity.Core.Infrastructure.Services.Authorization.AuthAuditLogger>();
+
+        // Permission Manifest System (PR-B1) — each module declares its own permissions
+        // via an IPermissionManifest. The registry validates duplicates at startup; the
+        // synchronizer ensures Module + Service rows exist for every declared permission.
+        // Each domain owns its own manifest. AuthorizationPermissionManifest
+        // stays in CrossCutting.Auth — it IS the Auth meta-module declaring its
+        // own permission surface. The others live next to their domain code.
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.Semesters.Authorization.AcademicsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AuthorizationPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization.NotificationsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.Courses.Authorization.CoursesPermissionManifest>();
+        // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
+        // registered by AddPaymentsModule().
+        // StudentInformationPermissionManifest moved to
+        // Module.Student.Abstractions — registered by AddStudentModule().
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PermissionManifestRegistry>();
+        services.AddSingleton<CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.ManifestActionExpander>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer,
+                           CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.PermissionManifestSynchronizer>();
         services.AddScoped<
             CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries.IPermissionTreeQueryHandler,
             CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries.PermissionTreeQueryHandler>();
@@ -144,6 +232,8 @@ public static class DependencyInjection
             configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.OutboxOptions.SectionName));
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutbox,
                            CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutboxPoisonQueue,
+                           CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxPoisonQueue>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Outbox.IOutboxMessageHandler,
                            CapitalUniversity.Core.Infrastructure.Services.Outbox.NotificationOutboxHandler>();
         services.AddHostedService<CapitalUniversity.Core.Infrastructure.Services.Outbox.OutboxDispatcher>();
@@ -155,14 +245,18 @@ public static class DependencyInjection
         // Logging & Audit
 
         services.AddScoped<ILoggerService, SerilogLoggerService>();
-        services.AddScoped<IAppLogger, MongoLoggerService>();
+
+        // Async audit pipeline (PR-D1): BufferedAppLogger captures HttpContext fields
+        // synchronously and stages a LogEntry on a bounded Channel; AuditLogFlushWorker
+        // drains the channel and writes to Mongo out of band. MongoLoggerService is
+        // still available for callers that need a synchronous write.
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAuditLogQueue>(
+            _ => new CapitalUniversity.Core.Infrastructure.Logging.ChannelAuditLogQueue());
+        services.AddScoped<IAppLogger, CapitalUniversity.Core.Infrastructure.Logging.BufferedAppLogger>();
+        services.AddHostedService<CapitalUniversity.Core.Infrastructure.Logging.AuditLogFlushWorker>();
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();
-
-        // Note: IMongoClient should be registered in the API layer with proper connection string
-        // but adding a placeholder if not present to allow Core tests/services to resolve.
-        // services.AddSingleton<IMongoClient>(...);
 
         return services;
     }

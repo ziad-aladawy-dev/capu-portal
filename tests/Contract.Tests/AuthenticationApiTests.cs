@@ -31,8 +31,8 @@ public class AuthenticationApiTests : IClassFixture<WebApplicationFactory<Module
             builder.ConfigureTestServices(services =>
             {
                 // Replace SQL Server with In-Memory
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
 
                 services.AddDbContext<CoreDbContext>(options =>
                 {

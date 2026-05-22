@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
@@ -14,35 +15,48 @@ public class AcademicYearService : IAcademicYearService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateAcademicYearRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateAcademicYearRequest Request)> _updateValidator;
+    private readonly ILocalizationService _localization;
     private readonly AcademicYearMapper _mapper;
 
     public AcademicYearService(
         IUnitOfWork unitOfWork,
         IValidator<CreateAcademicYearRequest> createValidator,
-        IValidator<(Guid Id, UpdateAcademicYearRequest Request)> updateValidator)
+        IValidator<(Guid Id, UpdateAcademicYearRequest Request)> updateValidator,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _localization = localization;
         _mapper = new AcademicYearMapper();
     }
 
     public async Task<AcademicYearResponse?> GetByIdAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        return year == null ? null : _mapper.MapToResponse(year);
+        return year == null ? null : Localize(_mapper.MapToResponse(year));
     }
 
     public async Task<AcademicYearResponse?> GetCurrentAsync()
     {
         var year = await _unitOfWork.AcademicYears.GetCurrentAsync();
-        return year == null ? null : _mapper.MapToResponse(year);
+        return year == null ? null : Localize(_mapper.MapToResponse(year));
     }
 
     public async Task<IEnumerable<AcademicYearResponse>> GetAllAsync()
     {
         var years = await _unitOfWork.AcademicYears.GetAllAsync();
-        return years.Select(_mapper.MapToResponse);
+        return years.Select(y => Localize(_mapper.MapToResponse(y)));
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Name</c> field on an <see cref="AcademicYearResponse"/>
+    /// against the current culture. Plain-text rows pass through unchanged.
+    /// </summary>
+    private AcademicYearResponse Localize(AcademicYearResponse response)
+    {
+        response.Name = _localization.Get<string>(response.Name);
+        return response;
     }
 
     public async Task<Guid> CreateAsync(CreateAcademicYearRequest request)
@@ -57,7 +71,7 @@ public class AcademicYearService : IAcademicYearService
 
         if (await _unitOfWork.AcademicYears.HasOverlapAsync(request.StartDate, request.EndDate))
         {
-            throw new ValidationException("AcademicYear", "Academic year dates overlap with an existing academic year.");
+            throw new ValidationException("AcademicYear", LocalizedKeys.Semesters.YearDatesOverlap);
         }
 
         var year = _mapper.MapToEntity(request);
@@ -84,19 +98,20 @@ public class AcademicYearService : IAcademicYearService
         }
 
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        if (year == null) throw new NotFoundException("Academic year not found.");
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+        year.EnsureMutable();
 
         var startDate = request.StartDate ?? year.StartDate;
         var endDate = request.EndDate ?? year.EndDate;
 
         if (endDate <= startDate)
         {
-            throw new ValidationException("EndDate", "EndDate must be greater than StartDate");
+            throw new ValidationException("EndDate", LocalizedKeys.Semesters.EndAfterStart);
         }
 
         if (await _unitOfWork.AcademicYears.HasOverlapAsync(startDate, endDate, id))
         {
-            throw new ValidationException("AcademicYear", "Academic year dates overlap with an existing academic year.");
+            throw new ValidationException("AcademicYear", LocalizedKeys.Semesters.YearDatesOverlap);
         }
 
         _mapper.UpdateEntity(request, year);
@@ -115,9 +130,30 @@ public class AcademicYearService : IAcademicYearService
     public async Task DeleteAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        if (year == null) throw new NotFoundException("Academic year not found.");
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+        year.EnsureMutable();
 
         _unitOfWork.AcademicYears.Delete(year);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task CloseAsync(Guid id)
+    {
+        var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+
+        year.Close();
+        _unitOfWork.AcademicYears.Update(year);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task ReopenAsync(Guid id)
+    {
+        var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+
+        year.Reopen();
+        _unitOfWork.AcademicYears.Update(year);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -152,8 +188,6 @@ public class AcademicYearService : IAcademicYearService
         }
     }
 
-    private bool IsDateInRange(DateTime date, DateTime start, DateTime end)
-    {
-        return date >= start && date <= end;
-    }
+    private static bool IsDateInRange(DateTime date, DateTime start, DateTime end) =>
+        date >= start && date <= end;
 }

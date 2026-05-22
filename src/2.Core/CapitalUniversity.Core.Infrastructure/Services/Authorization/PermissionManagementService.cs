@@ -1,16 +1,29 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using Microsoft.EntityFrameworkCore;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Authorization;
+
+/// <summary>
+/// Bundles the cache surface used by <see cref="PermissionManagementService"/>.
+/// Lets the service constructor stay under the 7-parameter limit while keeping
+/// per-dependency injection explicit.
+/// </summary>
+public sealed record PermissionCacheCoordinator(
+    ICacheService Cache,
+    PermissionCacheOptions Options,
+    IPermissionCacheInvalidator? Invalidator);
 
 public class PermissionManagementService : IPermissionManagementService
 {
@@ -19,25 +32,32 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly IScopeResolver _scopeResolver;
     private readonly CoreDbContext _dbContext;
     private readonly ICacheService _cache;
-    private readonly ICurrentUser _currentUser;
     private readonly PermissionCacheOptions _cacheOptions;
+    private readonly IPermissionCacheInvalidator? _cacheInvalidator;
+    private readonly IAuthAuditLogger? _audit;
+    private readonly ManifestActionExpander _expander;
+    private readonly ILocalizationService _localization;
 
     public PermissionManagementService(
         IPermissionService permissionService,
         IRequestContext requestContext,
         IScopeResolver scopeResolver,
         CoreDbContext dbContext,
-        ICacheService cache,
-        ICurrentUser currentUser,
-        Microsoft.Extensions.Options.IOptions<PermissionCacheOptions>? cacheOptions = null)
+        PermissionCacheCoordinator cacheCoordinator,
+        ManifestActionExpander expander,
+        ILocalizationService localization,
+        IAuthAuditLogger? audit = null)
     {
         _permissionService = permissionService;
         _requestContext = requestContext;
         _scopeResolver = scopeResolver;
         _dbContext = dbContext;
-        _cache = cache;
-        _currentUser = currentUser;
-        _cacheOptions = cacheOptions?.Value ?? new PermissionCacheOptions();
+        _cache = cacheCoordinator.Cache;
+        _cacheOptions = cacheCoordinator.Options;
+        _cacheInvalidator = cacheCoordinator.Invalidator;
+        _audit = audit;
+        _expander = expander;
+        _localization = localization;
     }
 
     public async Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -47,7 +67,11 @@ public class PermissionManagementService : IPermissionManagementService
             User = new UserInfoDto
             {
                 Id = user.Id,
-                Name = user.Name,
+                // Personal name is bilingual JSON when authored that way; the
+                // login bootstrap renders it in the caller's culture so the
+                // header chip and welcome screen pick up "Menna Magdy"
+                // / "منة مجدى" without a follow-up GET.
+                Name = _localization.Get<string>(user.Name),
                 Email = user.Email
             }
         };
@@ -92,22 +116,21 @@ public class PermissionManagementService : IPermissionManagementService
     private async Task<UserAttributesDto> ResolveAttributesAsync(StructureNode node, CancellationToken cancellationToken)
     {
         var attributes = new UserAttributesDto();
-        
-        // Traverse up to find levels
+
         var currentNode = node;
         while (currentNode != null)
         {
             switch (currentNode.Type)
             {
                 case StructureNodeType.University:
-                    attributes.Uni = currentNode.Name;
+                    attributes.Uni = _localization.Get<string>(currentNode.Name);
                     break;
                 case StructureNodeType.Faculty:
-                    attributes.Faculty = currentNode.Name;
+                    attributes.Faculty = _localization.Get<string>(currentNode.Name);
                     break;
                 case StructureNodeType.Department:
                 case StructureNodeType.Program:
-                    attributes.Department = currentNode.Name;
+                    attributes.Department = _localization.Get<string>(currentNode.Name);
                     break;
             }
 
@@ -136,28 +159,48 @@ public class PermissionManagementService : IPermissionManagementService
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
+        var rolePermsByRole = await LoadRolePermissionsByRoleAsync(assignments, cancellationToken);
+        var overrides = await LoadOverridesAsync(userId, cancellationToken);
 
+        // Set-based evaluation: effective = allow − deny. Storage is already per-action,
+        // so no implies expansion at evaluation time — implies are folded in at write time.
+        var allowByKey = new Dictionary<ScopedResourceKey, HashSet<string>>();
+        var denyByKey = new Dictionary<ScopedResourceKey, HashSet<string>>();
+
+        CollectRoleAllows(assignments, rolePermsByRole, allowByKey);
+        CollectOverrideActions(overrides.Where(o => o.Type == OverrideType.Allow), allowByKey);
+        CollectOverrideActions(overrides.Where(o => o.Type == OverrideType.Deny), denyByKey);
+
+        return BuildEffectivePermissionDtos(allowByKey, denyByKey);
+    }
+
+    private async Task<Dictionary<Guid, List<RolePermission>>> LoadRolePermissionsByRoleAsync(
+        IReadOnlyCollection<StaffRoleAssignment> assignments, CancellationToken cancellationToken)
+    {
+        var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
         var rolePerms = await _dbContext.RolePermissions
-            .Include(rp => rp.Service)
-                .ThenInclude(s => s.Module)
+            .Include(rp => rp.Resource)
+                .ThenInclude(r => r.Module)
             .Where(rp => roleIds.Contains(rp.RoleId))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var rolePermsByRole = rolePerms
-            .GroupBy(rp => rp.RoleId)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        return rolePerms.GroupBy(rp => rp.RoleId).ToDictionary(g => g.Key, g => g.ToList());
+    }
 
-        var overrides = await _dbContext.StaffPermissions
-            .Include(sp => sp.Service)
-                .ThenInclude(s => s.Module)
+    private Task<List<StaffPermissionOverride>> LoadOverridesAsync(Guid userId, CancellationToken cancellationToken) =>
+        _dbContext.StaffPermissions
+            .Include(sp => sp.Resource)
+                .ThenInclude(r => r.Module)
             .Where(sp => sp.StaffId == userId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var maxLevelByScopeResource = new Dictionary<ScopedResourceKey, ActionLevel>();
-
+    private static void CollectRoleAllows(
+        IEnumerable<StaffRoleAssignment> assignments,
+        Dictionary<Guid, List<RolePermission>> rolePermsByRole,
+        Dictionary<ScopedResourceKey, HashSet<string>> target)
+    {
         foreach (var assignment in assignments)
         {
             if (!rolePermsByRole.TryGetValue(assignment.RoleId, out var perms)) continue;
@@ -170,52 +213,65 @@ public class PermissionManagementService : IPermissionManagementService
 
             foreach (var rp in perms)
             {
-                var key = new ScopedResourceKey(scope, rp.Service.Module.ModuleKey, rp.Resource);
-                if (!maxLevelByScopeResource.TryGetValue(key, out var existing) || rp.Level > existing)
-                {
-                    maxLevelByScopeResource[key] = rp.Level;
-                }
+                var key = new ScopedResourceKey(scope, rp.Resource.Module.ModuleKey, rp.Resource.Key);
+                AddAction(target, key, rp.Action);
             }
         }
+    }
 
-        foreach (var ov in overrides.Where(o => o.Type == OverrideType.Allow))
+    private static void CollectOverrideActions(
+        IEnumerable<StaffPermissionOverride> overrides,
+        Dictionary<ScopedResourceKey, HashSet<string>> target)
+    {
+        foreach (var ov in overrides)
         {
             var scope = new ScopeKey(ov.StructureNodeId, ov.StructureNodePath, ov.Year, ov.Semester);
-            var key = new ScopedResourceKey(scope, ov.Service.Module.ModuleKey, ov.Resource);
-            if (!maxLevelByScopeResource.TryGetValue(key, out var existing) || ov.Level > existing)
-            {
-                maxLevelByScopeResource[key] = ov.Level;
-            }
+            var key = new ScopedResourceKey(scope, ov.Resource.Module.ModuleKey, ov.Resource.Key);
+            AddAction(target, key, ov.Action);
         }
+    }
 
-        foreach (var ov in overrides.Where(o => o.Type == OverrideType.Deny))
+    private static void AddAction(
+        Dictionary<ScopedResourceKey, HashSet<string>> target,
+        ScopedResourceKey key,
+        string action)
+    {
+        if (string.IsNullOrEmpty(action)) return;
+        if (!target.TryGetValue(key, out var set))
         {
-            var scope = new ScopeKey(ov.StructureNodeId, ov.StructureNodePath, ov.Year, ov.Semester);
-            var key = new ScopedResourceKey(scope, ov.Service.Module.ModuleKey, ov.Resource);
-            if (maxLevelByScopeResource.TryGetValue(key, out var existing) && existing >= ov.Level)
-            {
-                maxLevelByScopeResource[key] = (ActionLevel)((int)ov.Level - 1);
-            }
+            set = new HashSet<string>(StringComparer.Ordinal);
+            target[key] = set;
         }
+        set.Add(action);
+    }
 
-        var dtos = new List<PermissionDto>();
-        foreach (var (key, level) in maxLevelByScopeResource)
+    private static List<PermissionDto> BuildEffectivePermissionDtos(
+        Dictionary<ScopedResourceKey, HashSet<string>> allowByKey,
+        Dictionary<ScopedResourceKey, HashSet<string>> denyByKey)
+    {
+        var result = new List<PermissionDto>();
+        foreach (var (key, allowed) in allowByKey)
         {
-            if (level <= ActionLevel.None) continue;
+            var effective = new HashSet<string>(allowed, StringComparer.Ordinal);
+            if (denyByKey.TryGetValue(key, out var denied))
+            {
+                effective.ExceptWith(denied);
+            }
+            if (effective.Count == 0) continue;
+
             var scopeDto = BuildScopeDto(key.Scope);
-            foreach (var action in GetActionsUpToLevel(level))
+            foreach (var action in effective)
             {
-                dtos.Add(new PermissionDto
+                result.Add(new PermissionDto
                 {
                     Module = key.Module,
                     Resource = key.Resource,
                     Action = action,
-                    Scope = scopeDto
+                    Scope = scopeDto,
                 });
             }
         }
-
-        return dtos;
+        return result;
     }
 
     private sealed record ScopeKey(Guid? StructureNodeId, string? StructureNodePath, string Year, string Semester);
@@ -245,7 +301,10 @@ public class PermissionManagementService : IPermissionManagementService
         var structureNodeId = _requestContext.ActiveStructureNodeId;
         var structureKey = structureNodeId?.ToString() ?? ScopeKeys.Global;
         var version = await GetUserPermissionVersionAsync(userId, cancellationToken);
-        var cacheKey = $"perm_lookup_{userId}_{version}_{year}_{semester}_{structureKey}";
+        var epoch = await GetGlobalEpochAsync(cancellationToken);
+        // Epoch participates in the key so InvalidateAllAsync (manifest sync, schema
+        // migration) orphans every cached entry without enumerating keys.
+        var cacheKey = $"perm_lookup_{epoch}_{userId}_{version}_{year}_{semester}_{structureKey}";
 
         var cachedLookup = await _cache.GetAsync<HashSet<string>>(cacheKey, cancellationToken);
         if (cachedLookup != null)
@@ -255,78 +314,52 @@ public class PermissionManagementService : IPermissionManagementService
 
         var scope = await _scopeResolver.ResolveAsync(userId, year, semester, structureNodeId, cancellationToken);
 
-        var rawPermissions = await _permissionService.GetPermissionsAsync(userId, "*", scope, cancellationToken);
+        var rawPermissions = await _permissionService.GetAllPermissionsAsync(userId, scope, cancellationToken);
 
         var roleIds = rawPermissions.Assignments.Select(a => a.RoleId).Distinct().ToList();
         var rolePermsDb = await _dbContext.RolePermissions
-            .Include(rp => rp.Service)
-                .ThenInclude(s => s.Module)
+            .Include(rp => rp.Resource)
+                .ThenInclude(r => r.Module)
             .Where(rp => roleIds.Contains(rp.RoleId))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var maxGrantedLevelPerResource = new Dictionary<string, (ActionLevel Level, string ModuleKey, string Resource)>();
+        var allowed = new HashSet<string>(StringComparer.Ordinal);
+        var denied = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var rp in rolePermsDb)
         {
-            var key = PermissionIdentity.Create(rp.Service.Module.ModuleKey, rp.Resource, "");
-            if (!maxGrantedLevelPerResource.ContainsKey(key) || maxGrantedLevelPerResource[key].Level < rp.Level)
-            {
-                maxGrantedLevelPerResource[key] = (rp.Level, rp.Service.Module.ModuleKey, rp.Resource);
-            }
+            allowed.Add(PermissionIdentity.Create(rp.Resource.Module.ModuleKey, rp.Resource.Key, rp.Action));
         }
 
         var overridesDb = await _dbContext.StaffPermissions
-            .Include(sp => sp.Service)
-                .ThenInclude(s => s.Module)
+            .Include(sp => sp.Resource)
+                .ThenInclude(r => r.Module)
             .Where(sp => rawPermissions.Overrides.Select(o => o.Id).Contains(sp.Id))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var allowOverrides = overridesDb.Where(o => o.Type == OverrideType.Allow);
-        foreach (var ov in allowOverrides)
+        foreach (var ov in overridesDb)
         {
-            var key = PermissionIdentity.Create(ov.Service.Module.ModuleKey, ov.Resource, "");
-            if (!maxGrantedLevelPerResource.ContainsKey(key) || maxGrantedLevelPerResource[key].Level < ov.Level)
-            {
-                maxGrantedLevelPerResource[key] = (ov.Level, ov.Service.Module.ModuleKey, ov.Resource);
-            }
+            var canonical = PermissionIdentity.Create(ov.Resource.Module.ModuleKey, ov.Resource.Key, ov.Action);
+            if (ov.Type == OverrideType.Allow) allowed.Add(canonical);
+            else denied.Add(canonical);
         }
 
-        var denyOverrides = overridesDb.Where(o => o.Type == OverrideType.Deny);
-        foreach (var deny in denyOverrides)
-        {
-            var key = PermissionIdentity.Create(deny.Service.Module.ModuleKey, deny.Resource, "");
-            if (maxGrantedLevelPerResource.ContainsKey(key) && maxGrantedLevelPerResource[key].Level >= deny.Level)
-            {
-                var newMaxLevel = (ActionLevel)((int)deny.Level - 1);
-                maxGrantedLevelPerResource[key] = (newMaxLevel, maxGrantedLevelPerResource[key].ModuleKey, maxGrantedLevelPerResource[key].Resource);
-            }
-        }
+        allowed.ExceptWith(denied);
 
-        var lookup = new HashSet<string>();
-        foreach (var kvp in maxGrantedLevelPerResource)
-        {
-            if (kvp.Value.Level > ActionLevel.None)
-            {
-                var actions = GetActionsUpToLevel(kvp.Value.Level);
-                foreach (var action in actions)
-                {
-                    // Canonical Composite Key
-                    lookup.Add(PermissionIdentity.Create(kvp.Value.ModuleKey, kvp.Value.Resource, action));
-                }
-            }
-        }
+        await _cache.SetAsync(cacheKey, allowed, TimeSpan.FromMinutes(_cacheOptions.LookupTtlMinutes), cancellationToken);
 
-        await _cache.SetAsync(cacheKey, lookup, TimeSpan.FromMinutes(_cacheOptions.LookupTtlMinutes), cancellationToken);
-
-        return lookup;
+        return allowed;
     }
 
-    // Rotating the per-user version orphans every cached perm_lookup_{userId}_{version}_*
-    // entry across all scope variants in a single write — no key enumeration needed.
     private async Task InvalidateUserCacheAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        if (_cacheInvalidator is not null)
+        {
+            await _cacheInvalidator.InvalidateUserAsync(userId, cancellationToken);
+            return;
+        }
         await _cache.SetAsync(VersionKey(userId), Guid.NewGuid().ToString("N"), TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
     }
 
@@ -341,18 +374,17 @@ public class PermissionManagementService : IPermissionManagementService
         return initial;
     }
 
-    private static string VersionKey(Guid userId) => $"perm_lookup_v_{userId}";
-
-    private IEnumerable<string> GetActionsUpToLevel(ActionLevel level)
+    private async Task<string> GetGlobalEpochAsync(CancellationToken cancellationToken)
     {
-        var actions = new List<string>();
-        if (level >= ActionLevel.View) actions.Add("View");
-        if (level >= ActionLevel.Insert) actions.Add("Insert");
-        if (level >= ActionLevel.EditClose) actions.Add("EditClose");
-        if (level >= ActionLevel.Open) actions.Add("Open");
-        if (level >= ActionLevel.Delete) actions.Add("Delete");
-        return actions;
+        var current = await _cache.GetAsync<string>(PermissionCacheInvalidator.GlobalEpochKey, cancellationToken);
+        if (!string.IsNullOrEmpty(current)) return current;
+
+        var initial = "0";
+        await _cache.SetAsync(PermissionCacheInvalidator.GlobalEpochKey, initial, TimeSpan.FromHours(_cacheOptions.VersionTtlHours), cancellationToken);
+        return initial;
     }
+
+    private static string VersionKey(Guid userId) => PermissionCacheInvalidator.UserVersionKey(userId);
 
     public async Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default)
     {
@@ -360,20 +392,22 @@ public class PermissionManagementService : IPermissionManagementService
         var semester = query.AlwaysActive ? ScopeKeys.Global : (query.SemesterId?.ToString() ?? ScopeKeys.Global);
 
         var roles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == query.UserId && 
-                         sr.StructureNodeId == query.StructureNodeId && 
+            .Where(sr => sr.StaffId == query.UserId &&
+                         sr.StructureNodeId == query.StructureNodeId &&
                          sr.Year == year && sr.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
         var overrides = await _dbContext.StaffPermissions
-            .Where(sp => sp.StaffId == query.UserId && 
-                         sp.StructureNodeId == query.StructureNodeId && 
+            .Include(sp => sp.Resource)
+                .ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == query.UserId &&
+                         sp.StructureNodeId == query.StructureNodeId &&
                          sp.Year == year && sp.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        if (!roles.Any() && !overrides.Any())
+        if (roles.Count == 0 && overrides.Count == 0)
         {
             return null;
         }
@@ -382,13 +416,7 @@ public class PermissionManagementService : IPermissionManagementService
         {
             UserId = query.UserId,
             RoleIds = roles.Select(r => r.RoleId).ToList(),
-            PermissionOverrides = overrides.Select(o => new PermissionOverrideModel
-            {
-                ServiceId = o.ServiceId,
-                Resource = o.Resource,
-                Level = o.Level,
-                Type = o.Type
-            }).ToList(),
+            PermissionOverrides = CollapseOverridesToDtos(overrides),
             StructuralScope = new StructuralScopeModel
             {
                 StructureNodeId = query.StructureNodeId
@@ -402,7 +430,32 @@ public class PermissionManagementService : IPermissionManagementService
         };
     }
 
-    private void ValidateScopeCombinations(StructuralScopeModel structural, TemporalScopeModel temporal)
+    /// <summary>
+    /// Collapses per-action override rows into legacy DTOs. Each (ResourceId, Type)
+    /// group yields one <see cref="PermissionOverrideModel"/> whose
+    /// <see cref="PermissionOverrideModel.Level"/> is the highest legacy ladder
+    /// step covered by the row's action set, and whose
+    /// <see cref="PermissionOverrideModel.Actions"/> mirrors the underlying set.
+    /// </summary>
+    private List<PermissionOverrideModel> CollapseOverridesToDtos(IEnumerable<StaffPermissionOverride> rows)
+    {
+        return rows
+            .GroupBy(o => new { o.ResourceId, o.Type, Module = o.Resource.Module.ModuleKey, ResourceKey = o.Resource.Key })
+            .Select(g =>
+            {
+                var actions = g.Select(o => o.Action).ToList();
+                return new PermissionOverrideModel
+                {
+                    ResourceId = g.Key.ResourceId,
+                    Type = g.Key.Type,
+                    Level = _expander.CollapseToMaxLevel(g.Key.Module, g.Key.ResourceKey, actions),
+                    Actions = actions,
+                };
+            })
+            .ToList();
+    }
+
+    private static void ValidateScopeCombinations(TemporalScopeModel temporal)
     {
         if (temporal.AlwaysActive && (temporal.AcademicYearId.HasValue || temporal.SemesterId.HasValue))
             throw new ArgumentException("Cannot specify both AlwaysActive=true and specific Temporal limits");
@@ -410,7 +463,7 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<PermissionAssignmentResponse> CreateAssignmentAsync(CreatePermissionAssignmentRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateScopeCombinations(request.StructuralScope, request.TemporalScope);
+        ValidateScopeCombinations(request.TemporalScope);
 
         var year = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.AcademicYearId?.ToString() ?? ScopeKeys.Global);
         var semester = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
@@ -423,48 +476,47 @@ public class PermissionManagementService : IPermissionManagementService
         }
 
         var existingRoles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == request.UserId && 
-                         sr.StructureNodeId == request.StructuralScope.StructureNodeId && 
+            .Where(sr => sr.StaffId == request.UserId &&
+                         sr.StructureNodeId == request.StructuralScope.StructureNodeId &&
                          sr.Year == year && sr.Semester == semester)
             .Select(sr => sr.RoleId)
             .ToListAsync(cancellationToken);
 
-        foreach (var roleId in request.RoleIds)
+        foreach (var roleId in request.RoleIds.Where(rid => !existingRoles.Contains(rid)))
         {
-            if (!existingRoles.Contains(roleId))
+            var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, year, semester)
             {
-                var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, year, semester)
-                {
-                    StructureNodeId = request.StructuralScope.StructureNodeId,
-                    StructureNodePath = nodePath
-                };
-                _dbContext.StaffRoles.Add(roleAssignment);
-            }
+                StructureNodeId = request.StructuralScope.StructureNodeId,
+                StructureNodePath = nodePath
+            };
+            _dbContext.StaffRoles.Add(roleAssignment);
         }
 
         var existingOverrides = await _dbContext.StaffPermissions
-            .Where(sp => sp.StaffId == request.UserId && 
-                         sp.StructureNodeId == request.StructuralScope.StructureNodeId && 
+            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == request.UserId &&
+                         sp.StructureNodeId == request.StructuralScope.StructureNodeId &&
                          sp.Year == year && sp.Semester == semester)
             .ToListAsync(cancellationToken);
 
         foreach (var perm in request.PermissionOverrides)
         {
-            if (!existingOverrides.Any(eo => eo.ServiceId == perm.ServiceId && eo.Resource == perm.Resource && eo.Type == perm.Type))
-            {
-                var spOverride = new StaffPermissionOverride(request.UserId, perm.ServiceId, perm.Resource, perm.Level, perm.Type, ScopeKeys.Global, year, semester)
-                {
-                    StructureNodeId = request.StructuralScope.StructureNodeId,
-                    StructureNodePath = nodePath
-                };
-
-                _dbContext.StaffPermissions.Add(spOverride);
-            }
+            await PersistOverrideAsync(request.UserId, perm, existingOverrides, year, semester,
+                request.StructuralScope.StructureNodeId, nodePath, cancellationToken);
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        
+
         await InvalidateUserCacheAsync(request.UserId, cancellationToken);
+
+        if (_audit is not null)
+        {
+            var added = request.RoleIds.Where(r => !existingRoles.Contains(r)).ToArray();
+            if (added.Length > 0)
+            {
+                await _audit.LogRoleAssignmentChangedAsync(request.UserId, added, Array.Empty<Guid>(), cancellationToken);
+            }
+        }
 
         return new PermissionAssignmentResponse
         {
@@ -478,22 +530,57 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<PermissionAssignmentResponse> UpdateAssignmentAsync(UpdatePermissionAssignmentRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateScopeCombinations(request.StructuralScope, request.TemporalScope);
+        ValidateScopeCombinations(request.TemporalScope);
 
         var year = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.AcademicYearId?.ToString() ?? ScopeKeys.Global);
         var semester = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
+        var nodePath = await ResolveNodePathAsync(request.StructuralScope.StructureNodeId, cancellationToken);
 
-        string? nodePath = null;
-        if (request.StructuralScope.StructureNodeId.HasValue)
+        await ApplyRoleUpdatesAsync(request, year, semester, nodePath, cancellationToken);
+        await ApplyOverrideUpdatesAsync(request, year, semester, nodePath, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await InvalidateUserCacheAsync(request.UserId, cancellationToken);
+        await EmitRoleChangeAuditAsync(request, cancellationToken);
+
+        var finalRoles = await _dbContext.StaffRoles
+            .Where(sr => sr.StaffId == request.UserId &&
+                         sr.StructureNodeId == request.StructuralScope.StructureNodeId &&
+                         sr.Year == year && sr.Semester == semester)
+            .Select(sr => sr.RoleId)
+            .ToListAsync(cancellationToken);
+
+        var finalOverrideRows = await _dbContext.StaffPermissions
+            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == request.UserId &&
+                         sp.StructureNodeId == request.StructuralScope.StructureNodeId &&
+                         sp.Year == year && sp.Semester == semester)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return new PermissionAssignmentResponse
         {
-            var node = await _dbContext.StructureNodes.FindAsync(new object[] { request.StructuralScope.StructureNodeId.Value }, cancellationToken);
-            nodePath = node?.Path;
-        }
+            UserId = request.UserId,
+            RoleIds = finalRoles,
+            PermissionOverrides = CollapseOverridesToDtos(finalOverrideRows),
+            StructuralScope = request.StructuralScope,
+            TemporalScope = request.TemporalScope
+        };
+    }
 
-        // 1. Manage Roles
+    private async Task<string?> ResolveNodePathAsync(Guid? structureNodeId, CancellationToken cancellationToken)
+    {
+        if (!structureNodeId.HasValue) return null;
+        var node = await _dbContext.StructureNodes.FindAsync(new object[] { structureNodeId.Value }, cancellationToken);
+        return node?.Path;
+    }
+
+    private async Task ApplyRoleUpdatesAsync(
+        UpdatePermissionAssignmentRequest request, string year, string semester, string? nodePath, CancellationToken cancellationToken)
+    {
         var currentRoles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == request.UserId && 
-                         sr.StructureNodeId == request.StructuralScope.StructureNodeId && 
+            .Where(sr => sr.StaffId == request.UserId &&
+                         sr.StructureNodeId == request.StructuralScope.StructureNodeId &&
                          sr.Year == year && sr.Semester == semester)
             .ToListAsync(cancellationToken);
 
@@ -501,93 +588,134 @@ public class PermissionManagementService : IPermissionManagementService
         var rolesToRemoveEntities = currentRoles.Where(cr => roleIdsToRemove.Contains(cr.RoleId)).ToList();
         _dbContext.StaffRoles.RemoveRange(rolesToRemoveEntities);
 
-        foreach (var roleId in request.RolesToAdd)
+        foreach (var roleId in request.RolesToAdd.Where(rid => currentRoles.All(cr => cr.RoleId != rid)))
         {
-            if (!currentRoles.Any(cr => cr.RoleId == roleId))
+            var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, year, semester)
             {
-                var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, year, semester)
-                {
-                    StructureNodeId = request.StructuralScope.StructureNodeId,
-                    StructureNodePath = nodePath
-                };
-                _dbContext.StaffRoles.Add(roleAssignment);
-            }
+                StructureNodeId = request.StructuralScope.StructureNodeId,
+                StructureNodePath = nodePath
+            };
+            _dbContext.StaffRoles.Add(roleAssignment);
         }
+    }
 
-        // 2. Manage Overrides
+    private async Task ApplyOverrideUpdatesAsync(
+        UpdatePermissionAssignmentRequest request, string year, string semester, string? nodePath, CancellationToken cancellationToken)
+    {
         var currentOverrides = await _dbContext.StaffPermissions
-            .Where(sp => sp.StaffId == request.UserId && 
-                         sp.StructureNodeId == request.StructuralScope.StructureNodeId && 
+            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == request.UserId &&
+                         sp.StructureNodeId == request.StructuralScope.StructureNodeId &&
                          sp.Year == year && sp.Semester == semester)
             .ToListAsync(cancellationToken);
 
         foreach (var permToRemove in request.PermissionsToRemove)
         {
-            var entityToRemove = currentOverrides.FirstOrDefault(eo =>
-                eo.ServiceId == permToRemove.ServiceId &&
-                eo.Resource == permToRemove.Resource &&
-                eo.Type == permToRemove.Type);
+            var actionsToRemove = ResolveActionSetForDto(permToRemove, currentOverrides);
+            var entitiesToRemove = currentOverrides
+                .Where(eo => eo.ResourceId == permToRemove.ResourceId && eo.Type == permToRemove.Type
+                             && actionsToRemove.Contains(eo.Action))
+                .ToList();
 
-            if (entityToRemove != null)
+            foreach (var entity in entitiesToRemove)
             {
-                _dbContext.StaffPermissions.Remove(entityToRemove);
+                _dbContext.StaffPermissions.Remove(entity);
+                currentOverrides.Remove(entity);
             }
         }
 
         foreach (var permToAdd in request.PermissionsToAdd)
         {
-            var existing = currentOverrides.FirstOrDefault(eo =>
-                eo.ServiceId == permToAdd.ServiceId &&
-                eo.Resource == permToAdd.Resource &&
-                eo.Type == permToAdd.Type);
-
-            if (existing != null)
-            {
-                existing.UpdateLevel(permToAdd.Level);
-            }
-            else
-            {
-                var spOverride = new StaffPermissionOverride(request.UserId, permToAdd.ServiceId, permToAdd.Resource, permToAdd.Level, permToAdd.Type, ScopeKeys.Global, year, semester)
-                {
-                    StructureNodeId = request.StructuralScope.StructureNodeId,
-                    StructureNodePath = nodePath
-                };
-
-                _dbContext.StaffPermissions.Add(spOverride);
-            }
+            await PersistOverrideAsync(request.UserId, permToAdd, currentOverrides, year, semester,
+                request.StructuralScope.StructureNodeId, nodePath, cancellationToken);
         }
+    }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        
-        await InvalidateUserCacheAsync(request.UserId, cancellationToken);
+    private async Task PersistOverrideAsync(
+        Guid userId,
+        PermissionOverrideModel perm,
+        List<StaffPermissionOverride> existingForScope,
+        string year,
+        string semester,
+        Guid? structureNodeId,
+        string? structureNodePath,
+        CancellationToken cancellationToken)
+    {
+        var resource = await _dbContext.Resources
+            .Include(r => r.Module)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == perm.ResourceId, cancellationToken);
+        if (resource is null) return;
 
-        var finalRoles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == request.UserId && 
-                         sr.StructureNodeId == request.StructuralScope.StructureNodeId && 
-                         sr.Year == year && sr.Semester == semester)
-            .Select(sr => sr.RoleId)
-            .ToListAsync(cancellationToken);
+        var targetActions = ResolveActionSet(perm, resource.Module.ModuleKey, resource.Key);
+        if (targetActions.Count == 0) return;
 
-        var finalOverrides = await _dbContext.StaffPermissions
-            .Where(sp => sp.StaffId == request.UserId && 
-                         sp.StructureNodeId == request.StructuralScope.StructureNodeId && 
-                         sp.Year == year && sp.Semester == semester)
-            .Select(o => new PermissionOverrideModel
-            {
-                ServiceId = o.ServiceId,
-                Resource = o.Resource,
-                Level = o.Level,
-                Type = o.Type
-            }).ToListAsync(cancellationToken);
-
-        return new PermissionAssignmentResponse
+        foreach (var action in targetActions)
         {
-            UserId = request.UserId,
-            RoleIds = finalRoles,
-            PermissionOverrides = finalOverrides,
-            StructuralScope = request.StructuralScope,
-            TemporalScope = request.TemporalScope
-        };
+            var existing = existingForScope
+                .FirstOrDefault(eo => eo.ResourceId == perm.ResourceId && eo.Type == perm.Type && eo.Action == action);
+            if (existing is not null) continue;
+
+            var row = new StaffPermissionOverride(userId, perm.ResourceId, action, perm.Type, year, semester)
+            {
+                StructureNodeId = structureNodeId,
+                StructureNodePath = structureNodePath,
+            };
+            _dbContext.StaffPermissions.Add(row);
+            existingForScope.Add(row);
+        }
+    }
+
+    /// <summary>
+    /// Determines which action names a DTO write represents. Prefers explicit
+    /// <see cref="PermissionOverrideModel.Actions"/> when populated; otherwise
+    /// expands the legacy <see cref="PermissionOverrideModel.Level"/> through
+    /// the resource manifest.
+    /// <para>The expansion direction depends on <paramref name="overrideType"/>:
+    /// <b>Allow</b> uses the forward implies closure (granting a high verb
+    /// grants the verbs below); <b>Deny</b> uses the reverse implies closure
+    /// (denying a low verb denies every verb that would grant it transitively).
+    /// Without the reverse direction, denying <c>EditClose</c> on a user who
+    /// holds <c>Delete</c> would leave <c>Delete</c> intact — a silent
+    /// fail-open. The asymmetry restores the legacy ladder's deny semantic
+    /// under the manifest-driven graph.</para>
+    /// </summary>
+    private HashSet<string> ResolveActionSet(PermissionOverrideModel perm, string module, string resourceKey)
+    {
+        if (perm.Actions is { Count: > 0 })
+        {
+            return new HashSet<string>(perm.Actions, StringComparer.Ordinal);
+        }
+        var expanded = perm.Type == OverrideType.Deny
+            ? _expander.ExpandDenyActions(module, resourceKey, perm.Level)
+            : _expander.ExpandActions(module, resourceKey, perm.Level);
+        return new HashSet<string>(expanded, StringComparer.Ordinal);
+    }
+
+    private HashSet<string> ResolveActionSetForDto(PermissionOverrideModel perm, IEnumerable<StaffPermissionOverride> existing)
+    {
+        if (perm.Actions is { Count: > 0 })
+        {
+            return new HashSet<string>(perm.Actions, StringComparer.Ordinal);
+        }
+        // Best effort: resolve from one of the existing rows whose resource matches.
+        var sample = existing.FirstOrDefault(o => o.ResourceId == perm.ResourceId);
+        if (sample is null) return new HashSet<string>(StringComparer.Ordinal);
+        var expanded = perm.Type == OverrideType.Deny
+            ? _expander.ExpandDenyActions(sample.Resource.Module.ModuleKey, sample.Resource.Key, perm.Level)
+            : _expander.ExpandActions(sample.Resource.Module.ModuleKey, sample.Resource.Key, perm.Level);
+        return new HashSet<string>(expanded, StringComparer.Ordinal);
+    }
+
+    private async Task EmitRoleChangeAuditAsync(UpdatePermissionAssignmentRequest request, CancellationToken cancellationToken)
+    {
+        if (_audit is null) return;
+        if (request.RolesToAdd.Count == 0 && request.RolesToRemove.Count == 0) return;
+
+        var added = request.RolesToAdd.Where(r => !request.RolesToRemove.Contains(r)).ToArray();
+        var removed = request.RolesToRemove.Where(r => !request.RolesToAdd.Contains(r)).ToArray();
+        if (added.Length == 0 && removed.Length == 0) return;
+
+        await _audit.LogRoleAssignmentChangedAsync(request.UserId, added, removed, cancellationToken);
     }
 }
-

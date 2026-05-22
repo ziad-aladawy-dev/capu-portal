@@ -7,12 +7,12 @@ public enum LogLevelType
     Error = 3,
     Critical = 4
 }
-public enum SystemTypeEnum
+public enum SystemType
 {
     [Localized("نظام الفصول", "Semester System")]
     SemesterSystem = 1,
     [Localized("نظام الساعات المعتمدة", "Credit Hours System")]
-    CreditHoursSystem = 2 
+    CreditHoursSystem = 2
 }
 
 public enum StudentStatusEnum
@@ -27,14 +27,14 @@ public enum StudentStatusEnum
     Transferred = 4
 }
 
-public enum ProgramTypeEnum
+public enum ProgramType
 {
     [Localized("مستوى", "Level Based")]
     LevelBased = 1,
     [Localized("الساعات المعتمدة", "Credit Hours")]
-    CreditHours = 2 
+    CreditHours = 2
 }
-public enum SemesterNameEnum
+public enum SemesterName
 {
     [Localized("خريف", "Fall")]
     Fall = 1,
@@ -55,15 +55,23 @@ public enum NotificationType
 }
 public enum ActionLevel
 {
+    [Localized("غير محدد", "None")]
     None = 0,
+    [Localized("عرض", "View")]
     View = 1,
+    [Localized("إضافة", "Insert")]
     Insert = 2,
+    [Localized("تعديل/إغلاق", "Edit / Close")]
     EditClose = 3,
+    [Localized("إعادة فتح", "Reopen")]
     Open = 4,
+    [Localized("حذف", "Delete")]
     Delete = 5
 }
 public enum OverrideType
 {
+    [Localized("سماح", "Allow")]
     Allow = 1,
+    [Localized("منع", "Deny")]
     Deny = 2
 }

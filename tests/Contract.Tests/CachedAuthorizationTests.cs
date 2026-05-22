@@ -40,20 +40,20 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
                 services.AddDbContext<CoreDbContext>(options => options.UseInMemoryDatabase(capturedName));
 
                 // Mock MongoDB and Logging
-                services.RemoveAll(typeof(IMongoClient));
+                services.RemoveAll<IMongoClient>();
                 services.AddSingleton(_ => new Mock<IMongoClient>().Object);
-                services.RemoveAll(typeof(IMongoDatabase));
+                services.RemoveAll<IMongoDatabase>();
                 services.AddScoped(_ => new Mock<IMongoDatabase>().Object);
                 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>().Object);
                 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>();
                 services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>().Object);
             });
         });
@@ -83,16 +83,18 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             };
             db.Staffs.Add(staff);
 
-            // Seed Module/Service.
-            var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
-            var service = new Service { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, DisplayName = "Year" };
+            // Seed Module/Resource in the canonical form the manifest synchroniser owns.
+            // Resource key "academic-years" → "academics.academic-years.View", which is
+            // what AcademicYearsController.GetAll binds against post-migration.
+            var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
+            var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
             db.Modules.Add(module);
-            db.Services.Add(service);
+            db.Resources.Add(resource);
 
-            // Role with only View permission on the Year resource.
+            // Role with only View permission on the academic-years resource.
             var role = new Role { Id = Guid.NewGuid(), Name = "Viewer" };
             db.Roles.Add(role);
-            db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "Year", ActionLevel.View));
+            db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
 
             // Assign role to staff with truly-global structural scope so the request
             // (which sends no X-StructureNode-Id) doesn't get filtered out.
@@ -116,19 +118,26 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
         viewResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // 4. Verify Cache - Should have permissions now.
-        // Cache key format (PR-3): perm_lookup_{userId}_{versionStamp}_{year}_{semester}_{structureNode}.
-        // The version stamp is a random Guid lazily seeded on first lookup; read it
-        // back the same way the service does so the assertion isn't tied to the value.
+        // Cache key format (PR-B3): perm_lookup_{epoch}_{userId}_{versionStamp}_{year}_{semester}_{structureNode}.
+        // Both the epoch and per-user version stamp are random Guids lazily seeded
+        // on first miss; read them back the same way the service does so the
+        // assertion isn't tied to the values.
         var cache = _factory.Services.GetRequiredService<ICacheService>();
+        var epoch = await cache.GetAsync<string>("perm_lookup_epoch");
         var versionStamp = await cache.GetAsync<string>($"perm_lookup_v_{authResult.User.Id}");
+        epoch.Should().NotBeNullOrEmpty("global cache epoch must be seeded on first lookup");
         versionStamp.Should().NotBeNullOrEmpty("the lookup must have populated the version stamp on first miss");
 
-        var cacheKey = $"perm_lookup_{authResult.User.Id}_{versionStamp}_Global_Global_Global";
+        var cacheKey = $"perm_lookup_{epoch}_{authResult.User.Id}_{versionStamp}_Global_Global_Global";
         var cachedPerms = await cache.GetAsync<HashSet<string>>(cacheKey);
 
         cachedPerms.Should().NotBeNull();
-        cachedPerms!.Should().Contain("Academic.Year.View");
-        cachedPerms.Should().NotContain("Academic.Year.Insert");
+        // PermissionIdentity.Create PascalCases module/resource segments (split on
+        // dashes), so the lookup-time canonical form for the lowercase manifest names
+        // is "Academics.AcademicYears.*". The string constants in PermissionNames stay
+        // lowercase; HasPermissionAttribute normalises them via Parse + Create.
+        cachedPerms!.Should().Contain("Academics.AcademicYears.View");
+        cachedPerms.Should().NotContain("Academics.AcademicYears.Insert");
 
         // 5. Action Outside Scope (Insert)
         var createRequest = new { Name = "New Year", StartDate = DateTime.UtcNow, EndDate = DateTime.UtcNow.AddYears(1) };

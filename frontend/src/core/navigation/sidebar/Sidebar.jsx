@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { ChevronRight, LogOut, LayoutDashboard, Building2, Users, Shield } from "lucide-react";
+import { ChevronRight, LogOut, LayoutDashboard, Building2, Users, Shield, BookOpen, Receipt } from "lucide-react";
 
 import { buildMenu } from "../menuAggregator";
 import { usePermission } from "../../auth/usePermission";
@@ -12,6 +12,8 @@ const CATEGORY_ICONS = {
   Administration: Building2,
   "People Management": Users,
   "Security & Access": Shield,
+  Academic: BookOpen,
+  Finance: Receipt,
 };
 
 function Sidebar({ isOpen, isMobile, onClose }) {

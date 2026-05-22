@@ -56,4 +56,11 @@ public class SessionVersionService : ISessionVersionService
 
         return null;
     }
+
+    public Task InvalidateCacheAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // Non-cached implementation: nothing to drop. The decorator overrides
+        // this with the real Redis/memory eviction.
+        return Task.CompletedTask;
+    }
 }

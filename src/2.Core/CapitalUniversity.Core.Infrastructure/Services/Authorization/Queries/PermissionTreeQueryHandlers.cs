@@ -5,8 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs.Management;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
-using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,30 +16,25 @@ namespace CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries;
 public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly IPermissionManifestRegistry _registry;
+    private readonly ILocalizationService _localization;
 
-    // Canonical action expansion. Names + descriptions are presentation concerns; the
-    // PermissionName itself is built from Action via PermissionIdentity.Create so it
-    // round-trips against seeded role permissions and policy checks.
-    private static readonly (ActionLevel Level, string Action, string Description)[] PermissionActions =
-    {
-        (ActionLevel.View,      "View",      "Can view records"),
-        (ActionLevel.Insert,    "Insert",    "Can add new records"),
-        (ActionLevel.EditClose, "EditClose", "Can edit existing records"),
-        (ActionLevel.Open,      "Open",      "Can open/unlock records"),
-        (ActionLevel.Delete,    "Delete",    "Can remove records"),
-    };
-
-    public PermissionTreeQueryHandler(CoreDbContext dbContext)
+    public PermissionTreeQueryHandler(
+        CoreDbContext dbContext,
+        IPermissionManifestRegistry registry,
+        ILocalizationService localization)
     {
         _dbContext = dbContext;
+        _registry = registry;
+        _localization = localization;
     }
 
     public async Task<List<ModulePermissionTreeDto>> Handle(GetPermissionTreeRequest request, CancellationToken cancellationToken)
     {
         var modules = await LoadModulesAsync(cancellationToken);
-        var services = await LoadServicesAsync(cancellationToken);
+        var resources = await LoadResourcesAsync(cancellationToken);
 
-        return BuildTree(modules, services, rolePermissionLevelsByService: null);
+        return BuildTree(modules, resources, grantedActionsByResource: null);
     }
 
     public async Task<List<ModulePermissionTreeDto>?> Handle(GetRolePermissionsRequest request, CancellationToken cancellationToken)
@@ -50,91 +46,60 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         if (!roleExists) return null;
 
         var modules = await LoadModulesAsync(cancellationToken);
-        var services = await LoadServicesAsync(cancellationToken);
+        var resources = await LoadResourcesAsync(cancellationToken);
 
         var rolePermissionRows = await _dbContext.RolePermissions
             .AsNoTracking()
             .Where(rp => rp.RoleId == request.RoleId)
-            .Select(rp => new { rp.ServiceId, rp.Level })
+            .Select(rp => new { rp.ResourceId, rp.Action })
             .ToListAsync(cancellationToken);
 
-        // Highest granted level per service (defensive: a role may have multiple rows
-        // on the same ServiceId in degenerate data — take max to stay safe under the
-        // hierarchy rule).
-        var maxLevelByService = rolePermissionRows
-            .GroupBy(rp => rp.ServiceId)
-            .ToDictionary(g => g.Key, g => g.Max(x => x.Level));
+        var grantedActionsByResource = rolePermissionRows
+            .GroupBy(rp => rp.ResourceId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Action).ToHashSet(StringComparer.Ordinal));
 
-        return BuildTree(modules, services, maxLevelByService);
+        return BuildTree(modules, resources, grantedActionsByResource);
     }
 
     private async Task<List<ModuleRow>> LoadModulesAsync(CancellationToken cancellationToken) =>
         await _dbContext.Modules
             .AsNoTracking()
-            .OrderBy(m => m.DisplayName)
+            .OrderBy(m => m.OrderNumber)
             .Select(m => new ModuleRow(m.Id, m.ModuleKey, m.DisplayName))
             .ToListAsync(cancellationToken);
 
-    private async Task<List<ServiceRow>> LoadServicesAsync(CancellationToken cancellationToken) =>
-        await _dbContext.Services
+    private async Task<List<ResourceRow>> LoadResourcesAsync(CancellationToken cancellationToken) =>
+        await _dbContext.Resources
             .AsNoTracking()
-            .OrderBy(s => s.DisplayName)
-            .Select(s => new ServiceRow(s.Id, s.ModuleId, s.DisplayName))
+            .OrderBy(r => r.OrderNumber)
+            .Select(r => new ResourceRow(r.Id, r.ModuleId, r.Key, r.DisplayName))
             .ToListAsync(cancellationToken);
 
-    private static List<ModulePermissionTreeDto> BuildTree(
+    private List<ModulePermissionTreeDto> BuildTree(
         IReadOnlyList<ModuleRow> modules,
-        IReadOnlyList<ServiceRow> services,
-        IReadOnlyDictionary<Guid, ActionLevel>? rolePermissionLevelsByService)
+        IReadOnlyList<ResourceRow> resources,
+        Dictionary<Guid, HashSet<string>>? grantedActionsByResource)
     {
-        var servicesByModule = services
-            .GroupBy(s => s.ModuleId)
+        var resourcesByModule = resources
+            .GroupBy(r => r.ModuleId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var result = new List<ModulePermissionTreeDto>(modules.Count);
 
         foreach (var m in modules)
         {
-            var resourceDtos = new List<ResourcePermissionTreeDto>();
-
-            if (servicesByModule.TryGetValue(m.Id, out var moduleServices))
-            {
-                foreach (var s in moduleServices)
-                {
-                    var canonicalResource = PermissionIdentity.ResourceFor(m.ModuleKey, s.DisplayName);
-                    var grantedLevel = rolePermissionLevelsByService is not null
-                        && rolePermissionLevelsByService.TryGetValue(s.Id, out var lvl)
-                            ? lvl
-                            : (ActionLevel?)null;
-
-                    var permissions = new List<PermissionActionDto>(PermissionActions.Length);
-                    foreach (var pa in PermissionActions)
-                    {
-                        permissions.Add(new PermissionActionDto
-                        {
-                            PermissionId = $"{s.Id}_{pa.Level}",
-                            PermissionName = PermissionIdentity.Create(m.ModuleKey, canonicalResource, pa.Action),
-                            Action = pa.Action,
-                            Description = pa.Description,
-                            IsAssigned = rolePermissionLevelsByService is null
-                                ? null
-                                : grantedLevel is { } gl && gl >= pa.Level,
-                        });
-                    }
-
-                    resourceDtos.Add(new ResourcePermissionTreeDto
-                    {
-                        ResourceId = s.Id,
-                        ResourceName = s.DisplayName,
-                        Permissions = permissions,
-                    });
-                }
-            }
+            var resourceDtos = resourcesByModule.TryGetValue(m.Id, out var moduleResources)
+                ? moduleResources.Select(r => BuildResourceDto(m.ModuleKey, r, grantedActionsByResource)).ToList()
+                : new List<ResourcePermissionTreeDto>();
 
             result.Add(new ModulePermissionTreeDto
             {
                 ModuleId = m.Id,
-                ModuleName = m.DisplayName,
+                // Module.DisplayName is persisted as the canonical
+                // {"ar":"…","en":"…"} JSON shape (legacy plain-text rows pass
+                // through as the literal). Decoding here is the single read
+                // path for the permission-tree UI.
+                ModuleName = _localization.Get<string>(m.DisplayName) ?? m.DisplayName,
                 Resources = resourceDtos,
             });
         }
@@ -142,6 +107,57 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         return result;
     }
 
+    private ResourcePermissionTreeDto BuildResourceDto(
+        string moduleKey,
+        ResourceRow resource,
+        Dictionary<Guid, HashSet<string>>? grantedActionsByResource)
+    {
+        var resourceDef = _registry.GetResource(moduleKey, resource.Key);
+        var actions = resourceDef?.Actions ?? Array.Empty<ActionDefinition>();
+
+        var grantedActions = grantedActionsByResource is not null
+            && grantedActionsByResource.TryGetValue(resource.Id, out var set)
+                ? set
+                : null;
+
+        var permissions = actions
+            .OrderBy(a => a.DisplayOrder ?? a.OrderNumber)
+            .Select(action => new PermissionActionDto
+            {
+                PermissionId = $"{resource.Id}_{action.Name}",
+                PermissionName = PermissionIdentity.Create(moduleKey, resource.Key, action.Name),
+                Action = action.Name,
+                Description = DescribeAction(action),
+                IsAssigned = grantedActionsByResource is null
+                    ? null
+                    : grantedActions is not null && grantedActions.Contains(action.Name),
+            })
+            .ToList();
+
+        return new ResourcePermissionTreeDto
+        {
+            ResourceId = resource.Id,
+            ResourceName = _localization.Get<string>(resource.DisplayName) ?? resource.DisplayName,
+            Permissions = permissions,
+        };
+    }
+
+    /// <summary>
+    /// Render a human-readable description for an action verb. CRUD verbs
+    /// resolve through dedicated catalog keys; non-CRUD module-declared
+    /// verbs (e.g. <c>Approve</c>, <c>Export</c>) fall back to the generic
+    /// "Can perform this action" key.
+    /// </summary>
+    private string DescribeAction(ActionDefinition action) => action.Name switch
+    {
+        "View"      => _localization.GetString(LocalizedKeys.Permissions.ActionDescription.View),
+        "Insert"    => _localization.GetString(LocalizedKeys.Permissions.ActionDescription.Insert),
+        "EditClose" => _localization.GetString(LocalizedKeys.Permissions.ActionDescription.EditClose),
+        "Open"      => _localization.GetString(LocalizedKeys.Permissions.ActionDescription.Open),
+        "Delete"    => _localization.GetString(LocalizedKeys.Permissions.ActionDescription.Delete),
+        _           => _localization.GetString(LocalizedKeys.Permissions.ActionDescriptionFallback),
+    };
+
     private sealed record ModuleRow(Guid Id, string ModuleKey, string DisplayName);
-    private sealed record ServiceRow(Guid Id, Guid ModuleId, string DisplayName);
+    private sealed record ResourceRow(Guid Id, Guid ModuleId, string Key, string DisplayName);
 }

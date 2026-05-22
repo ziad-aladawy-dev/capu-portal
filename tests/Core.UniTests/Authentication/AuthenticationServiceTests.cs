@@ -52,7 +52,10 @@ public class AuthenticationServiceTests
         mockPermService.Setup(a => a.GetBootstrapContextAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
             .ReturnsAsync(loginResponse);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var mockRefresh = new Mock<IRefreshTokenService>();
+        mockRefresh.Setup(r => r.IssueAsync(It.IsAny<IUserCredential>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefreshTokenIssuance("rt-1", DateTime.UtcNow.AddDays(30)));
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, mockRefresh.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -60,6 +63,7 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
+        Assert.Equal("rt-1", result.RefreshToken);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }
@@ -102,7 +106,10 @@ public class AuthenticationServiceTests
         mockPermService.Setup(a => a.GetBootstrapContextAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
             .ReturnsAsync(loginResponse);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var mockRefresh = new Mock<IRefreshTokenService>();
+        mockRefresh.Setup(r => r.IssueAsync(It.IsAny<IUserCredential>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefreshTokenIssuance("rt-1", DateTime.UtcNow.AddDays(30)));
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, mockRefresh.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -110,6 +117,7 @@ public class AuthenticationServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("token123", result.Token);
+        Assert.Equal("rt-1", result.RefreshToken);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
     }
@@ -120,7 +128,7 @@ public class AuthenticationServiceTests
     [InlineData("user", null)]
     [InlineData("user", "")]
     [InlineData(null, null)]
-    public async Task AuthenticateAsync_InvalidRequest_ReturnsNull(string identifier, string password)
+    public async Task AuthenticateAsync_InvalidRequest_ReturnsNull(string? identifier, string? password)
     {
         // Arrange
         var mockResolver = new Mock<IUserCredentialResolver>();
@@ -128,8 +136,8 @@ public class AuthenticationServiceTests
         var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
-        var request = new LoginRequestDto { Identifier = identifier, Password = password };
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var request = new LoginRequestDto { Identifier = identifier!, Password = password! };
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -150,9 +158,9 @@ public class AuthenticationServiceTests
         var request = new LoginRequestDto { Identifier = "nonexistent", Password = "password" };
 
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IUserCredential)null);
+            .ReturnsAsync((IUserCredential?)null);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -178,7 +186,7 @@ public class AuthenticationServiceTests
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
             .ReturnsAsync(credentialMock.Object);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
@@ -208,7 +216,7 @@ public class AuthenticationServiceTests
         mockHasher.Setup(h => h.VerifyHashedPassword("hashed", "wrongpassword"))
             .Returns(false);
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object);
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);

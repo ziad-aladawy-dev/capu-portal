@@ -25,5 +25,8 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
         // Dispatcher query: WHERE ProcessedAt IS NULL ORDER BY EnqueuedAt — index
         // covers both predicate + sort.
         builder.HasIndex(x => new { x.ProcessedAt, x.EnqueuedAt });
+
+        // Operator query for the poison queue ("show me everything that's stuck").
+        builder.HasIndex(x => new { x.IsPoisoned, x.PoisonedAt });
     }
 }

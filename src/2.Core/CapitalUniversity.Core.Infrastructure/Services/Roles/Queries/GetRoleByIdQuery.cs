@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
@@ -17,10 +18,12 @@ public class RoleResponse
 public class GetRoleByIdQueryHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly ILocalizationService _localization;
 
-    public GetRoleByIdQueryHandler(CoreDbContext dbContext)
+    public GetRoleByIdQueryHandler(CoreDbContext dbContext, ILocalizationService localization)
     {
         _dbContext = dbContext;
+        _localization = localization;
     }
 
     public async Task<RoleResponse?> Handle(GetRoleByIdRequest request, CancellationToken cancellationToken)
@@ -32,7 +35,7 @@ public class GetRoleByIdQueryHandler
         return new RoleResponse
         {
             Id = role.Id,
-            Name = role.Name,
+            Name = _localization.Get<string>(role.Name),
             IsSystemRole = role.IsSystemRole
         };
     }

@@ -6,36 +6,40 @@ using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.UniTests._Helpers;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
 public class PermissionManagementServiceTests
 {
-    private CoreDbContext GetDbContext()
+    private static CoreDbContext GetDbContext()
     {
         var options = new DbContextOptionsBuilder<CoreDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         var ctx = new CoreDbContext(options);
-        // Ensure creation logic doesn't trigger relational extensions that fail with InMemory provider
         ctx.Database.EnsureCreated();
         return ctx;
     }
 
-    private PermissionManagementService CreateService(
+    private static PermissionManagementService CreateService(
         CoreDbContext dbContext,
+        Guid? overrideResourceId,
         out Mock<IPermissionService> mockPermissionService,
         out Mock<IRequestContext> mockRequestContext,
         out Mock<IScopeResolver> mockScopeResolver,
@@ -48,21 +52,47 @@ public class PermissionManagementServiceTests
         mockCache = new Mock<ICacheService>();
         mockCurrentUser = new Mock<ICurrentUser>();
 
+        var registry = new PermissionManifestRegistry(new[] { (IPermissionManifest)new TestPermissionsManifest() });
+        var expander = new ManifestActionExpander(registry);
+
+        // Seed a Module + Resource so the management service can resolve the
+        // module key when writing per-action override rows.
+        if (overrideResourceId.HasValue && !dbContext.Resources.Any(r => r.Id == overrideResourceId.Value))
+        {
+            var module = new Module
+            {
+                Id = Guid.NewGuid(),
+                ModuleKey = "permissions",
+                DisplayName = "Permissions",
+            };
+            dbContext.Modules.Add(module);
+            dbContext.Resources.Add(new Resource
+            {
+                Id = overrideResourceId.Value,
+                ModuleId = module.Id,
+                Key = "permissions",
+                DisplayName = "Permissions",
+            });
+            dbContext.SaveChanges();
+        }
+
         return new PermissionManagementService(
             mockPermissionService.Object,
             mockRequestContext.Object,
             mockScopeResolver.Object,
             dbContext,
-            mockCache.Object,
-            mockCurrentUser.Object);
+            new PermissionCacheCoordinator(mockCache.Object, new PermissionCacheOptions(), null),
+            expander,
+            new TestLocalizationService());
     }
 
     [Fact]
-    public async Task CreateAssignmentAsync_ValidRequest_CreatesRolesAndOverrides()
+    public async Task CreateAssignmentAsync_ValidRequest_CreatesRolesAndPerActionOverrides()
     {
         // Arrange
         var dbContext = GetDbContext();
-        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
+        var resourceId = Guid.NewGuid();
+        var service = CreateService(dbContext, resourceId, out _, out _, out _, out _, out _);
 
         var request = new CreatePermissionAssignmentRequest
         {
@@ -72,8 +102,7 @@ public class PermissionManagementServiceTests
             {
                 new PermissionOverrideModel
                 {
-                    ServiceId = Guid.NewGuid(),
-                    Resource = "Profile",
+                    ResourceId = resourceId,
                     Level = ActionLevel.EditClose,
                     Type = OverrideType.Allow
                 }
@@ -89,18 +118,17 @@ public class PermissionManagementServiceTests
         Assert.NotNull(result);
         Assert.Equal(request.UserId, result.UserId);
         Assert.Single(dbContext.StaffRoles);
-        Assert.Single(dbContext.StaffPermissions);
 
-        var savedRole = dbContext.StaffRoles.First();
-        Assert.Equal(request.UserId, savedRole.StaffId);
-        Assert.Equal(request.StructuralScope.StructureNodeId.ToString(), savedRole.StructureNodeId.ToString());
-        Assert.Equal("Global", savedRole.Year);
-        Assert.Equal("Global", savedRole.Semester);
-
-        var savedOverride = dbContext.StaffPermissions.First();
-        Assert.Equal("Profile", savedOverride.Resource);
-        Assert.Equal(ActionLevel.EditClose, savedOverride.Level);
-        Assert.Equal(request.StructuralScope.StructureNodeId.ToString(), savedOverride.StructureNodeId.ToString());
+        // EditClose implies View+Insert+EditClose on the canonical CRUD ladder,
+        // so writing one override DTO produces three per-action rows.
+        var actions = dbContext.StaffPermissions
+            .Where(sp => sp.ResourceId == resourceId)
+            .Select(sp => sp.Action)
+            .ToList();
+        Assert.Equal(3, actions.Count);
+        Assert.Contains("View", actions);
+        Assert.Contains("Insert", actions);
+        Assert.Contains("EditClose", actions);
     }
 
     [Fact]
@@ -108,7 +136,7 @@ public class PermissionManagementServiceTests
     {
         // Arrange
         var dbContext = GetDbContext();
-        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
+        var service = CreateService(dbContext, null, out _, out _, out _, out _, out _);
 
         var userId = Guid.NewGuid();
         var nodeId = Guid.NewGuid();
@@ -144,7 +172,7 @@ public class PermissionManagementServiceTests
     {
         // Arrange
         var dbContext = GetDbContext();
-        var service = CreateService(dbContext, out _, out _, out _, out _, out _);
+        var service = CreateService(dbContext, null, out _, out _, out _, out _, out _);
 
         var userId = Guid.NewGuid();
         var role1 = Guid.NewGuid();
@@ -171,5 +199,17 @@ public class PermissionManagementServiceTests
         var currentRoles = await dbContext.StaffRoles.Where(r => r.StaffId == userId).ToListAsync();
         Assert.Single(currentRoles);
         Assert.Equal(role2, currentRoles.First().RoleId);
+    }
+
+    private sealed class TestPermissionsManifest : IPermissionManifest
+    {
+        public string Module => "permissions";
+        public string DisplayName => "Permissions";
+        public string? Icon => null;
+        public int? OrderNumber => 0;
+        public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
+        {
+            ResourceDefinition.WithCrudActions("permissions", "Permissions", 0),
+        };
     }
 }

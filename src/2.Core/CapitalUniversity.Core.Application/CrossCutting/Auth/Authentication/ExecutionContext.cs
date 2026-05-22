@@ -8,6 +8,7 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 public class ExecutionContext : IExecutionContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private static readonly AsyncLocal<bool> SystemMode = new();
 
     public ExecutionContext(IHttpContextAccessor httpContextAccessor)
     {
@@ -57,6 +58,8 @@ public class ExecutionContext : IExecutionContext
         }
     }
 
+    public bool IsSystem => SystemMode.Value;
+
     public void SetAuthorizationSource(Guid? sourceId, SourceType sourceType)
     {
         if (_httpContextAccessor.HttpContext != null)
@@ -64,5 +67,10 @@ public class ExecutionContext : IExecutionContext
             _httpContextAccessor.HttpContext.Items["AuthZ_SourceId"] = sourceId;
             _httpContextAccessor.HttpContext.Items["AuthZ_SourceType"] = sourceType;
         }
+    }
+
+    public void SetSystemMode(bool isSystem)
+    {
+        SystemMode.Value = isSystem;
     }
 }

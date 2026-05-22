@@ -34,15 +34,15 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
 
                 services.AddDbContext<CoreDbContext>(options =>
                 {
                     options.UseInMemoryDatabase(dbName);
                 });
 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>());
             });
         });
@@ -59,15 +59,18 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         
         var userId = Guid.NewGuid();
         
-        // Seed Module/Service/Role/Permissions for the test user
-        var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
-        var service = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
+        // Seed the consolidated academic-timeline permission — the single Service +
+        // RolePermission row produces canonical "academics.academic-years.*", which
+        // gates BOTH AcademicYearsController and SemestersController via
+        // PermissionNames.AcademicTimeline.*.
+        var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
+        var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
         var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
-        
+
         db.Modules.Add(module);
-        db.Services.Add(service);
+        db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "Year", ActionLevel.Delete)); // Level 5 covers all
+        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete); // Level Delete covers all
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
         // SessionVersionMiddleware rejects tokens for users that have no row in
@@ -77,8 +80,8 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         db.Staffs.Add(new Staff
         {
             Id = userId,
-            EmployeeCode = "TEST-" + userId.ToString("N").Substring(0, 8),
-            NationalId = "TEST" + userId.ToString("N").Substring(0, 11),
+            EmployeeCode = string.Concat("TEST-", userId.ToString("N").AsSpan(0, 8)),
+            NationalId = string.Concat("TEST", userId.ToString("N").AsSpan(0, 11)),
             PasswordHash = "test-hash",
             Name = "Test Admin",
             Role = "Admin",
@@ -98,7 +101,7 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
-    private async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
+    private static async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(content);
@@ -111,9 +114,9 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         // Arrange
         var request = new CreateAcademicYearRequest
         {
-            Name = "Year 2025-2026",
-            StartDate = DateTime.UtcNow.AddDays(1),
-            EndDate = DateTime.UtcNow.AddDays(300)
+            Name = "Year 2030-2031",
+            StartDate = new DateTime(2030, 9, 1),
+            EndDate = new DateTime(2031, 8, 31)
         };
 
         // Act
@@ -128,12 +131,15 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
     [Fact]
     public async Task Create_OverlappingYear_ReturnsBadRequest()
     {
+        // Fixed dates well outside DataSeeder's 2023–2027 seeded years so
+        // year1 doesn't collide with the seed (a real failure mode this test
+        // used to hit whenever DateTime.UtcNow drifted into the seeded window).
         // Arrange
         var year1 = new CreateAcademicYearRequest
         {
             Name = "Year 1",
-            StartDate = DateTime.UtcNow.AddDays(1),
-            EndDate = DateTime.UtcNow.AddDays(100)
+            StartDate = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2030, 4, 10, 0, 0, 0, DateTimeKind.Utc)
         };
         var resp1 = await _client.PostAsJsonAsync("/api/academic-years", year1);
         resp1.EnsureSuccessStatusCode();
@@ -141,8 +147,8 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         var year2 = new CreateAcademicYearRequest
         {
             Name = "Year 2",
-            StartDate = DateTime.UtcNow.AddDays(50),
-            EndDate = DateTime.UtcNow.AddDays(150)
+            StartDate = new DateTime(2030, 2, 20, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2030, 6, 1, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act

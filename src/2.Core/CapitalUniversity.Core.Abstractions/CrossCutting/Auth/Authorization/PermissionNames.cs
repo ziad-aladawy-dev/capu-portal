@@ -43,32 +43,95 @@ public static class PermissionNames
     }
 
     /// <summary>
-    /// Used by <c>AcademicYearsController</c>. Currently uses the legacy
-    /// <c>Module = Academic</c> / <c>Resource = Year</c> naming — the production
-    /// seeder doesn't grant these (it grants <c>academics.academic-years.*</c> via
-    /// the "View Academic Years" service), so this is effectively dead in prod
-    /// until the controllers migrate to the canonical names. Keeping the constants
-    /// here so the existing tests + bespoke seeded scenarios compile.
+    /// Combined academic-timeline permissions covering BOTH academic years and
+    /// semesters. Modelled as a single resource (<c>academic-years</c>) because
+    /// anyone with academic temporal scope management needs both tables, not one.
+    ///
+    /// <para>
+    /// Module = <c>academics</c>, Resource = <c>academic-years</c>. Bound by
+    /// <see cref="AcademicYearsController"/> and <see cref="SemestersController"/>.
+    /// Declared by <c>AcademicsPermissionManifest</c>; the seeder grants this via
+    /// the "Academic Timeline" resource row.
+    /// </para>
     /// </summary>
-    public static class AcademicYear
+    public static class AcademicTimeline
     {
-        public const string View      = "Academic.Year.View";
-        public const string Insert    = "Academic.Year.Insert";
-        public const string EditClose = "Academic.Year.EditClose";
-        public const string Open      = "Academic.Year.Open";
-        public const string Delete    = "Academic.Year.Delete";
+        public const string View      = "academics.academic-years.View";
+        public const string Insert    = "academics.academic-years.Insert";
+        public const string EditClose = "academics.academic-years.EditClose";
+        public const string Open      = "academics.academic-years.Open";
+        public const string Delete    = "academics.academic-years.Delete";
     }
 
     /// <summary>
-    /// Used by <c>SemestersController</c>. Same legacy-naming note as
-    /// <see cref="AcademicYear"/>.
+    /// Course catalog management (catalog-only, no registration/enrollment
+    /// concerns — those belong to a future Registration module).
+    /// Module = <c>courses</c>, Resource = <c>courses</c>. Bound by
+    /// <see cref="CoursesController"/>; declared by <c>CoursesPermissionManifest</c>.
     /// </summary>
-    public static class AcademicSemester
+    public static class Courses
     {
-        public const string View      = "Academic.Semester.View";
-        public const string Insert    = "Academic.Semester.Insert";
-        public const string EditClose = "Academic.Semester.EditClose";
-        public const string Open      = "Academic.Semester.Open";
-        public const string Delete    = "Academic.Semester.Delete";
+        public const string View      = "courses.courses.View";
+        public const string Insert    = "courses.courses.Insert";
+        public const string EditClose = "courses.courses.EditClose";
+        public const string Open      = "courses.courses.Open";
+        public const string Delete    = "courses.courses.Delete";
+    }
+
+    /// <summary>
+    /// Curriculum composition (which catalog courses belong to which plan at
+    /// which level/semester). Module = <c>courses</c>, Resource = <c>academic-plans</c>.
+    /// Bound by <see cref="AcademicPlansController"/>; declared by
+    /// <c>CoursesPermissionManifest</c>.
+    /// </summary>
+    public static class AcademicPlans
+    {
+        public const string View      = "courses.academic-plans.View";
+        public const string Insert    = "courses.academic-plans.Insert";
+        public const string EditClose = "courses.academic-plans.EditClose";
+        public const string Open      = "courses.academic-plans.Open";
+        public const string Delete    = "courses.academic-plans.Delete";
+    }
+
+    /// <summary>
+    /// Invoice lifecycle (create / read / cancel). Module = <c>payments</c>,
+    /// Resource = <c>invoices</c>. Bound by <see cref="InvoicesController"/>;
+    /// declared by <c>PaymentsPermissionManifest</c>.
+    /// </summary>
+    public static class Invoices
+    {
+        public const string View      = "payments.invoices.View";
+        public const string Insert    = "payments.invoices.Insert";
+        public const string EditClose = "payments.invoices.EditClose";
+        public const string Open      = "payments.invoices.Open";
+        public const string Delete    = "payments.invoices.Delete";
+    }
+
+    /// <summary>
+    /// Payment provider transactions (record / view). Webhook handlers should
+    /// hold this without holding <see cref="Invoices"/>.
+    /// </summary>
+    public static class PaymentTransactions
+    {
+        public const string View      = "payments.transactions.View";
+        public const string Insert    = "payments.transactions.Insert";
+        public const string EditClose = "payments.transactions.EditClose";
+        public const string Open      = "payments.transactions.Open";
+        public const string Delete    = "payments.transactions.Delete";
+    }
+
+    /// <summary>
+    /// Student Information profile records (sparse, JSON-backed sensitive data).
+    /// Module = <c>student-information</c>, Resource = <c>profile-records</c>.
+    /// Bound by <see cref="StudentProfileRecordsController"/>; declared by
+    /// <c>StudentInformationPermissionManifest</c>.
+    /// </summary>
+    public static class StudentProfileRecords
+    {
+        public const string View      = "student-information.profile-records.View";
+        public const string Insert    = "student-information.profile-records.Insert";
+        public const string EditClose = "student-information.profile-records.EditClose";
+        public const string Open      = "student-information.profile-records.Open";
+        public const string Delete    = "student-information.profile-records.Delete";
     }
 }

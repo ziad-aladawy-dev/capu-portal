@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using CapitalUniversity.API.Infrastructure;
@@ -13,6 +14,8 @@ namespace CapitalUniversity.API.Controllers;
 [ApiController]
 [Route("api/roles")]
 [Authorize]
+[SuppressMessage("Major Code Smell", "S6960:Controllers should not have mixed responsibilities",
+    Justification = "Single CRUD aggregate for the Role resource: 5 thin pass-through endpoints (list/get/create/update/delete) over one DDD entity. Splitting into 4 controllers would add ceremony with no separation-of-concerns gain.")]
 public class RolesController : ControllerBase
 {
     private readonly CreateRoleCommandHandler _createRoleHandler;

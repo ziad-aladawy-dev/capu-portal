@@ -1,8 +1,8 @@
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using CapitalUniversity.Core.Application.Semesters;
-
 using CapitalUniversity.Core.Domain.Semsters;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentValidation;
 using Moq;
 using Xunit;
@@ -24,7 +24,7 @@ public class AcademicYearServiceTests
         _uowMock.Setup(x => x.AcademicYears).Returns(_repoMock.Object);
         _createValidatorMock = new Mock<IValidator<CreateAcademicYearRequest>>();
         _updateValidatorMock = new Mock<IValidator<(Guid, UpdateAcademicYearRequest)>>();
-        _service = new AcademicYearService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object);
+        _service = new AcademicYearService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService());
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class AcademicYearServiceTests
             .ReturnsAsync(false);
 
         _repoMock.Setup(x => x.GetCurrentAsync())
-            .ReturnsAsync((AcademicYear)null);
+            .ReturnsAsync((AcademicYear?)null);
 
         // Act
         var id = await _service.CreateAsync(request);

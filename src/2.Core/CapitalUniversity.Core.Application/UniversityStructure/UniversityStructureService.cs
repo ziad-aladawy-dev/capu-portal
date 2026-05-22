@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
@@ -12,20 +13,48 @@ namespace CapitalUniversity.Core.Application.UniversityStructure;
 public class UniversityStructureService : IUniversityStructureService
 {
     private readonly IStructureNodeRepository _repository;
-    private readonly ILocalizationService _localizationService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILocalizationService _localization;
+    private readonly IPermissionCacheInvalidator? _permissionCacheInvalidator;
 
     public UniversityStructureService(
-        IStructureNodeRepository repository, ILocalizationService localizationService)
+        IStructureNodeRepository repository,
+        IUnitOfWork unitOfWork,
+        ILocalizationService localization,
+        IPermissionCacheInvalidator? permissionCacheInvalidator = null)
     {
         _repository = repository;
-        _localizationService = localizationService;
+        _unitOfWork = unitOfWork;
+        _localization = localization;
+        _permissionCacheInvalidator = permissionCacheInvalidator;
     }
+
+    /// <summary>
+    /// Decode <c>StructureNode.Name</c> against the current culture. The
+    /// stored value is the canonical <c>{"ar":"…","en":"…"}</c> JSON; legacy
+    /// plain-text rows pass through unchanged.
+    /// </summary>
+    private string LocalizedName(StructureNode node) =>
+        _localization.Get<string>(node.Name);
 
     public async Task<List<StructureNodeDto>> GetTreeAsync()
     {
         var allNodes = await _repository.GetAllAsync();
 
-        var dtoMap = allNodes.ToDictionary(x => x.Id, MapToDto);
+        var dtoMap = allNodes.ToDictionary(
+            x => x.Id,
+            x => new StructureNodeDto
+            {
+                Id = x.Id,
+                Name = LocalizedName(x),
+                Type = x.Type,
+                ParentId = x.ParentId,
+                Order = x.Order,
+                Path = x.Path,
+                Depth = x.Depth,
+                IsActive = x.IsActive,
+                Children = new List<StructureNodeDto>()
+            });
 
         foreach (var node in dtoMap.Values)
         {
@@ -43,8 +72,37 @@ public class UniversityStructureService : IUniversityStructureService
 
     public async Task<StructureNodeDto?> GetByIdAsync(Guid id)
     {
-        var node = await _repository.GetByIdAsync(id);
-        return node == null ? null : MapToDto(node);
+        var allNodes = await _repository.GetAllAsync();
+
+        var dtoMap = allNodes.ToDictionary(
+            x => x.Id,
+            x => new StructureNodeDto
+            {
+                Id = x.Id,
+                Name = LocalizedName(x),
+                Type = x.Type,
+                ParentId = x.ParentId,
+                Order = x.Order,
+                Path = x.Path,
+                Depth = x.Depth,
+                IsActive = x.IsActive,
+                Children = new List<StructureNodeDto>()
+            });
+
+        foreach (var node in dtoMap.Values)
+        {
+            if (node.ParentId.HasValue &&
+                dtoMap.ContainsKey(node.ParentId.Value))
+            {
+                dtoMap[node.ParentId.Value]
+                    .Children
+                    .Add(node);
+            }
+        }
+
+        return dtoMap.ContainsKey(id)
+            ? dtoMap[id]
+            : null;
     }
 
     //public async Task<StructureNodeDto?> GetByIdAsync(Guid id)
@@ -144,7 +202,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.AddAsync(node);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return node.Id;
     }
@@ -187,7 +245,8 @@ public class UniversityStructureService : IUniversityStructureService
         node.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(node);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
     //    node.Name = request.Name;
     //    node.Type = request.Type;
@@ -208,7 +267,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.RecursiveSoftDeleteAsync(node.Path);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task MoveNodeAsync(
@@ -336,20 +395,53 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository
             .SaveChangesAsync();
+
+        // Path snapshots on StaffRoleAssignment and StaffPermissionOverride
+        // would otherwise drift — silently granting access to the old subtree
+        // and revoking it from the new one. Rewrite every prefix match and
+        // bump the global epoch so cached lookups are orphaned.
+        if (!string.Equals(oldPath, newPath, StringComparison.Ordinal))
+        {
+            await _repository.RepairPermissionPathPrefixAsync(oldPath, newPath);
+            if (_permissionCacheInvalidator is not null)
+            {
+                await _permissionCacheInvalidator.InvalidateAllAsync();
+            }
+        }
     }
 
     public async Task<List<StructureNodeDto>> GetRootsAsync()
     {
         var roots = await _repository.GetRootsAsync();
 
-        return roots.Select(MapToDto).ToList();
+        return roots.Select(x => new StructureNodeDto
+        {
+            Id = x.Id,
+            Name = LocalizedName(x),
+            Type = x.Type,
+            ParentId = x.ParentId,
+            Order = x.Order,
+            Path = x.Path,
+            Depth = x.Depth,
+            IsActive = x.IsActive
+        }).ToList();
     }
 
     public async Task<List<StructureNodeDto>> GetChildrenAsync(Guid parentId)
     {
         var children = await _repository.GetChildrenOnlyAsync(parentId);
 
-        return children.Select(MapToDto).ToList();
+        return children.Select(x => new StructureNodeDto
+        {
+            Id = x.Id,
+            Name = LocalizedName(x),
+            Type = x.Type,
+            ParentId = x.ParentId,
+            Order = x.Order,
+            Path = x.Path,
+            Depth = x.Depth,
+            IsActive = x.IsActive
+        }).ToList();
     }
 
     public async Task<List<BreadcrumbItemDto>> GetBreadcrumbAsync(Guid nodeId)
@@ -376,7 +468,7 @@ public class UniversityStructureService : IUniversityStructureService
             new BreadcrumbItemDto
             {
                 Id = x.Id,
-                Name = _localizationService.GetLocalizedString(x.Name),
+                Name = LocalizedName(x),
                 Type = x.Type
             })
             .ToList();
@@ -392,7 +484,20 @@ public class UniversityStructureService : IUniversityStructureService
         var allNodes = await _repository
             .GetDescendantsTreeAsync(node.Path);
 
-        var dtoMap = allNodes.ToDictionary(x => x.Id, MapToDto);
+        var dtoMap = allNodes.ToDictionary(
+            x => x.Id,
+            x => new StructureNodeDto
+            {
+                Id = x.Id,
+                Name = LocalizedName(x),
+                Type = x.Type,
+                ParentId = x.ParentId,
+                Order = x.Order,
+                Path = x.Path,
+                Depth = x.Depth,
+                IsActive = x.IsActive,
+                Children = new List<StructureNodeDto>()
+            });
 
         foreach (var item in dtoMap.Values)
         {
@@ -432,7 +537,20 @@ public class UniversityStructureService : IUniversityStructureService
                 ancestors.First(x => x.Id == id))
             .ToList();
 
-        return ordered.Select(MapToDto).ToList();
+        return ordered.Select(x =>
+        new StructureNodeDto
+        {
+            Id = x.Id,
+            Name = LocalizedName(x),
+            Type = x.Type,
+            ParentId = x.ParentId,
+            Order = x.Order,
+            Path = x.Path,
+            Depth = x.Depth,
+            IsActive = x.IsActive,
+            Children = new List<StructureNodeDto>()
+        })
+        .ToList();
     }
 
     public async Task ReorderNodeAsync(Guid nodeId, ReorderNodeRequest request)
@@ -465,7 +583,7 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository.UpdateRangeAsync(siblings);
 
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     private StructureNodeDto MapToDto(StructureNode node)

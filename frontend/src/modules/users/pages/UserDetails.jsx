@@ -203,6 +203,17 @@ const UserDetails = () => {
               <button className="bottom-action-btn gold" onClick={() => navigate(userType === 'student' ? `/admin/users/edit-student/${id}` : `/admin/users/edit-staff/${id}`)}>
                 <Edit3 size={18} /> Edit User
               </button>
+              <button className="bottom-action-btn soft-gold" onClick={() => setShowResetConfirm(true)} disabled={user.isDeleted}>
+                <Key size={18} /> Reset Password
+              </button>
+              {userType === 'student' && (
+                <button
+                  className="bottom-action-btn soft-gold"
+                  onClick={() => navigate(`/admin/students/${id}/profile-records`)}
+                >
+                  <BookOpen size={18} /> Profile Records
+                </button>
+              )}
               <span className="action-separator"></span>
               <button className={`bottom-action-btn ${user.isActive ? 'soft-red' : 'soft-green'}`} onClick={handleToggleActive}>
                 {user.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}

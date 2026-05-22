@@ -119,3 +119,15 @@ appsettings.Production.json
 
 *.csproj.lscache
 .claude/
+
+# SonarQube scanner working directory
+.sonar/
+
+# SonarQube report files (if generated locally)
+sonar-report.json
+sonar-report.xml
+stryker-*
+Sonar*
+.sonarqube/
+tools
+coverage*

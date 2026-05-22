@@ -15,7 +15,6 @@ public class AuthorizationResultTests
         result.IsAllowed.Should().BeFalse();
         result.SourceType.Should().Be(SourceType.None);
         result.SourceId.Should().BeNull();
-        result.AppliedDomain.Should().BeNull();
         result.AppliedYear.Should().BeNull();
         result.AppliedSemester.Should().BeNull();
     }
@@ -24,12 +23,11 @@ public class AuthorizationResultTests
     public void AllowFromOverride_ShouldReturnResultWithIsAllowedTrue()
     {
         var id = Guid.NewGuid();
-        var result = AuthorizationResult.AllowFromOverride(id, "D1", "Y1", "S1");
+        var result = AuthorizationResult.AllowFromOverride(id, "Y1", "S1");
 
         result.IsAllowed.Should().BeTrue();
         result.SourceType.Should().Be(SourceType.UserOverride);
         result.SourceId.Should().Be(id);
-        result.AppliedDomain.Should().Be("D1");
         result.AppliedYear.Should().Be("Y1");
         result.AppliedSemester.Should().Be("S1");
     }
@@ -38,12 +36,11 @@ public class AuthorizationResultTests
     public void AllowFromRole_ShouldReturnResultWithIsAllowedTrue()
     {
         var id = Guid.NewGuid();
-        var result = AuthorizationResult.AllowFromRole(id, "D1", "Y1", "S1");
+        var result = AuthorizationResult.AllowFromRole(id, "Y1", "S1");
 
         result.IsAllowed.Should().BeTrue();
         result.SourceType.Should().Be(SourceType.RoleAssignment);
         result.SourceId.Should().Be(id);
-        result.AppliedDomain.Should().Be("D1");
         result.AppliedYear.Should().Be("Y1");
         result.AppliedSemester.Should().Be("S1");
     }

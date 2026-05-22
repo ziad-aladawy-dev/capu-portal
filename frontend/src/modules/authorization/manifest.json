@@ -1,0 +1,26 @@
+{
+  "id": "authorization",
+  "name": "Permission Inspector",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/authorization",
+      "component": "PermissionTreePage",
+      "permission": "permissions.permissions.view",
+      "moduleId": "authorization"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Security & Access",
+      "label": "Permission Tree",
+      "path": "/admin/authorization",
+      "icon": "FolderTree",
+      "permission": "permissions.permissions.view"
+    }
+  ],
+  "permissions": {
+    "resources": ["permissions.permissions.view"]
+  }
+}

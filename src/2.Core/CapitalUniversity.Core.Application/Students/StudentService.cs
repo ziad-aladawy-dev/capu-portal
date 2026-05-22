@@ -17,16 +17,24 @@ public class StudentService : IStudentService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILocalizationService _localizationService;
 
+    private readonly ISessionVersionService _sessionVersions;
+
+    private readonly IUnitOfWork _unitOfWork;
+
+    private readonly ILocalizationService _localization;
+
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
-        IPasswordHasher passwordHasher,
-        ILocalizationService localizationService)
+        ISessionVersionService sessionVersions,
+        IUnitOfWork unitOfWork,
+        ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
-        _passwordHasher = passwordHasher;
-        _localizationService = localizationService;
+        _sessionVersions = sessionVersions;
+        _unitOfWork = unitOfWork;
+        _localization = localization;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -104,7 +112,13 @@ public class StudentService : IStudentService
         };
 
         await _repository.AddAsync(student);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // P2.6 — evict any negative-cached "user not found" entry so the new
+        // student's first authenticated request resolves cleanly.
+        await _sessionVersions.InvalidateCacheAsync(student.Id);
+
         return student.Id;
     }
 
@@ -177,7 +191,8 @@ public class StudentService : IStudentService
         student.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(student);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -188,7 +203,8 @@ public class StudentService : IStudentService
             throw new Exception("Student not found");
 
         await _repository.SoftDeleteAsync(id);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -201,7 +217,8 @@ public class StudentService : IStudentService
         }
 
         await _repository.ToggleStatusAsync(id);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<StudentDto?> GetByIdAsync(Guid id)
@@ -211,14 +228,16 @@ public class StudentService : IStudentService
         if (student == null)
             return null;
 
-        return Map(student);
+        return MapInstance(student);
     }
 
     public async Task<List<StudentDto>> GetAllAsync()
     {
         var students = await _repository.GetAllAsync();
 
-        return students.Select(Map).ToList();
+        return students
+            .Select(MapInstance)
+            .ToList();
     }
 
     public async Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request)
@@ -227,7 +246,9 @@ public class StudentService : IStudentService
 
         return new PagedResult<StudentDto>
         {
-            Items = result.Items.Select(Map).ToList(),
+            Items = result.Items
+                .Select(MapInstance)
+                .ToList(),
 
             Page = result.Page,
 
@@ -258,7 +279,15 @@ public class StudentService : IStudentService
         };
     }
 
-    private StudentDto Map(Student student)
+    /// <summary>
+    /// Project a <see cref="Student"/> onto its DTO, decoding every bilingual
+    /// string against the caller's culture. Personal <c>Name</c> is also
+    /// decoded — operators store the canonical
+    /// <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON for bilingual records
+    /// and plain text for single-language data; the resolver round-trips both.
+    /// </summary>
+    private StudentDto MapInstance(
+            Student student)
     {
         var localizedName = _localizationService.GetLocalizedString(student.Name);
 
@@ -268,20 +297,22 @@ public class StudentService : IStudentService
 
         string programName = string.Empty;
 
-        string levelName = string.Empty;
+        string levelName =
+            _localization.Get<string>(student.StructureNode.Name);
 
         if (levelNode != null)
         {
-            levelName = _localizationService.GetLocalizedString(levelNode.Name);
-            var currentNode = levelNode.Parent;
-            while (currentNode != null)
-            {
-                if (currentNode.Type == StructureNodeType.Program && string.IsNullOrEmpty(programName))
-                    programName = _localizationService.GetLocalizedString(currentNode.Name);
-                else if (currentNode.Type == StructureNodeType.Faculty && string.IsNullOrEmpty(facultyName))
-                    facultyName = _localizationService.GetLocalizedString(currentNode.Name);
-                currentNode = currentNode.Parent;
-            }
+            programName =
+                _localization.Get<string>(programNode.Name);
+        }
+
+        var facultyNode =
+            programNode?.Parent;
+
+        if (facultyNode != null)
+        {
+            facultyName =
+                _localization.Get<string>(facultyNode.Name);
         }
 
         return new StudentDto
@@ -290,7 +321,7 @@ public class StudentService : IStudentService
 
             StudentCode = student.StudentCode,
 
-            Name = student.Name,
+            Name = _localization.Get<string>(student.Name),
 
             LocalizedName = localizedName,
 
@@ -304,7 +335,8 @@ public class StudentService : IStudentService
 
             StructureNodeId = student.StructureNodeId,
 
-            StructureNodeName = levelName,
+            StructureNodeName =
+                _localization.Get<string>(student.StructureNode.Name),
 
             FacultyName = facultyName,
 

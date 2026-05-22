@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using CapitalUniversity.Core.Application.Semesters;
 using CapitalUniversity.Core.Domain.Semsters;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentValidation;
 using Moq;
 using Xunit;
@@ -26,7 +27,7 @@ public class SemesterServiceTests
         _uowMock.Setup(x => x.AcademicYears).Returns(_yearRepoMock.Object);
         _createValidatorMock = new Mock<IValidator<CreateSemesterRequest>>();
         _updateValidatorMock = new Mock<IValidator<(Guid, UpdateSemesterRequest)>>();
-        _service = new SemesterService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object);
+        _service = new SemesterService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService());
     }
 
     [Fact]

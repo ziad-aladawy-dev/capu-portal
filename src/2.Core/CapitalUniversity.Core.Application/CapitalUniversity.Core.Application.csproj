@@ -3,6 +3,11 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- RMG089: nullable source → non-nullable target. The PATCH-style
+		     UpdateEntity mappers set AllowNullPropertyAssignment = false so
+		     null sources don't overwrite the entity; the analyzer still flags
+		     the type mismatch as INFO. Suppress globally for this project. -->
+		<NoWarn>$(NoWarn);RMG089</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" Version="12.1.1" />

@@ -22,8 +22,6 @@ public interface IStructureNodeRepository
 
     Task<bool> ExistsAsync(Guid id);
 
-    Task SaveChangesAsync();
-
     Task<List<StructureNode>> GetDescendantsAsync(string path);
 
     Task UpdateRangeAsync(List<StructureNode> nodes);
@@ -37,4 +35,15 @@ public interface IStructureNodeRepository
     Task<List<StructureNode>> GetAncestorsAsync(List<Guid> ids);
 
     Task<List<StructureNode>> GetSiblingsAsync(Guid? parentId);
+    Task SaveChangesAsync();
+
+    /// <summary>
+    /// Rewrites <c>StructureNodePath</c> snapshots on every
+    /// <c>StaffRoleAssignment</c> and <c>StaffPermissionOverride</c> whose stored
+    /// path starts with <paramref name="oldPath"/>, replacing that prefix with
+    /// <paramref name="newPath"/>. Called after a structure-node move so
+    /// assignment-scoped permissions don't silently grant access to the old
+    /// subtree or lose access to the new one. Returns the row count modified.
+    /// </summary>
+    Task<int> RepairPermissionPathPrefixAsync(string oldPath, string newPath, CancellationToken cancellationToken = default);
 }

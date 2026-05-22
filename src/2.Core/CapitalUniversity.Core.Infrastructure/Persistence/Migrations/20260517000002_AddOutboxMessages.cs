@@ -1,11 +1,15 @@
 using System;
+using CapitalUniversity.Core.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(CoreDbContext))]
+    [Migration("20260517000002_AddOutboxMessages")]
     public partial class AddOutboxMessages : Migration
     {
         /// <inheritdoc />

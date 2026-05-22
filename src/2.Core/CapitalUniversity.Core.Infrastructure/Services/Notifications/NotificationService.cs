@@ -1,8 +1,11 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Outbox;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Notifications;
@@ -11,11 +14,26 @@ public class NotificationService : INotificationService
 {
     private readonly CoreDbContext _context;
     private readonly NotificationMapper _mapper;
+    private readonly ILocalizationService _localization;
+    private readonly IOutbox? _outbox;
 
-    public NotificationService(CoreDbContext context)
+    public NotificationService(CoreDbContext context, ILocalizationService localization, IOutbox? outbox = null)
     {
         _context = context;
         _mapper = new NotificationMapper();
+        _localization = localization;
+        _outbox = outbox;
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Title</c> and <c>Message</c> on a notification
+    /// DTO against the current culture. Plain-text rows pass through.
+    /// </summary>
+    private NotificationDto Localize(NotificationDto dto)
+    {
+        dto.Title = _localization.Get<string>(dto.Title);
+        dto.Message = _localization.Get<string>(dto.Message);
+        return dto;
     }
 
     public async Task CreateNotificationAsync(Guid recipientUserId, string title, string message, NotificationType type)
@@ -34,6 +52,24 @@ public class NotificationService : INotificationService
         await _context.SaveChangesAsync();
     }
 
+    public Task EnqueueNotificationAsync(Guid recipientUserId, string title, string message, NotificationType type, CancellationToken cancellationToken = default)
+    {
+        if (_outbox is null)
+        {
+            throw new InvalidOperationException(
+                "EnqueueNotificationAsync requires IOutbox to be registered. " +
+                "Verify AddCoreServices was called — the outbox + dispatcher are wired there.");
+        }
+
+        var payload = new NotificationOutboxHandler.NotificationPayload(
+            recipientUserId, title, message, type);
+
+        // Outbox stages the row on this DbContext; the caller's SaveChangesAsync
+        // commits the notification atomically with whatever business state they're
+        // saving alongside it.
+        return _outbox.EnqueueAsync(NotificationOutboxHandler.TypeKey, payload, cancellationToken);
+    }
+
 
     public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(Guid userId)
     {
@@ -43,7 +79,7 @@ public class NotificationService : INotificationService
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
 
-        return notifications.Select(n => _mapper.MapToDto(n));
+        return notifications.Select(n => Localize(_mapper.MapToDto(n)));
     }
 
     public async Task<IEnumerable<NotificationDto>> GetUnreadNotificationsAsync(Guid userId)
@@ -54,7 +90,7 @@ public class NotificationService : INotificationService
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
 
-        return notifications.Select(n => _mapper.MapToDto(n));
+        return notifications.Select(n => Localize(_mapper.MapToDto(n)));
     }
 
     public async Task MarkAsReadAsync(Guid notificationId, Guid userId)

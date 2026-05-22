@@ -29,9 +29,8 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Invalidates every token outstanding for the caller by bumping their
-    /// <c>SessionVersion</c>. Subsequent requests carrying the now-stale token
-    /// fail the session-version middleware check.
+    /// Revokes every active refresh token for the caller and bumps SessionVersion,
+    /// invalidating every still-live access token in one move.
     /// </summary>
     [Authorize]
     [HttpPost("logout")]
@@ -43,23 +42,23 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Issues a fresh JWT for the already-authenticated caller. The session-version
-    /// middleware ran on the inbound request, so reaching this method already proves
-    /// the caller's existing token is still valid.
+    /// Trades a valid refresh token for a fresh access + refresh pair. Anonymous on
+    /// purpose — the access token may already have expired by the time the caller
+    /// asks to refresh; the refresh token alone proves identity here.
     /// </summary>
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("refresh")]
-    public async Task<ActionResult<RefreshTokenResponseDto>> Refresh(CancellationToken cancellationToken)
+    public async Task<ActionResult<RefreshTokenResponseDto>> Refresh([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
     {
-        if (!TryGetUserId(out var userId)) return Unauthorized();
-        var response = await _authService.RefreshAsync(userId, cancellationToken);
+        var response = await _authService.RefreshAsync(request, cancellationToken);
         if (response == null) return Unauthorized();
         return Ok(response);
     }
 
     /// <summary>
-    /// Changes the caller's password and bumps SessionVersion so every previously
-    /// issued token (including the one used to make this call) stops working.
+    /// Changes the caller's password, revokes every refresh token, and bumps
+    /// SessionVersion so every previously issued credential (including the one used
+    /// to make this call) stops working.
     /// </summary>
     [Authorize]
     [HttpPost("change-password")]

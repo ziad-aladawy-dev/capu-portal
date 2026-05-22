@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
@@ -11,25 +12,33 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITokenService _tokenService;
     private readonly IPermissionManagementService _permissionManagementService;
     private readonly ISessionVersionService _sessionVersionService;
+    private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IAuthAuditLogger? _audit;
 
     public AuthenticationService(
         IUserCredentialResolver credentialResolver,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
         IPermissionManagementService permissionManagementService,
-        ISessionVersionService sessionVersionService)
+        ISessionVersionService sessionVersionService,
+        IRefreshTokenService refreshTokenService,
+        IAuthAuditLogger? audit = null)
     {
         _credentialResolver = credentialResolver;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _permissionManagementService = permissionManagementService;
         _sessionVersionService = sessionVersionService;
+        _refreshTokenService = refreshTokenService;
+        _audit = audit;
     }
 
     public async Task<LoginResponseDto?> AuthenticateAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
+            if (_audit is not null && request is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier ?? string.Empty, "missing_credentials", cancellationToken);
             return null;
         }
 
@@ -41,25 +50,34 @@ public class AuthenticationService : IAuthenticationService
 
         if (credential == null || !isPasswordValid)
         {
+            if (_audit is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier, "invalid_credentials", cancellationToken);
             return null;
         }
 
         if (credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry)
         {
+            if (_audit is not null)
+                await _audit.LogAuthenticationFailedAsync(request.Identifier, "password_expired", cancellationToken);
             return null;
         }
 
         var token = _tokenService.GenerateToken(credential);
+        var refresh = await _refreshTokenService.IssueAsync(credential, cancellationToken);
 
         var response = await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
         response.Token = token;
+        response.RefreshToken = refresh.RawToken;
 
         return response;
     }
 
     public async Task<bool> LogoutAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        await _refreshTokenService.RevokeAllForUserAsync(userId, "logout", cancellationToken);
         var newVersion = await _sessionVersionService.IncrementVersionAsync(userId, cancellationToken);
+        if (_audit is not null && newVersion.HasValue)
+            await _audit.LogLogoutAsync(userId, cancellationToken);
         return newVersion.HasValue;
     }
 
@@ -79,16 +97,24 @@ public class AuthenticationService : IAuthenticationService
 
         if (!updated) return false;
 
-        // Bump session version so every token issued before this change stops working.
+        // Bump session version + revoke refresh tokens so every credential issued
+        // before this change stops working.
+        await _refreshTokenService.RevokeAllForUserAsync(userId, "password-change", cancellationToken);
         await _sessionVersionService.IncrementVersionAsync(userId, cancellationToken);
         return true;
     }
 
-    public async Task<RefreshTokenResponseDto?> RefreshAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<RefreshTokenResponseDto?> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
     {
-        var credential = await _credentialResolver.ResolveByIdAsync(userId, cancellationToken);
-        if (credential == null) return null;
+        if (request == null || string.IsNullOrWhiteSpace(request.RefreshToken)) return null;
 
-        return new RefreshTokenResponseDto { Token = _tokenService.GenerateToken(credential) };
+        var rotation = await _refreshTokenService.RotateAsync(request.RefreshToken, cancellationToken);
+        if (rotation is null) return null;
+
+        return new RefreshTokenResponseDto
+        {
+            Token = _tokenService.GenerateToken(rotation.Credential),
+            RefreshToken = rotation.RawToken
+        };
     }
 }

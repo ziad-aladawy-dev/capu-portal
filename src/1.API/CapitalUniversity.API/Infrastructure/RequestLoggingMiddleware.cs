@@ -19,13 +19,16 @@ public class RequestLoggingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         var requestPath = context.Request.Path;
         var requestMethod = context.Request.Method;
-        var traceId = context.TraceIdentifier;
+        // CorrelationIdMiddleware seeds the log scope with CorrelationId; fall back
+        // to TraceIdentifier for any request that bypassed it.
+        var correlationId = context.Items[CorrelationIdMiddleware.ItemKey] as string
+            ?? context.TraceIdentifier;
 
-        _logger.LogInformation("HTTP {Method} {Path} started. TraceId: {TraceId}", 
-            requestMethod, requestPath, traceId);
+        _logger.LogInformation("HTTP {Method} {Path} started. CorrelationId: {CorrelationId}",
+            requestMethod, requestPath, correlationId);
 
         try
         {
@@ -35,9 +38,9 @@ public class RequestLoggingMiddleware
         {
             stopwatch.Stop();
             var statusCode = context.Response.StatusCode;
-            
-            _logger.LogInformation("HTTP {Method} {Path} finished with {StatusCode} in {Elapsed}ms. TraceId: {TraceId}", 
-                requestMethod, requestPath, statusCode, stopwatch.ElapsedMilliseconds, traceId);
+
+            _logger.LogInformation("HTTP {Method} {Path} finished with {StatusCode} in {Elapsed}ms. CorrelationId: {CorrelationId}",
+                requestMethod, requestPath, statusCode, stopwatch.ElapsedMilliseconds, correlationId);
         }
     }
 }

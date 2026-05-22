@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Domain.Identity;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -124,7 +125,7 @@ public static class IdentitySeeder
 
                 Role = "Admin",
 
-                JobTitle = "مدير النظام",
+                JobTitle = LocalizedJson.Of("مدير النظام", "System Administrator"),
 
                 StructureNodeId = nutritionLevel4.Id,
 
@@ -153,7 +154,7 @@ public static class IdentitySeeder
 
                 Role = "Doctor",
 
-                JobTitle = "أستاذ جامعي",
+                JobTitle = LocalizedJson.Of("أستاذ جامعي", "University Professor"),
 
                 StructureNodeId = nutritionProgram.Id,
 
@@ -182,7 +183,7 @@ public static class IdentitySeeder
 
                 Role = "Employee",
 
-                JobTitle = "شئون طلاب",
+                JobTitle = LocalizedJson.Of("شؤون طلاب", "Student Affairs"),
 
                 StructureNodeId = nutritionLevel4.Id,
 

@@ -14,45 +14,70 @@ public class PermissionService : IPermissionService
         _dbContext = dbContext;
     }
 
-    public async Task<(IEnumerable<IUserPermissionOverride> Overrides, IEnumerable<IUserRoleAssignment> Assignments, IEnumerable<IRolePermission> RolePermissions)> GetPermissionsAsync(
+    public Task<PermissionLoadResult> GetAllPermissionsAsync(
         Guid userId,
-        string resource,
         AuthorizationScope? scope = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        LoadAsync(userId, resourceKey: null, scope, cancellationToken);
+
+    public Task<PermissionLoadResult> GetResourcePermissionsAsync(
+        Guid userId,
+        string resourceKey,
+        AuthorizationScope? scope = null,
+        CancellationToken cancellationToken = default) =>
+        LoadAsync(userId, resourceKey, scope, cancellationToken);
+
+    private async Task<PermissionLoadResult> LoadAsync(
+        Guid userId,
+        string? resourceKey,
+        AuthorizationScope? scope,
+        CancellationToken cancellationToken)
     {
-        // 1. Get assignments
-        var assignmentsQuery = _dbContext.StaffRoles.Where(sr => sr.StaffId == userId);
-        
-        if (scope != null)
-        {
-            assignmentsQuery = assignmentsQuery.Where(sr => 
-                (sr.Year == ScopeKeys.Global || sr.Year == scope.Year) &&
-                (sr.Semester == ScopeKeys.Global || sr.Semester == scope.Semester) &&
-                (sr.StructureNodePath == null || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sr.StructureNodePath))));
-        }
-
-        var assignments = await assignmentsQuery.ToListAsync(cancellationToken);
-
+        var assignments = await LoadAssignmentsAsync(userId, scope, cancellationToken);
         var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
 
-        // 2. Get role permissions
         var rolePermissions = await _dbContext.RolePermissions
-            .Where(rp => roleIds.Contains(rp.RoleId) && (resource == "*" || rp.Resource == resource))
+            .Where(rp => roleIds.Contains(rp.RoleId) && (resourceKey == null || rp.Resource.Key == resourceKey))
             .ToListAsync(cancellationToken);
 
-        // 3. Get overrides
-        var overridesQuery = _dbContext.StaffPermissions.Where(sp => sp.StaffId == userId && (resource == "*" || sp.Resource == resource));
-        
-        if (scope != null)
+        var overrides = await LoadOverridesAsync(userId, resourceKey, scope, cancellationToken);
+
+        return new PermissionLoadResult(
+            overrides.Cast<IUserPermissionOverride>(),
+            assignments.Cast<IUserRoleAssignment>(),
+            rolePermissions.Cast<IRolePermission>());
+    }
+
+    private Task<List<StaffRoleAssignment>> LoadAssignmentsAsync(Guid userId, AuthorizationScope? scope, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.StaffRoles.Where(sr => sr.StaffId == userId);
+        if (scope is not null)
         {
-            overridesQuery = overridesQuery.Where(sp => 
+            // Predicate stays inline so EF can translate it to SQL — every
+            // axis is either Global (unrestricted) or must match the active
+            // scope; structural path matches when the grant's path is a
+            // prefix of the active path.
+            query = query.Where(sr =>
+                (sr.Year == ScopeKeys.Global || sr.Year == scope.Year) &&
+                (sr.Semester == ScopeKeys.Global || sr.Semester == scope.Semester) &&
+                (sr.StructureNodePath == null
+                    || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sr.StructureNodePath))));
+        }
+        return query.ToListAsync(cancellationToken);
+    }
+
+    private Task<List<StaffPermissionOverride>> LoadOverridesAsync(Guid userId, string? resourceKey, AuthorizationScope? scope, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.StaffPermissions
+            .Where(sp => sp.StaffId == userId && (resourceKey == null || sp.Resource.Key == resourceKey));
+        if (scope is not null)
+        {
+            query = query.Where(sp =>
                 (sp.Year == ScopeKeys.Global || sp.Year == scope.Year) &&
                 (sp.Semester == ScopeKeys.Global || sp.Semester == scope.Semester) &&
-                (sp.StructureNodePath == null || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sp.StructureNodePath))));
+                (sp.StructureNodePath == null
+                    || (scope.StructureNodePath != null && scope.StructureNodePath.StartsWith(sp.StructureNodePath))));
         }
-
-        var overrides = await overridesQuery.ToListAsync(cancellationToken);
-
-        return (overrides.Cast<IUserPermissionOverride>(), assignments.Cast<IUserRoleAssignment>(), rolePermissions.Cast<IRolePermission>());
+        return query.ToListAsync(cancellationToken);
     }
 }

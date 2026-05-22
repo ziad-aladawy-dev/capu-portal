@@ -5,8 +5,8 @@ namespace CapitalUniversity.Core.Domain.Authorization;
 public interface IUserPermissionOverride
 {
     Guid Id { get; }
-    string Resource { get; }
-    ActionLevel Level { get; }
+    Guid ResourceId { get; }
+    string Action { get; }
     Guid? StructureNodeId { get; }
     string? StructureNodePath { get; }
     string Year { get; }
@@ -26,6 +26,6 @@ public interface IUserRoleAssignment
 public interface IRolePermission
 {
     Guid RoleId { get; }
-    string Resource { get; }
-    ActionLevel Level { get; }
+    Guid ResourceId { get; }
+    string Action { get; }
 }

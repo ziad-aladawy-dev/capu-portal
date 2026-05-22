@@ -6,26 +6,12 @@ public static class PermissionIdentity
 {
     public const string Prefix = "Permission:";
 
+    // CA1861: hoisted so Normalize() doesn't re-allocate the separator array on every call.
+    private static readonly char[] NormalizeSeparators = { ' ', '-', '_' };
+
     public static string Create(string module, string resource, string action)
     {
         return $"{Normalize(module)}.{Normalize(resource)}.{Normalize(action)}";
-    }
-
-    /// <summary>
-    /// Canonical resource name for a Service inside a Module. Mirrors the mapping the
-    /// seeders + role-permission lookup use, so generated permission names round-trip
-    /// against seeded/real authorization names.
-    /// </summary>
-    public static string ResourceFor(string moduleKey, string serviceDisplayName)
-    {
-        if (string.Equals(serviceDisplayName, "Manage Roles", StringComparison.Ordinal))
-            return "roles";
-
-        return moduleKey switch
-        {
-            "academics" => "academic-years",
-            _ => moduleKey,
-        };
     }
 
     public static bool TryParse(string identity, out string module, out string resource, out string action)
@@ -57,7 +43,7 @@ public static class PermissionIdentity
         {
             return Create(module, resource, action);
         }
-        
+
         throw new FormatException($"Invalid permission identity format. Expected Module.Resource.Action, got: {identity}");
     }
 
@@ -66,14 +52,14 @@ public static class PermissionIdentity
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var trimmed = value.Trim();
 
-        var parts = trimmed.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
-        var normalizedParts = parts.Select(p => 
+        var parts = trimmed.Split(NormalizeSeparators, StringSplitOptions.RemoveEmptyEntries);
+        var normalizedParts = parts.Select(p =>
         {
             if (p.Length == 0) return string.Empty;
-            
+
             bool hasLower = p.Any(char.IsLower);
             bool hasUpper = p.Any(char.IsUpper);
-            
+
             if (!hasLower || !hasUpper)
             {
                 return char.ToUpperInvariant(p[0]) + p.Substring(1).ToLowerInvariant();
@@ -81,15 +67,6 @@ public static class PermissionIdentity
             return char.ToUpperInvariant(p[0]) + p.Substring(1);
         });
 
-        var result = string.Join("", normalizedParts);
-        
-        // Remove pluralization (s) at the end if it's just 's' not 'ss' (e.g. Years -> Year) to enforce canonical singular naming
-        if (result.EndsWith("s", StringComparison.OrdinalIgnoreCase) && result.Length > 3 && !result.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
-        {
-            // Only strip if it doesn't break known singular words. E.g., 'Settings' or 'News' - but typically resources are singular.
-            // Wait, the instructions say 'Remove... fragile string guessing'. So we do NOT do this here!
-        }
-        
-        return result;
+        return string.Join("", normalizedParts);
     }
 }

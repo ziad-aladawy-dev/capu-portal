@@ -12,5 +12,21 @@ public interface IExecutionContext
     string Operation { get; }
     Guid? AuthorizationSourceId { get; }
     SourceType AuthorizationSourceType { get; }
+
+    /// <summary>
+    /// True when the current logical flow is an internal system process
+    /// (e.g. outbox dispatcher, background worker) rather than a user-driven
+    /// request. Used by authorization guards to allow trusted operations
+    /// when no HttpContext / Principal is present.
+    /// </summary>
+    bool IsSystem { get; }
+
     void SetAuthorizationSource(Guid? sourceId, SourceType sourceType);
+
+    /// <summary>
+    /// Internal-only: sets the <see cref="IsSystem"/> flag for the current
+    /// async flow. Callers should use <c>SystemExecutionScope</c> instead
+    /// of calling this directly.
+    /// </summary>
+    void SetSystemMode(bool isSystem);
 }

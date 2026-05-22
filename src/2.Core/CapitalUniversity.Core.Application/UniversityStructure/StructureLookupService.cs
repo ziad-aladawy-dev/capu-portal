@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
@@ -10,13 +11,14 @@ namespace CapitalUniversity.Core.Application.UniversityStructure;
 public class StructureLookupService : IStructureLookupService
 {
     private readonly IStructureNodeRepository _repository;
-    private readonly ILocalizationService _localizationService;
+    private readonly ILocalizationService _localization;
 
     public StructureLookupService(
-        IStructureNodeRepository repository, ILocalizationService localizationService)
+        IStructureNodeRepository repository,
+        ILocalizationService localization)
     {
         _repository = repository;
-        _localizationService = localizationService;
+        _localization = localization;
     }
 
     public async Task<List<StructureNodeLookupDto>> GetByTypeAsync(StructureNodeType type)
@@ -37,32 +39,27 @@ public class StructureLookupService : IStructureLookupService
     {
         var nodes = await _repository.GetAllAsync();
 
-        return nodes.Where(x => x.ParentId == parentId && x.Type == type).OrderBy(x => x.Order).Select(Map).ToList();
-    }
-
-    public async Task<List<StructureNodeLookupDto>> GetProgramsByFacultyAsync(Guid facultyId)
-    {
-        var facultyNode = await _repository.GetByIdAsync(facultyId);
-        if (facultyNode == null)
-            return new List<StructureNodeLookupDto>();
-
-        var descendants = await _repository.GetDescendantsAsync(facultyNode.Path);
-
-        var programs = descendants
-            .Where(x => x.Type == StructureNodeType.Program)
+        return nodes
+            .Where(x =>
+                x.ParentId == parentId &&
+                x.Type == type)
             .OrderBy(x => x.Order)
+            .Select(Map)
             .ToList();
-
-        return programs.Select(Map).ToList();
     }
 
-    private StructureNodeLookupDto Map(StructureNode node)
+    /// <summary>
+    /// Project a <see cref="Domain.UniversityStructure.StructureNode"/> onto
+    /// the lookup DTO, decoding <c>Name</c> against the current culture.
+    /// </summary>
+    private StructureNodeLookupDto Map(
+        Domain.UniversityStructure.StructureNode node)
     {
         return new StructureNodeLookupDto
         {
             Id = node.Id,
 
-            Name = node.Name,
+            Name = _localization.Get<string>(node.Name),
 
             LocalizedName = _localizationService.GetLocalizedString(node.Name),
 

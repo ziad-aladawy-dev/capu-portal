@@ -83,7 +83,7 @@ public class SessionVersionMiddleware
     private static Task Reject(HttpContext context, string reason)
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        context.Response.Headers["WWW-Authenticate"] = $"Bearer error=\"invalid_token\", error_description=\"{reason}\"";
+        context.Response.Headers.WWWAuthenticate = $"Bearer error=\"invalid_token\", error_description=\"{reason}\"";
         return Task.CompletedTask;
     }
 }

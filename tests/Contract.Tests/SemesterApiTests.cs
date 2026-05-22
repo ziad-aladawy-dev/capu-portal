@@ -34,15 +34,15 @@ public class SemesterApiTests : IClassFixture<WebApplicationFactory<ModulesRegis
             builder.UseEnvironment("Testing");
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll(typeof(DbContextOptions<CoreDbContext>));
-                services.RemoveAll(typeof(CoreDbContext));
+                services.RemoveAll<DbContextOptions<CoreDbContext>>();
+                services.RemoveAll<CoreDbContext>();
 
                 services.AddDbContext<CoreDbContext>(options =>
                 {
                     options.UseInMemoryDatabase(dbName);
                 });
 
-                services.RemoveAll(typeof(CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger));
+                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>());
             });
         });
@@ -58,17 +58,17 @@ private void SetupAuth()
 
     var userId = Guid.NewGuid();
 
-    // Seed Module/Service/Role/Permissions for the test user
-    var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic", ModuleKey = "Academic" };
-    var serviceYear = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Year" };
-    var serviceSem = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Semester" };
+    // Seed the consolidated academic-timeline permission — one Resource + one
+    // RolePermission row covers BOTH academic-years and semesters controllers
+    // via canonical "academics.academic-years.*".
+    var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
+    var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
     var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
 
     db.Modules.Add(module);
-    db.Services.AddRange(serviceYear, serviceSem);
+    db.Resources.Add(resource);
     db.Roles.Add(role);
-    db.RolePermissions.Add(new RolePermission(role.Id, serviceYear.Id, "Year", ActionLevel.Delete));
-    db.RolePermissions.Add(new RolePermission(role.Id, serviceSem.Id, "Semester", ActionLevel.Delete));
+    db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
     db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
     // SessionVersionMiddleware needs a Staff row matching the token's user id.
@@ -76,8 +76,8 @@ private void SetupAuth()
     db.Staffs.Add(new Staff
     {
         Id = userId,
-        EmployeeCode = "TEST-" + userId.ToString("N").Substring(0, 8),
-        NationalId = "TEST" + userId.ToString("N").Substring(0, 11),
+        EmployeeCode = string.Concat("TEST-", userId.ToString("N").AsSpan(0, 8)),
+        NationalId = string.Concat("TEST", userId.ToString("N").AsSpan(0, 11)),
         PasswordHash = "test-hash",
         Name = "Test Admin",
         Role = "Admin",
@@ -97,7 +97,7 @@ private void SetupAuth()
     _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 }
 
-    private async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
+    private static async Task<Guid> GetIdFromResponse(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(content);
@@ -107,12 +107,14 @@ private void SetupAuth()
     [Fact]
     public async Task Create_SemesterOutsideYearRange_ReturnsBadRequest()
     {
+        // Year + semester windows pushed to 2030 so they don't overlap with
+        // the 2023–2027 academic years DataSeeder ships in the test DB.
         // Arrange
         var yearRequest = new CreateAcademicYearRequest
         {
             Name = "Year",
-            StartDate = new DateTime(2025, 9, 1),
-            EndDate = new DateTime(2026, 6, 30)
+            StartDate = new DateTime(2030, 9, 1),
+            EndDate = new DateTime(2031, 6, 30)
         };
         var yearResp = await _client.PostAsJsonAsync("/api/academic-years", yearRequest);
         Guid yearId = await GetIdFromResponse(yearResp);
@@ -122,8 +124,8 @@ private void SetupAuth()
             AcademicYearId = yearId,
             Name = "Invalid Semester",
             Order = 1,
-            StartDate = new DateTime(2025, 8, 1), // Before year start
-            EndDate = new DateTime(2025, 12, 31)
+            StartDate = new DateTime(2030, 8, 1), // Before year start
+            EndDate = new DateTime(2030, 12, 31)
         };
 
         // Act
@@ -156,12 +158,13 @@ private void SetupAuth()
     [Fact]
     public async Task Create_OverlappingSemesters_ReturnsBadRequest()
     {
+        // Use 2031 — outside DataSeeder's 2023–2027 seeded year range.
         // Arrange
         var yearRequest = new CreateAcademicYearRequest
         {
-            Name = "Year 2025",
-            StartDate = new DateTime(2025, 1, 1),
-            EndDate = new DateTime(2025, 12, 31)
+            Name = "Year 2031",
+            StartDate = new DateTime(2031, 1, 1),
+            EndDate = new DateTime(2031, 12, 31)
         };
         var yearResp = await _client.PostAsJsonAsync("/api/academic-years", yearRequest);
         Guid yearId = await GetIdFromResponse(yearResp);
@@ -171,8 +174,8 @@ private void SetupAuth()
             AcademicYearId = yearId,
             Name = "Sem 1",
             Order = 1,
-            StartDate = new DateTime(2025, 1, 1),
-            EndDate = new DateTime(2025, 6, 30)
+            StartDate = new DateTime(2031, 1, 1),
+            EndDate = new DateTime(2031, 6, 30)
         };
         await _client.PostAsJsonAsync("/api/semesters", sem1);
 
@@ -181,8 +184,8 @@ private void SetupAuth()
             AcademicYearId = yearId,
             Name = "Sem 2",
             Order = 2,
-            StartDate = new DateTime(2025, 6, 1), // Overlap
-            EndDate = new DateTime(2025, 12, 31)
+            StartDate = new DateTime(2031, 6, 1), // Overlap
+            EndDate = new DateTime(2031, 12, 31)
         };
 
         // Act
@@ -195,12 +198,13 @@ private void SetupAuth()
     [Fact]
     public async Task Update_SemesterDate_OutsideYearRange_ReturnsBadRequest()
     {
+        // 2032 — clear of the seeded 2023–2027 range.
         // Arrange
         var yearRequest = new CreateAcademicYearRequest
         {
-            Name = "Year 2026",
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            Name = "Year 2032",
+            StartDate = new DateTime(2032, 1, 1),
+            EndDate = new DateTime(2032, 12, 31)
         };
         var yearResp = await _client.PostAsJsonAsync("/api/academic-years", yearRequest);
         Guid yearId = await GetIdFromResponse(yearResp);
@@ -210,15 +214,15 @@ private void SetupAuth()
             AcademicYearId = yearId,
             Name = "Sem 1",
             Order = 1,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 6, 30)
+            StartDate = new DateTime(2032, 1, 1),
+            EndDate = new DateTime(2032, 6, 30)
         };
         var semResp = await _client.PostAsJsonAsync("/api/semesters", semRequest);
         Guid semId = await GetIdFromResponse(semResp);
 
         var updateRequest = new UpdateSemesterRequest
         {
-            EndDate = new DateTime(2027, 1, 1) // Outside year
+            EndDate = new DateTime(2033, 1, 1) // Outside year
         };
 
         // Act

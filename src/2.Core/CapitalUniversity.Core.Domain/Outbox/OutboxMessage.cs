@@ -34,4 +34,27 @@ public class OutboxMessage : BaseEntity
 
     /// <summary>Captured for diagnostics on the most recent failure.</summary>
     public string? LastError { get; set; }
+
+    /// <summary>
+    /// True once <see cref="AttemptCount"/> has hit the configured cap without
+    /// success — the row is parked in the table for inspection rather than
+    /// silently consuming retry slots. <see cref="PoisonedAt"/> stamps when.
+    /// </summary>
+    public bool IsPoisoned { get; set; }
+
+    /// <summary>UTC instant the row was first marked poisoned.</summary>
+    public DateTime? PoisonedAt { get; set; }
+
+    /// <summary>
+    /// Snapshot of the request's correlation id. Restored by the dispatcher
+    /// so logs emitted by handlers are joinable to the originating request.
+    /// </summary>
+    public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Snapshot of the request's culture (e.g. "ar", "en"). Restored by the
+    /// dispatcher so handlers produce localized outputs (logs, notifications)
+    /// consistent with the user's intent.
+    /// </summary>
+    public string? Culture { get; set; }
 }

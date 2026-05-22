@@ -11,4 +11,6 @@ public interface IAcademicYearService
     Task UpdateAsync(Guid id, UpdateAcademicYearRequest request);
     Task DeleteAsync(Guid id);
     Task ResolveCurrentYearAsync();
+    Task CloseAsync(Guid id);
+    Task ReopenAsync(Guid id);
 }

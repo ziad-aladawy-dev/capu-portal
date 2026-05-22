@@ -17,16 +17,24 @@ public class StaffService : IStaffService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ILocalizationService _localizationService;
 
+    private readonly ISessionVersionService _sessionVersions;
+
+    private readonly IUnitOfWork _unitOfWork;
+
+    private readonly ILocalizationService _localization;
+
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
-        IPasswordHasher passwordHasher, 
-        ILocalizationService localizationService)
+        ISessionVersionService sessionVersions,
+        IUnitOfWork unitOfWork,
+        ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
-        _passwordHasher = passwordHasher;
-        _localizationService = localizationService;
+        _sessionVersions = sessionVersions;
+        _unitOfWork = unitOfWork;
+        _localization = localization;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
@@ -103,7 +111,13 @@ public class StaffService : IStaffService
         };
 
         await _repository.AddAsync(staff);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // P2.6 — evict any negative-cached "user not found" entry so the new
+        // staff's first authenticated request resolves cleanly.
+        await _sessionVersions.InvalidateCacheAsync(staff.Id);
+
         return staff.Id;
     }
 
@@ -173,7 +187,8 @@ public class StaffService : IStaffService
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(staff);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -184,7 +199,8 @@ public class StaffService : IStaffService
             throw new Exception("Staff not found");
 
         await _repository.SoftDeleteAsync(id);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -197,7 +213,8 @@ public class StaffService : IStaffService
         }
 
         await _repository.ToggleStatusAsync(id);
-        await _repository.SaveChangesAsync();
+
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<StaffDto?> GetByIdAsync(Guid id)
@@ -207,14 +224,16 @@ public class StaffService : IStaffService
         if (staff == null)
             return null;
 
-        return Map(staff);
+        return MapInstance(staff);
     }
 
     public async Task<List<StaffDto>> GetAllAsync()
     {
         var staff = await _repository.GetAllAsync();
 
-        return staff.Select(Map).ToList();
+        return staff
+            .Select(MapInstance)
+            .ToList();
     }
 
     public async Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request)
@@ -223,7 +242,9 @@ public class StaffService : IStaffService
 
         return new PagedResult<StaffDto>
         {
-            Items = result.Items.Select(Map).ToList(),
+            Items = result.Items
+                .Select(MapInstance)
+                .ToList(),
 
             Page = result.Page,
 
@@ -254,25 +275,19 @@ public class StaffService : IStaffService
         };
     }
 
-    private StaffDto Map(Staff staff)
+    /// <summary>
+    /// Project staff onto its DTO, decoding every bilingual string against
+    /// the current culture. Personal <c>Name</c> is also decoded — operators
+    /// store the canonical <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON
+    /// for bilingual records and plain text for single-language data; the
+    /// resolver round-trips both shapes safely.
+    /// </summary>
+    private StaffDto MapInstance(Staff staff)
     {
-        var localizedName = _localizationService.GetLocalizedString(staff.Name);
-
-        string structureNodeName = staff.StructureNode != null
-            ? _localizationService.GetLocalizedString(staff.StructureNode.Name)
-            : string.Empty;
-
-        string facultyName = string.Empty;
-        var currentNode = staff.StructureNode?.Parent;
-        while (currentNode != null)
-        {
-            if (currentNode.Type == StructureNodeType.Faculty)
-            {
-                facultyName = _localizationService.GetLocalizedString(currentNode.Name);
-                break;
-            }
-            currentNode = currentNode.Parent;
-        }
+        string facultyName =
+            staff.StructureNode.Parent?.Name is { } parentName
+                ? _localization.Get<string>(parentName)
+                : string.Empty;
 
         return new StaffDto
         {
@@ -280,7 +295,7 @@ public class StaffService : IStaffService
 
             EmployeeCode = staff.EmployeeCode,
 
-            Name = staff.Name,
+            Name = _localization.Get<string>(staff.Name),
 
             LocalizedName = localizedName,
 
@@ -294,11 +309,11 @@ public class StaffService : IStaffService
 
             Role = staff.Role,
 
-            JobTitle = staff.JobTitle,
+            JobTitle = _localization.Get<string>(staff.JobTitle),
 
             StructureNodeId = staff.StructureNodeId,
 
-            StructureNodeName = structureNodeName,
+            StructureNodeName = _localization.Get<string>(staff.StructureNode.Name),
 
             FacultyName = facultyName,
 
