@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using CapitalUniversity.Core.Domain.Authorization;
@@ -18,6 +19,26 @@ public class PermissionTreeQueryHandlerTests
         new(new DbContextOptionsBuilder<CoreDbContext>()
             .UseInMemoryDatabase("PermissionTree_" + Guid.NewGuid())
             .Options);
+
+    private static PermissionTreeQueryHandler NewHandler(CoreDbContext db, IPermissionManifestRegistry? registry = null) =>
+        new(db, registry ?? BuildRegistry(), new PassthroughLocalization());
+
+    /// <summary>
+    /// Minimal stand-in for <see cref="ILocalizationService"/>. The handler
+    /// only uses two methods — <c>Get&lt;string&gt;(json)</c> to decode the
+    /// DisplayName JSON (or pass through legacy literals) and
+    /// <c>GetString(key)</c> to render action descriptions — so the fake
+    /// echoes the input. Tests in this file don't assert on description
+    /// content; using a real LocalizationService would just add wiring.
+    /// </summary>
+    private sealed class PassthroughLocalization : ILocalizationService
+    {
+        public T Get<T>(string json) =>
+            json is T direct ? direct : default!;
+        public string Get(Enum value) => value.ToString();
+        public string GetString(string key) => key;
+        public bool ContainsKey(string? key) => false;
+    }
 
     private static IPermissionManifestRegistry BuildRegistry(string moduleKey = "academics", string resourceKey = "academic-years")
     {
@@ -44,7 +65,7 @@ public class PermissionTreeQueryHandlerTests
         using var db = NewDb();
         var (module, resource) = await SeedOneModuleWithResourceAsync(db);
 
-        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
+        var sut = NewHandler(db);
         var tree = await sut.Handle(new GetPermissionTreeRequest(), CancellationToken.None);
 
         var moduleDto = Assert.Single(tree);
@@ -61,7 +82,7 @@ public class PermissionTreeQueryHandlerTests
     public async Task GetRolePermissions_UnknownRole_ReturnsNull()
     {
         using var db = NewDb();
-        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
+        var sut = NewHandler(db);
 
         var result = await sut.Handle(new GetRolePermissionsRequest { RoleId = Guid.NewGuid() }, CancellationToken.None);
 
@@ -79,7 +100,7 @@ public class PermissionTreeQueryHandlerTests
         db.AddCrudGrant(role.Id, resource.Id, ActionLevel.EditClose);
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
+        var sut = NewHandler(db);
         var tree = await sut.Handle(new GetRolePermissionsRequest { RoleId = role.Id }, CancellationToken.None);
 
         Assert.NotNull(tree);
@@ -105,7 +126,7 @@ public class PermissionTreeQueryHandlerTests
             new RolePermission(role.Id, resource.Id, "Delete"));
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
+        var sut = NewHandler(db);
         var tree = await sut.Handle(new GetRolePermissionsRequest { RoleId = role.Id }, CancellationToken.None);
 
         var resourceDto = Assert.Single(Assert.Single(tree!).Resources);
@@ -121,7 +142,7 @@ public class PermissionTreeQueryHandlerTests
         db.Modules.Add(new Module { ModuleKey = "lonely", DisplayName = "Lonely" });
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
+        var sut = NewHandler(db);
         var tree = await sut.Handle(new GetPermissionTreeRequest(), CancellationToken.None);
 
         var moduleDto = Assert.Single(tree);

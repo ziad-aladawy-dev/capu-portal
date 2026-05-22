@@ -15,35 +15,48 @@ public class AcademicYearService : IAcademicYearService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateAcademicYearRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateAcademicYearRequest Request)> _updateValidator;
+    private readonly ILocalizationService _localization;
     private readonly AcademicYearMapper _mapper;
 
     public AcademicYearService(
         IUnitOfWork unitOfWork,
         IValidator<CreateAcademicYearRequest> createValidator,
-        IValidator<(Guid Id, UpdateAcademicYearRequest Request)> updateValidator)
+        IValidator<(Guid Id, UpdateAcademicYearRequest Request)> updateValidator,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _localization = localization;
         _mapper = new AcademicYearMapper();
     }
 
     public async Task<AcademicYearResponse?> GetByIdAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
-        return year == null ? null : _mapper.MapToResponse(year);
+        return year == null ? null : Localize(_mapper.MapToResponse(year));
     }
 
     public async Task<AcademicYearResponse?> GetCurrentAsync()
     {
         var year = await _unitOfWork.AcademicYears.GetCurrentAsync();
-        return year == null ? null : _mapper.MapToResponse(year);
+        return year == null ? null : Localize(_mapper.MapToResponse(year));
     }
 
     public async Task<IEnumerable<AcademicYearResponse>> GetAllAsync()
     {
         var years = await _unitOfWork.AcademicYears.GetAllAsync();
-        return years.Select(_mapper.MapToResponse);
+        return years.Select(y => Localize(_mapper.MapToResponse(y)));
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Name</c> field on an <see cref="AcademicYearResponse"/>
+    /// against the current culture. Plain-text rows pass through unchanged.
+    /// </summary>
+    private AcademicYearResponse Localize(AcademicYearResponse response)
+    {
+        response.Name = _localization.Get<string>(response.Name);
+        return response;
     }
 
     public async Task<Guid> CreateAsync(CreateAcademicYearRequest request)

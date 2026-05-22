@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Modules.Payments.Abstractions.Manifest;
 
@@ -15,13 +16,13 @@ namespace CapitalUniversity.Modules.Payments.Abstractions.Manifest;
 public sealed class PaymentsPermissionManifest : IPermissionManifest
 {
     public string Module => "payments";
-    public string DisplayName => "Payments";
+    public string DisplayName => LocalizedJson.Of("المدفوعات", "Payments");
     public string? Icon => "CreditCard";
     public int? OrderNumber => 8;
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActions("invoices",     "Invoices",             0),
-        ResourceDefinition.WithCrudActions("transactions", "Payment Transactions", 1),
+        ResourceDefinition.WithCrudActions("invoices",     LocalizedJson.Of("الفواتير",            "Invoices"),             0),
+        ResourceDefinition.WithCrudActions("transactions", LocalizedJson.Of("معاملات الدفع",       "Payment Transactions"), 1),
     };
 }

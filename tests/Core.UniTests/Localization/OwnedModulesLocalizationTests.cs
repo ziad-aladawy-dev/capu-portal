@@ -16,6 +16,7 @@ using CapitalUniversity.Modules.Payments.Application;
 using CapitalUniversity.Modules.Payments.Application.Validators;
 using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Payments.Repositories;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
@@ -112,7 +113,7 @@ public class OwnedModulesLocalizationTests
                .ReturnsAsync(new ValidationResult());
         years.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((AcademicYear?)null);
 
-        var sut = new AcademicYearService(uow.Object, createV.Object, updateV.Object);
+        var sut = new AcademicYearService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService());
 
         var ex = await Assert.ThrowsAsync<NotFoundException>(() => sut.DeleteAsync(Guid.NewGuid()));
 
@@ -196,7 +197,7 @@ public class OwnedModulesLocalizationTests
         cache.Setup(c => c.GetAsync<CourseResponse>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync((CourseResponse?)null);
 
-        var sut = new CourseService(uow.Object, courses.Object, createV.Object, updateV.Object, cache.Object);
+        var sut = new CourseService(uow.Object, courses.Object, createV.Object, updateV.Object, cache.Object, new TestLocalizationService());
         return (sut, courses);
     }
 
@@ -214,7 +215,7 @@ public class OwnedModulesLocalizationTests
         updateV.Setup(v => v.ValidateAsync(It.IsAny<(Guid, UpdateSemesterRequest)>(), It.IsAny<CancellationToken>()))
                .ReturnsAsync(new ValidationResult());
 
-        var sut = new SemesterService(uow.Object, createV.Object, updateV.Object);
+        var sut = new SemesterService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService());
         return (sut, years, semesters);
     }
 }

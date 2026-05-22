@@ -26,14 +26,25 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
         public T Get<T>(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
+            {
+                // Preserve the input shape for string callers — an empty
+                // entity field stays empty rather than collapsing to null.
+                // Non-string T (e.g. Dictionary<string, X>) still gets the
+                // default, since "no data" can't reasonably collapse to a
+                // typed value.
+                if (typeof(T) == typeof(string))
+                {
+                    return (T)(object)(json ?? string.Empty);
+                }
                 return default!;
+            }
 
             var lang = NormalizeCulture(_culture.Language);
 
             // Field stores the canonical {"ar":"…","en":"…"} shape. Decode and
             // resolve current culture, then fall back to default culture, then
             // to any non-empty entry, before treating the field as plain text.
-            if (TryDecodeDictionary(json, out var dict))
+            if (TryDecodeDictionary<T>(json, out var dict))
             {
                 if (dict.TryGetValue(lang, out var value) && IsPresent(value))
                     return value;

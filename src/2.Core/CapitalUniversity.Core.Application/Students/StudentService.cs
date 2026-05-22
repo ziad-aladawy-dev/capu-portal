@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
@@ -18,16 +19,20 @@ public class StudentService : IStudentService
 
     private readonly IUnitOfWork _unitOfWork;
 
+    private readonly ILocalizationService _localization;
+
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
         ISessionVersionService sessionVersions,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
+        _localization = localization;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -242,7 +247,7 @@ public class StudentService : IStudentService
         if (student == null)
             return null;
 
-        return Map(student);
+        return MapInstance(student);
     }
 
     public async Task<List<StudentDto>> GetAllAsync()
@@ -251,7 +256,7 @@ public class StudentService : IStudentService
             .GetAllAsync();
 
         return students
-            .Select(Map)
+            .Select(MapInstance)
             .ToList();
     }
 
@@ -264,7 +269,7 @@ public class StudentService : IStudentService
         return new PagedResult<StudentDto>
         {
             Items = result.Items
-                .Select(Map)
+                .Select(MapInstance)
                 .ToList(),
 
             Page = result.Page,
@@ -308,7 +313,14 @@ public class StudentService : IStudentService
         };
     }
 
-    private static StudentDto Map(
+    /// <summary>
+    /// Project a <see cref="Student"/> onto its DTO, decoding every bilingual
+    /// string against the caller's culture. Personal <c>Name</c> is also
+    /// decoded — operators store the canonical
+    /// <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON for bilingual records
+    /// and plain text for single-language data; the resolver round-trips both.
+    /// </summary>
+    private StudentDto MapInstance(
             Student student)
     {
         string facultyName = string.Empty;
@@ -316,7 +328,7 @@ public class StudentService : IStudentService
         string programName = string.Empty;
 
         string levelName =
-            student.StructureNode.Name;
+            _localization.Get<string>(student.StructureNode.Name);
 
         var programNode =
             student.StructureNode.Parent;
@@ -324,7 +336,7 @@ public class StudentService : IStudentService
         if (programNode != null)
         {
             programName =
-                programNode.Name;
+                _localization.Get<string>(programNode.Name);
         }
 
         var facultyNode =
@@ -333,7 +345,7 @@ public class StudentService : IStudentService
         if (facultyNode != null)
         {
             facultyName =
-                facultyNode.Name;
+                _localization.Get<string>(facultyNode.Name);
         }
 
         return new StudentDto
@@ -343,7 +355,7 @@ public class StudentService : IStudentService
             StudentCode =
                 student.StudentCode,
 
-            Name = student.Name,
+            Name = _localization.Get<string>(student.Name),
 
             NationalId =
                 student.NationalId,
@@ -360,7 +372,7 @@ public class StudentService : IStudentService
                 student.StructureNodeId,
 
             StructureNodeName =
-                student.StructureNode.Name,
+                _localization.Get<string>(student.StructureNode.Name),
 
             FacultyName =
                 facultyName,

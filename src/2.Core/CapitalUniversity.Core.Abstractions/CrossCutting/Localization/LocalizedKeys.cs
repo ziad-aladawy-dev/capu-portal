@@ -27,6 +27,29 @@ public static class LocalizedKeys
     public static class Permissions
     {
         public const string Forbidden = "permissions.forbidden";
+
+        /// <summary>
+        /// Human-readable descriptions for the CRUD verbs that appear in the
+        /// permission-tree response. Keyed by the <c>ActionDefinition.Name</c>
+        /// value (case-sensitive). The unknown-action fallback is
+        /// <see cref="ActionDescriptionFallback"/>.
+        /// </summary>
+        public static class ActionDescription
+        {
+            public const string View      = "permissions.action_description.view";
+            public const string Insert    = "permissions.action_description.insert";
+            public const string EditClose = "permissions.action_description.edit_close";
+            public const string Open      = "permissions.action_description.open";
+            public const string Delete    = "permissions.action_description.delete";
+        }
+
+        /// <summary>
+        /// Generic description used when an action name has no dedicated
+        /// catalog entry (e.g. module-defined <c>Approve</c>, <c>Export</c>).
+        /// The placeholder is filled in at the call site, not by the
+        /// catalog — see <c>PermissionTreeQueryHandler.DescribeAction</c>.
+        /// </summary>
+        public const string ActionDescriptionFallback = "permissions.action_description.generic";
     }
 
     public static class Infrastructure
@@ -37,6 +60,8 @@ public static class LocalizedKeys
         public const string ServerError     = "infrastructure.server_error";
         public const string DuplicateKey    = "infrastructure.duplicate_key";
         public const string ForeignKeyViolation = "infrastructure.foreign_key_violation";
+        public const string Required        = "infrastructure.required";
+        public const string Invalid         = "infrastructure.invalid";
     }
 
     public static class Courses

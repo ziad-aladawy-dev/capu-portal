@@ -1,4 +1,6 @@
 using System.Text.Json;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Domain.Outbox;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -8,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace CapitalUniversity.Core.UniTests.Outbox;
@@ -36,6 +39,9 @@ public class OutboxDispatchTests
         services.AddSingleton<IOutboxMessageHandler>(handler);
         services.AddSingleton(Options.Create(new OutboxOptions { MaxAttempts = maxAttempts, BatchSize = 50 }));
 
+        services.AddScoped(_ => new Mock<IExecutionContext>().Object);
+        services.AddScoped(_ => new Mock<ICurrentCultureService>().Object);
+
         var provider = services.BuildServiceProvider();
         var db = provider.CreateScope().ServiceProvider.GetRequiredService<CoreDbContext>();
         db.Database.EnsureCreated();
@@ -52,7 +58,7 @@ public class OutboxDispatchTests
     public async Task EnqueueThenDispatch_InvokesHandler_AndStampsProcessedAt()
     {
         var (provider, db, dispatcher, handler) = Build();
-        var outbox = new OutboxService(db);
+        var outbox = new OutboxService(db, new Mock<IExecutionContext>().Object, new Mock<ICurrentCultureService>().Object);
 
         await outbox.EnqueueAsync(TestMessageType, new { greeting = "hello" });
         await db.SaveChangesAsync();
@@ -71,7 +77,7 @@ public class OutboxDispatchTests
     public async Task SecondDispatchPass_DoesNotRedispatchProcessedRows()
     {
         var (provider, db, dispatcher, handler) = Build();
-        var outbox = new OutboxService(db);
+        var outbox = new OutboxService(db, new Mock<IExecutionContext>().Object, new Mock<ICurrentCultureService>().Object);
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
         await db.SaveChangesAsync();
 
@@ -88,7 +94,7 @@ public class OutboxDispatchTests
     {
         const int maxAttempts = 3;
         var (provider, db, dispatcher, handler) = Build(maxAttempts: maxAttempts, handlerThrows: true);
-        var outbox = new OutboxService(db);
+        var outbox = new OutboxService(db, new Mock<IExecutionContext>().Object, new Mock<ICurrentCultureService>().Object);
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
         await db.SaveChangesAsync();
 
@@ -112,7 +118,7 @@ public class OutboxDispatchTests
     public async Task UnknownMessageType_IsNotRetriedToInfinity()
     {
         var (provider, db, dispatcher, _) = Build();
-        var outbox = new OutboxService(db);
+        var outbox = new OutboxService(db, new Mock<IExecutionContext>().Object, new Mock<ICurrentCultureService>().Object);
         await outbox.EnqueueAsync("not.registered", new { x = 1 });
         await db.SaveChangesAsync();
 
@@ -132,7 +138,7 @@ public class OutboxDispatchTests
         // accompanies. Verify the row is staged (.Local) but absent from the DB until
         // the caller saves.
         var (provider, db, _, _) = Build();
-        var outbox = new OutboxService(db);
+        var outbox = new OutboxService(db, new Mock<IExecutionContext>().Object, new Mock<ICurrentCultureService>().Object);
 
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
 

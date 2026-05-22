@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
@@ -12,17 +13,28 @@ public class UniversityStructureService : IUniversityStructureService
 {
     private readonly IStructureNodeRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILocalizationService _localization;
     private readonly IPermissionCacheInvalidator? _permissionCacheInvalidator;
 
     public UniversityStructureService(
         IStructureNodeRepository repository,
         IUnitOfWork unitOfWork,
+        ILocalizationService localization,
         IPermissionCacheInvalidator? permissionCacheInvalidator = null)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _localization = localization;
         _permissionCacheInvalidator = permissionCacheInvalidator;
     }
+
+    /// <summary>
+    /// Decode <c>StructureNode.Name</c> against the current culture. The
+    /// stored value is the canonical <c>{"ar":"…","en":"…"}</c> JSON; legacy
+    /// plain-text rows pass through unchanged.
+    /// </summary>
+    private string LocalizedName(StructureNode node) =>
+        _localization.Get<string>(node.Name);
 
     public async Task<List<StructureNodeDto>> GetTreeAsync()
     {
@@ -33,7 +45,7 @@ public class UniversityStructureService : IUniversityStructureService
             x => new StructureNodeDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = LocalizedName(x),
                 Type = x.Type,
                 ParentId = x.ParentId,
                 Order = x.Order,
@@ -69,7 +81,7 @@ public class UniversityStructureService : IUniversityStructureService
             x => new StructureNodeDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = LocalizedName(x),
                 Type = x.Type,
                 ParentId = x.ParentId,
                 Order = x.Order,
@@ -334,7 +346,7 @@ public class UniversityStructureService : IUniversityStructureService
         return roots.Select(x => new StructureNodeDto
         {
             Id = x.Id,
-            Name = x.Name,
+            Name = LocalizedName(x),
             Type = x.Type,
             ParentId = x.ParentId,
             Order = x.Order,
@@ -352,7 +364,7 @@ public class UniversityStructureService : IUniversityStructureService
         return children.Select(x => new StructureNodeDto
         {
             Id = x.Id,
-            Name = x.Name,
+            Name = LocalizedName(x),
             Type = x.Type,
             ParentId = x.ParentId,
             Order = x.Order,
@@ -386,7 +398,7 @@ public class UniversityStructureService : IUniversityStructureService
             new BreadcrumbItemDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = LocalizedName(x),
                 Type = x.Type
             })
             .ToList();
@@ -407,7 +419,7 @@ public class UniversityStructureService : IUniversityStructureService
             x => new StructureNodeDto
             {
                 Id = x.Id,
-                Name = x.Name,
+                Name = LocalizedName(x),
                 Type = x.Type,
                 ParentId = x.ParentId,
                 Order = x.Order,
@@ -459,7 +471,7 @@ public class UniversityStructureService : IUniversityStructureService
         new StructureNodeDto
         {
             Id = x.Id,
-            Name = x.Name,
+            Name = LocalizedName(x),
             Type = x.Type,
             ParentId = x.ParentId,
             Order = x.Order,

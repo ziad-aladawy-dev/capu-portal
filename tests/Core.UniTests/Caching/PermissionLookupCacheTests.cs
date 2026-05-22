@@ -14,6 +14,7 @@ using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using CapitalUniversity.Core.UniTests.Authorization;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -85,7 +86,8 @@ public class PermissionLookupCacheTests
                 cache,
                 new PermissionCacheOptions { LookupTtlMinutes = 20, VersionTtlHours = 24 },
                 null),
-            expander);
+            expander,
+            new TestLocalizationService());
 
         return (service, db, cache, probe);
     }

@@ -64,6 +64,7 @@ public class ScheduleSlotService : IScheduleSlotService
     private readonly IOutbox _outbox;
     private readonly IAppLogger _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILocalizationService _localization;
 
     public ScheduleSlotService(
         IUnitOfWork unitOfWork,
@@ -72,7 +73,8 @@ public class ScheduleSlotService : IScheduleSlotService
         ScheduleSlotValidators validators,
         IOutbox outbox,
         IAppLogger logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _slots = slots;
@@ -81,6 +83,7 @@ public class ScheduleSlotService : IScheduleSlotService
         _outbox = outbox;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
+        _localization = localization;
     }
 
     public async Task<ScheduleSlotResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -92,7 +95,7 @@ public class ScheduleSlotService : IScheduleSlotService
         // "doesn't exist" or "out of scope" — both should hide the slot.
         if (await _offerings.GetByIdAsync(slot.CourseOfferingId, cancellationToken) is null) return null;
 
-        return ToResponse(slot);
+        return Localize(MapToResponse(slot));
     }
 
     public async Task<IReadOnlyList<ScheduleSlotResponse>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default)
@@ -103,7 +106,7 @@ public class ScheduleSlotService : IScheduleSlotService
         }
 
         var slots = await _slots.GetForOfferingAsync(courseOfferingId, cancellationToken);
-        return slots.Select(ToResponse).ToList();
+        return slots.Select(s => Localize(MapToResponse(s))).ToList();
     }
 
     public async Task<Guid> CreateAsync(CreateScheduleSlotRequest request, CancellationToken cancellationToken = default)
@@ -228,7 +231,13 @@ public class ScheduleSlotService : IScheduleSlotService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    internal static ScheduleSlotResponse ToResponse(ScheduleSlot s) => new()
+    /// <summary>
+    /// Map the domain entity to its response shape, preserving any bilingual
+    /// JSON strings in their raw form. Localization happens as a separate
+    /// projection step (see <see cref="Localize"/>) so the raw DTO can safely
+    /// be cached without poisoning across cultures.
+    /// </summary>
+    private static ScheduleSlotResponse MapToResponse(ScheduleSlot s) => new()
     {
         Id = s.Id,
         CourseOfferingId = s.CourseOfferingId,
@@ -236,11 +245,21 @@ public class ScheduleSlotService : IScheduleSlotService
         StartTime = s.StartTime,
         EndTime = s.EndTime,
         Kind = s.Kind,
-        Location = s.Location,
-        Notes = s.Notes,
+        Location = s.Location, // Raw JSON string
+        Notes    = s.Notes,    // Raw JSON string
         CreatedAt = s.CreatedAt,
         UpdatedAt = s.UpdatedAt,
     };
+
+    /// <summary>
+    /// Decode bilingual JSON fields against the current culture. 
+    /// </summary>
+    private ScheduleSlotResponse Localize(ScheduleSlotResponse response)
+    {
+        response.Location = response.Location is null ? null : _localization.Get<string>(response.Location);
+        response.Notes    = response.Notes    is null ? null : _localization.Get<string>(response.Notes);
+        return response;
+    }
 
     private static ValidationException ValidationFrom(FluentValidation.Results.ValidationResult result) =>
         new(result.Errors

@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Core.Application.Semesters.Authorization;
 
@@ -11,12 +12,15 @@ namespace CapitalUniversity.Core.Application.Semesters.Authorization;
 public sealed class AcademicsPermissionManifest : IPermissionManifest
 {
     public string Module => "academics";
-    public string DisplayName => "Academic Timeline";
+    public string DisplayName => LocalizedJson.Of("الجدول الأكاديمي", "Academic Timeline");
     public string? Icon => "Calendar";
     public int? OrderNumber => 6;
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActions("academic-years", "Academic Timeline", 0),
+        ResourceDefinition.WithCrudActions(
+            "academic-years",
+            LocalizedJson.Of("الجدول الأكاديمي", "Academic Timeline"),
+            0),
     };
 }

@@ -44,4 +44,17 @@ public class OutboxMessage : BaseEntity
 
     /// <summary>UTC instant the row was first marked poisoned.</summary>
     public DateTime? PoisonedAt { get; set; }
+
+    /// <summary>
+    /// Snapshot of the request's correlation id. Restored by the dispatcher
+    /// so logs emitted by handlers are joinable to the originating request.
+    /// </summary>
+    public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Snapshot of the request's culture (e.g. "ar", "en"). Restored by the
+    /// dispatcher so handlers produce localized outputs (logs, notifications)
+    /// consistent with the user's intent.
+    /// </summary>
+    public string? Culture { get; set; }
 }

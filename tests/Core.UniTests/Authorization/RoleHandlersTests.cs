@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
+using CapitalUniversity.Core.UniTests._Helpers;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -132,7 +133,7 @@ public class RoleHandlersTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var handler = new GetRoleByIdQueryHandler(db);
+        var handler = new GetRoleByIdQueryHandler(db, new TestLocalizationService());
         var response = await handler.Handle(new GetRoleByIdRequest { Id = role.Id }, CancellationToken.None);
 
         Assert.NotNull(response);
@@ -145,7 +146,7 @@ public class RoleHandlersTests
     public async Task GetRoleById_Missing_ReturnsNull()
     {
         using var db = NewDb();
-        var handler = new GetRoleByIdQueryHandler(db);
+        var handler = new GetRoleByIdQueryHandler(db, new TestLocalizationService());
 
         var response = await handler.Handle(new GetRoleByIdRequest { Id = Guid.NewGuid() }, CancellationToken.None);
 
@@ -162,7 +163,7 @@ public class RoleHandlersTests
             new Role { Name = "Bravo",   IsSystemRole = false });
         await db.SaveChangesAsync();
 
-        var handler = new GetRolesQueryHandler(db);
+        var handler = new GetRolesQueryHandler(db, new TestLocalizationService());
 
         var firstPage = await handler.Handle(new GetRolesRequest { Page = 1, PageSize = 2 }, CancellationToken.None);
         Assert.Equal(3, firstPage.TotalCount);
@@ -178,7 +179,7 @@ public class RoleHandlersTests
     public async Task GetRoles_EmptyDb_ReturnsZeroAndEmptyList()
     {
         using var db = NewDb();
-        var handler = new GetRolesQueryHandler(db);
+        var handler = new GetRolesQueryHandler(db, new TestLocalizationService());
 
         var response = await handler.Handle(new GetRolesRequest(), CancellationToken.None);
 

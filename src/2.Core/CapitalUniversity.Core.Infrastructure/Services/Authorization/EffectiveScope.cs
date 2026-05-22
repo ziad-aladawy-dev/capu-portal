@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,20 +15,27 @@ public sealed class EffectiveScope : IEffectiveScope
 {
     private readonly IUserScope _userScope;
     private readonly CoreDbContext _dbContext;
+    private readonly IExecutionContext _executionContext;
 
     // Per-request memoisation. The DbContext is scoped, so these caches live
     // exactly as long as the request that owns them.
     private readonly Dictionary<Guid, string?> _studentPaths = new();
     private readonly Dictionary<Guid, string?> _nodePaths = new();
 
-    public EffectiveScope(IUserScope userScope, CoreDbContext dbContext)
+    public EffectiveScope(IUserScope userScope, CoreDbContext dbContext, IExecutionContext executionContext)
     {
         _userScope = userScope;
         _dbContext = dbContext;
+        _executionContext = executionContext;
     }
 
     public async Task<bool> CanAccessStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
+        // P1.1 — Runtime Hardening §3: background / system tasks (outbox, 
+        // dispatcher) bypass per-user scope checks. If the system flag is set,
+        // we permit the operation without requiring an authenticated user.
+        if (_executionContext.IsSystem) return true;
+
         await _userScope.EnsureLoadedAsync(cancellationToken);
 
         // Unauthenticated → no rows are visible. The middleware should have
@@ -50,6 +58,8 @@ public sealed class EffectiveScope : IEffectiveScope
 
     public async Task<bool> CanAccessStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
     {
+        if (_executionContext.IsSystem) return true;
+
         await _userScope.EnsureLoadedAsync(cancellationToken);
         if (_userScope.UserId == Guid.Empty) return false;
 

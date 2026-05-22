@@ -4,6 +4,7 @@ using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
+using CapitalUniversity.Core.UniTests._Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -26,8 +27,8 @@ public class RolesControllerEndpointTests
             new CreateRoleCommandHandler(db),
             new UpdateRoleCommandHandler(db),
             new DeleteRoleCommandHandler(db, invalidator),
-            new GetRoleByIdQueryHandler(db),
-            new GetRolesQueryHandler(db));
+            new GetRoleByIdQueryHandler(db, new TestLocalizationService()),
+            new GetRolesQueryHandler(db, new TestLocalizationService()));
         return (ctrl, db);
     }
 

@@ -29,19 +29,22 @@ public class InvoiceService : IInvoiceService
     private readonly IValidator<CreateInvoiceRequest> _createValidator;
     private readonly ICacheService _cache;
     private readonly IEffectiveScope _scope;
+    private readonly ILocalizationService _localization;
 
     public InvoiceService(
         IUnitOfWork unitOfWork,
         IInvoiceRepository invoices,
         IValidator<CreateInvoiceRequest> createValidator,
         ICacheService cache,
-        IEffectiveScope scope)
+        IEffectiveScope scope,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _invoices = invoices;
         _createValidator = createValidator;
         _cache = cache;
         _scope = scope;
+        _localization = localization;
     }
 
     public async Task<InvoiceResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -52,10 +55,15 @@ public class InvoiceService : IInvoiceService
         // cached projection carries StudentId, so we check before returning.
         // Out-of-scope returns null so the controller maps to 404 (no
         // existence leak).
+        // Cache stores the culture-neutral payload (line Descriptions still in
+        // {"ar":"…","en":"…"} JSON shape). Decoding runs on return so two
+        // requests with different Accept-Language share the same cache entry.
         var cached = await _cache.GetAsync<InvoiceResponse>(key, cancellationToken);
         if (cached is not null)
         {
-            return await _scope.CanAccessStudentAsync(cached.StudentId, cancellationToken) ? cached : null;
+            return await _scope.CanAccessStudentAsync(cached.StudentId, cancellationToken)
+                ? Localize(cached)
+                : null;
         }
 
         var invoice = await _invoices.GetByIdAsync(id, includeItems: true, cancellationToken: cancellationToken);
@@ -65,7 +73,24 @@ public class InvoiceService : IInvoiceService
 
         var dto = ToResponse(invoice);
         await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
-        return dto;
+        return Localize(dto);
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Description</c> on each invoice item against
+    /// the current culture. The invoice's identity fields (StudentId, Status,
+    /// Currency, Amount) are not localizable.
+    /// </summary>
+    private InvoiceResponse Localize(InvoiceResponse response)
+    {
+        if (response.Items is { Count: > 0 })
+        {
+            foreach (var item in response.Items)
+            {
+                item.Description = _localization.Get<string>(item.Description);
+            }
+        }
+        return response;
     }
 
     public async Task<IReadOnlyList<InvoiceResponse>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default)

@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Application.StaffManagement;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -33,7 +34,7 @@ public class StaffServiceTests
         staff.Setup(r => r.EmployeeCodeExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
         staff.Setup(r => r.GetLastEmployeeCodeAsync()).ReturnsAsync((string?)null);
         structure.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new StructureNode { Id = Guid.NewGuid(), Name = "Faculty of CS" });
-        var sut = new StaffService(staff.Object, structure.Object, sessions.Object, uow.Object);
+        var sut = new StaffService(staff.Object, structure.Object, sessions.Object, uow.Object, new TestLocalizationService());
         return (sut, staff, structure, sessions, uow);
     }
 

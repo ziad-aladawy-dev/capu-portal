@@ -5,7 +5,8 @@ namespace CapitalUniversity.Core.Abstractions.Courses.DTOs;
 /// <summary>
 /// Read model for <c>Course</c>. Returned by <see cref="ICourseService"/> and
 /// safely cacheable per the platform caching strategy
-/// (<c>course:object:{id}</c> shared payload).
+/// (<c>course:object:{id}</c> shared payload). <c>Title</c> is decoded
+/// against the caller's culture by the service before returning.
 /// </summary>
 public class CourseResponse
 {
@@ -17,6 +18,12 @@ public class CourseResponse
     public bool IsActive { get; set; }
 }
 
+/// <summary>
+/// Write model. <c>Title</c> is a free-text string — operators send either
+/// the canonical <c>{"ar":"…","en":"…"}</c> JSON for a bilingual catalog
+/// entry or a plain literal for single-language data. The resolver round-trips
+/// both shapes safely on read.
+/// </summary>
 public class CreateCourseRequest
 {
     public string Code { get; set; } = string.Empty;

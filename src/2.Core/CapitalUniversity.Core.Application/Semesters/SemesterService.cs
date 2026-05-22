@@ -17,35 +17,51 @@ public class SemesterService : ISemesterService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateSemesterRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateSemesterRequest Request)> _updateValidator;
+    private readonly ILocalizationService _localization;
     private readonly SemesterMapper _mapper;
 
     public SemesterService(
         IUnitOfWork unitOfWork,
         IValidator<CreateSemesterRequest> createValidator,
-        IValidator<(Guid Id, UpdateSemesterRequest Request)> updateValidator)
+        IValidator<(Guid Id, UpdateSemesterRequest Request)> updateValidator,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
+        _localization = localization;
         _mapper = new SemesterMapper();
     }
 
     public async Task<SemesterResponse?> GetByIdAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
-        return semester == null ? null : _mapper.MapToResponse(semester);
+        return semester == null ? null : Localize(_mapper.MapToResponse(semester));
     }
 
     public async Task<SemesterResponse?> GetCurrentAsync()
     {
         var semester = await _unitOfWork.Semesters.GetCurrentAsync();
-        return semester == null ? null : _mapper.MapToResponse(semester);
+        return semester == null ? null : Localize(_mapper.MapToResponse(semester));
     }
 
     public async Task<IEnumerable<SemesterResponse>> GetByAcademicYearIdAsync(Guid academicYearId)
     {
         var semesters = await _unitOfWork.Semesters.GetByAcademicYearIdAsync(academicYearId);
-        return semesters.Select(_mapper.MapToResponse);
+        return semesters.Select(s => Localize(_mapper.MapToResponse(s)));
+    }
+
+    /// <summary>
+    /// Decode the bilingual fields on a <see cref="SemesterResponse"/> against
+    /// the current culture. <c>Semester.Name</c> is the only user-visible
+    /// string on the response that may carry the canonical
+    /// <c>{"ar":"…","en":"…"}</c> JSON shape; legacy plain text passes
+    /// through untouched.
+    /// </summary>
+    private SemesterResponse Localize(SemesterResponse response)
+    {
+        response.Name = _localization.Get<string>(response.Name);
+        return response;
     }
 
     public async Task<Guid> CreateAsync(CreateSemesterRequest request)

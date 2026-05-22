@@ -1,4 +1,7 @@
 using System.Text.Json;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using Moq;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Domain.Common;
@@ -6,6 +9,7 @@ using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Notifications;
 using CapitalUniversity.Core.Infrastructure.Services.Outbox;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -24,12 +28,20 @@ public class NotificationOutboxRoutingTests
             .UseInMemoryDatabase("NotifOutbox_" + Guid.NewGuid())
             .Options);
 
+    private static OutboxService BuildOutbox(CoreDbContext db)
+    {
+        return new OutboxService(
+            db, 
+            new Mock<IExecutionContext>().Object, 
+            new Mock<ICurrentCultureService>().Object);
+    }
+
     [Fact]
     public async Task EnqueueNotificationAsync_StagesOutboxRow_WithoutFlushing()
     {
         using var db = NewDb();
-        var outbox = new OutboxService(db);
-        var sut = new NotificationService(db, outbox);
+        var outbox = BuildOutbox(db);
+        var sut = new NotificationService(db, new TestLocalizationService(), outbox);
 
         var recipient = Guid.NewGuid();
         await sut.EnqueueNotificationAsync(recipient, "Hi", "msg", NotificationType.Info);
@@ -59,7 +71,7 @@ public class NotificationOutboxRoutingTests
     public async Task EnqueueNotificationAsync_NoOutboxRegistered_Throws()
     {
         using var db = NewDb();
-        var sut = new NotificationService(db, outbox: null);
+        var sut = new NotificationService(db, new TestLocalizationService(), outbox: null);
 
         await FluentActions.Awaiting(() =>
                 sut.EnqueueNotificationAsync(Guid.NewGuid(), "t", "m", NotificationType.Info))
@@ -71,8 +83,8 @@ public class NotificationOutboxRoutingTests
     public async Task EnqueueThenDispatch_EndToEnd_PersistsNotification()
     {
         using var db = NewDb();
-        var outbox = new OutboxService(db);
-        var notifications = new NotificationService(db, outbox);
+        var outbox = BuildOutbox(db);
+        var notifications = new NotificationService(db, new TestLocalizationService(), outbox);
 
         var recipient = Guid.NewGuid();
         await notifications.EnqueueNotificationAsync(recipient, "Welcome", "Glad you're here", NotificationType.Info);

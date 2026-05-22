@@ -92,7 +92,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     FROM   Services s
                 ),
                 redirects AS (
-                    SELECT loser.Id  AS LoserId,
+                    SELECT loser.WinnerId  AS LoserId,
                            winner.WinnerId
                     FROM   winners loser
                     JOIN   winners winner
@@ -116,7 +116,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     FROM   Services s
                 ),
                 redirects AS (
-                    SELECT loser.Id  AS LoserId,
+                    SELECT loser.WinnerId  AS LoserId,
                            winner.WinnerId
                     FROM   winners loser
                     JOIN   winners winner

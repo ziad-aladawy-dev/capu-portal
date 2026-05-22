@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
@@ -35,6 +36,7 @@ public class PermissionManagementService : IPermissionManagementService
     private readonly IPermissionCacheInvalidator? _cacheInvalidator;
     private readonly IAuthAuditLogger? _audit;
     private readonly ManifestActionExpander _expander;
+    private readonly ILocalizationService _localization;
 
     public PermissionManagementService(
         IPermissionService permissionService,
@@ -43,6 +45,7 @@ public class PermissionManagementService : IPermissionManagementService
         CoreDbContext dbContext,
         PermissionCacheCoordinator cacheCoordinator,
         ManifestActionExpander expander,
+        ILocalizationService localization,
         IAuthAuditLogger? audit = null)
     {
         _permissionService = permissionService;
@@ -54,6 +57,7 @@ public class PermissionManagementService : IPermissionManagementService
         _cacheInvalidator = cacheCoordinator.Invalidator;
         _audit = audit;
         _expander = expander;
+        _localization = localization;
     }
 
     public async Task<LoginResponseDto> GetBootstrapContextAsync(IUserCredential user, CancellationToken cancellationToken = default)
@@ -63,7 +67,11 @@ public class PermissionManagementService : IPermissionManagementService
             User = new UserInfoDto
             {
                 Id = user.Id,
-                Name = user.Name,
+                // Personal name is bilingual JSON when authored that way; the
+                // login bootstrap renders it in the caller's culture so the
+                // header chip and welcome screen pick up "Menna Magdy"
+                // / "منة مجدى" without a follow-up GET.
+                Name = _localization.Get<string>(user.Name),
                 Email = user.Email
             }
         };
@@ -115,14 +123,14 @@ public class PermissionManagementService : IPermissionManagementService
             switch (currentNode.Type)
             {
                 case StructureNodeType.University:
-                    attributes.Uni = currentNode.Name;
+                    attributes.Uni = _localization.Get<string>(currentNode.Name);
                     break;
                 case StructureNodeType.Faculty:
-                    attributes.Faculty = currentNode.Name;
+                    attributes.Faculty = _localization.Get<string>(currentNode.Name);
                     break;
                 case StructureNodeType.Department:
                 case StructureNodeType.Program:
-                    attributes.Department = currentNode.Name;
+                    attributes.Department = _localization.Get<string>(currentNode.Name);
                     break;
             }
 

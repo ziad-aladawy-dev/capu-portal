@@ -30,6 +30,7 @@ public class CourseService : ICourseService
     private readonly IValidator<CreateCourseRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateCourseRequest Request)> _updateValidator;
     private readonly ICacheService _cache;
+    private readonly ILocalizationService _localization;
     private readonly CourseMapper _mapper = new();
 
     public CourseService(
@@ -37,33 +38,49 @@ public class CourseService : ICourseService
         ICourseRepository courses,
         IValidator<CreateCourseRequest> createValidator,
         IValidator<(Guid Id, UpdateCourseRequest Request)> updateValidator,
-        ICacheService cache)
+        ICacheService cache,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _courses = courses;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _cache = cache;
+        _localization = localization;
     }
 
     public async Task<CourseResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var key = CacheKey(id);
+        // Cache stores the culture-neutral response (Title still in
+        // {"ar":"…","en":"…"} shape). Decoding happens on the way out so two
+        // requests with different Accept-Language hit the same cache entry
+        // without poisoning each other.
         var cached = await _cache.GetAsync<CourseResponse>(key, cancellationToken);
-        if (cached is not null) return cached;
+        if (cached is not null) return Localize(cached);
 
         var course = await _courses.GetByIdAsync(id, cancellationToken);
         if (course is null) return null;
 
         var response = _mapper.MapToResponse(course);
         await _cache.SetAsync(key, response, CacheTtl, cancellationToken);
-        return response;
+        return Localize(response);
     }
 
     public async Task<IReadOnlyList<CourseResponse>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
         var courses = await _courses.GetActiveAsync(cancellationToken);
-        return courses.Select(_mapper.MapToResponse).ToList();
+        return courses.Select(c => Localize(_mapper.MapToResponse(c))).ToList();
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Title</c> field on a <see cref="CourseResponse"/>
+    /// against the current culture. Plain-text rows pass through unchanged.
+    /// </summary>
+    private CourseResponse Localize(CourseResponse response)
+    {
+        response.Title = _localization.Get<string>(response.Title);
+        return response;
     }
 
     public async Task<Guid> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default)
@@ -100,10 +117,7 @@ public class CourseService : ICourseService
         var course = await _courses.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
-        if (!string.IsNullOrWhiteSpace(request.Title)) course.Title = request.Title;
-        if (request.CreditHours.HasValue) course.CreditHours = request.CreditHours.Value;
-        if (request.Category.HasValue) course.Category = request.Category.Value;
-        if (request.IsActive.HasValue) course.IsActive = request.IsActive.Value;
+        _mapper.ApplyUpdate(request, course);
         course.UpdatedAt = DateTime.UtcNow;
 
         _courses.Update(course);

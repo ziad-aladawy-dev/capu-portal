@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Core.Application.Courses.Authorization;
 
@@ -12,13 +13,13 @@ namespace CapitalUniversity.Core.Application.Courses.Authorization;
 public sealed class CoursesPermissionManifest : IPermissionManifest
 {
     public string Module => "courses";
-    public string DisplayName => "Course Catalog";
+    public string DisplayName => LocalizedJson.Of("كتالوج المقررات", "Course Catalog");
     public string? Icon => "BookOpen";
     public int? OrderNumber => 7;
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActions("courses",        "Course Catalog",  0),
-        ResourceDefinition.WithCrudActions("academic-plans", "Academic Plans",  1),
+        ResourceDefinition.WithCrudActions("courses",        LocalizedJson.Of("كتالوج المقررات", "Course Catalog"), 0),
+        ResourceDefinition.WithCrudActions("academic-plans", LocalizedJson.Of("الخطط الدراسية",  "Academic Plans"), 1),
     };
 }

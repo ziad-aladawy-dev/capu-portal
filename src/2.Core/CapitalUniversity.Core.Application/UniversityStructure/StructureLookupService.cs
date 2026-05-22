@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
@@ -8,11 +9,14 @@ namespace CapitalUniversity.Core.Application.UniversityStructure;
 public class StructureLookupService : IStructureLookupService
 {
     private readonly IStructureNodeRepository _repository;
+    private readonly ILocalizationService _localization;
 
     public StructureLookupService(
-        IStructureNodeRepository repository)
+        IStructureNodeRepository repository,
+        ILocalizationService localization)
     {
         _repository = repository;
+        _localization = localization;
     }
 
     public async Task<List<StructureNodeLookupDto>>
@@ -56,14 +60,18 @@ public class StructureLookupService : IStructureLookupService
             .ToList();
     }
 
-    private static StructureNodeLookupDto Map(
+    /// <summary>
+    /// Project a <see cref="Domain.UniversityStructure.StructureNode"/> onto
+    /// the lookup DTO, decoding <c>Name</c> against the current culture.
+    /// </summary>
+    private StructureNodeLookupDto Map(
         Domain.UniversityStructure.StructureNode node)
     {
         return new StructureNodeLookupDto
         {
             Id = node.Id,
 
-            Name = node.Name,
+            Name = _localization.Get<string>(node.Name),
 
             Type = (int)node.Type,
 

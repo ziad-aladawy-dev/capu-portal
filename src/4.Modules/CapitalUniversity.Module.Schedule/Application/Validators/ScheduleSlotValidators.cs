@@ -8,7 +8,7 @@ public class CreateScheduleSlotValidator : AbstractValidator<CreateScheduleSlotR
 {
     public CreateScheduleSlotValidator()
     {
-        RuleFor(x => x.CourseOfferingId).NotEmpty();
+        RuleFor(x => x.CourseOfferingId).NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required);
 
         RuleFor(x => x)
             .Must(r => r.EndTime > r.StartTime)
@@ -16,11 +16,11 @@ public class CreateScheduleSlotValidator : AbstractValidator<CreateScheduleSlotR
             .WithMessage(LocalizedKeys.Schedule.EndBeforeStart);
 
         RuleFor(x => x.Location!)
-            .MaximumLength(128)
+            .MaximumLength(128).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.Location));
 
         RuleFor(x => x.Notes!)
-            .MaximumLength(512)
+            .MaximumLength(512).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.Notes));
     }
 }
@@ -41,11 +41,11 @@ public class UpdateScheduleSlotValidator : AbstractValidator<UpdateScheduleSlotR
             .WithMessage(LocalizedKeys.Schedule.EndBeforeStart);
 
         RuleFor(x => x.Location!)
-            .MaximumLength(128)
+            .MaximumLength(128).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.Location));
 
         RuleFor(x => x.Notes!)
-            .MaximumLength(512)
+            .MaximumLength(512).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.Notes));
     }
 }

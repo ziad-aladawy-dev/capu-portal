@@ -12,6 +12,7 @@ using CapitalUniversity.Modules.Schedule.Application.Outbox;
 using CapitalUniversity.Modules.Schedule.Application.Validators;
 using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Repositories;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Moq;
@@ -59,7 +60,8 @@ public class ScheduleSlotServiceTests
                 new UpdateScheduleSlotValidator()),
             outbox.Object,
             logger.Object,
-            httpContextAccessor);
+            httpContextAccessor,
+            new TestLocalizationService());
         return (sut, slotRepo, offerings, uow, outbox, logger);
     }
 

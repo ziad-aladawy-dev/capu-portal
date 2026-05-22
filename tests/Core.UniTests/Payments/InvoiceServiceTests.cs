@@ -7,6 +7,7 @@ using CapitalUniversity.Modules.Payments.Application.Validators;
 using CapitalUniversity.Modules.Payments.Repositories;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.Payments.Domain;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -43,7 +44,7 @@ public class InvoiceServiceTests
         // their pre-P1.1 semantics.
         scope.Setup(s => s.CanAccessStudentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        return (new InvoiceService(uow.Object, repo.Object, new CreateInvoiceValidator(), cache, scope.Object), repo, uow, cache);
+        return (new InvoiceService(uow.Object, repo.Object, new CreateInvoiceValidator(), cache, scope.Object, new TestLocalizationService()), repo, uow, cache);
     }
 
     private static CreateInvoiceRequest ValidRequest(Guid? studentId = null) => new()

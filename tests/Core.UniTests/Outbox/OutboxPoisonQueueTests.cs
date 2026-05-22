@@ -1,3 +1,6 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using Moq;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Domain.Outbox;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -50,6 +53,9 @@ public class OutboxPoisonQueueTests
         services.AddDbContext<CoreDbContext>(o => o.UseInMemoryDatabase(dbName), ServiceLifetime.Scoped);
         services.AddSingleton<IOutboxMessageHandler>(new ThrowingHandler(TestMessageType, handlerThrows));
         services.AddSingleton(Options.Create(new OutboxOptions { MaxAttempts = maxAttempts, BatchSize = 50 }));
+        
+        services.AddScoped(_ => new Mock<IExecutionContext>().Object);
+        services.AddScoped(_ => new Mock<ICurrentCultureService>().Object);
 
         var provider = services.BuildServiceProvider();
         // Hold the scope (and so the scoped DbContext) alive for the whole test —
@@ -67,12 +73,20 @@ public class OutboxPoisonQueueTests
         return new Harness(provider, scope, db, dispatcher);
     }
 
+    private static OutboxService BuildOutbox(CoreDbContext db)
+    {
+        return new OutboxService(
+            db, 
+            new Mock<IExecutionContext>().Object, 
+            new Mock<ICurrentCultureService>().Object);
+    }
+
     [Fact]
     public async Task HandlerThrows_AtMaxAttempts_RowIsMarkedPoisoned()
     {
         const int maxAttempts = 3;
         using var h = Build(maxAttempts, handlerThrows: true);
-        var outbox = new OutboxService(h.Db);
+        var outbox = BuildOutbox(h.Db);
 
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
         await h.Db.SaveChangesAsync();
@@ -90,7 +104,7 @@ public class OutboxPoisonQueueTests
     {
         const int maxAttempts = 2;
         using var h = Build(maxAttempts, handlerThrows: true);
-        var outbox = new OutboxService(h.Db);
+        var outbox = BuildOutbox(h.Db);
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
         await h.Db.SaveChangesAsync();
 
@@ -110,7 +124,7 @@ public class OutboxPoisonQueueTests
     {
         const int maxAttempts = 1;
         using var h = Build(maxAttempts, handlerThrows: true);
-        var outbox = new OutboxService(h.Db);
+        var outbox = BuildOutbox(h.Db);
 
         await outbox.EnqueueAsync(TestMessageType, new { id = 1 });
         await h.Db.SaveChangesAsync();
@@ -138,7 +152,7 @@ public class OutboxPoisonQueueTests
     {
         const int maxAttempts = 1;
         using var h = Build(maxAttempts, handlerThrows: true);
-        var outbox = new OutboxService(h.Db);
+        var outbox = BuildOutbox(h.Db);
         await outbox.EnqueueAsync(TestMessageType, new { x = 1 });
         await h.Db.SaveChangesAsync();
         await h.Dispatcher.ProcessBatchAsync(CancellationToken.None);

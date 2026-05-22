@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 /// <summary>
@@ -29,5 +31,38 @@ public static class LocalizedJson
         // Only the two characters JSON requires inside a quoted string — the
         // Arabic / English copy in manifests never carries control bytes.
         return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
+    /// <summary>
+    /// Pull a specific culture entry out of a stored
+    /// <c>{"ar":"…","en":"…"}</c> blob without going through
+    /// <see cref="ILocalizationService"/>. Used by seeders / migrators that
+    /// need to look up rows by their English (or Arabic) form regardless of
+    /// the caller's current culture. Returns the original input when it
+    /// doesn't parse as a culture dictionary or doesn't contain the
+    /// requested key — preserves backwards compatibility with plain-text
+    /// legacy values.
+    /// </summary>
+    public static string Extract(string jsonOrLiteral, string culture)
+    {
+        if (string.IsNullOrWhiteSpace(jsonOrLiteral)) return jsonOrLiteral;
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonOrLiteral);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object) return jsonOrLiteral;
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                if (string.Equals(prop.Name, culture, StringComparison.OrdinalIgnoreCase)
+                    && prop.Value.ValueKind == JsonValueKind.String)
+                {
+                    return prop.Value.GetString() ?? jsonOrLiteral;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Plain-text legacy value — fall through.
+        }
+        return jsonOrLiteral;
     }
 }

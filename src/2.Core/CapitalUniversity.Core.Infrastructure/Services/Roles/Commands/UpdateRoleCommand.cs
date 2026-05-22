@@ -1,11 +1,12 @@
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Roles.Mappings;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 
 public class UpdateRoleRequest
 {
     public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 }
 
 public class UpdateRoleResponse
@@ -17,6 +18,7 @@ public class UpdateRoleResponse
 public class UpdateRoleCommandHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly RoleMapper _mapper = new();
 
     public UpdateRoleCommandHandler(CoreDbContext dbContext)
     {
@@ -29,7 +31,8 @@ public class UpdateRoleCommandHandler
 
         if (role == null) return null;
 
-        role.Name = request.Name;
+        _mapper.ApplyUpdate(request, role);
+        role.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

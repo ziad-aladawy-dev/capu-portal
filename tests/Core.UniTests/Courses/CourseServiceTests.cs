@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Application.Courses;
 using CapitalUniversity.Core.Application.Courses.Validators;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Courses;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -54,7 +55,8 @@ public class CourseServiceTests
             repo.Object,
             new CreateCourseValidator(),
             new UpdateCourseValidator(),
-            cache);
+            cache,
+            new TestLocalizationService());
         return (service, repo, uow, cache);
     }
 

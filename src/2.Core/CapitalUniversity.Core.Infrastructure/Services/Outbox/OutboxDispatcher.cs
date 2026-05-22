@@ -1,5 +1,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
+using CapitalUniversity.Core.Application.CrossCutting.Localization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,15 +69,20 @@ public class OutboxDispatcher : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+        var executionContext = scope.ServiceProvider.GetRequiredService<IExecutionContext>();
 
         // Runtime Hardening Plan §3.2 + §3.4 — outbox runs without an HttpContext.
-        // Stamp the system actor on every log line emitted from inside the batch
-        // so audit / correlation searches do not see anonymous mutations.
+        // 1. Activate SystemExecutionScope so authorization guards (EffectiveScope)
+        //    permit the trusted background operations.
+        // 2. Stamp the system actor on every log line emitted from inside the batch
+        //    so audit / correlation searches do not see anonymous mutations.
+        using var systemScope = new SystemExecutionScope(executionContext);
         using var actorScope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["Actor"] = SystemActors.OutboxDispatcher,
             ["ActorKind"] = SystemActors.DisplayName,
         });
+
         var handlers = scope.ServiceProvider.GetServices<IOutboxMessageHandler>()
             .GroupBy(h => h.MessageType)
             .ToDictionary(g => g.Key, g => g.First());
@@ -105,6 +112,16 @@ public class OutboxDispatcher : BackgroundService
                 }
                 continue;
             }
+
+            // Restore the originating request's context for the duration of this
+            // specific message's execution.
+            using var cultureScope = !string.IsNullOrEmpty(row.Culture)
+                ? new SystemCultureScope(row.Culture)
+                : null;
+
+            using var correlationScope = !string.IsNullOrEmpty(row.CorrelationId)
+                ? _logger.BeginScope(new Dictionary<string, object> { [CorrelationContext.ItemKey] = row.CorrelationId })
+                : null;
 
             try
             {

@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
 
@@ -11,13 +12,13 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Man
 public sealed class AuthorizationPermissionManifest : IPermissionManifest
 {
     public string Module => "permissions";
-    public string DisplayName => "Permissions & Roles";
+    public string DisplayName => LocalizedJson.Of("الصلاحيات والأدوار", "Permissions & Roles");
     public string? Icon => "Shield";
     public int? OrderNumber => 4;
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActions("permissions", "Permissions", 0),
-        ResourceDefinition.WithCrudActions("roles",       "Roles",       1),
+        ResourceDefinition.WithCrudActions("permissions", LocalizedJson.Of("الصلاحيات", "Permissions"), 0),
+        ResourceDefinition.WithCrudActions("roles",       LocalizedJson.Of("الأدوار",   "Roles"),       1),
     };
 }

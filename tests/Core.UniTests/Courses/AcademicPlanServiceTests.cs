@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Application.Courses;
 using CapitalUniversity.Core.Application.Courses.Validators;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Courses;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -62,7 +63,8 @@ public class AcademicPlanServiceTests
             courses.Object,
             validators,
             cache,
-            scope.Object);
+            scope.Object,
+            new TestLocalizationService());
         return (service, plans, courses, uow, cache);
     }
 

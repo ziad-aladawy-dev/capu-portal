@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Modules.Schedule.Abstractions.Manifest;
 
@@ -12,12 +13,15 @@ namespace CapitalUniversity.Modules.Schedule.Abstractions.Manifest;
 public sealed class SchedulePermissionManifest : IPermissionManifest
 {
     public string Module => "schedule";
-    public string DisplayName => "Schedule";
+    public string DisplayName => LocalizedJson.Of("الجدول الدراسي", "Schedule");
     public string? Icon => "Clock";
     public int? OrderNumber => 11;
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActionsNoOpen("schedule-slots", "Schedule Slots", 0),
+        ResourceDefinition.WithCrudActionsNoOpen(
+            "schedule-slots",
+            LocalizedJson.Of("مواعيد الجدول", "Schedule Slots"),
+            0),
     };
 }

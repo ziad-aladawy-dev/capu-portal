@@ -55,15 +55,23 @@ public enum NotificationType
 }
 public enum ActionLevel
 {
+    [Localized("غير محدد", "None")]
     None = 0,
+    [Localized("عرض", "View")]
     View = 1,
+    [Localized("إضافة", "Insert")]
     Insert = 2,
+    [Localized("تعديل/إغلاق", "Edit / Close")]
     EditClose = 3,
+    [Localized("إعادة فتح", "Reopen")]
     Open = 4,
+    [Localized("حذف", "Delete")]
     Delete = 5
 }
 public enum OverrideType
 {
+    [Localized("سماح", "Allow")]
     Allow = 1,
+    [Localized("منع", "Deny")]
     Deny = 2
 }

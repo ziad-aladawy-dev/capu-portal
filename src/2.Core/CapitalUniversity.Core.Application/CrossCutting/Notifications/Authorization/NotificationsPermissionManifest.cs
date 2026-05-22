@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization;
 
@@ -9,7 +10,7 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Notifications.Authoriz
 public sealed class NotificationsPermissionManifest : IPermissionManifest
 {
     public string Module => "notifications";
-    public string DisplayName => "Notifications";
+    public string DisplayName => LocalizedJson.Of("الإشعارات", "Notifications");
     public string? Icon => "Bell";
     public int? OrderNumber => 7;
 
@@ -18,7 +19,7 @@ public sealed class NotificationsPermissionManifest : IPermissionManifest
         new ResourceDefinition
         {
             Key = "notifications",
-            DisplayName = "Notifications",
+            DisplayName = LocalizedJson.Of("الإشعارات", "Notifications"),
             OrderNumber = 0,
             Actions = new[]
             {

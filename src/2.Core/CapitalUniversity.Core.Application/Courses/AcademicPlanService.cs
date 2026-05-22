@@ -44,6 +44,7 @@ public class AcademicPlanService : IAcademicPlanService
     private readonly AcademicPlanValidators _validators;
     private readonly ICacheService _cache;
     private readonly IEffectiveScope _scope;
+    private readonly ILocalizationService _localization;
     private readonly AcademicPlanMapper _mapper = new();
 
     public AcademicPlanService(
@@ -52,7 +53,8 @@ public class AcademicPlanService : IAcademicPlanService
         ICourseRepository courses,
         AcademicPlanValidators validators,
         ICacheService cache,
-        IEffectiveScope scope)
+        IEffectiveScope scope,
+        ILocalizationService localization)
     {
         _unitOfWork = unitOfWork;
         _plans = plans;
@@ -60,6 +62,7 @@ public class AcademicPlanService : IAcademicPlanService
         _validators = validators;
         _cache = cache;
         _scope = scope;
+        _localization = localization;
     }
 
     public async Task<AcademicPlanResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -69,10 +72,15 @@ public class AcademicPlanService : IAcademicPlanService
         // P1.1 — cached projection carries StructureNodeId; scope is enforced
         // against the owning node on every read so the shared cache cannot
         // leak across callers. Out-of-scope returns null → controller 404.
+        // The cache stores the culture-neutral payload (Name still in the
+        // {"ar":"…","en":"…"} JSON shape). Decoding runs on the way out so two
+        // requests under different cultures share one cache entry.
         var cached = await _cache.GetAsync<AcademicPlanResponse>(key, cancellationToken);
         if (cached is not null)
         {
-            return await _scope.CanAccessStructureNodeAsync(cached.StructureNodeId, cancellationToken) ? cached : null;
+            return await _scope.CanAccessStructureNodeAsync(cached.StructureNodeId, cancellationToken)
+                ? Localize(cached)
+                : null;
         }
 
         var plan = await _plans.GetByIdAsync(id, includeCourses: true, cancellationToken);
@@ -82,7 +90,7 @@ public class AcademicPlanService : IAcademicPlanService
 
         var dto = ToResponse(plan);
         await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
-        return dto;
+        return Localize(dto);
     }
 
     public async Task<IReadOnlyList<AcademicPlanResponse>> GetForStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
@@ -95,7 +103,7 @@ public class AcademicPlanService : IAcademicPlanService
         var plans = await _plans.GetForStructureNodeAsync(structureNodeId, cancellationToken);
         // List read does not eager-load PlanCourses (avoids N+1) — list responses
         // are slim summaries; callers re-fetch by ID for full composition.
-        return plans.Select(p => new AcademicPlanResponse
+        return plans.Select(p => Localize(new AcademicPlanResponse
         {
             Id = p.Id,
             StructureNodeId = p.StructureNodeId,
@@ -103,7 +111,18 @@ public class AcademicPlanService : IAcademicPlanService
             EffectiveFrom = p.EffectiveFrom,
             EffectiveTo = p.EffectiveTo,
             IsActive = p.IsActive,
-        }).ToList();
+        })).ToList();
+    }
+
+    /// <summary>
+    /// Decode the bilingual <c>Name</c> on an <see cref="AcademicPlanResponse"/>.
+    /// Plan composition (PlanCourses) carries only ids + numeric fields, so
+    /// no decoding is needed there.
+    /// </summary>
+    private AcademicPlanResponse Localize(AcademicPlanResponse response)
+    {
+        response.Name = _localization.Get<string>(response.Name);
+        return response;
     }
 
     public async Task<Guid> CreateAsync(CreateAcademicPlanRequest request, CancellationToken cancellationToken = default)
@@ -136,10 +155,7 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(AcademicPlanNotFound);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Name)) plan.Name = request.Name;
-        if (request.EffectiveFrom.HasValue) plan.EffectiveFrom = request.EffectiveFrom.Value;
-        if (request.EffectiveTo.HasValue) plan.EffectiveTo = request.EffectiveTo;
-        if (request.IsActive.HasValue) plan.IsActive = request.IsActive.Value;
+        _mapper.ApplyUpdate(request, plan);
 
         if (plan.EffectiveTo.HasValue && plan.EffectiveTo <= plan.EffectiveFrom)
         {

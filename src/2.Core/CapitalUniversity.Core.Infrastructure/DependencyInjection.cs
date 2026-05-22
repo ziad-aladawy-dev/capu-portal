@@ -125,6 +125,10 @@ public static class DependencyInjection
         services.AddScoped<IValidator<(Guid Id, UpdateAcademicYearRequest Request)>, UpdateAcademicYearValidator>();
         services.AddScoped<IValidator<CreateSemesterRequest>, CreateSemesterValidator>();
         services.AddScoped<IValidator<(Guid Id, UpdateSemesterRequest Request)>, UpdateSemesterValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.CreateRoleRequest>,
+                           CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.CreateRoleValidator>();
+        services.AddScoped<IValidator<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleRequest>,
+                           CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.UpdateRoleValidator>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateCourseRequest>,
                            CapitalUniversity.Core.Application.Courses.Validators.CreateCourseValidator>();
         services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateCourseRequest Request)>,

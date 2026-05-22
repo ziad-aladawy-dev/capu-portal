@@ -8,6 +8,7 @@ using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
@@ -39,23 +40,25 @@ public static class DataSeeder
     /// </summary>
     private static async Task SeedCoursesAsync(CoreDbContext context)
     {
-        var seedCourses = new (string Code, string Title, int CreditHours, CourseCategory Category)[]
+        // Titles are bilingual — stored as {"ar":"…","en":"…"} JSON. Reads
+        // flow through ILocalizationService.Get<string>(json) in CourseService.
+        var seedCourses = new (string Code, string TitleAr, string TitleEn, int CreditHours, CourseCategory Category)[]
         {
-            ("CS101", "Introduction to Computer Science", 3, CourseCategory.ProgramRequirement),
-            ("CS201", "Data Structures and Algorithms",  3, CourseCategory.ProgramRequirement),
-            ("MATH101", "Calculus I",                    4, CourseCategory.FacultyRequirement),
-            ("UNIV100", "Critical Thinking",             2, CourseCategory.UniversityRequirement),
-            ("GEN150", "Public Speaking",                2, CourseCategory.GeneralEducation),
-            ("CS-ELC1", "Topics in AI",                  3, CourseCategory.Elective),
+            ("CS101",   "مقدمة في علوم الحاسب",          "Introduction to Computer Science", 3, CourseCategory.ProgramRequirement),
+            ("CS201",   "هياكل البيانات والخوارزميات",   "Data Structures and Algorithms",   3, CourseCategory.ProgramRequirement),
+            ("MATH101", "تفاضل وتكامل (1)",              "Calculus I",                       4, CourseCategory.FacultyRequirement),
+            ("UNIV100", "التفكير الناقد",                 "Critical Thinking",                2, CourseCategory.UniversityRequirement),
+            ("GEN150",  "مهارات الإلقاء",                 "Public Speaking",                  2, CourseCategory.GeneralEducation),
+            ("CS-ELC1", "موضوعات في الذكاء الاصطناعي",   "Topics in AI",                     3, CourseCategory.Elective),
         };
 
-        foreach (var (code, title, hours, category) in seedCourses)
+        foreach (var (code, titleAr, titleEn, hours, category) in seedCourses)
         {
             context.Courses.Add(new Course
             {
                 Id = Guid.NewGuid(),
                 Code = code,
-                Title = title,
+                Title = LocalizedJson.Of(titleAr, titleEn),
                 CreditHours = hours,
                 Category = category,
                 IsActive = true,
@@ -160,6 +163,13 @@ public static class DataSeeder
 
     private static async Task SeedAcademicTimelineAsync(CoreDbContext context)
     {
+        // Year names are numeric-ish ("2023-2024") and read the same in both
+        // cultures; semester names ("Fall" / "خريف", etc.) get the bilingual
+        // JSON shape so the picker shows the operator's language.
+        var fallName   = LocalizedJson.Of("خريف",  "Fall");
+        var springName = LocalizedJson.Of("ربيع",  "Spring");
+        var summerName = LocalizedJson.Of("صيف",   "Summer");
+
         var yearDefs = new[]
         {
             ("2023-2024", new DateTime(2023, 9, 1), new DateTime(2024, 8, 31), false),
@@ -173,9 +183,9 @@ public static class DataSeeder
             var ay = new AcademicYear { Id = Guid.NewGuid(), Name = name, StartDate = start, EndDate = end, IsCurrent = current };
             ay.Semesters = new List<Semester>
             {
-                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = "Fall",   Order = 1, StartDate = start, EndDate = start.AddMonths(4),  IsCurrent = current },
-                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = "Spring", Order = 2, StartDate = start.AddMonths(5), EndDate = start.AddMonths(9), IsCurrent = false },
-                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = "Summer", Order = 3, StartDate = start.AddMonths(10),EndDate = end,                IsCurrent = false },
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = fallName,   Order = 1, StartDate = start, EndDate = start.AddMonths(4),  IsCurrent = current },
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = springName, Order = 2, StartDate = start.AddMonths(5), EndDate = start.AddMonths(9), IsCurrent = false },
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = summerName, Order = 3, StartDate = start.AddMonths(10),EndDate = end,                IsCurrent = false },
             };
             context.AcademicYears.Add(ay);
         }
@@ -190,16 +200,19 @@ public static class DataSeeder
 
     private static async Task SeedAuthModulesAsync(CoreDbContext context)
     {
-        var modules = new[]
+        // Bilingual JSON for every module display name. Rows that overlap a
+        // permission manifest (academics, permissions, notifications, …)
+        // also get refreshed at startup by PermissionManifestSynchronizer.
+        var modules = new (string Key, string DisplayJson, string Icon, int Order)[]
         {
-            ("dashboard",   "Dashboard",            "LayoutDashboard", 0),
-            ("users",       "User Management",      "Users",           1),
-            ("structure",   "University Structure", "Building2",       2),
-            ("programs",    "Academic Programs",    "BookOpen",        3),
-            ("permissions", "Permissions & Roles",  "Shield",          4),
-            ("sync",        "SIS Integration",      "RefreshCw",       5),
-            ("academics",   "Academic Timeline",    "Calendar",        6),
-            ("notifications","Notifications",       "Bell",            7),
+            ("dashboard",    LocalizedJson.Of("لوحة المعلومات",    "Dashboard"),            "LayoutDashboard", 0),
+            ("users",        LocalizedJson.Of("إدارة المستخدمين",  "User Management"),      "Users",           1),
+            ("structure",    LocalizedJson.Of("الهيكل الجامعي",     "University Structure"), "Building2",       2),
+            ("programs",     LocalizedJson.Of("البرامج الأكاديمية", "Academic Programs"),    "BookOpen",        3),
+            ("permissions",  LocalizedJson.Of("الصلاحيات والأدوار", "Permissions & Roles"),  "Shield",          4),
+            ("sync",         LocalizedJson.Of("تكامل النظام",       "SIS Integration"),      "RefreshCw",       5),
+            ("academics",    LocalizedJson.Of("الجدول الأكاديمي",   "Academic Timeline"),    "Calendar",        6),
+            ("notifications",LocalizedJson.Of("الإشعارات",          "Notifications"),        "Bell",            7),
         };
         foreach (var (key, display, icon, order) in modules)
             context.Modules.Add(new Module { Id = Guid.NewGuid(), ModuleKey = key, DisplayName = display, Icon = icon, OrderNumber = order });
@@ -231,16 +244,18 @@ public static class DataSeeder
         // RolePermission.Action and StaffPermissionOverride.Action. Keys match
         // the canonical {module}.{resource}.{action} identity declared in
         // PermissionNames and the per-module manifests, so HasPermission
-        // attribute lookups round-trip against these rows.
-        AddRes("dashboard",    "dashboard",      "Dashboard",        0);
-        AddRes("users",        "users",          "Users",            0);
-        AddRes("structure",    "structure",      "Structure",        0);
-        AddRes("programs",     "programs",       "Programs",         0);
-        AddRes("permissions",  "permissions",    "Permissions",      0);
-        AddRes("permissions",  "roles",          "Roles",            1);
-        AddRes("sync",         "sync",           "SIS Sync",         0);
-        AddRes("academics",    "academic-years", "Academic Timeline", 0);
-        AddRes("notifications","notifications",  "Notifications",    0);
+        // attribute lookups round-trip against these rows. DisplayName is
+        // the bilingual JSON shape; PermissionManifestSynchronizer refreshes
+        // the rows it owns on startup.
+        AddRes("dashboard",    "dashboard",      LocalizedJson.Of("لوحة المعلومات",    "Dashboard"),         0);
+        AddRes("users",        "users",          LocalizedJson.Of("المستخدمون",        "Users"),             0);
+        AddRes("structure",    "structure",      LocalizedJson.Of("الهيكل",            "Structure"),         0);
+        AddRes("programs",     "programs",       LocalizedJson.Of("البرامج",           "Programs"),          0);
+        AddRes("permissions",  "permissions",    LocalizedJson.Of("الصلاحيات",         "Permissions"),       0);
+        AddRes("permissions",  "roles",          LocalizedJson.Of("الأدوار",           "Roles"),             1);
+        AddRes("sync",         "sync",           LocalizedJson.Of("مزامنة النظام",     "SIS Sync"),          0);
+        AddRes("academics",    "academic-years", LocalizedJson.Of("الجدول الأكاديمي",  "Academic Timeline"), 0);
+        AddRes("notifications","notifications",  LocalizedJson.Of("الإشعارات",         "Notifications"),     0);
 
         await context.SaveChangesAsync();
     }
@@ -251,15 +266,18 @@ public static class DataSeeder
 
     private static async Task SeedRolesAsync(CoreDbContext context)
     {
-        var roles = new[]
+        // Role names render in role pickers + permission UIs; bilingual so
+        // operator sees their language. Stored as {"ar":"…","en":"…"} JSON,
+        // decoded in Get(s)RolesQueryHandler before reaching the client.
+        var roles = new (string Json, bool System)[]
         {
-            ("Super Admin",      true),
-            ("Faculty Admin",    false),
-            ("Department Head",  false),
-            ("Registrar",        false),
-            ("Academic Advisor", false),
-            ("Staff",            false),
-            ("Viewer",           false),
+            (LocalizedJson.Of("مسؤول النظام الأعلى", "Super Admin"),      true),
+            (LocalizedJson.Of("مسؤول الكلية",         "Faculty Admin"),    false),
+            (LocalizedJson.Of("رئيس القسم",           "Department Head"),  false),
+            (LocalizedJson.Of("شؤون الطلاب",          "Registrar"),        false),
+            (LocalizedJson.Of("المرشد الأكاديمي",     "Academic Advisor"), false),
+            (LocalizedJson.Of("موظف",                  "Staff"),            false),
+            (LocalizedJson.Of("مشاهد",                 "Viewer"),           false),
         };
         foreach (var (name, system) in roles)
             context.Roles.Add(new Role { Id = Guid.NewGuid(), Name = name, IsSystemRole = system });
@@ -275,7 +293,10 @@ public static class DataSeeder
         var roles = await context.Roles.ToListAsync();
         var resources = await context.Resources.Include(r => r.Module).ToListAsync();
 
-        var roleMap = roles.ToDictionary(r => r.Name, r => r.Id);
+        // Roles + resources are stored bilingually ({"ar":"…","en":"…"}); the
+        // seeder's grant statements key by their English label, so index by
+        // the "en" subkey (falls back to the literal for plain-text rows).
+        var roleMap = roles.ToDictionary(r => LocalizedJson.Extract(r.Name, "en"), r => r.Id);
         var resourceMap = resources.ToDictionary(r => (r.Module.ModuleKey, r.Key));
 
         // Per-action rows. Existing rows are keyed by (RoleId, ResourceId, Action)
@@ -375,16 +396,18 @@ public static class DataSeeder
         StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
         var adminPwd = passwordHasher.HashPassword("admin123");
+        // JobTitle values are bilingual JSON; the Name and Role columns stay
+        // literal because they're personal names / unique role identifiers.
         var defs = new (string Emp, string Name, string NID, DateTime DOB, string Phone, string Email, string Role, string Job, string NodeName)[]
         {
-            ("ADMIN-001", "Super Admin User",      "29801011234567", new(1985, 6, 15),  "01000000000", "superadmin@capital.edu.eg",        "Super Admin",      "System Administrator",                "Capital University"),
-            ("FAC-001",   "Dr. Fatima Hassan",     "28501011234567", new(1978, 3, 20),  "01111111111", "fatima.hassan@capital.edu.eg",     "Faculty Admin",    "Faculty Dean",                        "Home Economics"),
-            ("HOD-001",   "Dr. Khaled Ibrahim",    "28102021234567", new(1975, 11, 5),  "01111111112", "khaled.ibrahim@capital.edu.eg",    "Department Head",  "Head of Clinical Nutrition",          "Clinical Nutrition"),
-            ("REG-001",   "Ms. Aisha Mahmoud",     "29003031234567", new(1985, 7, 12),  "01111111113", "aisha.mahmoud@capital.edu.eg",     "Registrar",        "Senior Registrar Officer",            "Capital University"),
-            ("ADV-001",   "Dr. Omar El-Sayed",     "27504041234567", new(1982, 9, 28),  "01111111114", "omar.elsayed@capital.edu.eg",      "Academic Advisor", "Student Academic Advisor",            "Nutrition & Food Science"),
-            ("STF-001",   "Mr. Tamer Said",        "29205051234567", new(1990, 1, 15),  "01111111115", "tamer.said@capital.edu.eg",        "Staff",            "IT Support Specialist",               "Capital University"),
-            ("VWR-001",   "Ms. Nadia Youssef",     "29306061234567", new(1992, 4, 8),   "01111111116", "nadia.youssef@capital.edu.eg",     "Viewer",           "External Auditor",                    "Capital University"),
-            ("FAC-002",   "Dr. Ahmed Abdel-Rahman","27807071234567", new(1970, 8, 18),  "01111111117", "ahmed.abdelrahman@capital.edu.eg", "Faculty Admin",    "Vice Dean for Academic Affairs",      "Mataria"),
+            ("ADMIN-001", "Super Admin User",      "29801011234567", new(1985, 6, 15),  "01000000000", "superadmin@capital.edu.eg",        "Super Admin",      LocalizedJson.Of("مسؤول النظام",            "System Administrator"),           "Capital University"),
+            ("FAC-001",   "Dr. Fatima Hassan",     "28501011234567", new(1978, 3, 20),  "01111111111", "fatima.hassan@capital.edu.eg",     "Faculty Admin",    LocalizedJson.Of("عميد الكلية",              "Faculty Dean"),                   "Home Economics"),
+            ("HOD-001",   "Dr. Khaled Ibrahim",    "28102021234567", new(1975, 11, 5),  "01111111112", "khaled.ibrahim@capital.edu.eg",    "Department Head",  LocalizedJson.Of("رئيس قسم التغذية الإكلينيكية","Head of Clinical Nutrition"),     "Clinical Nutrition"),
+            ("REG-001",   "Ms. Aisha Mahmoud",     "29003031234567", new(1985, 7, 12),  "01111111113", "aisha.mahmoud@capital.edu.eg",     "Registrar",        LocalizedJson.Of("مسؤول شؤون الطلاب الأقدم", "Senior Registrar Officer"),       "Capital University"),
+            ("ADV-001",   "Dr. Omar El-Sayed",     "27504041234567", new(1982, 9, 28),  "01111111114", "omar.elsayed@capital.edu.eg",      "Academic Advisor", LocalizedJson.Of("مرشد أكاديمي للطلاب",      "Student Academic Advisor"),       "Nutrition & Food Science"),
+            ("STF-001",   "Mr. Tamer Said",        "29205051234567", new(1990, 1, 15),  "01111111115", "tamer.said@capital.edu.eg",        "Staff",            LocalizedJson.Of("أخصائي دعم تقني",          "IT Support Specialist"),          "Capital University"),
+            ("VWR-001",   "Ms. Nadia Youssef",     "29306061234567", new(1992, 4, 8),   "01111111116", "nadia.youssef@capital.edu.eg",     "Viewer",           LocalizedJson.Of("مراجع خارجي",              "External Auditor"),               "Capital University"),
+            ("FAC-002",   "Dr. Ahmed Abdel-Rahman","27807071234567", new(1970, 8, 18),  "01111111117", "ahmed.abdelrahman@capital.edu.eg", "Faculty Admin",    LocalizedJson.Of("وكيل الكلية للشؤون الأكاديمية","Vice Dean for Academic Affairs"), "Mataria"),
         };
 
         var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
@@ -527,12 +550,16 @@ public static class DataSeeder
     private static async Task SeedStaffRoleAssignmentsAsync(CoreDbContext context)
     {
         var staff = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
-        var roles = await context.Roles.ToDictionaryAsync(r => r.Name);
+        // Roles + semesters are stored bilingually; the seeder pivots on
+        // their English form so index by the "en" subkey (legacy plain-text
+        // values fall through as the literal).
+        var roles = (await context.Roles.ToListAsync())
+            .ToDictionary(r => LocalizedJson.Extract(r.Name, "en"));
         var nodes = await context.StructureNodes.ToListAsync();
         var years = await context.AcademicYears.Include(y => y.Semesters).ToListAsync();
 
         var year2526 = years.FirstOrDefault(y => y.Name == "2025-2026");
-        var fall = year2526?.Semesters.FirstOrDefault(s => s.Name == "Fall");
+        var fall = year2526?.Semesters.FirstOrDefault(s => LocalizedJson.Extract(s.Name, "en") == "Fall");
         if (year2526 == null || fall == null)
         {
             Console.WriteLine("[Seed] StaffRoles: aborting — academic year '2025-2026' or its 'Fall' semester missing.");
@@ -617,12 +644,29 @@ public static class DataSeeder
         var regId = staff.First(s => s.EmployeeCode == "REG-001").Id;
         var facId = staff.First(s => s.EmployeeCode == "FAC-001").Id;
 
+        // Title and Message are bilingual JSON. NotificationService decodes
+        // both via ILocalizationService.Get<string>(json) on every read.
         context.Notifications.AddRange(
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId, Title = "Welcome to Capital University Portal", Message = "Your account has been created with Super Administrator privileges.", Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId, Title = "Academic Year Update", Message = "The 2025-2026 academic year has been activated. Please review the semester schedule.", Type = NotificationType.Warning, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId, Title = "Pending Approvals", Message = "There are 3 pending registration approvals requiring your attention.", Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = regId,  Title = "Bulk Import Complete", Message = "Student data import completed. 47 new records created, 2 duplicates skipped.", Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = facId,  Title = "Department Report Due", Message = "The semester-end departmental report is due by December 15.", Type = NotificationType.Warning, IsRead = false }
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+                Title   = LocalizedJson.Of("مرحبًا بك في بوابة جامعة العاصمة", "Welcome to Capital University Portal"),
+                Message = LocalizedJson.Of("تم إنشاء حسابك بصلاحيات مسؤول النظام الأعلى.", "Your account has been created with Super Administrator privileges."),
+                Type = NotificationType.Info, IsRead = false },
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+                Title   = LocalizedJson.Of("تحديث العام الأكاديمي", "Academic Year Update"),
+                Message = LocalizedJson.Of("تم تفعيل العام الأكاديمي 2025-2026. يُرجى مراجعة جدول الفصول.", "The 2025-2026 academic year has been activated. Please review the semester schedule."),
+                Type = NotificationType.Warning, IsRead = false },
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+                Title   = LocalizedJson.Of("موافقات معلقة", "Pending Approvals"),
+                Message = LocalizedJson.Of("هناك ٣ طلبات تسجيل معلقة تنتظر اعتمادك.", "There are 3 pending registration approvals requiring your attention."),
+                Type = NotificationType.Info, IsRead = false },
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = regId,
+                Title   = LocalizedJson.Of("اكتمل الاستيراد المجمّع", "Bulk Import Complete"),
+                Message = LocalizedJson.Of("اكتمل استيراد بيانات الطلاب. تم إنشاء ٤٧ سجلًا جديدًا وتجاوز سجلين مكررين.", "Student data import completed. 47 new records created, 2 duplicates skipped."),
+                Type = NotificationType.Info, IsRead = false },
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = facId,
+                Title   = LocalizedJson.Of("استحقاق تقرير القسم", "Department Report Due"),
+                Message = LocalizedJson.Of("يستحق تقرير نهاية الفصل الخاص بالقسم في 15 ديسمبر.", "The semester-end departmental report is due by December 15."),
+                Type = NotificationType.Warning, IsRead = false }
         );
 
         await context.SaveChangesAsync();

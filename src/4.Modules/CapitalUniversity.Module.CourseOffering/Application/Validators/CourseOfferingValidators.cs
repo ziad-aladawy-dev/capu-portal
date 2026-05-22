@@ -8,18 +8,19 @@ public class CreateCourseOfferingValidator : AbstractValidator<CreateCourseOffer
 {
     public CreateCourseOfferingValidator()
     {
-        RuleFor(x => x.CourseId).NotEmpty();
-        RuleFor(x => x.SemesterId).NotEmpty();
-        RuleFor(x => x.StructureNodeId).NotEmpty();
+        RuleFor(x => x.CourseId).NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required);
+        RuleFor(x => x.SemesterId).NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required);
+        RuleFor(x => x.StructureNodeId).NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required);
         RuleFor(x => x.SectionCode)
-            .NotEmpty()
-            .MaximumLength(32)
-            .WithMessage(LocalizedKeys.CourseOfferings.SectionCodeRequired);
+            .NotEmpty().WithMessage(LocalizedKeys.CourseOfferings.SectionCodeRequired)
+            .MaximumLength(32).WithMessage(LocalizedKeys.Infrastructure.Invalid);
+
         RuleFor(x => x.Capacity)
             .GreaterThanOrEqualTo(0)
             .WithMessage(LocalizedKeys.CourseOfferings.CapacityNegative);
+
         RuleFor(x => x.ExternalSystemId!)
-            .MaximumLength(128)
+            .MaximumLength(128).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.ExternalSystemId));
     }
 }
@@ -28,17 +29,19 @@ public class UpdateCourseOfferingValidator : AbstractValidator<UpdateCourseOffer
 {
     public UpdateCourseOfferingValidator()
     {
-        RuleFor(x => x.SectionCode!)
-            .NotEmpty()
-            .MaximumLength(32)
-            .When(x => x.SectionCode is not null)
-            .WithMessage(LocalizedKeys.CourseOfferings.SectionCodeRequired);
-        RuleFor(x => x.Capacity!.Value)
+        RuleFor(x => x.SectionCode)
+            .NotEmpty().WithMessage(LocalizedKeys.CourseOfferings.SectionCodeRequired)
+            .MaximumLength(32).WithMessage(LocalizedKeys.Infrastructure.Invalid)
+            .When(x => x.SectionCode != null);
+
+        RuleFor(x => x.Capacity)
             .GreaterThanOrEqualTo(0)
-            .When(x => x.Capacity.HasValue)
-            .WithMessage(LocalizedKeys.CourseOfferings.CapacityNegative);
+            .WithMessage(LocalizedKeys.CourseOfferings.CapacityNegative)
+            .When(x => x.Capacity.HasValue);
+
         RuleFor(x => x.ExternalSystemId!)
-            .MaximumLength(128)
+            .MaximumLength(128).WithMessage(LocalizedKeys.Infrastructure.Invalid)
             .When(x => !string.IsNullOrEmpty(x.ExternalSystemId));
     }
 }
+

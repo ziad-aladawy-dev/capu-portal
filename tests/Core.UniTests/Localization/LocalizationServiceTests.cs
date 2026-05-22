@@ -106,16 +106,18 @@ public class LocalizationServiceTests
     }
 
     [Fact]
-    public void GetFromJson_WithInvalidJson_LogsWarning_AndReturnsDefault()
+    public void GetFromJson_WithPlainText_ReturnsLiteral_WhenTIsString()
     {
-        // Arrange
+        // The Get<T>(json) resolver is the single read path for fields that
+        // store {"ar":"…","en":"…"} JSON dicts AND for legacy rows that still
+        // carry a plain-text literal seeded before the JSON shape landed.
+        // Returning the literal (rather than null with a warning) is the
+        // backwards-compatibility contract — UIs see "the value", not blanks.
         var json = "invalid-json";
 
-        // Act
         var result = _sut.Get<string>(json);
 
-        // Assert
-        result.Should().BeNull();
+        result.Should().Be("invalid-json");
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
@@ -123,16 +125,21 @@ public class LocalizationServiceTests
                 It.Is<It.IsAnyType>((v, t) => true),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
-            Times.Once);
+            Times.Never);
     }
 
     [Fact]
-    public void GetFromJson_WithNullOrEmpty_ReturnsDefault()
+    public void GetFromJson_WithNullOrEmpty_StringT_PreservesEmpty()
     {
-        // Act & Assert
-        _sut.Get<string>(null!).Should().BeNull();
-        _sut.Get<string>("").Should().BeNull();
-        _sut.Get<string>("   ").Should().BeNull();
+        // For string T the resolver preserves the input shape — an empty
+        // entity column stays empty rather than collapsing to null. Non-string
+        // generic parameters still get default(T). See LocalizationService.Get<T>
+        // for the rationale (DTO consumers don't expect a null Name when the
+        // underlying value is just empty).
+        _sut.Get<string>(null!).Should().BeEmpty();
+        _sut.Get<string>("").Should().BeEmpty();
+        _sut.Get<string>("   ").Should().Be("   ");
+        _sut.Get<Dictionary<string, string>>(null!).Should().BeNull();
     }
 
     [Fact]

@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.UniTests._Helpers;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
@@ -81,7 +82,8 @@ public class PermissionManagementServiceTests
             mockScopeResolver.Object,
             dbContext,
             new PermissionCacheCoordinator(mockCache.Object, new PermissionCacheOptions(), null),
-            expander);
+            expander,
+            new TestLocalizationService());
     }
 
     [Fact]

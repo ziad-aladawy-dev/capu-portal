@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
@@ -19,16 +20,20 @@ public class StaffService : IStaffService
 
     private readonly IUnitOfWork _unitOfWork;
 
+    private readonly ILocalizationService _localization;
+
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
         ISessionVersionService sessionVersions,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
+        _localization = localization;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
@@ -244,7 +249,7 @@ public class StaffService : IStaffService
         if (staff == null)
             return null;
 
-        return Map(staff);
+        return MapInstance(staff);
     }
 
     public async Task<List<StaffDto>> GetAllAsync()
@@ -253,7 +258,7 @@ public class StaffService : IStaffService
             .GetAllAsync();
 
         return staff
-            .Select(Map)
+            .Select(MapInstance)
             .ToList();
     }
 
@@ -266,7 +271,7 @@ public class StaffService : IStaffService
         return new PagedResult<StaffDto>
         {
             Items = result.Items
-                .Select(Map)
+                .Select(MapInstance)
                 .ToList(),
 
             Page = result.Page,
@@ -309,11 +314,19 @@ public class StaffService : IStaffService
         };
     }
 
-    private static StaffDto Map(Staff staff)
+    /// <summary>
+    /// Project staff onto its DTO, decoding every bilingual string against
+    /// the current culture. Personal <c>Name</c> is also decoded — operators
+    /// store the canonical <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON
+    /// for bilingual records and plain text for single-language data; the
+    /// resolver round-trips both shapes safely.
+    /// </summary>
+    private StaffDto MapInstance(Staff staff)
     {
         string facultyName =
-            staff.StructureNode.Parent?.Name
-            ?? string.Empty;
+            staff.StructureNode.Parent?.Name is { } parentName
+                ? _localization.Get<string>(parentName)
+                : string.Empty;
 
         return new StaffDto
         {
@@ -321,7 +334,7 @@ public class StaffService : IStaffService
 
             EmployeeCode = staff.EmployeeCode,
 
-            Name = staff.Name,
+            Name = _localization.Get<string>(staff.Name),
 
             NationalId = staff.NationalId,
 
@@ -333,11 +346,11 @@ public class StaffService : IStaffService
 
             Role = staff.Role,
 
-            JobTitle = staff.JobTitle,
+            JobTitle = _localization.Get<string>(staff.JobTitle),
 
             StructureNodeId = staff.StructureNodeId,
 
-            StructureNodeName = staff.StructureNode.Name,
+            StructureNodeName = _localization.Get<string>(staff.StructureNode.Name),
 
             FacultyName = facultyName,
 
