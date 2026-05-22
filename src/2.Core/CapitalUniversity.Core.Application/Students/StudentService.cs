@@ -298,30 +298,55 @@ public class StudentService : IStudentService
     private static StudentDto Map(
             Student student)
     {
+        var levelNode = student.StructureNode;
+
         string facultyName = string.Empty;
 
         string programName = string.Empty;
 
         string levelName =
-            student.StructureNode.Name;
+            levelNode?.Name ?? string.Empty;
 
-        var programNode =
-            student.StructureNode.Parent;
+        var currentNode = levelNode?.Parent;
 
-        if (programNode != null)
+        while (currentNode != null)
         {
-            programName =
-                programNode.Name;
+            if (currentNode.Type == StructureNodeType.Faculty)
+            {
+                facultyName = currentNode.Name;
+                break;
+            }
+            currentNode = currentNode.Parent;
         }
 
-        var facultyNode =
-            programNode?.Parent;
-
-        if (facultyNode != null)
+        currentNode = levelNode?.Parent;
+        while (currentNode != null)
         {
-            facultyName =
-                facultyNode.Name;
+            if (currentNode.Type == StructureNodeType.Program)
+            {
+                programName = currentNode.Name;
+                break;
+            }
+            currentNode = currentNode.Parent;
         }
+
+        //var programNode =
+        //    student.StructureNode.Parent;
+
+        //if (programNode != null)
+        //{
+        //    programName =
+        //        programNode.Name;
+        //}
+
+        //var facultyNode =
+        //    programNode?.Parent;
+
+        //if (facultyNode != null)
+        //{
+        //    facultyName =
+        //        facultyNode.Name;
+        //}
 
         return new StudentDto
         {
@@ -347,7 +372,7 @@ public class StudentService : IStudentService
                 student.StructureNodeId,
 
             StructureNodeName =
-                student.StructureNode.Name,
+                levelName,
 
             FacultyName =
                 facultyName,

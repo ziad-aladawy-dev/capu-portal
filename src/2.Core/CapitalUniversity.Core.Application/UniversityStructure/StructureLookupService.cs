@@ -56,6 +56,22 @@ public class StructureLookupService : IStructureLookupService
             .ToList();
     }
 
+    public async Task<List<StructureNodeLookupDto>> GetProgramsByFacultyAsync(Guid facultyId)
+    {
+        var facultyNode = await _repository.GetByIdAsync(facultyId);
+        if (facultyNode == null)
+            return new List<StructureNodeLookupDto>();
+
+        var descendants = await _repository.GetDescendantsAsync(facultyNode.Path);
+
+        var programs = descendants
+            .Where(x => x.Type == StructureNodeType.Program)
+            .OrderBy(x => x.Order)
+            .ToList();
+
+        return programs.Select(Map).ToList();
+    }
+
     private static StructureNodeLookupDto Map(
         Domain.UniversityStructure.StructureNode node)
     {

@@ -20,5 +20,7 @@ public class StructureNodeDto
 
     public bool IsActive { get; set; }
 
+    public string TypeName => Type.ToString();
+
     public List<StructureNodeDto> Children { get; set; } = new();
 }
