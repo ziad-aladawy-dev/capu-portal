@@ -146,7 +146,7 @@ public class UniversityStructureService : IUniversityStructureService
         var node = new StructureNode
         {
             Id = Guid.NewGuid(),
-            Name = request.Name,
+            Name = LocalizedJson.Normalize(request.Name),
             Type = request.Type,
             ParentId = request.ParentId,
             Order = request.Order,
@@ -172,7 +172,7 @@ public class UniversityStructureService : IUniversityStructureService
         if (node == null)
             throw new Exception("Node not found");
 
-        node.Name = request.Name;
+        node.Name = LocalizedJson.Normalize(request.Name);
         node.Type = request.Type;
         node.Order = request.Order;
         node.IsActive = request.IsActive;

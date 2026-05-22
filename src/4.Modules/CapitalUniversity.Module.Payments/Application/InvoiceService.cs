@@ -149,7 +149,7 @@ public class InvoiceService : IInvoiceService
                 FeeType = i.FeeType,
                 SourceModule = i.SourceModule,
                 ReferenceId = i.ReferenceId,
-                Description = i.Description,
+                Description = LocalizedJson.Normalize(i.Description),
             });
         }
         invoice.TotalAmount = invoice.Items.Sum(it => it.Amount);

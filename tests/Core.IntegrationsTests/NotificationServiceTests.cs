@@ -44,8 +44,8 @@ public class NotificationServiceTests
         var notification = await _context.Notifications.FirstOrDefaultAsync();
         notification.Should().NotBeNull();
         notification!.RecipientUserId.Should().Be(userId);
-        notification.Title.Should().Be(title);
-        notification.Message.Should().Be(message);
+        notification.Title.Should().Be("{\"ar\":\"Test Title\",\"en\":\"Test Title\"}");
+        notification.Message.Should().Be("{\"ar\":\"Test Message\",\"en\":\"Test Message\"}");
         notification.Type.Should().Be(type);
         notification.IsRead.Should().BeFalse();
     }

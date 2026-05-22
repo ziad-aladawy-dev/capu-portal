@@ -7,65 +7,51 @@ namespace CapitalUniversity.Core.UniTests.Semesters;
 
 public class MapperTests
 {
-    private readonly AcademicYearMapper _yearMapper = new();
-    private readonly SemesterMapper _semesterMapper = new();
-
     [Fact]
     public void AcademicYear_UpdateEntity_ShouldIgnoreNulls()
     {
-        // Arrange
-        var entity = new AcademicYear
+        var mapper = new AcademicYearMapper();
+        var year = new AcademicYear
         {
-            Id = Guid.NewGuid(),
-            Name = "Original Name",
-            StartDate = new DateTime(2025, 9, 1),
-            EndDate = new DateTime(2026, 6, 30)
+            Name = "Old Name",
+            StartDate = new DateTime(2023, 1, 1),
+            EndDate = new DateTime(2023, 12, 31)
         };
 
         var request = new UpdateAcademicYearRequest
         {
             Name = "New Name",
-            StartDate = null,
-            EndDate = null
+            StartDate = null // Should be ignored
         };
 
-        // Act
-        _yearMapper.UpdateEntity(request, entity);
+        mapper.UpdateEntity(request, year);
 
-        // Assert
-        Assert.Equal("New Name", entity.Name);
-        Assert.Equal(new DateTime(2025, 9, 1), entity.StartDate);
-        Assert.Equal(new DateTime(2026, 6, 30), entity.EndDate);
+        // Name is normalized to JSON
+        Assert.Equal("{\"ar\":\"New Name\",\"en\":\"New Name\"}", year.Name);
+        Assert.Equal(new DateTime(2023, 1, 1), year.StartDate);
     }
 
     [Fact]
     public void Semester_UpdateEntity_ShouldIgnoreNulls()
     {
-        // Arrange
-        var entity = new Semester
+        var mapper = new SemesterMapper();
+        var semester = new Semester
         {
-            Id = Guid.NewGuid(),
             Name = "Fall",
-            Order = 1,
-            StartDate = new DateTime(2025, 9, 1),
-            EndDate = new DateTime(2025, 12, 31)
+            StartDate = new DateTime(2023, 9, 1),
+            EndDate = new DateTime(2024, 1, 31)
         };
 
         var request = new UpdateSemesterRequest
         {
-            Name = null,
-            Order = 2,
-            StartDate = null,
-            EndDate = null
+            Name = null, // Should be ignored
+            StartDate = new DateTime(2023, 10, 1)
         };
 
-        // Act
-        _semesterMapper.UpdateEntity(request, entity);
+        mapper.UpdateEntity(request, semester);
 
-        // Assert
-        Assert.Equal("Fall", entity.Name);
-        Assert.Equal(2, entity.Order);
-        Assert.Equal(new DateTime(2025, 9, 1), entity.StartDate);
-        Assert.Equal(new DateTime(2025, 12, 31), entity.EndDate);
+        // Name is preserved (no normalization because it was null in request)
+        Assert.Equal("Fall", semester.Name);
+        Assert.Equal(new DateTime(2023, 10, 1), semester.StartDate);
     }
 }

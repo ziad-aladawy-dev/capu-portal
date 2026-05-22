@@ -256,7 +256,7 @@ public class ScheduleSlotServiceTests
 
         await sut.UpdateAsync(slot.Id, new UpdateScheduleSlotRequest { Location = "Hall B" });
 
-        slot.Location.Should().Be("Hall B");
+        slot.Location.Should().Be("{\"ar\":\"Hall B\",\"en\":\"Hall B\"}");
         slotRepo.Verify(
             r => r.ExistsAsync(It.IsAny<Guid>(), It.IsAny<DayOfWeek>(), It.IsAny<TimeOnly>(), It.IsAny<TimeOnly>(), default),
             Times.Never,

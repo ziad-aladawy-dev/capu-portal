@@ -27,6 +27,7 @@ public class CourseOfferingServiceTests
         var uow = new Mock<IUnitOfWork>();
         var scope = new Mock<IEffectiveScope>();
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
+        scope.Setup(s => s.CanAccessSemesterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
         var sut = new CourseOfferingService(
             uow.Object,
             repo.Object,

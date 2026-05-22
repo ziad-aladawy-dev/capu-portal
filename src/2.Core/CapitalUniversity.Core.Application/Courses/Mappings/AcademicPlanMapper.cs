@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Courses;
 using Riok.Mapperly.Abstractions;
 
@@ -14,6 +15,8 @@ public partial class AcademicPlanMapper
 {
     public partial AcademicPlanResponse MapToResponse(AcademicPlan entity);
     public partial AcademicPlanCourseResponse MapToCourseResponse(AcademicPlanCourse entity);
+
+    [MapProperty(nameof(CreateAcademicPlanRequest.Name), nameof(AcademicPlan.Name), Use = nameof(ForceNormalizeIncoming))]
     public partial AcademicPlan MapToEntity(CreateAcademicPlanRequest request);
 
     /// <summary>
@@ -21,4 +24,6 @@ public partial class AcademicPlanMapper
     /// only provided values overwrite target state.
     /// </summary>
     public partial void ApplyUpdate(UpdateAcademicPlanRequest request, AcademicPlan entity);
+
+    protected string ForceNormalizeIncoming(string value) => LocalizedJson.Normalize(value);
 }

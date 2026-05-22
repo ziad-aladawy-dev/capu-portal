@@ -144,8 +144,8 @@ public class ScheduleSlotService : IScheduleSlotService
             CourseOfferingId = request.CourseOfferingId,
             DayOfWeek = request.DayOfWeek,
             Kind = request.Kind,
-            Location = request.Location,
-            Notes = request.Notes,
+            Location = LocalizedJson.Normalize(request.Location),
+            Notes = LocalizedJson.Normalize(request.Notes),
         };
         // Funnel start/end through the entity invariant — the validator covers
         // the create payload, but the entity is the single source of truth so
@@ -194,8 +194,8 @@ public class ScheduleSlotService : IScheduleSlotService
 
         if (request.DayOfWeek.HasValue) slot.DayOfWeek = request.DayOfWeek.Value;
         if (request.Kind.HasValue) slot.Kind = request.Kind.Value;
-        if (request.Location is not null) slot.Location = request.Location;
-        if (request.Notes is not null) slot.Notes = request.Notes;
+        if (request.Location is not null) slot.Location = LocalizedJson.Normalize(request.Location);
+        if (request.Notes is not null) slot.Notes = LocalizedJson.Normalize(request.Notes);
 
         var tupleMoved = slot.DayOfWeek != originalDay
                       || slot.StartTime != originalStart

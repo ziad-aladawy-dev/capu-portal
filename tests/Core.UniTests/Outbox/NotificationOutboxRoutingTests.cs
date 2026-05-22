@@ -62,8 +62,9 @@ public class NotificationOutboxRoutingTests
         var payload = JsonSerializer.Deserialize<NotificationOutboxHandler.NotificationPayload>(row.Payload);
         payload.Should().NotBeNull();
         payload!.RecipientUserId.Should().Be(recipient);
-        payload.Title.Should().Be("Hi");
-        payload.Message.Should().Be("msg");
+        // NotificationService normalizes Title and Message to JSON.
+        payload.Title.Should().Be("{\"ar\":\"Hi\",\"en\":\"Hi\"}");
+        payload.Message.Should().Be("{\"ar\":\"msg\",\"en\":\"msg\"}");
         payload.Type.Should().Be(NotificationType.Info);
     }
 
@@ -97,8 +98,8 @@ public class NotificationOutboxRoutingTests
 
         var stored = await db.Notifications.AsNoTracking().SingleAsync();
         stored.RecipientUserId.Should().Be(recipient);
-        stored.Title.Should().Be("Welcome");
-        stored.Message.Should().Be("Glad you're here");
+        stored.Title.Should().Be("{\"ar\":\"Welcome\",\"en\":\"Welcome\"}");
+        stored.Message.Should().Be("{\"ar\":\"Glad you're here\",\"en\":\"Glad you're here\"}");
         stored.IsRead.Should().BeFalse();
     }
 }

@@ -14,4 +14,6 @@ public partial class RoleMapper
     /// only provided values overwrite target state.
     /// </summary>
     public partial void ApplyUpdate(UpdateRoleRequest request, Role entity);
+
+    protected string ForceNormalizeIncoming(string value) => CapitalUniversity.Core.Abstractions.CrossCutting.Localization.LocalizedJson.Normalize(value);
 }

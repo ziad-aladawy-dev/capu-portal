@@ -114,6 +114,7 @@ public class AcademicYearService : IAcademicYearService
             throw new ValidationException("AcademicYear", LocalizedKeys.Semesters.YearDatesOverlap);
         }
 
+        if (request.Name != null) year.Name = LocalizedJson.Normalize(request.Name);
         _mapper.UpdateEntity(request, year);
         year.IsCurrent = IsDateInRange(DateTime.UtcNow, year.StartDate, year.EndDate);
         year.UpdatedAt = DateTime.UtcNow;

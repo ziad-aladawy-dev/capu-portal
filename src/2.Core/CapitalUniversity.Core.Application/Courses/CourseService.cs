@@ -119,6 +119,7 @@ public class CourseService : ICourseService
 
         course.EnsureMutable();
 
+        if (request.Title != null) course.Title = LocalizedJson.Normalize(request.Title);
         _mapper.ApplyUpdate(request, course);
         course.UpdatedAt = DateTime.UtcNow;
 

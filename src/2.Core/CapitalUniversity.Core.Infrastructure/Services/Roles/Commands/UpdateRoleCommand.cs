@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Mappings;
 
@@ -18,11 +19,13 @@ public class UpdateRoleResponse
 public class UpdateRoleCommandHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly ILocalizationService _localization;
     private readonly RoleMapper _mapper = new();
 
-    public UpdateRoleCommandHandler(CoreDbContext dbContext)
+    public UpdateRoleCommandHandler(CoreDbContext dbContext, ILocalizationService localization)
     {
         _dbContext = dbContext;
+        _localization = localization;
     }
 
     public async Task<UpdateRoleResponse?> Handle(UpdateRoleRequest request, CancellationToken cancellationToken)
@@ -31,6 +34,7 @@ public class UpdateRoleCommandHandler
 
         if (role == null) return null;
 
+        if (request.Name != null) role.Name = LocalizedJson.Normalize(request.Name);
         _mapper.ApplyUpdate(request, role);
         role.UpdatedAt = DateTime.UtcNow;
 
@@ -39,7 +43,7 @@ public class UpdateRoleCommandHandler
         return new UpdateRoleResponse
         {
             Id = role.Id,
-            Name = role.Name
+            Name = _localization.Get<string>(role.Name)
         };
 
     }

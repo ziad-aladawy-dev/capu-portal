@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
 using CapitalUniversity.Modules.CourseOffering.Domain;
 using FluentAssertions;
@@ -57,7 +58,7 @@ public class CourseOfferingLifecycleTests
         var offering = NewOpenOffering();
         offering.Close();
         var act = offering.Activate;
-        act.Should().Throw<InvalidOperationException>("reopening a closed offering must be a new-offering decision, not a state flip");
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]

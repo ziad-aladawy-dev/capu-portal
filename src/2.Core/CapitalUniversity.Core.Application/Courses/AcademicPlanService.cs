@@ -157,6 +157,7 @@ public class AcademicPlanService : IAcademicPlanService
 
         plan.EnsureMutable();
 
+        if (request.Name != null) plan.Name = LocalizedJson.Normalize(request.Name);
         _mapper.ApplyUpdate(request, plan);
 
         if (plan.EffectiveTo.HasValue && plan.EffectiveTo <= plan.EffectiveFrom)

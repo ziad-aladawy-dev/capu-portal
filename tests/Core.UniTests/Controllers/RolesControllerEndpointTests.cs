@@ -24,8 +24,8 @@ public class RolesControllerEndpointTests
         db.Database.EnsureCreated();
 
         var ctrl = new RolesController(
-            new CreateRoleCommandHandler(db),
-            new UpdateRoleCommandHandler(db),
+            new CreateRoleCommandHandler(db, new TestLocalizationService()),
+            new UpdateRoleCommandHandler(db, new TestLocalizationService()),
             new DeleteRoleCommandHandler(db, invalidator),
             new GetRoleByIdQueryHandler(db, new TestLocalizationService()),
             new GetRolesQueryHandler(db, new TestLocalizationService()));

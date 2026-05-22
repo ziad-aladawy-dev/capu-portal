@@ -6,6 +6,7 @@ using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Mappings;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -39,7 +40,8 @@ public class UpdateStandardizationTests
         mapper.ApplyUpdate(request, entity);
 
         // Assert
-        entity.Title.Should().Be("Updated Title");
+        // Mapperly uses LocalizedJson.Normalize, so we expect the JSON shape.
+        entity.Title.Should().Be("{\"ar\":\"Updated Title\",\"en\":\"Updated Title\"}");
         entity.Code.Should().Be("CS101"); // Unchanged
         entity.CreditHours.Should().Be(3); // Unchanged
         entity.Category.Should().Be(CourseCategory.ProgramRequirement); // Unchanged
@@ -71,7 +73,8 @@ public class UpdateStandardizationTests
 
         // Assert
         entity.IsActive.Should().BeFalse();
-        entity.Name.Should().Be("Original Plan"); // Unchanged
+        // Since request.Name is null, the mapper skips it, preserving the original string.
+        entity.Name.Should().Be("Original Plan");
     }
 
     [Fact]
@@ -96,7 +99,7 @@ public class UpdateStandardizationTests
         mapper.ApplyUpdate(request, entity);
 
         // Assert
-        entity.Name.Should().Be("Updated Role");
+        entity.Name.Should().Be("{\"ar\":\"Updated Role\",\"en\":\"Updated Role\"}");
         entity.IsSystemRole.Should().BeTrue(); // Unchanged (not in DTO)
     }
 
@@ -114,7 +117,7 @@ public class UpdateStandardizationTests
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var handler = new UpdateRoleCommandHandler(db);
+        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService());
         var request = new UpdateRoleRequest { Id = role.Id, Name = "Updated" };
 
         // Act
@@ -122,13 +125,10 @@ public class UpdateStandardizationTests
 
         // Assert
         response.Should().NotBeNull();
-        response!.Name.Should().Be("Updated");
+        response!.Name.Should().Be("Updated"); // Handler response should be decoded
 
         var updatedRole = await db.Roles.FindAsync(role.Id);
-        updatedRole!.Name.Should().Be("Updated");
+        updatedRole!.Name.Should().Be("{\"ar\":\"Updated\",\"en\":\"Updated\"}"); // Entity stores JSON
         updatedRole.IsSystemRole.Should().BeTrue(); // Unchanged
-        
-        // Verify tracking: only Name should be modified if we were using a real provider
-        // but for InMemory we just check the values.
     }
 }

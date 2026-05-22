@@ -75,7 +75,13 @@ public class CourseServiceTests
         });
 
         id.Should().NotBeEmpty();
-        repo.Verify(r => r.AddAsync(It.Is<Course>(c => c.Code == "CS101"), default), Times.Once);
+        Course? captured = null;
+        repo.Verify(r => r.AddAsync(It.IsAny<Course>(), It.IsAny<CancellationToken>()), Times.Once);
+        captured = (Course)repo.Invocations.First(i => i.Method.Name == "AddAsync").Arguments[0];
+        
+        captured.Code.Should().Be("CS101");
+        captured.Title.Should().Be("{\"ar\":\"Algorithms\",\"en\":\"Algorithms\"}");
+        
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
     }
 

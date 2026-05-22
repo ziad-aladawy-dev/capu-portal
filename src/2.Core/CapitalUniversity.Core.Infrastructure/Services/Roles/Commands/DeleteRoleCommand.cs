@@ -27,6 +27,13 @@ public class DeleteRoleCommandHandler
 
         if (role == null) return false;
 
+        // P1.2 — Security Guard: prevent accidental deletion of core system roles
+        // (Admin, Faculty, Student, etc.) via API bypass.
+        if (role.IsSystemRole)
+        {
+            throw new InvalidOperationException("System roles are managed by the core platform and cannot be deleted.");
+        }
+
         // Snapshot assignees BEFORE delete so the cascade doesn't drop them from
         // StaffRoles before the invalidator queries.
         if (_cacheInvalidator is not null)

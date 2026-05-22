@@ -100,7 +100,7 @@ public class StaffService : IStaffService
 
             PasswordHash = hashedPassword,
 
-            Name = request.Name,
+            Name = LocalizedJson.Normalize(request.Name),
 
             NationalId = request.NationalId,
 
@@ -112,7 +112,7 @@ public class StaffService : IStaffService
 
             Role = request.Role,
 
-            JobTitle = request.JobTitle,
+            JobTitle = LocalizedJson.Normalize(request.JobTitle),
 
             StructureNodeId =
                 request.StructureNodeId,
@@ -191,7 +191,7 @@ public class StaffService : IStaffService
             staff.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
-        staff.Name = request.Name;
+        staff.Name = LocalizedJson.Normalize(request.Name);
 
         staff.NationalId = request.NationalId;
 
@@ -203,7 +203,7 @@ public class StaffService : IStaffService
 
         staff.Role = request.Role;
 
-        staff.JobTitle = request.JobTitle;
+        staff.JobTitle = LocalizedJson.Normalize(request.JobTitle);
 
         staff.StructureNodeId = request.StructureNodeId;
 

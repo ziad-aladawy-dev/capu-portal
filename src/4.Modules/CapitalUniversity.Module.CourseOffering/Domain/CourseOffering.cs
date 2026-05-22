@@ -84,7 +84,7 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     public void EnsureMutable()
     {
         if (IsClosed)
-            throw new InvalidOperationException("Course offering is closed and cannot be modified. Reopen it first.");
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Course offering is closed and cannot be modified. Reopen it first.");
     }
 
     /// <summary>

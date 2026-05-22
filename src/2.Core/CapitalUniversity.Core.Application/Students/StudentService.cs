@@ -101,7 +101,7 @@ public class StudentService : IStudentService
 
             StudentCode = request.StudentCode,
 
-            Name = request.Name,
+            Name = LocalizedJson.Normalize(request.Name),
 
             NationalId = request.NationalId,
 
@@ -191,7 +191,7 @@ public class StudentService : IStudentService
             student.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
-        student.Name = request.Name;
+        student.Name = LocalizedJson.Normalize(request.Name);
 
         student.NationalId = request.NationalId;
 

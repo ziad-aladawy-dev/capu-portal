@@ -50,6 +50,7 @@ public class CourseOfferingService : ICourseOfferingService
         var offering = await _offerings.GetByIdAsync(id, cancellationToken);
         if (offering is null) return null;
         if (!await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken)) return null;
+        if (!await _scope.CanAccessSemesterAsync(offering.SemesterId, cancellationToken)) return null;
         return ToResponse(offering);
     }
 
@@ -64,6 +65,11 @@ public class CourseOfferingService : ICourseOfferingService
             return Array.Empty<CourseOfferingResponse>();
         }
 
+        if (!await _scope.CanAccessSemesterAsync(semesterId, cancellationToken))
+        {
+            return Array.Empty<CourseOfferingResponse>();
+        }
+
         var offerings = await _offerings.GetForNodeSemesterAsync(structureNodeId, semesterId, status, cancellationToken);
         return offerings.Select(ToResponse).ToList();
     }
@@ -73,6 +79,11 @@ public class CourseOfferingService : ICourseOfferingService
         Guid semesterId,
         CancellationToken cancellationToken = default)
     {
+        if (!await _scope.CanAccessSemesterAsync(semesterId, cancellationToken))
+        {
+            return Array.Empty<CourseOfferingResponse>();
+        }
+
         var offerings = await _offerings.GetForCourseAsync(courseId, semesterId, cancellationToken);
         if (offerings.Count == 0) return Array.Empty<CourseOfferingResponse>();
 
@@ -98,6 +109,11 @@ public class CourseOfferingService : ICourseOfferingService
         if (!await _scope.CanAccessStructureNodeAsync(request.StructureNodeId, cancellationToken))
         {
             throw new NotFoundException(LocalizedKeys.Courses.StructureNodeNotFound);
+        }
+
+        if (!await _scope.CanAccessSemesterAsync(request.SemesterId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }
 
         if (await _offerings.SectionExistsAsync(request.CourseId, request.SemesterId, request.StructureNodeId, request.SectionCode, cancellationToken))
@@ -262,6 +278,11 @@ public class CourseOfferingService : ICourseOfferingService
             ?? throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
 
         if (!await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
+        }
+
+        if (!await _scope.CanAccessSemesterAsync(offering.SemesterId, cancellationToken))
         {
             throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }

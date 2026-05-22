@@ -41,8 +41,8 @@ public class NotificationService : INotificationService
         var notification = new Notification
         {
             RecipientUserId = recipientUserId,
-            Title = title,
-            Message = message,
+            Title = LocalizedJson.Normalize(title),
+            Message = LocalizedJson.Normalize(message),
             Type = type,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
@@ -62,7 +62,10 @@ public class NotificationService : INotificationService
         }
 
         var payload = new NotificationOutboxHandler.NotificationPayload(
-            recipientUserId, title, message, type);
+            recipientUserId, 
+            LocalizedJson.Normalize(title), 
+            LocalizedJson.Normalize(message), 
+            type);
 
         // Outbox stages the row on this DbContext; the caller's SaveChangesAsync
         // commits the notification atomically with whatever business state they're

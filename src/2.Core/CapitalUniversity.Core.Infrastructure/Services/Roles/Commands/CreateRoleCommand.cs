@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 
@@ -18,17 +19,19 @@ public class CreateRoleResponse
 public class CreateRoleCommandHandler
 {
     private readonly CoreDbContext _dbContext;
+    private readonly ILocalizationService _localization;
 
-    public CreateRoleCommandHandler(CoreDbContext dbContext)
+    public CreateRoleCommandHandler(CoreDbContext dbContext, ILocalizationService localization)
     {
         _dbContext = dbContext;
+        _localization = localization;
     }
 
     public async Task<CreateRoleResponse> Handle(CreateRoleRequest request, CancellationToken cancellationToken)
     {
         var role = new Role
         {
-            Name = request.Name,
+            Name = LocalizedJson.Normalize(request.Name),
             IsSystemRole = false // Custom roles
         };
 
@@ -38,7 +41,7 @@ public class CreateRoleCommandHandler
         return new CreateRoleResponse
         {
             Id = role.Id,
-            Name = role.Name
+            Name = _localization.Get<string>(role.Name)
         };
     }
 }

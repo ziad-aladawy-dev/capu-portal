@@ -135,10 +135,12 @@ public class SemesterService : ISemesterService
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(semester.AcademicYearId, startDate, endDate, id))
         {
-            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOverlap);
+            throw new ValidationException("Semester", LocalizedKeys.Semesters.DatesOverlap);
         }
 
+        if (request.Name != null) semester.Name = LocalizedJson.Normalize(request.Name);
         _mapper.UpdateEntity(request, semester);
+
         semester.IsCurrent = IsDateInRange(DateTime.UtcNow, semester.StartDate, semester.EndDate);
         semester.UpdatedAt = DateTime.UtcNow;
 

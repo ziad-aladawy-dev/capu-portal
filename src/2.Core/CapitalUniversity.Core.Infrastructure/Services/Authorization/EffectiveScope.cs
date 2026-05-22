@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -16,17 +17,23 @@ public sealed class EffectiveScope : IEffectiveScope
     private readonly IUserScope _userScope;
     private readonly CoreDbContext _dbContext;
     private readonly IExecutionContext _executionContext;
+    private readonly IRequestContext _requestContext;
 
     // Per-request memoisation. The DbContext is scoped, so these caches live
     // exactly as long as the request that owns them.
     private readonly Dictionary<Guid, string?> _studentPaths = new();
     private readonly Dictionary<Guid, string?> _nodePaths = new();
 
-    public EffectiveScope(IUserScope userScope, CoreDbContext dbContext, IExecutionContext executionContext)
+    public EffectiveScope(
+        IUserScope userScope, 
+        CoreDbContext dbContext, 
+        IExecutionContext executionContext,
+        IRequestContext requestContext)
     {
         _userScope = userScope;
         _dbContext = dbContext;
         _executionContext = executionContext;
+        _requestContext = requestContext;
     }
 
     public async Task<bool> CanAccessStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
@@ -112,5 +119,24 @@ public sealed class EffectiveScope : IEffectiveScope
 
         _nodePaths[nodeId] = path;
         return path;
+    }
+
+    public Task<bool> CanAccessAcademicYearAsync(Guid academicYearId, CancellationToken cancellationToken = default)
+    {
+        if (_executionContext.IsSystem) return Task.FromResult(true);
+
+        // If the caller has locked themselves into a specific year via header,
+        // any row/payload targeting a different year is out-of-scope.
+        var active = _requestContext.ActiveAcademicYearId;
+        return Task.FromResult(active == null || active == academicYearId);
+    }
+
+    public Task<bool> CanAccessSemesterAsync(Guid semesterId, CancellationToken cancellationToken = default)
+    {
+        if (_executionContext.IsSystem) return Task.FromResult(true);
+
+        // Same as year — header lock must match payload.
+        var active = _requestContext.ActiveSemesterId;
+        return Task.FromResult(active == null || active == semesterId);
     }
 }
