@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronDown, Building2, GraduationCap, Layers, BookOpen, Award } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
@@ -60,6 +61,25 @@ function TreeNode({ node, onSelect, selectedId, level = 0 }) {
     </div>
   );
 }
+
+ScopeTreeModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  initialScopeId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+};
+
+TreeNode.propTypes = {
+  node: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    name: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+    children: PropTypes.array,
+  }).isRequired,
+  onSelect: PropTypes.func.isRequired,
+  selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  level: PropTypes.number,
+};
 
 export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
   const [tree, setTree] = useState([]);

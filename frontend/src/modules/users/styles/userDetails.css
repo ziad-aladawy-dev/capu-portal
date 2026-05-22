@@ -141,7 +141,7 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: rgba(26, 31, 94, 0.08);
+  background: rgba(26, 31, 94, 0.22);
   color: #1a1f5e;
   display: flex;
   align-items: center;
@@ -184,9 +184,9 @@
 .confirm-btn:hover { transform: translateY(-1px); }
 .bottom-action-btn.gold,
 .confirm-btn { background: linear-gradient(135deg, #c9a84c, #e0c06a); color: #1a1f5e; }
-.bottom-action-btn.soft-gold { background: rgba(201, 168, 76, 0.13); color: #8a6815; }
-.bottom-action-btn.soft-red { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
-.bottom-action-btn.soft-green { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.bottom-action-btn.soft-gold { background: rgba(201, 168, 76, 0.30); color: #8a6815; }
+.bottom-action-btn.soft-red { background: rgba(220, 38, 38, 0.25); color: #dc2626; }
+.bottom-action-btn.soft-green { background: rgba(22, 163, 74, 0.25); color: #16a34a; }
 .action-separator { width: 1px; height: 24px; background: #e5e7eb; }
 
 .modal-overlay {

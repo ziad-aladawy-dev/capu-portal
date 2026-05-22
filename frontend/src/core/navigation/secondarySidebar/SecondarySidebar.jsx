@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
+import PropTypes from "prop-types";
+import { useState, useCallback, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, X, ChevronDown, ChevronRight, Building2,
@@ -40,6 +41,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   const meta = DIRECTORY_META[dirType] || DIRECTORY_META.all;
   const configFilters = config?.filters || [];
 
+  // Load structure tree on mount
   useEffect(() => {
     const loadTree = async () => {
       setTreeLoading(true);
@@ -59,6 +61,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     loadTree();
   }, []);
 
+  // Load filter options based on directory type
   useEffect(() => {
     const loadFilterOptions = async () => {
       const options = {};
@@ -78,6 +81,14 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     loadFilterOptions();
   }, [dirType]);
 
+  // Helper to get dir type display text
+  const getDirTypeText = () => {
+    if (dirType === "staff") return "staff";
+    if (dirType === "student") return "students";
+    return "users";
+  };
+
+  // Build search parameters from filters
   const buildSearchParams = useCallback((query, activeFilters, nodeId) => {
     const params = {
       search: query || undefined,
@@ -117,6 +128,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     return params;
   }, []);
 
+  // Perform search with current filters
   const doSearch = useCallback(async (query, activeFilters, nodeId) => {
     const hasActiveFilters = activeFilters && Object.values(activeFilters).some(v => v !== undefined && v !== null && v !== '');
     if (!query && !hasActiveFilters && !nodeId) {
@@ -127,6 +139,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     try {
       const searchParams = buildSearchParams(query, activeFilters, nodeId);
       let allItems = [];
+      
       if (dirType === "staff" || dirType === "all") {
         const data = await staffService.searchStaff(searchParams);
         if (data?.items) {
@@ -159,6 +172,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     }
   }, [dirType, buildSearchParams]);
 
+  // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -184,40 +198,6 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     setSelectedNodeId(null);
   }, []);
 
-  const renderTreeNodes = (nodes) => {
-    return nodes.map((node) => (
-      <Fragment key={node.id}>
-        <div className="sec-tree-node">
-          {node.children && node.children.length > 0 ? (
-            <button
-              className="sec-tree-toggle"
-              onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}
-            >
-              {expandedNodes.has(node.id) ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-            </button>
-          ) : (
-            <span className="sec-tree-toggle" style={{ visibility: 'hidden' }}>
-              <ChevronRight size={10} />
-            </span>
-          )}
-          <span
-            className={"sec-tree-label" + (selectedNodeId === node.id ? " active" : "")}
-            onClick={() => {
-              setSelectedNodeId(prev => prev === node.id ? null : node.id);
-            }}
-          >
-            {node.name}
-          </span>
-        </div>
-        {expandedNodes.has(node.id) && node.children && node.children.length > 0 && (
-          <div className="sec-tree-children">
-            {renderTreeNodes(node.children)}
-          </div>
-        )}
-      </Fragment>
-    ));
-  };
-
   const handleSelectEntity = useCallback((entity) => {
     select(entity);
     navigate(`/admin/users/${entity.id}`);
@@ -237,6 +217,72 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       return filterOptions.faculties;
     }
     return filter.options || [];
+  };
+
+  // Render tree node with proper accessibility
+  const renderTreeNodeElement = (node) => (
+    <div className="sec-tree-node" key={node.id}>
+      {node.children && node.children.length > 0 ? (
+        <button
+          className="sec-tree-toggle"
+          onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}
+          aria-label={expandedNodes.has(node.id) ? "Collapse" : "Expand"}
+        >
+          {expandedNodes.has(node.id) ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        </button>
+      ) : (
+        <span className="sec-tree-toggle" style={{ visibility: 'hidden' }}>
+          <ChevronRight size={10} />
+        </span>
+      )}
+      <button
+        className={selectedNodeId === node.id ? "sec-tree-label active" : "sec-tree-label"}
+        onClick={() => {
+          setSelectedNodeId(prev => prev === node.id ? null : node.id);
+        }}
+      >
+        {node.name}
+      </button>
+    </div>
+  );
+
+  // Render tree nodes recursively
+  const renderTreeNodes = (nodes) => {
+    return nodes.map((node) => (
+      <Fragment key={node.id}>
+        {renderTreeNodeElement(node)}
+        {expandedNodes.has(node.id) && node.children && node.children.length > 0 && (
+          <div className="sec-tree-children">
+            {renderTreeNodes(node.children)}
+          </div>
+        )}
+      </Fragment>
+    ));
+  };
+
+  // Render tree filter section
+  const renderTreeFilter = () => {
+    if (treeLoading) {
+      return (
+        <div className="sec-tree-node">
+          <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>Loading...</span>
+        </div>
+      );
+    }
+    if (structureTree.length === 0) {
+      return (
+        <div className="sec-tree-node">
+          <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>No structure data</span>
+        </div>
+      );
+    }
+    return renderTreeNodes(structureTree);
+  };
+
+  // Get results count text
+  const getResultsCountText = () => {
+    if (resultsLoading) return "Searching...";
+    return `${results.length} ${getDirTypeText()}`;
   };
 
   return (
@@ -274,6 +320,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
           <input
             type="text"
             placeholder={meta.placeholder}
+            aria-label={meta.placeholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -290,17 +337,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
             <span>Organization</span>
           </div>
           <div className="sec-tree-filter">
-            {treeLoading ? (
-              <div className="sec-tree-node">
-                <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>Loading...</span>
-              </div>
-            ) : structureTree.length === 0 ? (
-              <div className="sec-tree-node">
-                <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>No structure data</span>
-              </div>
-            ) : (
-              renderTreeNodes(structureTree)
-            )}
+            {renderTreeFilter()}
           </div>
         </div>
 
@@ -336,7 +373,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       <div className="sec-sidebar-results">
         <div className="sec-results-header">
           <span className="sec-results-count">
-            {resultsLoading ? "Searching..." : `${results.length} ${dirType === "staff" ? "staff" : dirType === "student" ? "students" : "users"}`}
+            {getResultsCountText()}
           </span>
         </div>
         <div className="sec-results-list">
@@ -349,10 +386,10 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
           {results.map((entity) => (
             <button
               key={entity.id}
-              className={"sec-result-item" + (isActive && selected?.id === entity.id ? " is-selected" : "")}
+              className={isActive && selected?.id === entity.id ? "sec-result-item is-selected" : "sec-result-item"}
               onClick={() => handleSelectEntity(entity)}
             >
-              <div className={"sec-result-avatar type-" + entity.type}>
+              <div className={`sec-result-avatar type-${entity.type}`}>
                 {entity.name.charAt(0).toUpperCase()}
               </div>
               <div className="sec-result-info">
@@ -380,5 +417,25 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     </aside>
   );
 }
+
+SecondarySidebar.propTypes = {
+  config: PropTypes.shape({
+    directoryType: PropTypes.oneOf(["staff", "student", "all"]),
+    filters: PropTypes.arrayOf(PropTypes.shape({
+      key: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+      options: PropTypes.arrayOf(PropTypes.shape({
+        value: PropTypes.string,
+        label: PropTypes.string,
+      })),
+    })),
+  }),
+  sidebarOpen: PropTypes.bool.isRequired,
+  sidebarWidth: PropTypes.number.isRequired,
+};
+
+SecondarySidebar.defaultProps = {
+  config: { directoryType: "all", filters: [] },
+};
 
 export default SecondarySidebar;

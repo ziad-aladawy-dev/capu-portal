@@ -12,6 +12,8 @@ import AddStaff from "../../modules/users/pages/AddStaff";
 import EditStaff from "../../modules/users/pages/EditStaff";
 import UserDetails from "../../modules/users/pages/UserDetails";
 import UniversityStructurePage from "../../modules/university/pages/UniversityStructurePage";
+import AcademicCalendarPage from "../../modules/academic/pages/AcademicCalendarPage";
+import NotificationsPage from "../../modules/notifications/pages/NotificationsPage";
 
 function AppRouter() {
   return (
@@ -34,6 +36,8 @@ function AppRouter() {
           <Route path="/admin/permissions" element={<h1>Permissions Page</h1>} />
           <Route path="/admin/sync" element={<h1>SIS Sync Page</h1>} />
           <Route path="/admin/university-structure" element={<UniversityStructurePage />} />
+          <Route path="/admin/academic-calendar" element={<AcademicCalendarPage />} />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
         </Route>
       </Routes>
     </ScopeProvider>

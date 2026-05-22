@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useMemo } from "react";
 import { useAuth } from "./useAuth";
 
@@ -73,3 +74,7 @@ function PermissionProvider({ children }) {
 }
 
 export { PermissionContext, PermissionProvider };
+
+PermissionProvider.propTypes = {
+  children: PropTypes.node,
+};

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext } from "react";
 
 const DomainContext = createContext();
@@ -18,3 +19,7 @@ export const DomainProvider = ({ children }) => {
 
 export const useDomain = () =>
   useContext(DomainContext);
+
+DomainProvider.propTypes = {
+  children: PropTypes.node,
+};

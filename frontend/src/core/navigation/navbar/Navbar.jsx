@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import PropTypes from "prop-types";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   ChevronDown,
@@ -7,27 +9,51 @@ import {
   CalendarRange,
   BookOpen,
   HelpCircle,
+  Lock,
+  LogOut,
 } from "lucide-react";
 
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
+import { useAuth } from "../../auth/useAuth";
+import * as notificationService from "../../services/notificationService";
+import ChangePasswordModal from "../../components/ChangePasswordModal";
 import "../../styles/navbar.css";
 
 function Navbar({ onToggleSidebar, showSecondary }) {
   const { selectedDomain, selectDomain, domains, domainsLoading } = useDomain();
   const { selectedYear, selectedSemester, academicYears, semesters, selectYear, selectSemester } = useAcademic();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const scopeRef = useRef(null);
   const yearRef = useRef(null);
   const semRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const notifications = await notificationService.fetchUnreadNotifications();
+      setUnreadCount(notifications?.length || 0);
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         !scopeRef.current?.contains(e.target) &&
         !yearRef.current?.contains(e.target) &&
-        !semRef.current?.contains(e.target)
+        !semRef.current?.contains(e.target) &&
+        !userMenuRef.current?.contains(e.target)
       ) {
         setOpenDropdown(null);
       }
@@ -89,7 +115,7 @@ function Navbar({ onToggleSidebar, showSecondary }) {
                   <Building2 size={13} />
                   <div>
                     <strong>{f.name}</strong>
-                    <span>{f.type === "University" ? "University" : f.type === "Faculty" ? "Faculty" : ""}</span>
+                    <span>{f.type === "University" || f.type === "Faculty" ? f.type : ""}</span>
                   </div>
                   {selectedDomain?.id === f.id && (
                     <span className="nav-dropdown-check">✓</span>
@@ -185,22 +211,59 @@ function Navbar({ onToggleSidebar, showSecondary }) {
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input placeholder="Search anything…" />
+          <input placeholder="Search anything…" aria-label="Search" />
         </div>
 
-        <button className="nav-icon-btn">
+        <button className="nav-icon-btn" onClick={() => navigate("/admin/notifications")} title="Notifications">
           <Bell size={14} />
-          <span className="badge" />
+          {unreadCount > 0 && <span className="badge">{unreadCount > 99 ? "99+" : unreadCount}</span>}
         </button>
 
         <button className="nav-icon-btn">
           <HelpCircle size={14} />
         </button>
 
-        <div className="topbar-avatar">A</div>
+        <div className="nav-dropdown-wrapper" ref={userMenuRef}>
+          <button
+            className="topbar-avatar"
+            onClick={() => toggleDropdown("user")}
+          >
+            A
+          </button>
+          {openDropdown === "user" && (
+            <div className="nav-dropdown-menu" style={{ right: 0, left: "auto" }}>
+              <button
+                className="nav-dropdown-item"
+                onClick={() => { setOpenDropdown(null); setShowChangePassword(true); }}
+              >
+                <Lock size={13} />
+                <span>Change Password</span>
+              </button>
+              <button
+                className="nav-dropdown-item"
+                onClick={() => { setOpenDropdown(null); logout(); }}
+              >
+                <LogOut size={13} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {showChangePassword && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={() => fetchUnreadCount()}
+        />
+      )}
     </header>
   );
 }
 
 export default Navbar;
+
+Navbar.propTypes = {
+  onToggleSidebar: PropTypes.func.isRequired,
+  showSecondary: PropTypes.bool,
+};

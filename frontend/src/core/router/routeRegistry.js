@@ -15,6 +15,8 @@ import StaffDirectory from "../../modules/staff/pages/StaffDirectory";
 import StudentDirectory from "../../modules/students/pages/StudentDirectory";
 import PermissionsPage from "../../modules/permissions/pages/PermissionsPage";
 import RolesPage from "../../modules/permissions/pages/RolesPage";
+import AcademicCalendarPage from "../../modules/academic/pages/AcademicCalendarPage";
+import NotificationsPage from "../../modules/notifications/pages/NotificationsPage";
 
 const COMPONENT_MAP = {
   AdminDashboard,
@@ -29,6 +31,8 @@ const COMPONENT_MAP = {
   StudentDirectory,
   PermissionsPage,
   RolesPage,
+  AcademicCalendarPage,
+  NotificationsPage,
 };
 
 function Placeholder({ title = "Page" }) {

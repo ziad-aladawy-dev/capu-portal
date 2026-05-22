@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { normalizeType, getAllowedChildTypes, getNodeTypeValue } from "../utils/nodeTypeHelpers";
@@ -21,6 +22,11 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!node;
+  const submitLabel = (() => {
+    if (isSubmitting) return "Saving...";
+    if (isEditMode) return "Update";
+    return "Create";
+  })();
 
   useEffect(() => {
     if (isOpen) {
@@ -133,7 +139,7 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
               Cancel
             </button>
             <button type="submit" className="btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : (isEditMode ? "Update" : "Create")}
+              {submitLabel}
             </button>
           </div>
         </form>
@@ -141,3 +147,19 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
     </div>
   );
 }
+
+AddEditNodeModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  node: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    name: PropTypes.string,
+    type: PropTypes.string,
+    parentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    order: PropTypes.number,
+  }),
+  parentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  parentType: PropTypes.string,
+  siblingsCount: PropTypes.number,
+};

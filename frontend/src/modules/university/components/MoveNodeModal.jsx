@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
@@ -147,3 +148,17 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
     </div>
   );
 }
+
+MoveNodeModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onMove: PropTypes.func.isRequired,
+  currentNode: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    name: PropTypes.string,
+    type: PropTypes.string,
+    parentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    order: PropTypes.number,
+    path: PropTypes.string,
+  }),
+};

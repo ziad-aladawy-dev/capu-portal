@@ -10,6 +10,7 @@ function DashboardSearch() {
           type="text"
           placeholder="Global search..."
           className="search-input"
+          aria-label="Global search"
         />
       </div>
     </div>

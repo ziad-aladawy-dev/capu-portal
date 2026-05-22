@@ -59,7 +59,7 @@
 
 .users-table tbody tr { transition: 0.2s ease; }
 .users-table tbody tr:hover td { background: #fdf9f0; }
-.users-table .deleted-row td { opacity: 0.58; background: #fff7f7; }
+.users-table .deleted-row td { opacity: 0.70; background: #fff7f7; }
 
 .status-badge,
 .password-badge {
@@ -96,10 +96,10 @@
   transition: 0.2s ease;
 }
 .action-btn:hover { transform: translateY(-2px); }
-.permission-btn { color: #c9a84c; background: rgba(201, 168, 76, 0.12); }
-.reset-btn { color: #f59e0b; background: rgba(245, 158, 11, 0.12); }
-.info-btn { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
-.edit-btn { color: #1a1f5e; background: rgba(26, 31, 94, 0.08); }
+.permission-btn { color: #c9a84c; background: rgba(201, 168, 76, 0.30); }
+.reset-btn { color: #f59e0b; background: rgba(245, 158, 11, 0.30); }
+.info-btn { color: #2563eb; background: rgba(37, 99, 235, 0.25); }
+.edit-btn { color: #1a1f5e; background: rgba(26, 31, 94, 0.25); }
 
 .pagination-container {
   padding: 12px;
@@ -124,7 +124,7 @@
   border-color: #c9a84c;
   color: #1a1f5e;
 }
-.pagination-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pagination-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 .pagination-btn.dots { border: none; }
 
 @keyframes spin { to { transform: rotate(360deg); } }

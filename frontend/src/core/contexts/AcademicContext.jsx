@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext } from "react";
 
 const AcademicContext = createContext();
@@ -19,3 +20,7 @@ export const AcademicProvider = ({
 
 export const useAcademic = () =>
   useContext(AcademicContext);
+
+AcademicProvider.propTypes = {
+  children: PropTypes.node,
+};

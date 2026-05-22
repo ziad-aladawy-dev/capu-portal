@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronRight, LogOut, LayoutDashboard, Building2, Users, Shield } from "lucide-react";
@@ -125,3 +126,9 @@ function Sidebar({ isOpen, isMobile, onClose }) {
 }
 
 export default Sidebar;
+
+Sidebar.propTypes = {
+  isOpen: PropTypes.bool,
+  isMobile: PropTypes.bool,
+  onClose: PropTypes.func,
+};

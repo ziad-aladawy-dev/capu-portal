@@ -62,7 +62,7 @@
 }
 
 .roles-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .roles-action-btn.delete:disabled {
-  opacity: 0.3;
+  opacity: 0.60;
   cursor: not-allowed;
 }
 
@@ -479,7 +479,7 @@
 }
 
 .roles-page-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 

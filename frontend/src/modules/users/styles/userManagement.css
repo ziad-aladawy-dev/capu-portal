@@ -165,34 +165,34 @@
   
   .info-btn {
     color: #2e3591;
-    background: rgba(46, 53, 145, 0.08);
+    background: rgba(46, 53, 145, 0.22);
   }
   
   .info-btn:hover {
-    background: rgba(46, 53, 145, 0.15);
+    background: rgba(46, 53, 145, 0.35);
   }
   
   .edit-btn {
     color: #8a6a10;
-    background: rgba(201, 168, 76, 0.12);
+    background: rgba(201, 168, 76, 0.30);
   }
   
   .edit-btn:hover {
-    background: rgba(201, 168, 76, 0.25);
+    background: rgba(201, 168, 76, 0.45);
   }
   
   .delete-btn {
     color: var(--warning-red);
-    background: rgba(220, 38, 38, 0.08);
+    background: rgba(220, 38, 38, 0.22);
   }
   
   .delete-btn:hover {
-    background: rgba(220, 38, 38, 0.15);
+    background: rgba(220, 38, 38, 0.35);
   }
   
   .toggle-btn {
     color: #7a5c10;
-    background: rgba(201, 168, 76, 0.12);
+    background: rgba(201, 168, 76, 0.30);
   }
   
   .toggle-btn.inactive {
@@ -202,11 +202,11 @@
   
   .reset-password-btn {
     color: #7a5c10;
-    background: rgba(201, 168, 76, 0.12);
+    background: rgba(201, 168, 76, 0.30);
   }
   
   .reset-password-btn:hover {
-    background: rgba(201, 168, 76, 0.25);
+    background: rgba(201, 168, 76, 0.45);
   }
   
   /* Role Badge */
@@ -219,7 +219,7 @@
   }
   
   .role-student {
-    background: rgba(26, 31, 94, 0.08);
+    background: rgba(26, 31, 94, 0.22);
     color: var(--navy-primary);
   }
   
@@ -240,12 +240,12 @@
   
   /* Deleted row */
   .deleted-row {
-    opacity: 0.6;
+    opacity: 0.75;
     background-color: #fef2f2;
   }
   
   .deleted-row:hover {
-    opacity: 0.8;
+    opacity: 0.90;
   }
   
   /* Empty State */
@@ -257,7 +257,7 @@
   
   .empty-state svg {
     margin-bottom: 16px;
-    opacity: 0.5;
+    opacity: 0.65;
   }
   
   /* Loading & Error States */
@@ -331,7 +331,7 @@
   }
   
   .pagination-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.65;
     cursor: not-allowed;
   }
   

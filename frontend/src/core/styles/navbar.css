@@ -62,12 +62,30 @@
   position: absolute;
   top: 5px;
   right: 5px;
-  width: 6px;
+  min-width: 6px;
   height: 6px;
   background: #e0c06a;
   border-radius: 50%;
   border: 1.5px solid #07091e;
   animation: pulseBadge 1.8s ease-in-out infinite;
+  font-size: 7px;
+  font-weight: 800;
+  color: #07091e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.nav-icon-btn .badge:not(:empty) {
+  width: auto;
+  min-width: 16px;
+  height: 14px;
+  border-radius: 9px;
+  top: 3px;
+  right: 3px;
+  padding: 0 4px;
+  animation: none;
 }
 
 .nav-divider {
@@ -111,7 +129,7 @@
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.75);
   margin-bottom: 2px;
 }
 
@@ -136,7 +154,7 @@
   align-items: center;
   gap: 7px;
   padding: 0 10px;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.72);
   transition: all 0.25s ease;
 }
 
@@ -157,7 +175,7 @@
 }
 
 .nav-search input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .topbar-avatar {
@@ -273,7 +291,7 @@
 
 .scope-content small {
   font-size: 8px;
-  color: rgba(255,255,255,0.48);
+  color: rgba(255,255,255,0.7);
 
   overflow: hidden;
   text-overflow: ellipsis;

@@ -42,7 +42,14 @@ function DashboardLayout() {
   return (
     <div className="dashboard-wrapper">
       {isMobile && sidebarOpen && (
-        <div className="sidebar-overlay" onClick={closeSidebar} />
+        <div
+          className="sidebar-overlay"
+          onClick={closeSidebar}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") closeSidebar(); }}
+          aria-label="Close sidebar"
+        />
       )}
 
       <Sidebar

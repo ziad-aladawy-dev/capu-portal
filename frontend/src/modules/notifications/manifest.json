@@ -1,0 +1,29 @@
+{
+  "id": "notifications",
+  "name": "Notifications",
+  "version": "1.0.0",
+  "coreVersionRequired": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/notifications",
+      "component": "NotificationsPage",
+      "permission": "notifications.view",
+      "moduleId": "notifications"
+    }
+  ],
+  "menuItems": [
+    {
+      "category": "Overview",
+      "label": "Notifications",
+      "path": "/admin/notifications",
+      "icon": "Bell",
+      "permission": "notifications.view"
+    }
+  ],
+  "permissions": {
+    "resources": [
+      "notifications.view",
+      "notifications.manage"
+    ]
+  }
+}

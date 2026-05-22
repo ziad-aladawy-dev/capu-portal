@@ -37,7 +37,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(224, 192, 106, 0.14);
+  background: rgba(224, 192, 106, 0.35);
   color: #e0c06a;
   display: flex;
   align-items: center;
@@ -154,7 +154,7 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgba(224, 192, 106, 0.14);
+  background: rgba(224, 192, 106, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,7 +316,7 @@
 
 .wizard-btn:disabled,
 .submit-button:disabled {
-  opacity: 0.45;
+  opacity: 0.65;
   cursor: not-allowed;
 }
 
@@ -350,7 +350,7 @@
   width: 42px;
   height: 22px;
   border-radius: 999px;
-  background: rgba(220, 38, 38, 0.18);
+  background: rgba(220, 38, 38, 0.35);
   position: relative;
   transition: 0.25s ease;
 }
@@ -371,7 +371,7 @@
 }
 
 .account-status-toggle input:checked + .account-status-switch {
-  background: rgba(22, 163, 74, 0.18);
+  background: rgba(22, 163, 74, 0.35);
 }
 
 .account-status-toggle input:checked + .account-status-switch .account-status-dot {

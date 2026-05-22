@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 function ErrorMessage({ message = "Something went wrong" }) {
   return (
     <div
@@ -14,4 +16,8 @@ function ErrorMessage({ message = "Something went wrong" }) {
     </div>
   );
 }
+ErrorMessage.propTypes = {
+  message: PropTypes.string,
+};
+
 export default ErrorMessage;

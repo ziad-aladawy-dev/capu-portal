@@ -118,7 +118,7 @@ const userService = {
   },
   getPrograms: async (facultyId) => {
     if (!facultyId) return [];
-    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/faculties/${facultyId}/programs`);
+    const response = await apiClient.get(`${STRUCTURE_LOOKUP_BASE}/${facultyId}/children/Program`);
     return response.data;
   },
   getLevels: async (programId) => {

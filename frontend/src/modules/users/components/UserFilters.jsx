@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { Search, Filter, X } from "lucide-react";
 
 const UserFilters = ({ 
@@ -187,6 +188,18 @@ const UserFilters = ({
       )}
     </section>
   );
+};
+
+UserFilters.propTypes = {
+  filters: PropTypes.object,
+  roles: PropTypes.arrayOf(PropTypes.object),
+  faculties: PropTypes.arrayOf(PropTypes.object),
+  departments: PropTypes.arrayOf(PropTypes.object),
+  levels: PropTypes.arrayOf(PropTypes.object),
+  activeTab: PropTypes.string.isRequired,
+  onFilterChange: PropTypes.func.isRequired,
+  onFetchPrograms: PropTypes.func.isRequired,
+  onFetchLevels: PropTypes.func.isRequired,
 };
 
 export default UserFilters;

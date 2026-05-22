@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext, useState, useCallback } from "react";
 
 const StickySelectionContext = createContext(null);
@@ -36,3 +37,7 @@ export function useStickySelection() {
 
   return context;
 }
+
+StickySelectionProvider.propTypes = {
+  children: PropTypes.node,
+};

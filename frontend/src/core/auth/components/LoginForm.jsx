@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -146,3 +147,9 @@ function LoginForm({ type, redirectPath, onForgotClick }) {
 }
 
 export default LoginForm;
+
+LoginForm.propTypes = {
+  type: PropTypes.oneOf(["admin", "student"]).isRequired,
+  redirectPath: PropTypes.string,
+  onForgotClick: PropTypes.func.isRequired,
+};

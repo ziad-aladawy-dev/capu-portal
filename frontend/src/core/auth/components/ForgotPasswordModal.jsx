@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import "../styles/forgotPasswordModal.css";
 
@@ -92,3 +93,7 @@ function ForgotPasswordModal({ onClose }) {
 }
 
 export default ForgotPasswordModal;
+
+ForgotPasswordModal.propTypes = {
+  onClose: PropTypes.func.isRequired,
+};

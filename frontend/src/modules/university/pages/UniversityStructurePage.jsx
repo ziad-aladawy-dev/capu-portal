@@ -201,6 +201,7 @@ const UniversityStructurePage = () => {
         <input
           type="text"
           placeholder="Search hierarchy..."
+          aria-label="Search hierarchy"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

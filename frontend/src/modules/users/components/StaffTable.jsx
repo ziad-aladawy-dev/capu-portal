@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Eye, Edit3 } from 'lucide-react';
 import '../styles/UserTable.css';
 
@@ -91,9 +92,9 @@ const StaffTable = ({
           <button className="pagination-btn" onClick={() => onPageChange(pagination.pageNumber - 1)} disabled={pagination.pageNumber === 1}>
             &lt;
           </button>
-          {getPageNumbers().map((page, index) => (
+          {getPageNumbers().map((page) => (
             <button
-              key={index}
+              key={page === '...' ? `dots-${pagination.pageNumber}` : page}
               className={`pagination-btn ${page === pagination.pageNumber ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
               onClick={() => typeof page === 'number' && onPageChange(page)}
               disabled={page === '...'}
@@ -108,6 +109,20 @@ const StaffTable = ({
       )}
     </div>
   );
+};
+
+StaffTable.propTypes = {
+  staff: PropTypes.arrayOf(PropTypes.object).isRequired,
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  pagination: PropTypes.shape({
+    pageNumber: PropTypes.number.isRequired,
+    pageSize: PropTypes.number.isRequired,
+    totalPages: PropTypes.number.isRequired,
+  }),
+  onPageChange: PropTypes.func.isRequired,
+  onViewDetails: PropTypes.func.isRequired,
+  onEdit: PropTypes.func.isRequired,
 };
 
 export default StaffTable;

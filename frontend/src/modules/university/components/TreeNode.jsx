@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import {
   ChevronDown,
@@ -46,6 +47,13 @@ function TreeNode({
   const isSelected = selectedNode?.id === node.id;
   const isMatched = search && matchedIds.includes(node.id);
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setSelectedNode(node);
+    }
+  };
+
   const handleDragStart = (e) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({
       draggedNodeId: node.id,
@@ -87,6 +95,9 @@ function TreeNode({
           isMatched ? "matched" : ""
         } ${dragOver ? "drag-over" : ""}`}
         onClick={() => setSelectedNode(node)}
+        onKeyDown={handleKeyDown}
+        role="treeitem"
+        tabIndex={0}
         draggable
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -120,7 +131,7 @@ function TreeNode({
           </div>
         </div>
 
-        <div className="tree-node-actions" onClick={(e) => e.stopPropagation()}>
+        <div className="tree-node-actions" onClick={(e) => e.stopPropagation()} role="presentation">
           <button type="button" title="Move up" onClick={() => onMove(node.id, "up", parentId)}>
             <ArrowUp size={13} />
           </button>
@@ -177,5 +188,26 @@ function TreeNode({
     </div>
   );
 }
+
+TreeNode.propTypes = {
+  node: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    name: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+    depth: PropTypes.number,
+    parentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    children: PropTypes.array,
+  }).isRequired,
+  parentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onAdd: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onRename: PropTypes.func.isRequired,
+  onMove: PropTypes.func.isRequired,
+  onDropMove: PropTypes.func,
+  selectedNode: PropTypes.object,
+  setSelectedNode: PropTypes.func.isRequired,
+  matchedIds: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
+  search: PropTypes.string,
+};
 
 export default TreeNode;

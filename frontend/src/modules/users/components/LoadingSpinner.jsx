@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 function LoadingSpinner({ message = "Loading...", fullPage = false }) {
   return (
     <div
@@ -27,4 +29,9 @@ function LoadingSpinner({ message = "Loading...", fullPage = false }) {
     </div>
   );
 }
+LoadingSpinner.propTypes = {
+  message: PropTypes.string,
+  fullPage: PropTypes.bool,
+};
+
 export default LoadingSpinner;

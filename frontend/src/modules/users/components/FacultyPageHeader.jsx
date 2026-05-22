@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 function FacultyPageHeader({
   title,
@@ -35,5 +36,14 @@ function FacultyPageHeader({
     </section>
   );
 }
+
+FacultyPageHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.elementType,
+  onAdd: PropTypes.func.isRequired,
+  onExport: PropTypes.func,
+  showActions: PropTypes.bool,
+  exportButtonRef: PropTypes.shape({ current: PropTypes.any }),
+};
 
 export default FacultyPageHeader;

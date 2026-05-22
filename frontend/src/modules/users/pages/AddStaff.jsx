@@ -399,8 +399,10 @@ const AddStaff = () => {
                         value={selectedNodeName}
                         readOnly
                         onClick={() => setShowStructureModal(true)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowStructureModal(true); } }}
                         className={`form-input ${errors.structureNodeId ? "error" : ""}`}
                         placeholder="Select node from structure"
+                        aria-label="Select structure node"
                       />
                       <Building2 size={15} className="input-icon" />
                     </div>

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { X } from "lucide-react";
 
 export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, nodeName }) {
@@ -30,3 +31,10 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, nodeName }) {
     </div>
   );
 }
+
+ConfirmDeleteModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  nodeName: PropTypes.string.isRequired,
+};

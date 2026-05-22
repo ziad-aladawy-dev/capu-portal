@@ -1,0 +1,503 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
+
+.ac-page {
+  padding: 16px;
+  font-family: "DM Sans", sans-serif;
+  color: #1a1f5e;
+}
+
+.ac-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 12px;
+  color: #6b7280;
+}
+
+.ac-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #c9a84c;
+  border-radius: 50%;
+  animation: ac-spin 0.7s linear infinite;
+}
+
+@keyframes ac-spin { to { transform: rotate(360deg); } }
+
+.ac-header {
+  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  border-radius: 16px;
+  padding: 15px 17px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 12px 26px rgba(26, 31, 94, 0.14);
+  position: relative;
+  overflow: hidden;
+}
+
+.ac-header::after {
+  content: "";
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  right: -45px;
+  top: -55px;
+  border-radius: 999px;
+  background: rgba(224, 192, 106, 0.12);
+}
+
+.ac-header-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  position: relative;
+  z-index: 1;
+}
+
+.ac-header-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(224, 192, 106, 0.35);
+  color: #e0c06a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ac-header-left h1 {
+  margin: 0;
+  font-size: 19px;
+  font-family: "Space Mono", monospace;
+  color: #fff;
+  line-height: 1.15;
+}
+
+.ac-header-left p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ac-header-actions {
+  display: flex;
+  gap: 7px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.ac-btn {
+  border: none;
+  border-radius: 9px;
+  padding: 8px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+  font-family: "DM Sans", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-btn-primary {
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  color: #1a1f5e;
+}
+
+.ac-btn-soft {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.ac-btn-outline {
+  background: transparent;
+  color: #1a1f5e;
+  border: 1.5px solid #e5e7eb;
+}
+
+.ac-btn-ghost {
+  background: transparent;
+  color: #6b7280;
+}
+
+.ac-btn-small {
+  background: rgba(26, 31, 94, 0.22);
+  color: #1a1f5e;
+  padding: 5px 9px;
+  font-size: 10px;
+}
+
+.ac-btn-primary:hover, .ac-btn-soft:hover, .ac-btn-outline:hover, .ac-btn-small:hover, .ac-btn-ghost:hover {
+  transform: translateY(-1px);
+}
+
+.ac-btn-primary:disabled, .ac-btn-soft:disabled, .ac-btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ac-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ac-banner-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.ac-banner-success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.ac-banner button {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+}
+
+.ac-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  gap: 10px;
+  color: #6b7280;
+  text-align: center;
+  padding: 40px;
+}
+
+.ac-error h3 { color: #1a1f5e; font-family: "Space Mono", monospace; }
+.ac-error p { font-size: 13px; margin-bottom: 6px; }
+
+.ac-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  gap: 10px;
+  color: #6b7280;
+  text-align: center;
+  padding: 40px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.ac-empty h3 { color: #1a1f5e; font-family: "Space Mono", monospace; }
+.ac-empty p { font-size: 13px; margin-bottom: 6px; }
+
+.ac-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ac-year-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(26, 31, 94, 0.04);
+  overflow: hidden;
+  transition: 0.2s ease;
+}
+
+.ac-year-card.is-current {
+  border-color: #c9a84c;
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.12);
+}
+
+.ac-year-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: 0.2s ease;
+}
+
+.ac-year-header:hover { background: #f8f9fb; }
+
+.ac-year-toggle {
+  color: #9ca3af;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ac-year-info { flex: 1; min-width: 0; }
+.ac-year-info h3 { margin: 0; font-size: 14px; font-weight: 800; color: #1a1f5e; }
+
+.ac-year-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.ac-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ac-badge-current {
+  background: rgba(201, 168, 76, 0.30);
+  color: #c9a84c;
+}
+
+.ac-year-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.ac-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.ac-icon-btn:hover { background: #f8f9fb; color: #1a1f5e; border-color: #c9a84c; }
+.ac-icon-btn-danger:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+.ac-semester-list {
+  border-top: 1px solid #edf0f5;
+  padding: 8px 14px 14px 42px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ac-no-semesters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  color: #9ca3af;
+  font-size: 12px;
+  background: #f8f9fb;
+  border-radius: 10px;
+}
+
+.ac-semester-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8f9fb;
+  border: 1px solid #edf0f5;
+  border-radius: 10px;
+  transition: 0.2s ease;
+}
+
+.ac-semester-item:hover { background: #fdf6e3; border-color: rgba(201, 168, 76, 0.2); }
+.ac-semester-item.is-current { border-color: #c9a84c; background: #fdf9ed; }
+
+.ac-semester-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.ac-semester-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(26, 31, 94, 0.22);
+  color: #1a1f5e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ac-semester-info strong { font-size: 12px; color: #1a1f5e; }
+
+.ac-semester-dates {
+  display: block;
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 1px;
+}
+
+.ac-semester-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Modal */
+
+.ac-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: ac-fade-in 0.15s ease;
+}
+
+@keyframes ac-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.ac-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 50px rgba(26, 31, 94, 0.2);
+  animation: ac-slide-up 0.2s ease;
+}
+
+@keyframes ac-slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.ac-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0;
+}
+
+.ac-modal-header h2 { font-size: 16px; font-weight: 800; color: #1a1f5e; font-family: "Space Mono", monospace; }
+
+.ac-modal-close {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+}
+
+.ac-modal-close:hover { background: #f3f4f6; color: #1a1f5e; }
+
+.ac-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ac-form-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ac-form-group { display: flex; flex-direction: column; gap: 5px; }
+.ac-form-group label { font-size: 11px; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
+
+.ac-form-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8f9fb;
+  color: #1a1f5e;
+  font-size: 13px;
+  font-family: "DM Sans", sans-serif;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.ac-form-input:focus {
+  border-color: #c9a84c;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+}
+
+.ac-form-input.error { border-color: #dc2626; background: #fef2f2; }
+
+.ac-form-error { font-size: 11px; color: #dc2626; font-weight: 600; }
+.ac-form-hint { font-size: 10px; color: #9ca3af; }
+
+.ac-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ac-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 18px;
+}
+
+.cp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cp-input-wrap svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .ac-page { padding: 12px; }
+  .ac-header { flex-direction: column; align-items: flex-start; }
+  .ac-header-actions { width: 100%; }
+  .ac-form-row { grid-template-columns: 1fr; }
+  .ac-year-header { flex-wrap: wrap; }
+  .ac-year-actions { width: 100%; justify-content: flex-end; margin-top: 6px; }
+}

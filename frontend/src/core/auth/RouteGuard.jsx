@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./useAuth";
 import { usePermission } from "./usePermission";
@@ -22,3 +23,10 @@ function RouteGuard({ resource, minLevel = 1, fallback = "/admin/dashboard", chi
 }
 
 export default RouteGuard;
+
+RouteGuard.propTypes = {
+  resource: PropTypes.string,
+  minLevel: PropTypes.number,
+  fallback: PropTypes.string,
+  children: PropTypes.node,
+};

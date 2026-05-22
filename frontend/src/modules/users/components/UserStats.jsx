@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Users, UserCheck, UserX, GraduationCap, Briefcase } from "lucide-react";
 
 const UserStats = ({ statistics, loading }) => {
@@ -28,6 +29,17 @@ const UserStats = ({ statistics, loading }) => {
       ))}
     </div>
   );
+};
+
+UserStats.propTypes = {
+  statistics: PropTypes.shape({
+    totalUsers: PropTypes.number,
+    activeUsers: PropTypes.number,
+    inactiveUsers: PropTypes.number,
+    studentsCount: PropTypes.number,
+    staffCount: PropTypes.number,
+  }),
+  loading: PropTypes.bool,
 };
 
 export default UserStats;

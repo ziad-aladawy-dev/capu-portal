@@ -5,6 +5,8 @@ import usersManifest from "../../modules/users/manifest.json";
 import staffManifest from "../../modules/staff/manifest.json";
 import studentsManifest from "../../modules/students/manifest.json";
 import permissionsManifest from "../../modules/permissions/manifest.json";
+import academicManifest from "../../modules/academic/manifest.json";
+import notificationsManifest from "../../modules/notifications/manifest.json";
 
 const MODULE_MANIFESTS = [
   landingManifest,
@@ -14,6 +16,8 @@ const MODULE_MANIFESTS = [
   staffManifest,
   studentsManifest,
   permissionsManifest,
+  academicManifest,
+  notificationsManifest,
 ];
 
 export function getAllRoutes() {

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext, useState, useEffect } from "react";
 
 const ScopeContext = createContext();
@@ -31,3 +32,7 @@ export const ScopeProvider = ({ children }) => {
 };
 
 export const useScope = () => useContext(ScopeContext);
+
+ScopeProvider.propTypes = {
+  children: PropTypes.node,
+};
