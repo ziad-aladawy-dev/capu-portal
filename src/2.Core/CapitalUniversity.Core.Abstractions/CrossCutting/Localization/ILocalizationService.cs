@@ -6,4 +6,7 @@ public interface ILocalizationService
 {
     T Get<T>(string json);
     string Get(Enum value);
+
+    string GetLocalizedString(string? json);
+    string GetCurrentLanguage();
 }

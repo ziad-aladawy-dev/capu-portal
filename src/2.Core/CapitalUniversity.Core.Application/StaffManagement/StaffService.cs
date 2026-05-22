@@ -1,9 +1,9 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
-using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.Application.StaffManagement;
 
@@ -14,12 +14,16 @@ public class StaffService : IStaffService
     private readonly IStructureNodeRepository
         _structureRepository;
 
+    private readonly IPasswordHasher _passwordHasher;
+
     public StaffService(
         IStaffRepository repository,
-        IStructureNodeRepository structureRepository)
+        IStructureNodeRepository structureRepository,
+        IPasswordHasher passwordHasher)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
@@ -45,6 +49,8 @@ public class StaffService : IStaffService
             throw new Exception(
                 "Passwords do not match");
         }
+
+        var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
         var structureNode = await _structureRepository
             .GetByIdAsync(request.StructureNodeId);
@@ -79,7 +85,7 @@ public class StaffService : IStaffService
 
             EmployeeCode = request.EmployeeCode,
 
-            PasswordHash = request.Password,
+            PasswordHash = hashedPassword,
 
             Name = request.Name,
 
@@ -165,8 +171,7 @@ public class StaffService : IStaffService
                     "Passwords do not match");
             }
 
-            staff.PasswordHash =
-                request.Password;
+            staff.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
         staff.Name = request.Name;

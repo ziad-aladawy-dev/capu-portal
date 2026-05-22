@@ -89,5 +89,39 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
             // Future implementation: look up in .resx or DB
             return key;
         }
+
+        //-------
+        public string GetLocalizedString(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return string.Empty;
+
+            try
+            {
+                var lang = _culture.Language?.ToLowerInvariant() ?? DefaultLanguage;
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (dict == null) return string.Empty;
+
+                if (dict.TryGetValue(lang, out var value))
+                    return value;
+
+                if (dict.TryGetValue(DefaultLanguage, out var defaultValue))
+                    return defaultValue;
+
+                if (dict.TryGetValue(EnglishLanguage, out var enValue))
+                    return enValue;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize localized JSON: {Json}", json);
+            }
+            return string.Empty;
+        }
+
+        public string GetCurrentLanguage()
+        {
+            var lang = _culture.Language?.ToLowerInvariant() ?? DefaultLanguage;
+            return lang == EnglishLanguage ? EnglishLanguage : DefaultLanguage;
+        }
     }
 }

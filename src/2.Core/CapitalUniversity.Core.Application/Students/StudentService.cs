@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
@@ -13,12 +14,15 @@ public class StudentService : IStudentService
 
     private readonly IStructureNodeRepository _structureRepository;
 
+    private readonly IPasswordHasher _passwordHasher;
+
     public StudentService(
         IStudentRepository repository,
-        IStructureNodeRepository structureRepository)
+        IStructureNodeRepository structureRepository, IPasswordHasher passwordHasher)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -52,6 +56,8 @@ public class StudentService : IStudentService
             throw new Exception(
                 "Passwords do not match");
         }
+
+        var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
         var structureNode = await _structureRepository
             .GetByIdAsync(request.StructureNodeId);
@@ -93,7 +99,7 @@ public class StudentService : IStudentService
 
             StructureNodeId = request.StructureNodeId,
 
-            PasswordHash = request.Password,
+            PasswordHash = hashedPassword,
 
             PasswordExpiry = request.PasswordExpiry,
 
@@ -164,8 +170,7 @@ public class StudentService : IStudentService
                     "Passwords do not match");
             }
 
-            student.PasswordHash =
-                request.Password;
+            student.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
         student.Name = request.Name;
