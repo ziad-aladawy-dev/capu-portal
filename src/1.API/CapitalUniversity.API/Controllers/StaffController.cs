@@ -12,8 +12,7 @@ public class StaffController : ControllerBase
 {
     private readonly IStaffService _service;
 
-    public StaffController(
-        IStaffService service)
+    public StaffController(IStaffService service)
     {
         _service = service;
     }
@@ -27,8 +26,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search(
-        [FromQuery] StaffQueryRequest request)
+    public async Task<IActionResult> Search([FromQuery] StaffQueryRequest request)
     {
         var result = await _service.SearchAsync(request);
 
@@ -113,8 +111,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("export/csv")]
-    public async Task<IActionResult> ExportCsv(
-   [FromQuery] StaffQueryRequest request)
+    public async Task<IActionResult> ExportCsv([FromQuery] StaffQueryRequest request)
     {
         request.Page = 1;
         request.PageSize = 100000;
@@ -122,15 +119,28 @@ public class StaffController : ControllerBase
         var result = await _service.SearchAsync(request);
 
         var lines = new List<string>
-    {
-        "EmployeeCode,Name,NationalId,Email,Phone,Role,JobTitle,Faculty,Status,PasswordStatus"
-    };
+        {
+            "EmployeeCode,NameAr,NameEn,NationalId,Email,Phone,Role,JobTitle,Faculty,Status,PasswordStatus"
+        };
 
         foreach (var staff in result.Items)
         {
+            string nameAr = "", nameEn = "";
+            if (!string.IsNullOrEmpty(staff.Name))
+            {
+                try
+                {
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
+                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                    nameEn = dict?.GetValueOrDefault("en") ?? "";
+                }
+                catch { }
+            }
+
             lines.Add(
                 $"{staff.EmployeeCode}," +
-                $"{staff.Name}," +
+                $"{EscapeCsv(nameAr)}," +
+                $"{EscapeCsv(nameEn)}," +
                 $"{staff.NationalId}," +
                 $"{staff.Email}," +
                 $"{staff.PhoneNumber}," +
@@ -141,12 +151,9 @@ public class StaffController : ControllerBase
                 $"{staff.PasswordStatus}");
         }
 
-        var csv = string.Join(
-            Environment.NewLine,
-            lines);
+        var csv = string.Join(Environment.NewLine, lines);
 
-        var bytes =
-            System.Text.Encoding.UTF8.GetBytes(csv);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
 
         return File(
             bytes,
@@ -182,56 +189,47 @@ public class StaffController : ControllerBase
 
         using var workbook = new XLWorkbook();
 
-        var worksheet =
-            workbook.Worksheets.Add("Staff");
+        var worksheet = workbook.Worksheets.Add("Staff");
 
         worksheet.Cell(1, 1).Value = "Employee Code";
-        worksheet.Cell(1, 2).Value = "Name";
-        worksheet.Cell(1, 3).Value = "National ID";
-        worksheet.Cell(1, 4).Value = "Email";
-        worksheet.Cell(1, 5).Value = "Phone";
-        worksheet.Cell(1, 6).Value = "Role";
-        worksheet.Cell(1, 7).Value = "Job Title";
-        worksheet.Cell(1, 8).Value = "Faculty";
-        worksheet.Cell(1, 9).Value = "Status";
-        worksheet.Cell(1, 10).Value = "Password Status";
+        worksheet.Cell(1, 2).Value = "Name (Arabic)";
+        worksheet.Cell(1, 3).Value = "Name (English)";
+        worksheet.Cell(1, 4).Value = "National ID";
+        worksheet.Cell(1, 5).Value = "Email";
+        worksheet.Cell(1, 6).Value = "Phone";
+        worksheet.Cell(1, 7).Value = "Role";
+        worksheet.Cell(1, 8).Value = "Job Title";
+        worksheet.Cell(1, 9).Value = "Faculty";
+        worksheet.Cell(1, 10).Value = "Status";
+        worksheet.Cell(1, 11).Value = "Password Status";
 
         int row = 2;
 
         foreach (var staff in result.Items)
         {
-            worksheet.Cell(row, 1).Value =
-                staff.EmployeeCode;
+            string nameAr = "", nameEn = "";
+            if (!string.IsNullOrEmpty(staff.Name))
+            {
+                try
+                {
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
+                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                    nameEn = dict?.GetValueOrDefault("en") ?? "";
+                }
+                catch { }
+            }
 
-            worksheet.Cell(row, 2).Value =
-                staff.Name;
-
-            worksheet.Cell(row, 3).Value =
-                staff.NationalId;
-
-            worksheet.Cell(row, 4).Value =
-                staff.Email;
-
-            worksheet.Cell(row, 5).Value =
-                staff.PhoneNumber;
-
-            worksheet.Cell(row, 6).Value =
-                staff.Role;
-
-            worksheet.Cell(row, 7).Value =
-                staff.JobTitle;
-
-            worksheet.Cell(row, 8).Value =
-                staff.FacultyName;
-
-            worksheet.Cell(row, 9).Value =
-                staff.IsActive
-                    ? "Active"
-                    : "Inactive";
-
-            worksheet.Cell(row, 10).Value =
-                staff.PasswordStatus;
-
+            worksheet.Cell(row, 1).Value = staff.EmployeeCode;
+            worksheet.Cell(row, 2).Value = nameAr;
+            worksheet.Cell(row, 3).Value = nameEn;
+            worksheet.Cell(row, 4).Value = staff.NationalId;
+            worksheet.Cell(row, 5).Value = staff.Email;
+            worksheet.Cell(row, 6).Value = staff.PhoneNumber;
+            worksheet.Cell(row, 7).Value = staff.Role;
+            worksheet.Cell(row, 8).Value = staff.JobTitle;
+            worksheet.Cell(row, 9).Value = staff.FacultyName;
+            worksheet.Cell(row, 10).Value = staff.IsActive ? "Active" : "Inactive";
+            worksheet.Cell(row, 11).Value = staff.PasswordStatus;
             row++;
         }
 
@@ -250,8 +248,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost("import-excel")]
-    public async Task<IActionResult> ImportExcel(
-    IFormFile file)
+    public async Task<IActionResult> ImportExcel(IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
@@ -262,49 +259,27 @@ public class StaffController : ControllerBase
 
         await file.CopyToAsync(stream);
 
-        using var workbook =
-            new XLWorkbook(stream);
+        using var workbook = new XLWorkbook(stream);
 
-        var worksheet =
-            workbook.Worksheet(1);
+        var worksheet = workbook.Worksheet(1);
 
-        var rows =
-            worksheet.RowsUsed().Skip(1);
+        var rows = worksheet.RowsUsed().Skip(1);
 
         foreach (var row in rows)
         {
             var request = new CreateStaffRequest
             {
-                EmployeeCode =
-                    row.Cell(1).GetString(),
-
-                Name =
-                    row.Cell(2).GetString(),
-
-                NationalId =
-                    row.Cell(3).GetString(),
-
-                Email =
-                    row.Cell(4).GetString(),
-
-                PhoneNumber =
-                    row.Cell(5).GetString(),
-
-                Role =
-                    row.Cell(6).GetString(),
-
-                JobTitle =
-                    row.Cell(7).GetString(),
-
-                Password =
-                    row.Cell(8).GetString(),
-
-                ConfirmPassword =
-                    row.Cell(8).GetString(),
-
-                StructureNodeId =
-                    Guid.Parse(
-                        row.Cell(9).GetString())
+                EmployeeCode = row.Cell(1).GetString(),
+                NameAr = row.Cell(2).GetString(),
+                NameEn = row.Cell(3).GetString(),
+                NationalId = row.Cell(4).GetString(),
+                Email = row.Cell(5).GetString(),
+                PhoneNumber = row.Cell(6).GetString(),
+                Role = row.Cell(7).GetString(),
+                JobTitle = row.Cell(8).GetString(),
+                Password = row.Cell(9).GetString(),
+                ConfirmPassword = row.Cell(9).GetString(),
+                StructureNodeId = Guid.Parse(row.Cell(10).GetString())
             };
 
             await _service.CreateAsync(request);
@@ -314,5 +289,13 @@ public class StaffController : ControllerBase
         {
             Message = "Staff imported successfully"
         });
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(",") || value.Contains("\""))
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        return value;
     }
 }

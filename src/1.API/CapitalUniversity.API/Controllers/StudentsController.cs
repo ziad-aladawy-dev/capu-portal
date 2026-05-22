@@ -120,15 +120,28 @@ public class StudentsController : ControllerBase
         var result = await _service.SearchAsync(request);
 
         var lines = new List<string>
-    {
-        "StudentCode,Name,NationalId,Email,Phone,Faculty,Program,Level,Status,PasswordStatus"
-    };
+        {
+            "StudentCode,NameAr,NameEn,NationalId,Email,Phone,Faculty,Program,Level,Status,PasswordStatus"
+        };
 
         foreach (var student in result.Items)
         {
+            string nameAr = "", nameEn = "";
+            if (!string.IsNullOrEmpty(student.Name))
+            {
+                try
+                {
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
+                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                    nameEn = dict?.GetValueOrDefault("en") ?? "";
+                }
+                catch { }
+            }
+
             lines.Add(
                 $"{student.StudentCode}," +
-                $"{student.Name}," +
+                $"{EscapeCsv(nameAr)}," +
+                $"{EscapeCsv(nameEn)}," +
                 $"{student.NationalId}," +
                 $"{student.Email}," +
                 $"{student.PhoneNumber}," +
@@ -187,52 +200,44 @@ public class StudentsController : ControllerBase
             workbook.Worksheets.Add("Students");
 
         worksheet.Cell(1, 1).Value = "Student Code";
-        worksheet.Cell(1, 2).Value = "Name";
-        worksheet.Cell(1, 3).Value = "National ID";
-        worksheet.Cell(1, 4).Value = "Email";
-        worksheet.Cell(1, 5).Value = "Phone";
-        worksheet.Cell(1, 6).Value = "Faculty";
-        worksheet.Cell(1, 7).Value = "Program";
-        worksheet.Cell(1, 8).Value = "Level";
-        worksheet.Cell(1, 9).Value = "Status";
-        worksheet.Cell(1, 10).Value = "Password Status";
+        worksheet.Cell(1, 2).Value = "Name (Arabic)";
+        worksheet.Cell(1, 3).Value = "Name (English)";
+        worksheet.Cell(1, 4).Value = "National ID";
+        worksheet.Cell(1, 5).Value = "Email";
+        worksheet.Cell(1, 6).Value = "Phone";
+        worksheet.Cell(1, 7).Value = "Faculty";
+        worksheet.Cell(1, 8).Value = "Program";
+        worksheet.Cell(1, 9).Value = "Level";
+        worksheet.Cell(1, 10).Value = "Status";
+        worksheet.Cell(1, 11).Value = "Password Status";
 
         int row = 2;
 
         foreach (var student in result.Items)
         {
-            worksheet.Cell(row, 1).Value =
-                student.StudentCode;
+            string nameAr = "", nameEn = "";
+            if (!string.IsNullOrEmpty(student.Name))
+            {
+                try
+                {
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
+                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                    nameEn = dict?.GetValueOrDefault("en") ?? "";
+                }
+                catch { }
+            }
 
-            worksheet.Cell(row, 2).Value =
-                student.Name;
-
-            worksheet.Cell(row, 3).Value =
-                student.NationalId;
-
-            worksheet.Cell(row, 4).Value =
-                student.Email;
-
-            worksheet.Cell(row, 5).Value =
-                student.PhoneNumber;
-
-            worksheet.Cell(row, 6).Value =
-                student.FacultyName;
-
-            worksheet.Cell(row, 7).Value =
-                student.ProgramName;
-
-            worksheet.Cell(row, 8).Value =
-                student.LevelName;
-
-            worksheet.Cell(row, 9).Value =
-                student.IsActive
-                    ? "Active"
-                    : "Inactive";
-
-            worksheet.Cell(row, 10).Value =
-                student.PasswordStatus;
-
+            worksheet.Cell(row, 1).Value = student.StudentCode;
+            worksheet.Cell(row, 2).Value = nameAr;
+            worksheet.Cell(row, 3).Value = nameEn;
+            worksheet.Cell(row, 4).Value = student.NationalId;
+            worksheet.Cell(row, 5).Value = student.Email;
+            worksheet.Cell(row, 6).Value = student.PhoneNumber;
+            worksheet.Cell(row, 7).Value = student.FacultyName;
+            worksheet.Cell(row, 8).Value = student.ProgramName;
+            worksheet.Cell(row, 9).Value = student.LevelName;
+            worksheet.Cell(row, 10).Value = student.IsActive ? "Active" : "Inactive";
+            worksheet.Cell(row, 11).Value = student.PasswordStatus;
             row++;
         }
 
@@ -274,30 +279,15 @@ public class StudentsController : ControllerBase
         {
             var request = new CreateStudentRequest
             {
-                StudentCode =
-                    row.Cell(1).GetString(),
-
-                Name =
-                    row.Cell(2).GetString(),
-
-                NationalId =
-                    row.Cell(3).GetString(),
-
-                Email =
-                    row.Cell(4).GetString(),
-
-                PhoneNumber =
-                    row.Cell(5).GetString(),
-
-                Password =
-                    row.Cell(6).GetString(),
-
-                ConfirmPassword =
-                    row.Cell(6).GetString(),
-
-                StructureNodeId =
-                    Guid.Parse(
-                        row.Cell(7).GetString())
+                StudentCode = row.Cell(1).GetString(),
+                NameAr = row.Cell(2).GetString(),
+                NameEn = row.Cell(3).GetString(),
+                NationalId = row.Cell(4).GetString(),
+                Email = row.Cell(5).GetString(),
+                PhoneNumber = row.Cell(6).GetString(),
+                Password = row.Cell(7).GetString(),
+                ConfirmPassword = row.Cell(7).GetString(),
+                StructureNodeId = Guid.Parse(row.Cell(8).GetString())
             };
 
             await _service.CreateAsync(request);
@@ -307,5 +297,13 @@ public class StudentsController : ControllerBase
         {
             Message = "Students imported successfully"
         });
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(",") || value.Contains("\""))
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        return value;
     }
 }

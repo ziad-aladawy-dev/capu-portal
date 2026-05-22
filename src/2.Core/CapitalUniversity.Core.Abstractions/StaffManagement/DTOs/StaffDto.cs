@@ -8,6 +8,8 @@ public class StaffDto
 
     public string Name { get; set; } = string.Empty;
 
+    public string LocalizedName { get; set; } = string.Empty;
+
     public string NationalId { get; set; } = string.Empty;
 
     public DateTime BirthDate { get; set; }

@@ -100,8 +100,8 @@ using (var scope = app.Services.CreateScope())
         await db.Database.MigrateAsync();
     }
 
-    await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
+    await DataSeeder.SeedAsync(db, passwordHasher);
     await IdentitySeeder.SeedAsync(db);
 }
 
