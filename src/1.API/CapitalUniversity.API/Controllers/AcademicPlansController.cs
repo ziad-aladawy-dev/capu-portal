@@ -73,4 +73,20 @@ public class AcademicPlansController : ControllerBase
         await _service.RemoveCourseAsync(id, planCourseId, cancellationToken);
         return Ok(new { Message = "Course removed from academic plan" });
     }
+
+    [HttpPost("{id:guid}/close-record")]
+    [HasPermission(PermissionNames.AcademicPlans.EditClose)]
+    public async Task<IActionResult> CloseRecord(Guid id, CancellationToken cancellationToken)
+    {
+        await _service.CloseRecordAsync(id, cancellationToken);
+        return Ok(new { Message = "Academic plan closed" });
+    }
+
+    [HttpPost("{id:guid}/open-record")]
+    [HasPermission(PermissionNames.AcademicPlans.Open)]
+    public async Task<IActionResult> OpenRecord(Guid id, CancellationToken cancellationToken)
+    {
+        await _service.OpenRecordAsync(id, cancellationToken);
+        return Ok(new { Message = "Academic plan reopened" });
+    }
 }

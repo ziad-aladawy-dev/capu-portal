@@ -9,4 +9,7 @@ public interface ICourseService
     Task<Guid> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default);
     Task UpdateAsync(Guid id, UpdateCourseRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
+    Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 }

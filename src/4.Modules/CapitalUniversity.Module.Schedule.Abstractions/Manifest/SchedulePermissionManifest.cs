@@ -19,7 +19,7 @@ public sealed class SchedulePermissionManifest : IPermissionManifest
 
     public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        ResourceDefinition.WithCrudActionsNoOpen(
+        ResourceDefinition.WithCrudActions(
             "schedule-slots",
             LocalizedJson.Of("مواعيد الجدول", "Schedule Slots"),
             0),

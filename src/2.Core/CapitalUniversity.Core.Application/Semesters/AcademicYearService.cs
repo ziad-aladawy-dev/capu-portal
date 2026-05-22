@@ -137,7 +137,7 @@ public class AcademicYearService : IAcademicYearService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task CloseAsync(Guid id)
+    public async Task CloseRecordAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
         if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
@@ -147,7 +147,7 @@ public class AcademicYearService : IAcademicYearService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task ReopenAsync(Guid id)
+    public async Task OpenRecordAsync(Guid id)
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
         if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);

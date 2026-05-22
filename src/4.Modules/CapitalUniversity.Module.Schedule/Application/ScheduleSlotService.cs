@@ -231,6 +231,24 @@ public class ScheduleSlotService : IScheduleSlotService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var slot = await LoadForWriteAsync(id, cancellationToken);
+        slot.Close();
+        _slots.Update(slot);
+        await EnqueueLifecycleAsync(ScheduleSlotUpdatedHandler.TypeKey, slot, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var slot = await LoadForWriteAsync(id, cancellationToken);
+        slot.Reopen();
+        _slots.Update(slot);
+        await EnqueueLifecycleAsync(ScheduleSlotUpdatedHandler.TypeKey, slot, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Map the domain entity to its response shape, preserving any bilingual
     /// JSON strings in their raw form. Localization happens as a separate
@@ -281,6 +299,9 @@ public class ScheduleSlotService : IScheduleSlotService
         {
             throw new NotFoundException(LocalizedKeys.Schedule.NotFound);
         }
+
+        slot.EnsureMutable();
+
         return slot;
     }
 

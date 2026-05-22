@@ -117,6 +117,8 @@ public class CourseService : ICourseService
         var course = await _courses.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
+        course.EnsureMutable();
+
         _mapper.ApplyUpdate(request, course);
         course.UpdatedAt = DateTime.UtcNow;
 
@@ -131,7 +133,31 @@ public class CourseService : ICourseService
         var course = await _courses.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
+        course.EnsureMutable();
+
         _courses.Delete(course);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var course = await _courses.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+        course.Close();
+        _courses.Update(course);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var course = await _courses.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+        course.Reopen();
+        _courses.Update(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
     }

@@ -20,4 +20,8 @@ public interface IScheduleSlotService
     Task UpdateAsync(Guid id, UpdateScheduleSlotRequest request, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 }

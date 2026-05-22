@@ -134,4 +134,22 @@ public static class PermissionNames
         public const string Open      = "student-information.profile-records.Open";
         public const string Delete    = "student-information.profile-records.Delete";
     }
+
+    public static class CourseOfferings
+    {
+        public const string View      = "course-offerings.course-offerings.View";
+        public const string Insert    = "course-offerings.course-offerings.Insert";
+        public const string EditClose = "course-offerings.course-offerings.EditClose";
+        public const string Open      = "course-offerings.course-offerings.Open";
+        public const string Delete    = "course-offerings.course-offerings.Delete";
+    }
+
+    public static class Schedule
+    {
+        public const string View      = "schedule.schedule-slots.View";
+        public const string Insert    = "schedule.schedule-slots.Insert";
+        public const string EditClose = "schedule.schedule-slots.EditClose";
+        public const string Open      = "schedule.schedule-slots.Open";
+        public const string Delete    = "schedule.schedule-slots.Delete";
+    }
 }

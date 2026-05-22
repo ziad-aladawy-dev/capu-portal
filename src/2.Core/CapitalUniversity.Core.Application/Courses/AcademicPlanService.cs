@@ -155,6 +155,8 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(AcademicPlanNotFound);
         }
 
+        plan.EnsureMutable();
+
         _mapper.ApplyUpdate(request, plan);
 
         if (plan.EffectiveTo.HasValue && plan.EffectiveTo <= plan.EffectiveFrom)
@@ -178,6 +180,8 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(AcademicPlanNotFound);
         }
 
+        plan.EnsureMutable();
+
         _plans.Delete(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
@@ -195,6 +199,8 @@ public class AcademicPlanService : IAcademicPlanService
         {
             throw new NotFoundException(AcademicPlanNotFound);
         }
+
+        plan.EnsureMutable();
 
         var course = await _courses.GetByIdAsync(request.CourseId, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
@@ -238,9 +244,45 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(PlanCourseEntryNotFound);
         }
 
+        plan.EnsureMutable();
+
         _plans.RemovePlanCourse(entry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await LoadForWriteAsync(id, cancellationToken);
+        plan.Close();
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await LoadForWriteAsync(id, cancellationToken);
+        plan.Reopen();
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    /// <summary>
+    /// Fetch a tracked plan by id and require the caller's scope to cover
+    /// its owning structure node.
+    /// </summary>
+    private async Task<AcademicPlan> LoadForWriteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
+            ?? throw new NotFoundException(AcademicPlanNotFound);
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException(AcademicPlanNotFound);
+        }
+        return plan;
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

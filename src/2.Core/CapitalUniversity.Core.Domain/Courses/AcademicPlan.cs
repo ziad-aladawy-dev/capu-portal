@@ -36,6 +36,39 @@ public class AcademicPlan : BaseEntity
     /// <summary>Active flag — surfaces in plan pickers when true.</summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/> — only callers holding the <c>Open</c>
+    /// permission can flip it back via <see cref="Reopen"/>.
+    /// </summary>
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
+
     /// <summary>The plan's course composition.</summary>
     public ICollection<AcademicPlanCourse> PlanCourses { get; set; } = new List<AcademicPlanCourse>();
+
+    /// <summary>
+    /// Guards every mutating operation on the entity.
+    /// </summary>
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Academic plan is closed and cannot be modified. Reopen it first.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Academic plan is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Academic plan is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

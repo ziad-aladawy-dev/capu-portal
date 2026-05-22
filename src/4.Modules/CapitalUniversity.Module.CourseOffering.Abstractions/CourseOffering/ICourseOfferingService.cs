@@ -28,4 +28,8 @@ public interface ICourseOfferingService
     Task<Guid> CreateAsync(CreateCourseOfferingRequest request, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Guid id, UpdateCourseOfferingRequest request, CancellationToken cancellationToken = default);
+
+    Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 }

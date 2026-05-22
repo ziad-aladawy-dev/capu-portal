@@ -11,6 +11,6 @@ public interface ISemesterService
     Task UpdateAsync(Guid id, UpdateSemesterRequest request);
     Task DeleteAsync(Guid id);
     Task ResolveCurrentSemesterAsync();
-    Task CloseAsync(Guid id);
-    Task ReopenAsync(Guid id);
+    Task CloseRecordAsync(Guid id);
+    Task OpenRecordAsync(Guid id);
 }

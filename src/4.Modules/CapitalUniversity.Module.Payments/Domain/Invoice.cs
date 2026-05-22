@@ -35,6 +35,36 @@ public class Invoice : BaseEntity, ISoftDeletable
     /// <summary>Optional payable-by stamp. Service-level enforcement only.</summary>
     public DateTime? DueAt { get; set; }
 
+    /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/>. Only callers holding the <c>Open</c>
+    /// permission may reopen via <see cref="Reopen"/>.
+    /// </summary>
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
     public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
     public ICollection<PaymentTransaction> Transactions { get; set; } = new List<PaymentTransaction>();
+
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Invoice is closed and cannot be modified. Reopen it first.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) return;
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new InvalidOperationException("Invoice is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

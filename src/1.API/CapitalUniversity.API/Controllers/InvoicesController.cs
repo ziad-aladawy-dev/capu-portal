@@ -49,4 +49,20 @@ public class InvoicesController : ControllerBase
         await _service.CancelAsync(id, request, cancellationToken);
         return Ok(new { Message = "Invoice cancelled" });
     }
+
+    [HttpPost("{id:guid}/close-record")]
+    [HasPermission(PermissionNames.Invoices.EditClose)]
+    public async Task<IActionResult> CloseRecord(Guid id, CancellationToken cancellationToken)
+    {
+        await _service.CloseRecordAsync(id, cancellationToken);
+        return Ok(new { Message = "Invoice closed" });
+    }
+
+    [HttpPost("{id:guid}/open-record")]
+    [HasPermission(PermissionNames.Invoices.Open)]
+    public async Task<IActionResult> OpenRecord(Guid id, CancellationToken cancellationToken)
+    {
+        await _service.OpenRecordAsync(id, cancellationToken);
+        return Ok(new { Message = "Invoice reopened" });
+    }
 }

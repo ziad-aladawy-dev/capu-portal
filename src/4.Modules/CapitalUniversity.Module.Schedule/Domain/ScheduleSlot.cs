@@ -49,6 +49,36 @@ public class ScheduleSlot : BaseEntity
     public string? Notes { get; set; }
 
     /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/>. Only callers holding the <c>Open</c>
+    /// permission may reopen via <see cref="Reopen"/>.
+    /// </summary>
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Schedule slot is closed and cannot be modified. Reopen it first.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new InvalidOperationException("Schedule slot is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new InvalidOperationException("Schedule slot is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Apply a new start/end pair atomically so the entity is never in a state
     /// where one side has been moved but the other has not. Rejects
     /// <paramref name="end"/> &lt;= <paramref name="start"/> — equality is also
@@ -56,6 +86,7 @@ public class ScheduleSlot : BaseEntity
     /// </summary>
     public void SetTimeRange(TimeOnly start, TimeOnly end)
     {
+        EnsureMutable();
         if (end <= start)
         {
             throw new InvalidOperationException("End time must be strictly greater than start time.");

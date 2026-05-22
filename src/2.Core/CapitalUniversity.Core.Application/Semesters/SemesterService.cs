@@ -161,7 +161,7 @@ public class SemesterService : ISemesterService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task CloseAsync(Guid id)
+    public async Task CloseRecordAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
@@ -171,7 +171,7 @@ public class SemesterService : ISemesterService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task ReopenAsync(Guid id)
+    public async Task OpenRecordAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
@@ -180,6 +180,7 @@ public class SemesterService : ISemesterService
         _unitOfWork.Semesters.Update(semester);
         await _unitOfWork.SaveChangesAsync();
     }
+
 
     public async Task ResolveCurrentSemesterAsync()
     {

@@ -170,6 +170,8 @@ public class InvoiceService : IInvoiceService
             throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
         }
 
+        invoice.EnsureMutable();
+
         if (invoice.Status == InvoiceStatus.Paid)
         {
             throw new ConflictException(LocalizedKeys.Payments.PaidCannotCancel);
@@ -184,6 +186,36 @@ public class InvoiceService : IInvoiceService
         _invoices.Update(invoice);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await LoadForWriteAsync(id, cancellationToken);
+        invoice.Close();
+        _invoices.Update(invoice);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await LoadForWriteAsync(id, cancellationToken);
+        invoice.Reopen();
+        _invoices.Update(invoice);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    private async Task<Invoice> LoadForWriteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var invoice = await _invoices.GetByIdAsync(id, includeItems: false, includeTransactions: false, cancellationToken: cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
+
+        if (!await _scope.CanAccessStudentAsync(invoice.StudentId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
+        }
+        return invoice;
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

@@ -233,6 +233,22 @@ public class CourseOfferingService : ICourseOfferingService
             .GroupBy(e => e.PropertyName)
             .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray()));
 
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var offering = await LoadForWriteAsync(id, cancellationToken);
+        offering.Close();
+        _offerings.Update(offering);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var offering = await LoadForWriteAsync(id, cancellationToken);
+        offering.Reopen();
+        _offerings.Update(offering);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Fetch a tracked offering by id and require the caller's scope to cover
     /// its owning structure node. Single helper so every write path uses the
@@ -249,6 +265,9 @@ public class CourseOfferingService : ICourseOfferingService
         {
             throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }
+
+        offering.EnsureMutable();
+
         return offering;
     }
 

@@ -12,4 +12,7 @@ public interface IAcademicPlanService
 
     Task<Guid> AddCourseAsync(Guid planId, AddPlanCourseRequest request, CancellationToken cancellationToken = default);
     Task RemoveCourseAsync(Guid planId, Guid planCourseId, CancellationToken cancellationToken = default);
+
+    Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
+    Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -10,4 +10,8 @@ public interface IInvoiceService
     Task<IReadOnlyList<InvoiceResponse>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default);
     Task<Guid> CreateAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default);
     Task CancelAsync(Guid id, CancelInvoiceRequest request, CancellationToken cancellationToken = default);
+
+    Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 }
