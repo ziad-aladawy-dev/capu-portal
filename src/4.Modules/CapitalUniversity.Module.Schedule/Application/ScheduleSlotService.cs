@@ -10,9 +10,22 @@ using CapitalUniversity.Modules.Schedule.Application.Outbox;
 using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Repositories;
 using FluentValidation;
+using Microsoft.AspNetCore.Http;
 using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException;
 
 namespace CapitalUniversity.Modules.Schedule.Application;
+
+/// <summary>
+/// Bundle of the FluentValidation validators used by <see cref="ScheduleSlotService"/>.
+/// Mirrors the <c>AcademicPlanValidators</c> pattern in core — collapses two
+/// individual <see cref="IValidator{T}"/> constructor parameters into one
+/// composite, keeping the service constructor under the project's 7-parameter
+/// soft cap when a new collaborator (here: <see cref="IHttpContextAccessor"/>)
+/// joins.
+/// </summary>
+public sealed record ScheduleSlotValidators(
+    IValidator<CreateScheduleSlotRequest> Create,
+    IValidator<UpdateScheduleSlotRequest> Update);
 
 /// <summary>
 /// Owns CRUD over <see cref="ScheduleSlot"/>. Scope is inherited from the
@@ -47,27 +60,27 @@ public class ScheduleSlotService : IScheduleSlotService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IScheduleSlotRepository _slots;
     private readonly ICourseOfferingService _offerings;
-    private readonly IValidator<CreateScheduleSlotRequest> _createValidator;
-    private readonly IValidator<UpdateScheduleSlotRequest> _updateValidator;
+    private readonly ScheduleSlotValidators _validators;
     private readonly IOutbox _outbox;
     private readonly IAppLogger _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ScheduleSlotService(
         IUnitOfWork unitOfWork,
         IScheduleSlotRepository slots,
         ICourseOfferingService offerings,
-        IValidator<CreateScheduleSlotRequest> createValidator,
-        IValidator<UpdateScheduleSlotRequest> updateValidator,
+        ScheduleSlotValidators validators,
         IOutbox outbox,
-        IAppLogger logger)
+        IAppLogger logger,
+        IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _slots = slots;
         _offerings = offerings;
-        _createValidator = createValidator;
-        _updateValidator = updateValidator;
+        _validators = validators;
         _outbox = outbox;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<ScheduleSlotResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -95,7 +108,7 @@ public class ScheduleSlotService : IScheduleSlotService
 
     public async Task<Guid> CreateAsync(CreateScheduleSlotRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await _createValidator.ValidateAsync(request, cancellationToken);
+        var validation = await _validators.Create.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
         // Existence + scope check on the parent offering. Out-of-scope is
@@ -119,7 +132,7 @@ public class ScheduleSlotService : IScheduleSlotService
         // is NOT a conflict.
         if (await _slots.HasConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, excludeId: null, cancellationToken))
         {
-            await LogConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, slotId: null, cancellationToken);
+            await LogConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, slotId: null);
             throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
         }
 
@@ -144,7 +157,7 @@ public class ScheduleSlotService : IScheduleSlotService
 
     public async Task UpdateAsync(Guid id, UpdateScheduleSlotRequest request, CancellationToken cancellationToken = default)
     {
-        var validation = await _updateValidator.ValidateAsync(request, cancellationToken);
+        var validation = await _validators.Update.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid) throw ValidationFrom(validation);
 
         var slot = await LoadForWriteAsync(id, cancellationToken);
@@ -196,7 +209,7 @@ public class ScheduleSlotService : IScheduleSlotService
             // check above is stricter (exact same tuple) and runs first.
             if (await _slots.HasConflictAsync(slot.CourseOfferingId, slot.DayOfWeek, slot.StartTime, slot.EndTime, excludeId: slot.Id, cancellationToken))
             {
-                await LogConflictAsync(slot.CourseOfferingId, slot.DayOfWeek, slot.StartTime, slot.EndTime, slotId: slot.Id, cancellationToken);
+                await LogConflictAsync(slot.CourseOfferingId, slot.DayOfWeek, slot.StartTime, slot.EndTime, slotId: slot.Id);
                 throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
             }
         }
@@ -275,8 +288,20 @@ public class ScheduleSlotService : IScheduleSlotService
     /// transaction and would roll back any staged outbox row. A log line is
     /// the right shape for "rejected attempt" facts: audit-friendly,
     /// observable, no infrastructure required.
+    ///
+    /// <para>
+    /// Conflict logs always originate from an HTTP request flow (the slot
+    /// create / update controllers), so we hand the current <see cref="HttpContext"/>
+    /// to <see cref="IAppLogger"/> via <see cref="IHttpContextAccessor"/>. That
+    /// lets the buffered logger stamp the audit row with the request's
+    /// CorrelationId, keeping Mongo audit entries joinable to the Serilog
+    /// text logs for the same request. When called outside a request flow
+    /// (theoretical — there are no such callers today), the accessor returns
+    /// null and the entry simply lacks a correlation id, matching the
+    /// existing background-task behavior.
+    /// </para>
     /// </summary>
-    private Task LogConflictAsync(Guid courseOfferingId, DayOfWeek dayOfWeek, TimeOnly start, TimeOnly end, Guid? slotId, CancellationToken cancellationToken)
+    private Task LogConflictAsync(Guid courseOfferingId, DayOfWeek dayOfWeek, TimeOnly start, TimeOnly end, Guid? slotId)
     {
         var metadata = new Dictionary<string, object>
         {
@@ -291,7 +316,7 @@ public class ScheduleSlotService : IScheduleSlotService
         return _logger.LogWarningAsync(
             message: $"{ScheduleConflictDetectedMessageType} offering={courseOfferingId} {dayOfWeek} {start:HH\\:mm}-{end:HH\\:mm}",
             source: nameof(ScheduleSlotService),
-            context: null,
+            context: _httpContextAccessor.HttpContext,
             metadata: metadata);
     }
 

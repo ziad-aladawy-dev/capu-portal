@@ -84,15 +84,15 @@ public class ScopeEnforcementTests : IClassFixture<WebApplicationFactory<Modules
         };
         db.StructureNodes.AddRange(faculties);
 
-        // Module + Service + Role + role-permission for invoice view. Path scope
+        // Module + Resource + Role + role-permission for invoice view. Path scope
         // applied per-staff via StaffRoleAssignment.StructureNodeId/Path below.
         var module = new Module { Id = Guid.NewGuid(), DisplayName = "Payments", ModuleKey = "payments" };
-        var service = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Invoices" };
+        var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "invoices", DisplayName = "Invoices" };
         var role = new Role { Id = Guid.NewGuid(), Name = "InvoiceViewer" };
         db.Modules.Add(module);
-        db.Services.Add(service);
+        db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "invoices", ActionLevel.Delete));
+        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
 
         // Two staff, each scoped to a single faculty subtree.
         db.Staffs.AddRange(

@@ -64,13 +64,13 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         // gates BOTH AcademicYearsController and SemestersController via
         // PermissionNames.AcademicTimeline.*.
         var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
-        var service = new Service { Id = Guid.NewGuid(), Module = module, DisplayName = "Academic Timeline" };
+        var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
         var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
 
         db.Modules.Add(module);
-        db.Services.Add(service);
+        db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.Delete)); // Level 5 covers all
+        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete); // Level Delete covers all
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
         // SessionVersionMiddleware rejects tokens for users that have no row in

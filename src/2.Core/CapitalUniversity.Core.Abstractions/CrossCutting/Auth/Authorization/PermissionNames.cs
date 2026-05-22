@@ -44,17 +44,14 @@ public static class PermissionNames
 
     /// <summary>
     /// Combined academic-timeline permissions covering BOTH academic years and
-    /// semesters. The system already collapses these into a single resource at
-    /// runtime — <see cref="PermissionIdentity.ResourceFor"/> maps every academics-
-    /// module service to the <c>academic-years</c> resource — so granting one set
-    /// of permissions on this resource grants management of both tables. This is
-    /// intentional: anyone with academic temporal scope management needs both.
+    /// semesters. Modelled as a single resource (<c>academic-years</c>) because
+    /// anyone with academic temporal scope management needs both tables, not one.
     ///
     /// <para>
     /// Module = <c>academics</c>, Resource = <c>academic-years</c>. Bound by
     /// <see cref="AcademicYearsController"/> and <see cref="SemestersController"/>.
     /// Declared by <c>AcademicsPermissionManifest</c>; the seeder grants this via
-    /// the "Academic Timeline" service row.
+    /// the "Academic Timeline" resource row.
     /// </para>
     /// </summary>
     public static class AcademicTimeline

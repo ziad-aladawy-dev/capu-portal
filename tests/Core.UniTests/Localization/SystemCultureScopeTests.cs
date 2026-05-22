@@ -91,12 +91,63 @@ public class SystemCultureScopeTests
     }
 
     [Fact]
-    public void NullCultureName_Throws()
+    public void NullCultureName_ThrowsArgumentNullException_WithExpectedParamName()
     {
         // Constructor must reject null cleanly — silently accepting and
         // resolving to the invariant culture would mask a configuration bug.
+        // ParamName check distinguishes our explicit "?? throw" from
+        // CultureInfo.GetCultureInfo's own internal null guard (whose
+        // ParamName is "name"). Without the assertion, a mutation that
+        // removes our "?? throw" would survive because GetCultureInfo throws
+        // the same exception type — only the ParamName tells them apart.
         var act = () => new SystemCultureScope((string)null!);
-        act.Should().Throw<ArgumentNullException>();
+        act.Should().Throw<ArgumentNullException>()
+            .Which.ParamName.Should().Be("cultureName");
+    }
+
+    [Fact]
+    public void NullCultureInfo_ThrowsArgumentNullException()
+    {
+        // The (CultureInfo) ctor's ArgumentNullException.ThrowIfNull guard is
+        // a separate code path from the (string) ctor — exercise it directly
+        // so a mutation that removes the ThrowIfNull call surfaces.
+        var act = () => new SystemCultureScope((CultureInfo)null!);
+        act.Should().Throw<ArgumentNullException>()
+            .Which.ParamName.Should().Be("culture");
+    }
+
+    [Fact]
+    public void DoubleDispose_DoesNotClobberLaterCultureChanges()
+    {
+        // Stronger version of DoubleDispose_IsNoOp: by mutating CurrentCulture
+        // between the two Dispose calls, we make the "is the early-return
+        // guard present?" question observable. With the guard, the second
+        // Dispose is a true no-op and our intervening "fr" stays. Without
+        // the guard, the second Dispose re-runs "CurrentCulture =
+        // _previousCulture" and clobbers our change.
+        var before = CultureInfo.CurrentCulture;
+        try
+        {
+            var scope = new SystemCultureScope("en");
+            scope.Dispose();
+
+            var interim = CultureInfo.GetCultureInfo("fr");
+            CultureInfo.CurrentCulture = interim;
+            CultureInfo.CurrentUICulture = interim;
+
+            scope.Dispose(); // must be a true no-op
+
+            CultureInfo.CurrentCulture.Should().BeSameAs(interim,
+                "the second Dispose must NOT re-restore — that would clobber unrelated, later culture changes");
+            CultureInfo.CurrentUICulture.Should().BeSameAs(interim);
+        }
+        finally
+        {
+            // Restore for test isolation — the parallel xUnit runner shares
+            // the ExecutionContext's culture surface across collections.
+            CultureInfo.CurrentCulture = before;
+            CultureInfo.CurrentUICulture = before;
+        }
     }
 
     [Fact]

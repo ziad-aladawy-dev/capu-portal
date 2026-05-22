@@ -83,18 +83,18 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             };
             db.Staffs.Add(staff);
 
-            // Seed Module/Service in the canonical form the manifest synchroniser owns.
-            // Resource "academic-years" → "academics.academic-years.View", which is
+            // Seed Module/Resource in the canonical form the manifest synchroniser owns.
+            // Resource key "academic-years" → "academics.academic-years.View", which is
             // what AcademicYearsController.GetAll binds against post-migration.
             var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
-            var service = new Service { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, DisplayName = "View Academic Years" };
+            var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
             db.Modules.Add(module);
-            db.Services.Add(service);
+            db.Resources.Add(resource);
 
             // Role with only View permission on the academic-years resource.
             var role = new Role { Id = Guid.NewGuid(), Name = "Viewer" };
             db.Roles.Add(role);
-            db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.View));
+            db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
 
             // Assign role to staff with truly-global structural scope so the request
             // (which sends no X-StructureNode-Id) doesn't get filtered out.

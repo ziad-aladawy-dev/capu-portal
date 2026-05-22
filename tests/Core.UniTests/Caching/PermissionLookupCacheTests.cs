@@ -8,8 +8,12 @@ using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
+using CapitalUniversity.Core.UniTests.Authorization;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -40,18 +44,23 @@ public class PermissionLookupCacheTests
         var db = new CoreDbContext(dbOptions);
         db.Database.EnsureCreated();
 
-        // Minimal authorization graph: one module, one service, one role, one
-        // role-permission, one staff-role assignment. The Service entity needs an
+        // Minimal authorization graph: one module, one resource, one role, one
+        // role-permission, one staff-role assignment. The Resource entity needs an
         // explicit Id so the permission lookup can navigate to it.
         var module = new Module { Id = Guid.NewGuid(), DisplayName = "M", ModuleKey = "demo" };
-        var svc = new Service { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, DisplayName = "S" };
+        var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "demo", DisplayName = "S" };
         var role = new Role { Id = Guid.NewGuid(), Name = "R" };
         db.Modules.Add(module);
-        db.Services.Add(svc);
+        db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.RolePermissions.Add(new RolePermission(role.Id, svc.Id, "demo", ActionLevel.View));
+        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, year, semester));
         db.SaveChanges();
+
+        // Minimal manifest registry that knows the "demo.demo" resource so the
+        // expander can resolve per-action expansion when the service writes overrides.
+        var registry = new PermissionManifestRegistry(new[] { (IPermissionManifest)new TestDemoManifest() });
+        var expander = new ManifestActionExpander(registry);
 
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
         ICacheService cache = new MemoryCacheService(memoryCache);
@@ -75,7 +84,8 @@ public class PermissionLookupCacheTests
             new PermissionCacheCoordinator(
                 cache,
                 new PermissionCacheOptions { LookupTtlMinutes = 20, VersionTtlHours = 24 },
-                null));
+                null),
+            expander);
 
         return (service, db, cache, probe);
     }
@@ -147,6 +157,18 @@ public class PermissionLookupCacheTests
     }
 }
 
+internal sealed class TestDemoManifest : IPermissionManifest
+{
+    public string Module => "demo";
+    public string DisplayName => "Demo";
+    public string? Icon => null;
+    public int? OrderNumber => 0;
+    public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
+    {
+        ResourceDefinition.WithCrudActions("demo", "Demo", 0),
+    };
+}
+
 /// <summary>
 /// Wraps the real <see cref="PermissionService"/> and counts how many times the
 /// permission-resolution method is called. Lets the tests assert "cache hit means
@@ -162,10 +184,17 @@ internal class CountingPermissionService : IPermissionService
         _inner = inner;
     }
 
-    public Task<(IEnumerable<IUserPermissionOverride> Overrides, IEnumerable<IUserRoleAssignment> Assignments, IEnumerable<IRolePermission> RolePermissions)>
-        GetPermissionsAsync(Guid userId, string resource, AuthorizationScope? scope = null, CancellationToken cancellationToken = default)
+    public Task<PermissionLoadResult> GetAllPermissionsAsync(
+        Guid userId, AuthorizationScope? scope = null, CancellationToken cancellationToken = default)
     {
         Calls++;
-        return _inner.GetPermissionsAsync(userId, resource, scope, cancellationToken);
+        return _inner.GetAllPermissionsAsync(userId, scope, cancellationToken);
+    }
+
+    public Task<PermissionLoadResult> GetResourcePermissionsAsync(
+        Guid userId, string resourceKey, AuthorizationScope? scope = null, CancellationToken cancellationToken = default)
+    {
+        Calls++;
+        return _inner.GetResourcePermissionsAsync(userId, resourceKey, scope, cancellationToken);
     }
 }

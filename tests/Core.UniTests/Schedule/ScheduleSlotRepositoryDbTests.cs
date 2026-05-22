@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.UniTests._TestInfra;
 using CapitalUniversity.Modules.Schedule.Abstractions;
 using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Repositories;
@@ -27,11 +28,9 @@ public class ScheduleSlotRepositoryDbTests : IDisposable
             .UseInMemoryDatabase($"schedule-slots-{Guid.NewGuid():N}")
             .Options;
 
-        var moduleAssembly = typeof(ScheduleSlot).Assembly;
-        if (!CoreDbContext.ModuleConfigurationAssemblies.Contains(moduleAssembly))
-        {
-            CoreDbContext.ModuleConfigurationAssemblies.Add(moduleAssembly);
-        }
+        // Serialise the static check-then-add — see ModuleAssemblyRegistration
+        // docstring for the parallel-fixture race this prevents.
+        ModuleAssemblyRegistration.Ensure(typeof(ScheduleSlot).Assembly);
 
         _context = new CoreDbContext(options);
         _repo = new ScheduleSlotRepository(_context);

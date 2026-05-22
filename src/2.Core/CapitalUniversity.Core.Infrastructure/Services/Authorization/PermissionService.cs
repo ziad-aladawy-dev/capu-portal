@@ -14,22 +14,38 @@ public class PermissionService : IPermissionService
         _dbContext = dbContext;
     }
 
-    public async Task<(IEnumerable<IUserPermissionOverride> Overrides, IEnumerable<IUserRoleAssignment> Assignments, IEnumerable<IRolePermission> RolePermissions)> GetPermissionsAsync(
+    public Task<PermissionLoadResult> GetAllPermissionsAsync(
         Guid userId,
-        string resource,
         AuthorizationScope? scope = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        LoadAsync(userId, resourceKey: null, scope, cancellationToken);
+
+    public Task<PermissionLoadResult> GetResourcePermissionsAsync(
+        Guid userId,
+        string resourceKey,
+        AuthorizationScope? scope = null,
+        CancellationToken cancellationToken = default) =>
+        LoadAsync(userId, resourceKey, scope, cancellationToken);
+
+    private async Task<PermissionLoadResult> LoadAsync(
+        Guid userId,
+        string? resourceKey,
+        AuthorizationScope? scope,
+        CancellationToken cancellationToken)
     {
         var assignments = await LoadAssignmentsAsync(userId, scope, cancellationToken);
         var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
 
         var rolePermissions = await _dbContext.RolePermissions
-            .Where(rp => roleIds.Contains(rp.RoleId) && (resource == "*" || rp.Resource == resource))
+            .Where(rp => roleIds.Contains(rp.RoleId) && (resourceKey == null || rp.Resource.Key == resourceKey))
             .ToListAsync(cancellationToken);
 
-        var overrides = await LoadOverridesAsync(userId, resource, scope, cancellationToken);
+        var overrides = await LoadOverridesAsync(userId, resourceKey, scope, cancellationToken);
 
-        return (overrides.Cast<IUserPermissionOverride>(), assignments.Cast<IUserRoleAssignment>(), rolePermissions.Cast<IRolePermission>());
+        return new PermissionLoadResult(
+            overrides.Cast<IUserPermissionOverride>(),
+            assignments.Cast<IUserRoleAssignment>(),
+            rolePermissions.Cast<IRolePermission>());
     }
 
     private Task<List<StaffRoleAssignment>> LoadAssignmentsAsync(Guid userId, AuthorizationScope? scope, CancellationToken cancellationToken)
@@ -50,9 +66,10 @@ public class PermissionService : IPermissionService
         return query.ToListAsync(cancellationToken);
     }
 
-    private Task<List<StaffPermissionOverride>> LoadOverridesAsync(Guid userId, string resource, AuthorizationScope? scope, CancellationToken cancellationToken)
+    private Task<List<StaffPermissionOverride>> LoadOverridesAsync(Guid userId, string? resourceKey, AuthorizationScope? scope, CancellationToken cancellationToken)
     {
-        var query = _dbContext.StaffPermissions.Where(sp => sp.StaffId == userId && (resource == "*" || sp.Resource == resource));
+        var query = _dbContext.StaffPermissions
+            .Where(sp => sp.StaffId == userId && (resourceKey == null || sp.Resource.Key == resourceKey));
         if (scope is not null)
         {
             query = query.Where(sp =>

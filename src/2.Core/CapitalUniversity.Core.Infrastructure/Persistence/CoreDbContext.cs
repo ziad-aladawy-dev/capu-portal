@@ -41,14 +41,11 @@ public class CoreDbContext : DbContext
     public DbSet<Staff> Staffs => Set<Staff>();
 
     public DbSet<Module> Modules { get; set; }
-    public DbSet<Service> Services { get; set; }
+    public DbSet<Resource> Resources { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
-    public DbSet<RolePermissionScope> RolePermissionScopes { get; set; }
     public DbSet<StaffRoleAssignment> StaffRoles { get; set; }
     public DbSet<StaffPermissionOverride> StaffPermissions { get; set; }
-    public DbSet<StaffPermissionScope> StaffPermissionScopes { get; set; }
-    public DbSet<StaffPermissionOverride> StaffPermissionOverrides { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<CapitalUniversity.Core.Domain.Outbox.OutboxMessage> OutboxMessages { get; set; }
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -105,13 +102,11 @@ public class CoreDbContext : DbContext
         modelBuilder.ApplyConfiguration(new StudentConfiguration());
         modelBuilder.ApplyConfiguration(new StaffConfiguration());
         modelBuilder.ApplyConfiguration(new ModuleConfiguration());
-        modelBuilder.ApplyConfiguration(new ServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new ResourceConfiguration());
         modelBuilder.ApplyConfiguration(new RoleConfiguration());
         modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());
-        modelBuilder.ApplyConfiguration(new RolePermissionScopeConfiguration());
         modelBuilder.ApplyConfiguration(new StaffRoleConfiguration());
         modelBuilder.ApplyConfiguration(new StaffPermissionConfiguration());
-        modelBuilder.ApplyConfiguration(new StaffPermissionScopeConfiguration());
         modelBuilder.ApplyConfiguration(new AcademicYearConfiguration());
         modelBuilder.ApplyConfiguration(new SemesterConfiguration());
 

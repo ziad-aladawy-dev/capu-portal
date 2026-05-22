@@ -66,4 +66,20 @@ public class SemestersController : ControllerBase
         await _service.ResolveCurrentSemesterAsync();
         return Ok(new { Message = "Semester resolution triggered" });
     }
+
+    [HttpPost("{id:guid}/close")]
+    [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
+    public async Task<IActionResult> Close(Guid id)
+    {
+        await _service.CloseAsync(id);
+        return Ok(new { Message = "Semester closed" });
+    }
+
+    [HttpPost("{id:guid}/reopen")]
+    [HasPermission(PermissionNames.AcademicTimeline.Open)]
+    public async Task<IActionResult> Reopen(Guid id)
+    {
+        await _service.ReopenAsync(id);
+        return Ok(new { Message = "Semester reopened" });
+    }
 }

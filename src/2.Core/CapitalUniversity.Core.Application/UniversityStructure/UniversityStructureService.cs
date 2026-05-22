@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using CapitalUniversity.Core.Application.DTOs.UniversityStructure;
@@ -11,13 +12,16 @@ public class UniversityStructureService : IUniversityStructureService
 {
     private readonly IStructureNodeRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPermissionCacheInvalidator? _permissionCacheInvalidator;
 
     public UniversityStructureService(
         IStructureNodeRepository repository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPermissionCacheInvalidator? permissionCacheInvalidator = null)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _permissionCacheInvalidator = permissionCacheInvalidator;
     }
 
     public async Task<List<StructureNodeDto>> GetTreeAsync()
@@ -308,6 +312,19 @@ public class UniversityStructureService : IUniversityStructureService
 
         await _repository
             .SaveChangesAsync();
+
+        // Path snapshots on StaffRoleAssignment and StaffPermissionOverride
+        // would otherwise drift — silently granting access to the old subtree
+        // and revoking it from the new one. Rewrite every prefix match and
+        // bump the global epoch so cached lookups are orphaned.
+        if (!string.Equals(oldPath, newPath, StringComparison.Ordinal))
+        {
+            await _repository.RepairPermissionPathPrefixAsync(oldPath, newPath);
+            if (_permissionCacheInvalidator is not null)
+            {
+                await _permissionCacheInvalidator.InvalidateAllAsync();
+            }
+        }
     }
 
     public async Task<List<StructureNodeDto>> GetRootsAsync()

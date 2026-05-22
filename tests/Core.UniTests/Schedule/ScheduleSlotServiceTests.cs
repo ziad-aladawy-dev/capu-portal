@@ -13,6 +13,7 @@ using CapitalUniversity.Modules.Schedule.Application.Validators;
 using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Repositories;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using Xunit;
 using ValidationException = CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException;
@@ -48,14 +49,17 @@ public class ScheduleSlotServiceTests
         offerings.Setup(o => o.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                  .ReturnsAsync(parentOffering);
 
+        var httpContextAccessor = new HttpContextAccessor();
         var sut = new ScheduleSlotService(
             uow.Object,
             slotRepo.Object,
             offerings.Object,
-            new CreateScheduleSlotValidator(),
-            new UpdateScheduleSlotValidator(),
+            new ScheduleSlotValidators(
+                new CreateScheduleSlotValidator(),
+                new UpdateScheduleSlotValidator()),
             outbox.Object,
-            logger.Object);
+            logger.Object,
+            httpContextAccessor);
         return (sut, slotRepo, offerings, uow, outbox, logger);
     }
 
@@ -158,6 +162,41 @@ public class ScheduleSlotServiceTests
 
         var result = await sut.GetByIdAsync(slot.Id);
         result.Should().BeNull("an out-of-scope offering must hide its slots silently — no 404, no leak");
+    }
+
+    [Fact]
+    public async Task GetById_SlotNotFound_ReturnsNull_WithoutCallingParentScope()
+    {
+        // Pins the "slot is null" early-return guard. If mutated to
+        // "is not null", the next line would call _offerings.GetByIdAsync
+        // with slot.CourseOfferingId on a null entity (NullReferenceException).
+        // Also verifies the parent lookup is short-circuited so a missing
+        // slot doesn't unnecessarily hit the offering service.
+        var (sut, slotRepo, offerings, _, _, _) = Build(parentOffering: VisibleOffering());
+        slotRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), default)).ReturnsAsync((ScheduleSlot?)null);
+
+        var result = await sut.GetByIdAsync(Guid.NewGuid());
+
+        result.Should().BeNull();
+        offerings.Verify(o => o.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never,
+            "no slot = no parent to scope-check");
+    }
+
+    [Fact]
+    public async Task GetForOffering_OfferingNotVisible_ReturnsEmpty_WithoutQueryingSlots()
+    {
+        // Pins both the parent-null check and the early-return block
+        // removal. A mutation that empties the if-body would still call
+        // _slots.GetForOfferingAsync and leak any rows it returns.
+        var (sut, slotRepo, _, _, _, _) = Build(parentOffering: null);
+
+        var result = await sut.GetForOfferingAsync(Guid.NewGuid());
+
+        result.Should().BeEmpty();
+        slotRepo.Verify(
+            r => r.GetForOfferingAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "out-of-scope parent must short-circuit BEFORE the slot repo call");
     }
 
     [Fact]

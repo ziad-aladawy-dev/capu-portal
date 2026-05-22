@@ -6,11 +6,15 @@ using Microsoft.EntityFrameworkCore;
 namespace CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 
 /// <summary>
-/// Additive synchroniser: ensures the <c>Modules</c> and <c>Services</c> tables hold
-/// a row for every permission declared by every <see cref="IPermissionManifest"/>.
-/// Existing rows are matched by their natural keys (<c>ModuleKey</c> for Modules,
-/// <c>(ModuleId, DisplayName)</c> for Services) and never deleted or renamed — so
-/// rows seeded by teammate-owned legacy seeders remain untouched.
+/// Reconciles the in-memory <see cref="IPermissionManifestRegistry"/> against
+/// the database <c>Modules</c> + <c>Resources</c> tables.
+/// <para>
+/// Matching is by natural key (<c>ModuleKey</c> for Modules, <c>(ModuleId, Key)</c>
+/// for Resources). On match, presentation metadata that's safe to refresh
+/// (<c>DisplayName</c>, <c>Icon</c>, <c>OrderNumber</c>) is updated from the
+/// manifest so a rename in code propagates without orphaning the row's FKs.
+/// Rows are never deleted — a manifest authors a resource key for life.
+/// </para>
 /// </summary>
 public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
 {
@@ -25,11 +29,10 @@ public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
 
     public async Task<PermissionSyncReport> SynchronizeAsync(CancellationToken cancellationToken = default)
     {
-        // Snapshot existing rows once. The synchroniser is expected to run during
-        // startup and bulk operations dominate over individual EF roundtrips.
         var existingModules = await _dbContext.Modules.ToListAsync(cancellationToken);
         var moduleByKey = existingModules.ToDictionary(m => m.ModuleKey, StringComparer.Ordinal);
         int modulesCreated = 0;
+        int modulesUpdated = 0;
 
         foreach (var manifest in _registry.Manifests)
         {
@@ -46,58 +49,109 @@ public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
                 _dbContext.Modules.Add(moduleRow);
                 moduleByKey[manifest.Module] = moduleRow;
                 modulesCreated++;
+                continue;
+            }
+
+            if (RefreshModuleMetadata(moduleRow, manifest))
+            {
+                modulesUpdated++;
             }
         }
 
-        // Flush so newly-created Module rows have stable Ids before we touch Services.
-        if (modulesCreated > 0)
+        if (modulesCreated > 0 || modulesUpdated > 0)
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var existingServices = await _dbContext.Services.ToListAsync(cancellationToken);
-        var servicesByModuleAndName = existingServices
-            .GroupBy(s => s.ModuleId)
+        var existingResources = await _dbContext.Resources.ToListAsync(cancellationToken);
+        var resourcesByModuleAndKey = existingResources
+            .GroupBy(r => r.ModuleId)
             .ToDictionary(
                 g => g.Key,
-                g => g.ToDictionary(s => s.DisplayName, StringComparer.Ordinal));
-        int servicesCreated = 0;
+                g => g.ToDictionary(r => r.Key, StringComparer.Ordinal));
+        int resourcesCreated = 0;
+        int resourcesUpdated = 0;
 
         foreach (var manifest in _registry.Manifests)
         {
             var moduleRow = moduleByKey[manifest.Module];
 
-            if (!servicesByModuleAndName.TryGetValue(moduleRow.Id, out var byName))
+            if (!resourcesByModuleAndKey.TryGetValue(moduleRow.Id, out var byKey))
             {
-                byName = new Dictionary<string, Service>(StringComparer.Ordinal);
-                servicesByModuleAndName[moduleRow.Id] = byName;
+                byKey = new Dictionary<string, Resource>(StringComparer.Ordinal);
+                resourcesByModuleAndKey[moduleRow.Id] = byKey;
             }
 
-            foreach (var perm in manifest.Permissions)
+            foreach (var resource in manifest.Resources)
             {
-                if (byName.ContainsKey(perm.DisplayName)) continue;
+                if (byKey.TryGetValue(resource.Key, out var existingRow))
+                {
+                    if (RefreshResourceMetadata(existingRow, resource))
+                    {
+                        resourcesUpdated++;
+                    }
+                    continue;
+                }
 
-                var row = new Service
+                var row = new Resource
                 {
                     Id = Guid.NewGuid(),
                     ModuleId = moduleRow.Id,
-                    DisplayName = perm.DisplayName,
-                    OrderNumber = perm.OrderNumber
+                    Key = resource.Key,
+                    DisplayName = resource.DisplayName,
+                    OrderNumber = resource.OrderNumber
                 };
-                _dbContext.Services.Add(row);
-                byName[perm.DisplayName] = row;
-                servicesCreated++;
+                _dbContext.Resources.Add(row);
+                byKey[resource.Key] = row;
+                resourcesCreated++;
             }
         }
 
-        if (servicesCreated > 0)
+        if (resourcesCreated > 0 || resourcesUpdated > 0)
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         return new PermissionSyncReport(
             ModulesCreated: modulesCreated,
-            ServicesCreated: servicesCreated,
+            ResourcesCreated: resourcesCreated,
             ManifestsProcessed: _registry.Manifests.Count);
+    }
+
+    private static bool RefreshModuleMetadata(Module row, IPermissionManifest manifest)
+    {
+        var dirty = false;
+        if (!string.Equals(row.DisplayName, manifest.DisplayName, StringComparison.Ordinal))
+        {
+            row.DisplayName = manifest.DisplayName;
+            dirty = true;
+        }
+        if (!string.Equals(row.Icon, manifest.Icon, StringComparison.Ordinal))
+        {
+            row.Icon = manifest.Icon;
+            dirty = true;
+        }
+        if (row.OrderNumber != manifest.OrderNumber)
+        {
+            row.OrderNumber = manifest.OrderNumber;
+            dirty = true;
+        }
+        return dirty;
+    }
+
+    private static bool RefreshResourceMetadata(Resource row, ResourceDefinition def)
+    {
+        var dirty = false;
+        if (!string.Equals(row.DisplayName, def.DisplayName, StringComparison.Ordinal))
+        {
+            row.DisplayName = def.DisplayName;
+            dirty = true;
+        }
+        if (row.OrderNumber != def.OrderNumber)
+        {
+            row.OrderNumber = def.OrderNumber;
+            dirty = true;
+        }
+        return dirty;
     }
 }

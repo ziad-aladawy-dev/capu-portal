@@ -35,6 +35,9 @@ public static class ScheduleModuleExtensions
 
         services.AddScoped<IValidator<CreateScheduleSlotRequest>, CreateScheduleSlotValidator>();
         services.AddScoped<IValidator<UpdateScheduleSlotRequest>, UpdateScheduleSlotValidator>();
+        // Bundle of the two validators so ScheduleSlotService stays under the
+        // 7-parameter convention; mirrors AcademicPlanValidators in core.
+        services.AddScoped<ScheduleSlotValidators>();
 
         services.AddSingleton<IPermissionManifest, SchedulePermissionManifest>();
 

@@ -1,14 +1,18 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Application.Courses.Authorization;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization;
+using CapitalUniversity.Core.Application.Semesters.Authorization;
 using FluentAssertions;
 using Xunit;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
 /// <summary>
-/// Registry construction is the validation surface — duplicate keys, empty fields,
-/// and duplicate canonical names all surface as a startup-time throw, so the rest
-/// of the system can trust the snapshot.
+/// Registry construction is the validation surface — duplicate module keys,
+/// duplicate resource keys within a module, empty fields, and duplicate
+/// canonical names all surface as a startup-time throw so the rest of the
+/// system can trust the snapshot.
 /// </summary>
 public class PermissionManifestRegistryTests
 {
@@ -20,7 +24,7 @@ public class PermissionManifestRegistryTests
         public string DisplayName { get; init; } = string.Empty;
         public string? Icon { get; init; }
         public int? OrderNumber { get; init; }
-        public IReadOnlyCollection<PermissionDefinition> Permissions { get; init; } = Array.Empty<PermissionDefinition>();
+        public IReadOnlyCollection<ResourceDefinition> Resources { get; init; } = Array.Empty<ResourceDefinition>();
     }
 
     [Fact]
@@ -32,17 +36,16 @@ public class PermissionManifestRegistryTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[]
+                Resources = new[]
                 {
-                    PermissionDefinition.Create("x", "View",   "View X"),
-                    PermissionDefinition.Create("x", "Insert", "Create X"),
+                    ResourceDefinition.Of("x", "X", 0, "View", "Insert"),
                 }
             },
             new StubManifest
             {
                 Module = "beta",
                 DisplayName = "Beta",
-                Permissions = new[] { PermissionDefinition.Create("y", "View", "View Y") }
+                Resources = new[] { ResourceDefinition.Of("y", "Y", 0, "View") }
             },
         };
 
@@ -69,7 +72,7 @@ public class PermissionManifestRegistryTests
     }
 
     [Fact]
-    public void Build_DuplicateResourceActionInSameManifest_Throws()
+    public void Build_DuplicateResourceKeyInSameManifest_Throws()
     {
         var manifests = new IPermissionManifest[]
         {
@@ -77,21 +80,21 @@ public class PermissionManifestRegistryTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[]
+                Resources = new[]
                 {
-                    PermissionDefinition.Create("x", "View", "View X (first)"),
-                    PermissionDefinition.Create("x", "View", "View X (second)"),
+                    ResourceDefinition.Of("x", "X (first)",  0, "View"),
+                    ResourceDefinition.Of("x", "X (second)", 0, "Insert"),
                 }
             }
         };
 
         Action build = () => _ = new PermissionManifestRegistry(manifests);
         build.Should().Throw<InvalidOperationException>()
-            .WithMessage("*duplicate permission 'x.View'*");
+            .WithMessage("*duplicate resource key 'x'*");
     }
 
     [Fact]
-    public void Build_EmptyAction_Throws()
+    public void Build_DuplicateActionOnSameResource_Throws()
     {
         var manifests = new IPermissionManifest[]
         {
@@ -99,13 +102,31 @@ public class PermissionManifestRegistryTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[] { PermissionDefinition.Create("x", string.Empty, "Broken") }
+                Resources = new[] { ResourceDefinition.Of("x", "X", 0, "View", "View") }
             }
         };
 
         Action build = () => _ = new PermissionManifestRegistry(manifests);
         build.Should().Throw<InvalidOperationException>()
-            .WithMessage("*empty Action*");
+            .WithMessage("*duplicate action 'View'*");
+    }
+
+    [Fact]
+    public void Build_EmptyResourceKey_Throws()
+    {
+        var manifests = new IPermissionManifest[]
+        {
+            new StubManifest
+            {
+                Module = "alpha",
+                DisplayName = "Alpha",
+                Resources = new[] { ResourceDefinition.Of(string.Empty, "X", 0, "View") }
+            }
+        };
+
+        Action build = () => _ = new PermissionManifestRegistry(manifests);
+        build.Should().Throw<InvalidOperationException>()
+            .WithMessage("*empty Key*");
     }
 
     [Fact]
@@ -117,13 +138,31 @@ public class PermissionManifestRegistryTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[] { PermissionDefinition.Create("x", "View", string.Empty) }
+                Resources = new[] { ResourceDefinition.Of("x", string.Empty, 0, "View") }
             }
         };
 
         Action build = () => _ = new PermissionManifestRegistry(manifests);
         build.Should().Throw<InvalidOperationException>()
-            .WithMessage("*without a DisplayName*");
+            .WithMessage("*empty DisplayName*");
+    }
+
+    [Fact]
+    public void Build_ResourceWithNoActions_Throws()
+    {
+        var manifests = new IPermissionManifest[]
+        {
+            new StubManifest
+            {
+                Module = "alpha",
+                DisplayName = "Alpha",
+                Resources = new[] { ResourceDefinition.Of("x", "X", 0) }
+            }
+        };
+
+        Action build = () => _ = new PermissionManifestRegistry(manifests);
+        build.Should().Throw<InvalidOperationException>()
+            .WithMessage("*declares no Actions*");
     }
 
     [Fact]

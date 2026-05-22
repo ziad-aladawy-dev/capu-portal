@@ -86,6 +86,7 @@ public class AcademicYearService : IAcademicYearService
 
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
         if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+        year.EnsureMutable();
 
         var startDate = request.StartDate ?? year.StartDate;
         var endDate = request.EndDate ?? year.EndDate;
@@ -117,8 +118,29 @@ public class AcademicYearService : IAcademicYearService
     {
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
         if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+        year.EnsureMutable();
 
         _unitOfWork.AcademicYears.Delete(year);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task CloseAsync(Guid id)
+    {
+        var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+
+        year.Close();
+        _unitOfWork.AcademicYears.Update(year);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task ReopenAsync(Guid id)
+    {
+        var year = await _unitOfWork.AcademicYears.GetByIdAsync(id);
+        if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
+
+        year.Reopen();
+        _unitOfWork.AcademicYears.Update(year);
         await _unitOfWork.SaveChangesAsync();
     }
 

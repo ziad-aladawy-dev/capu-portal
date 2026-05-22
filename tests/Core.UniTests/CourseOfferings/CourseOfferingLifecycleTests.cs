@@ -157,6 +157,40 @@ public class CourseOfferingLifecycleTests
         offering.RegistrationState.Should().Be(RegistrationState.Closed);
     }
 
+    [Fact]
+    public void CloseRegistration_FromOpen_ActuallyClosesIt()
+    {
+        // The existing CloseRegistration_AlwaysAllowed test only calls
+        // CloseRegistration when the registration state is already Closed,
+        // so a mutation that empties the method body still leaves state as
+        // Closed and survives. This test opens registration first so the
+        // method's body MUST execute to observe the transition.
+        var offering = NewOpenOffering();
+        offering.OpenRegistration();
+        offering.RegistrationState.Should().Be(RegistrationState.Open);
+
+        offering.CloseRegistration();
+
+        offering.RegistrationState.Should().Be(RegistrationState.Closed);
+    }
+
+    [Fact]
+    public void Close_AlreadyClosed_IsNoOp()
+    {
+        // The early-return guard in Close (`if (_status == Closed) return`)
+        // is currently unreached by any test — Close_FromOpen tests the
+        // happy transition; Draft/Cancelled tests hit the throw branches.
+        // Re-calling Close on a closed offering must not throw and must
+        // leave the state unchanged.
+        var offering = NewOpenOffering();
+        offering.Close();
+        offering.Status.Should().Be(OfferingStatus.Closed);
+
+        var act = offering.Close; // second call
+        act.Should().NotThrow("idempotent Close on an already-closed offering must not throw");
+        offering.Status.Should().Be(OfferingStatus.Closed);
+    }
+
     // ---- Cross-invariant: registration count + cancellation ---------------
 
     [Fact]

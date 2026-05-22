@@ -197,20 +197,24 @@ public static class DependencyInjection
         // Permission Manifest System (PR-B1) — each module declares its own permissions
         // via an IPermissionManifest. The registry validates duplicates at startup; the
         // synchronizer ensures Module + Service rows exist for every declared permission.
+        // Each domain owns its own manifest. AuthorizationPermissionManifest
+        // stays in CrossCutting.Auth — it IS the Auth meta-module declaring its
+        // own permission surface. The others live next to their domain code.
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
-                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AcademicsPermissionManifest>();
+                              CapitalUniversity.Core.Application.Semesters.Authorization.AcademicsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.AuthorizationPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
-                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.NotificationsPermissionManifest>();
+                              CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization.NotificationsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
-                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.CoursesPermissionManifest>();
+                              CapitalUniversity.Core.Application.Courses.Authorization.CoursesPermissionManifest>();
         // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
         // registered by AddPaymentsModule().
         // StudentInformationPermissionManifest moved to
         // Module.Student.Abstractions — registered by AddStudentModule().
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestRegistry,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.PermissionManifestRegistry>();
+        services.AddSingleton<CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.ManifestActionExpander>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer,
                            CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.PermissionManifestSynchronizer>();
         services.AddScoped<

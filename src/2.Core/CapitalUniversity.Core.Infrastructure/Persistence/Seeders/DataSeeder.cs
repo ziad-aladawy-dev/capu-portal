@@ -20,7 +20,7 @@ public static class DataSeeder
         await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
         await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
         await RunOnceAsync("Modules",         context.Modules,         () => SeedAuthModulesAsync(context));
-        await RunOnceAsync("Services",        context.Services,        () => SeedAuthServicesAsync(context));
+        await RunOnceAsync("Resources",       context.Resources,       () => SeedAuthResourcesAsync(context));
         await RunOnceAsync("Roles",           context.Roles,           () => SeedRolesAsync(context));
 
         // Idempotent / self-healing: always run, upsert by natural key so stale state converges.
@@ -207,43 +207,44 @@ public static class DataSeeder
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  5. AUTH SERVICES
+    //  5. AUTH RESOURCES
     // ════════════════════════════════════════════════════════════════
 
-    private static async Task SeedAuthServicesAsync(CoreDbContext context)
+    private static async Task SeedAuthResourcesAsync(CoreDbContext context)
     {
         var modules = await context.Modules.ToListAsync();
 
-        void AddSvc(string moduleKey, string displayName, int order)
+        void AddRes(string moduleKey, string key, string displayName, int order)
         {
             var modId = modules.First(m => m.ModuleKey == moduleKey).Id;
-            context.Services.Add(new Service { Id = Guid.NewGuid(), ModuleId = modId, DisplayName = displayName, OrderNumber = order });
+            context.Resources.Add(new Resource
+            {
+                Id = Guid.NewGuid(),
+                ModuleId = modId,
+                Key = key,
+                DisplayName = displayName,
+                OrderNumber = order
+            });
         }
 
-        AddSvc("dashboard",    "View Dashboard",       0);
-        AddSvc("users",        "View Users",           0);
-        AddSvc("users",        "Create Users",         1);
-        AddSvc("users",        "Edit Users",           2);
-        AddSvc("users",        "Delete Users",         3);
-        AddSvc("structure",    "View Structure",       0);
-        AddSvc("structure",    "Manage Structure",     1);
-        AddSvc("programs",     "View Programs",        0);
-        AddSvc("programs",     "Manage Programs",      1);
-        AddSvc("permissions",  "View Permissions",     0);
-        AddSvc("permissions",  "Manage Permissions",   1);
-        AddSvc("sync",         "View Sync",            0);
-        AddSvc("sync",         "Execute Sync",         1);
-        // Consolidated academic-timeline service — covers both Academic Years and
-        // Semesters via the single canonical "academics.academic-years.*" identity
-        // PermissionIdentity.ResourceFor already produces for every academics row.
-        AddSvc("academics",    "Academic Timeline",    0);
-        AddSvc("notifications","View Notifications",   0);
-        AddSvc("notifications","Send Notifications",   1);
-        AddSvc("permissions",  "Manage Roles",         2);
+        // One Resource per (module, key) — action verbs are per-row on
+        // RolePermission.Action and StaffPermissionOverride.Action. Keys match
+        // the canonical {module}.{resource}.{action} identity declared in
+        // PermissionNames and the per-module manifests, so HasPermission
+        // attribute lookups round-trip against these rows.
+        AddRes("dashboard",    "dashboard",      "Dashboard",        0);
+        AddRes("users",        "users",          "Users",            0);
+        AddRes("structure",    "structure",      "Structure",        0);
+        AddRes("programs",     "programs",       "Programs",         0);
+        AddRes("permissions",  "permissions",    "Permissions",      0);
+        AddRes("permissions",  "roles",          "Roles",            1);
+        AddRes("sync",         "sync",           "SIS Sync",         0);
+        AddRes("academics",    "academic-years", "Academic Timeline", 0);
+        AddRes("notifications","notifications",  "Notifications",    0);
 
         await context.SaveChangesAsync();
     }
-    
+
     // ════════════════════════════════════════════════════════════════
     //  6. ROLES
     // ════════════════════════════════════════════════════════════════
@@ -272,95 +273,96 @@ public static class DataSeeder
     private static async Task SeedRolePermissionsAsync(CoreDbContext context)
     {
         var roles = await context.Roles.ToListAsync();
-        var svcList = await context.Services.ToListAsync();
-        await context.Modules.LoadAsync();
+        var resources = await context.Resources.Include(r => r.Module).ToListAsync();
 
         var roleMap = roles.ToDictionary(r => r.Name, r => r.Id);
+        var resourceMap = resources.ToDictionary(r => (r.Module.ModuleKey, r.Key));
 
-        // Load existing rows from the DB (not just .Local) so the upsert respects
-        // the IX_RolePermissions_RoleId_ServiceId unique index across runs.
+        // Per-action rows. Existing rows are keyed by (RoleId, ResourceId, Action)
+        // to respect the IX_RolePermissions_RoleId_ResourceId_Action unique index.
         var existing = await context.RolePermissions
-            .ToDictionaryAsync(rp => (rp.RoleId, rp.ServiceId));
+            .ToDictionaryAsync(rp => (rp.RoleId, rp.ResourceId, rp.Action));
 
-        void AddPerm(string roleName, string displayName, ActionLevel level)
+        void Grant(string roleName, string moduleKey, string resourceKey, ActionLevel level)
         {
-            var svc = svcList.FirstOrDefault(s => s.DisplayName == displayName);
-            if (svc == null) return;
+            if (!resourceMap.TryGetValue((moduleKey, resourceKey), out var res)) return;
+            if (!roleMap.TryGetValue(roleName, out var roleId)) return;
 
-            var mod = context.Modules.Local.First(m => m.Id == svc.ModuleId);
-            var resource = PermissionIdentity.ResourceFor(mod.ModuleKey, displayName);
-            var roleId = roleMap[roleName];
-
-            if (existing.TryGetValue((roleId, svc.Id), out var current))
+            foreach (var action in ExpandLegacyCrudLevel(level))
             {
-                if (level > current.Level) current.Level = level;
-                current.Resource = resource;
-                return;
+                if (existing.ContainsKey((roleId, res.Id, action))) continue;
+
+                var newRow = new RolePermission(roleId, res.Id, action)
+                {
+                    Id = Guid.NewGuid(),
+                };
+                context.RolePermissions.Add(newRow);
+                existing[(roleId, res.Id, action)] = newRow;
             }
-
-            var newRow = new RolePermission(roleId, svc.Id, resource, level)
-            {
-                Id = Guid.NewGuid(),
-                PermissionId = Guid.NewGuid(),
-            };
-            context.RolePermissions.Add(newRow);
-            existing[(roleId, svc.Id)] = newRow;
         }
 
-        // Super Admin — full access
-        foreach (var svc in svcList)
-            AddPerm("Super Admin", svc.DisplayName, ActionLevel.Delete);
+        // Super Admin — full access to every seeded resource.
+        foreach (var res in resources)
+            Grant("Super Admin", res.Module.ModuleKey, res.Key, ActionLevel.Delete);
 
         // Faculty Admin
-        AddPerm("Faculty Admin", "View Dashboard",       ActionLevel.View);
-        AddPerm("Faculty Admin", "View Users",           ActionLevel.EditClose);
-        AddPerm("Faculty Admin", "Create Users",         ActionLevel.Insert);
-        AddPerm("Faculty Admin", "Edit Users",           ActionLevel.EditClose);
-        AddPerm("Faculty Admin", "View Structure",       ActionLevel.View);
-        AddPerm("Faculty Admin", "View Programs",        ActionLevel.View);
-        AddPerm("Faculty Admin", "Manage Programs",      ActionLevel.Insert);
-        AddPerm("Faculty Admin", "View Permissions",     ActionLevel.View);
-        AddPerm("Faculty Admin", "Academic Timeline",    ActionLevel.View);
-        AddPerm("Faculty Admin", "View Notifications",   ActionLevel.View);
-        AddPerm("Faculty Admin", "Send Notifications",   ActionLevel.Insert);
-        AddPerm("Faculty Admin", "Manage Roles",         ActionLevel.View);
+        Grant("Faculty Admin", "dashboard",     "dashboard",      ActionLevel.View);
+        Grant("Faculty Admin", "users",         "users",          ActionLevel.EditClose);
+        Grant("Faculty Admin", "structure",     "structure",      ActionLevel.View);
+        Grant("Faculty Admin", "programs",      "programs",       ActionLevel.Insert);
+        Grant("Faculty Admin", "permissions",   "permissions",    ActionLevel.View);
+        Grant("Faculty Admin", "permissions",   "roles",          ActionLevel.View);
+        Grant("Faculty Admin", "academics",     "academic-years", ActionLevel.View);
+        Grant("Faculty Admin", "notifications", "notifications",  ActionLevel.Insert);
 
         // Department Head
-        AddPerm("Department Head", "View Dashboard",     ActionLevel.View);
-        AddPerm("Department Head", "View Users",         ActionLevel.EditClose);
-        AddPerm("Department Head", "Edit Users",         ActionLevel.EditClose);
-        AddPerm("Department Head", "View Structure",     ActionLevel.View);
-        AddPerm("Department Head", "View Programs",      ActionLevel.View);
-        AddPerm("Department Head", "Academic Timeline", ActionLevel.View);
-        AddPerm("Department Head", "View Notifications", ActionLevel.View);
+        Grant("Department Head", "dashboard",     "dashboard",      ActionLevel.View);
+        Grant("Department Head", "users",         "users",          ActionLevel.EditClose);
+        Grant("Department Head", "structure",     "structure",      ActionLevel.View);
+        Grant("Department Head", "programs",      "programs",       ActionLevel.View);
+        Grant("Department Head", "academics",     "academic-years", ActionLevel.View);
+        Grant("Department Head", "notifications", "notifications",  ActionLevel.View);
 
         // Registrar
-        AddPerm("Registrar", "View Dashboard",           ActionLevel.View);
-        AddPerm("Registrar", "View Users",               ActionLevel.View);
-        AddPerm("Registrar", "Create Users",             ActionLevel.Insert);
-        AddPerm("Registrar", "Edit Users",               ActionLevel.EditClose);
-        AddPerm("Registrar", "View Structure",           ActionLevel.View);
-        AddPerm("Registrar", "View Programs",            ActionLevel.View);
-        AddPerm("Registrar", "Manage Programs",          ActionLevel.Insert);
-        AddPerm("Registrar", "Academic Timeline",        ActionLevel.View);
+        Grant("Registrar", "dashboard", "dashboard",      ActionLevel.View);
+        Grant("Registrar", "users",     "users",          ActionLevel.EditClose);
+        Grant("Registrar", "structure", "structure",      ActionLevel.View);
+        Grant("Registrar", "programs",  "programs",       ActionLevel.Insert);
+        Grant("Registrar", "academics", "academic-years", ActionLevel.View);
 
         // Academic Advisor
-        AddPerm("Academic Advisor", "View Dashboard",    ActionLevel.View);
-        AddPerm("Academic Advisor", "View Users",        ActionLevel.View);
-        AddPerm("Academic Advisor", "View Structure",    ActionLevel.View);
-        AddPerm("Academic Advisor", "View Programs",     ActionLevel.View);
-        AddPerm("Academic Advisor", "View Notifications",ActionLevel.View);
+        Grant("Academic Advisor", "dashboard",     "dashboard",     ActionLevel.View);
+        Grant("Academic Advisor", "users",         "users",         ActionLevel.View);
+        Grant("Academic Advisor", "structure",     "structure",     ActionLevel.View);
+        Grant("Academic Advisor", "programs",      "programs",      ActionLevel.View);
+        Grant("Academic Advisor", "notifications", "notifications", ActionLevel.View);
 
         // Staff (basic)
-        AddPerm("Staff", "View Dashboard",               ActionLevel.View);
-        AddPerm("Staff", "View Users",                   ActionLevel.View);
-        AddPerm("Staff", "View Notifications",           ActionLevel.View);
+        Grant("Staff", "dashboard",     "dashboard",     ActionLevel.View);
+        Grant("Staff", "users",         "users",         ActionLevel.View);
+        Grant("Staff", "notifications", "notifications", ActionLevel.View);
 
         // Viewer
-        AddPerm("Viewer", "View Dashboard",              ActionLevel.View);
-        AddPerm("Viewer", "View Users",                  ActionLevel.View);
+        Grant("Viewer", "dashboard", "dashboard", ActionLevel.View);
+        Grant("Viewer", "users",     "users",     ActionLevel.View);
 
         await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Mirrors the canonical CRUD ladder implies graph used by every seeded
+    /// resource: granting <c>Level=N</c> writes one row per action up to and
+    /// including <c>N</c>. Resources without an <c>Open</c> verb still get the
+    /// row written — the runtime ignores stored actions a resource's manifest
+    /// does not declare.
+    /// </summary>
+    private static IEnumerable<string> ExpandLegacyCrudLevel(ActionLevel level)
+    {
+        if (level >= ActionLevel.View)      yield return "View";
+        if (level >= ActionLevel.Insert)    yield return "Insert";
+        if (level >= ActionLevel.EditClose) yield return "EditClose";
+        if (level >= ActionLevel.Open)      yield return "Open";
+        if (level >= ActionLevel.Delete)    yield return "Delete";
     }
 
     // ════════════════════════════════════════════════════════════════

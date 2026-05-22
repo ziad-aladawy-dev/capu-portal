@@ -163,4 +163,37 @@ public class StructureNodeRepository : IStructureNodeRepository
     {
         await _context.SaveChangesAsync();
     }
+
+    public async Task<int> RepairPermissionPathPrefixAsync(string oldPath, string newPath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(oldPath) || string.Equals(oldPath, newPath, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        // Two tables snapshot StructureNodePath: StaffRoleAssignment and
+        // StaffPermissionOverride. Both store the path of the assignment's
+        // scope node, plus all descendant paths thereof, so a node move that
+        // changes the canonical path must rewrite every snapshot starting
+        // with the old prefix. Identity inserts are out of scope — we mutate
+        // existing rows via ExecuteUpdateAsync for transactional safety with
+        // the in-flight node-update unit-of-work.
+        var roles = await _context.StaffRoles
+            .Where(sr => sr.StructureNodePath != null && sr.StructureNodePath.StartsWith(oldPath))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    sr => sr.StructureNodePath,
+                    sr => newPath + sr.StructureNodePath!.Substring(oldPath.Length)),
+                cancellationToken);
+
+        var overrides = await _context.StaffPermissions
+            .Where(sp => sp.StructureNodePath != null && sp.StructureNodePath.StartsWith(oldPath))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(
+                    sp => sp.StructureNodePath,
+                    sp => newPath + sp.StructureNodePath!.Substring(oldPath.Length)),
+                cancellationToken);
+
+        return roles + overrides;
+    }
 }

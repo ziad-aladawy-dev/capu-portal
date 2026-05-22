@@ -61,76 +61,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("Modules", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PermissionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Resource")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ServiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceId");
-
-                    b.HasIndex("RoleId", "ServiceId")
-                        .IsUnique();
-
-                    b.ToTable("RolePermissions", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermissionScope", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("RolePermissionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("StructureNodeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RolePermissionId");
-
-                    b.ToTable("RolePermissionScopes", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Service", b =>
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Resource", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -147,6 +78,11 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -158,9 +94,48 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ModuleId", "Key")
+                        .IsUnique();
+
                     b.HasIndex("ModuleId", "OrderNumber");
 
-                    b.ToTable("Services", (string)null);
+                    b.ToTable("Resources", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceId");
+
+                    b.HasIndex("RoleId", "ResourceId", "Action")
+                        .IsUnique();
+
+                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
@@ -169,12 +144,13 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Domain")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
@@ -182,22 +158,12 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<int>("Level")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PermissionId")
+                    b.Property<Guid>("ResourceId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Resource")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Semester")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ServiceId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("StaffId")
                         .HasColumnType("uniqueidentifier");
@@ -220,7 +186,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ServiceId");
+                    b.HasIndex("ResourceId");
 
                     b.HasIndex("StaffId");
 
@@ -567,34 +533,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("Staffs", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.StaffPermissionScope", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("StaffPermissionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("StructureNodeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StaffPermissionId");
-
-                    b.ToTable("StaffPermissionScopes", (string)null);
-                });
-
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Student", b =>
                 {
                     b.Property<Guid>("Id")
@@ -761,161 +699,23 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("OutboxMessages", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.Invoice", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<DateTime?>("DueAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("StudentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentId", "Status");
-
-                    b.ToTable("Invoices", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.InvoiceItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("FeeType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("ReferenceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SourceModule")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.HasIndex("SourceModule", "ReferenceId");
-
-                    b.ToTable("InvoiceItems", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.PaymentTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("ProviderTransactionId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("RawPayloadJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId", "IdempotencyKey")
-                        .IsUnique();
-
-                    b.ToTable("PaymentTransactions", (string)null);
-                });
-
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.AcademicYear", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("bit");
@@ -951,11 +751,17 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("AcademicYearId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("bit");
@@ -985,68 +791,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasFilter("[IsCurrent] = 1");
 
                     b.ToTable("Semesters");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.StudentInformation.StudentProfileRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CustomCategoryKey")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("DataJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSensitive")
-                        .HasColumnType("bit");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("SchemaVersion")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("StudentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("VerifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsSensitive")
-                        .HasFilter("[IsSensitive] = 1");
-
-                    b.HasIndex("StudentId", "Category");
-
-                    b.HasIndex("StudentId", "Category", "CustomCategoryKey")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("StudentProfileRecords", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
@@ -1111,40 +855,333 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("StructureNodes", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.CourseOffering.Domain.CourseOffering", b =>
                 {
-                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Role", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
 
-                    b.Navigation("Role");
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Navigation("Service");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExternalSyncedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalSystemId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RegisteredCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RegistrationState")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SectionCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("SemesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StructureNodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SemesterId");
+
+                    b.HasIndex("CourseId", "SemesterId");
+
+                    b.HasIndex("StructureNodeId", "SemesterId", "Status");
+
+                    b.HasIndex("CourseId", "SemesterId", "StructureNodeId", "SectionCode")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("CourseOfferings", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermissionScope", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
                 {
-                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.RolePermission", "RolePermission")
-                        .WithMany("Scopes")
-                        .HasForeignKey("RolePermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Navigation("RolePermission");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime?>("DueAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId", "Status");
+
+                    b.ToTable("Invoices", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Service", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.InvoiceItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("FeeType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceModule")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("SourceModule", "ReferenceId");
+
+                    b.ToTable("InvoiceItems", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.PaymentTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("RawPayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("PaymentTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseOfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseOfferingId", "DayOfWeek", "StartTime");
+
+                    b.HasIndex("CourseOfferingId", "DayOfWeek", "StartTime", "EndTime")
+                        .IsUnique();
+
+                    b.ToTable("ScheduleSlots", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Student.Domain.StudentProfileRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomCategoryKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSensitive")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsSensitive")
+                        .HasFilter("[IsSensitive] = 1");
+
+                    b.HasIndex("StudentId", "Category");
+
+                    b.HasIndex("StudentId", "Category", "CustomCategoryKey")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("StudentProfileRecords", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Resource", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.Authorization.Module", "Module")
-                        .WithMany("Services")
+                        .WithMany("Resources")
                         .HasForeignKey("ModuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1152,11 +1189,30 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("Module");
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
                 {
-                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.Service", "Service")
+                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.Resource", "Resource")
                         .WithMany()
-                        .HasForeignKey("ServiceId")
+                        .HasForeignKey("ResourceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1166,7 +1222,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Service");
+                    b.Navigation("Resource");
 
                     b.Navigation("Staff");
                 });
@@ -1217,17 +1273,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("StructureNode");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.StaffPermissionScope", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", "StaffPermission")
-                        .WithMany("Scopes")
-                        .HasForeignKey("StaffPermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StaffPermission");
-                });
-
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Student", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", "StructureNode")
@@ -1237,37 +1282,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("StructureNode");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.Invoice", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.InvoiceItem", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Payments.Invoice", "Invoice")
-                        .WithMany("Items")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.PaymentTransaction", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Payments.Invoice", "Invoice")
-                        .WithMany("Transactions")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.Semester", b =>
@@ -1281,15 +1295,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("AcademicYear");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.StudentInformation.StudentProfileRecord", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", "Parent")
@@ -1300,31 +1305,75 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Modules.CourseOffering.Domain.CourseOffering", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Semsters.Semester", null)
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", null)
+                        .WithMany()
+                        .HasForeignKey("StructureNodeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.InvoiceItem", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Invoice", "Invoice")
+                        .WithMany("Items")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.PaymentTransaction", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Invoice", "Invoice")
+                        .WithMany("Transactions")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Student.Domain.StudentProfileRecord", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Module", b =>
                 {
-                    b.Navigation("Services");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.RolePermission", b =>
-                {
-                    b.Navigation("Scopes");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.StaffPermissionOverride", b =>
-                {
-                    b.Navigation("Scopes");
+                    b.Navigation("Resources");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.AcademicPlan", b =>
                 {
                     b.Navigation("PlanCourses");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.Payments.Invoice", b =>
-                {
-                    b.Navigation("Items");
-
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.AcademicYear", b =>
@@ -1335,6 +1384,13 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Common;
 
 namespace CapitalUniversity.Core.Domain.Authorization;
 
@@ -9,5 +9,5 @@ public class Module : BaseEntity
     public string? Icon { get; set; }
     public int? OrderNumber { get; set; }
 
-    public ICollection<Service> Services { get; set; } = new List<Service>();
+    public ICollection<Resource> Resources { get; set; } = new List<Resource>();
 }

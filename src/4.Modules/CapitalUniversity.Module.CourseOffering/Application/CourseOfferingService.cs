@@ -129,56 +129,86 @@ public class CourseOfferingService : ICourseOfferingService
 
         var offering = await LoadForWriteAsync(id, cancellationToken);
 
-        if (request.SectionCode is not null && request.SectionCode != offering.SectionCode)
-        {
-            if (await _offerings.SectionExistsAsync(offering.CourseId, offering.SemesterId, offering.StructureNodeId, request.SectionCode, cancellationToken))
-            {
-                throw new ConflictException(LocalizedKeys.CourseOfferings.SectionInUse);
-            }
-            offering.SectionCode = request.SectionCode;
-        }
-
-        if (request.Capacity.HasValue)
-        {
-            try { offering.AdjustCapacity(request.Capacity.Value); }
-            catch (InvalidOperationException) { throw new ConflictException(LocalizedKeys.CourseOfferings.CapacityBelowCount); }
-        }
-
-        // Lifecycle transitions go through the entity's state-machine methods —
-        // illegal jumps (e.g. Closed → Open) surface as InvalidOperationException
-        // on the entity, which we translate to a Conflict for the API layer.
-        // Apply Status before RegistrationState so the dependent guard
-        // ("registration requires Status=Open") sees the post-transition status.
-        if (request.Status.HasValue && request.Status.Value != offering.Status)
-        {
-            try
-            {
-                ApplyStatus(offering, request.Status.Value);
-            }
-            catch (InvalidOperationException)
-            {
-                throw new ConflictException(LocalizedKeys.CourseOfferings.IllegalStateTransition);
-            }
-        }
-
-        if (request.RegistrationState.HasValue && request.RegistrationState.Value != offering.RegistrationState)
-        {
-            try
-            {
-                ApplyRegistrationState(offering, request.RegistrationState.Value);
-            }
-            catch (InvalidOperationException)
-            {
-                throw new ConflictException(LocalizedKeys.CourseOfferings.IllegalStateTransition);
-            }
-        }
-
-        if (request.ExternalSystemId is not null) offering.ExternalSystemId = request.ExternalSystemId;
-        if (request.ExternalSyncedAt.HasValue) offering.ExternalSyncedAt = request.ExternalSyncedAt;
+        // Each Apply* helper carries its own "only act if the field was sent"
+        // guard and its own exception-translation logic. Order matters:
+        // Status before RegistrationState (the registration-state guard reads
+        // post-transition Status). The rest are independent.
+        await ApplySectionCodeAsync(offering, request, cancellationToken);
+        ApplyCapacity(offering, request);
+        ApplyStatusChange(offering, request);
+        ApplyRegistrationStateChange(offering, request);
+        ApplyExternalSyncMetadata(offering, request);
 
         offering.UpdatedAt = DateTime.UtcNow;
         _offerings.Update(offering);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Section code is the only field whose uniqueness has to be re-verified
+    /// against siblings before mutation. Skips if the request didn't include
+    /// the field or the value is unchanged.
+    /// </summary>
+    private async Task ApplySectionCodeAsync(CourseOfferingEntity offering, UpdateCourseOfferingRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SectionCode is null || request.SectionCode == offering.SectionCode) return;
+
+        if (await _offerings.SectionExistsAsync(offering.CourseId, offering.SemesterId, offering.StructureNodeId, request.SectionCode, cancellationToken))
+        {
+            throw new ConflictException(LocalizedKeys.CourseOfferings.SectionInUse);
+        }
+        offering.SectionCode = request.SectionCode;
+    }
+
+    /// <summary>
+    /// Capacity changes route through the entity's <c>AdjustCapacity</c>
+    /// invariant guard. The entity throws <see cref="InvalidOperationException"/>
+    /// when the new value falls below the current registered count; we surface
+    /// that as a conflict so the controller maps to 409 with the localized key.
+    /// </summary>
+    private static void ApplyCapacity(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
+    {
+        if (!request.Capacity.HasValue) return;
+
+        try { offering.AdjustCapacity(request.Capacity.Value); }
+        catch (InvalidOperationException) { throw new ConflictException(LocalizedKeys.CourseOfferings.CapacityBelowCount); }
+    }
+
+    /// <summary>
+    /// Status transition. Same-state requests are silent no-ops so a partial
+    /// update payload echoing the current status doesn't trip the lifecycle
+    /// guards. Illegal transitions (e.g. Closed → Open) surface as conflict.
+    /// </summary>
+    private static void ApplyStatusChange(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
+    {
+        if (!request.Status.HasValue || request.Status.Value == offering.Status) return;
+
+        try { ApplyStatus(offering, request.Status.Value); }
+        catch (InvalidOperationException) { throw new ConflictException(LocalizedKeys.CourseOfferings.IllegalStateTransition); }
+    }
+
+    /// <summary>
+    /// Registration-state transition. Same-state is a silent no-op (matches
+    /// the Status path). The entity's per-state guards (e.g. Open requires
+    /// <c>Status == Open</c>) surface as conflict.
+    /// </summary>
+    private static void ApplyRegistrationStateChange(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
+    {
+        if (!request.RegistrationState.HasValue || request.RegistrationState.Value == offering.RegistrationState) return;
+
+        try { ApplyRegistrationState(offering, request.RegistrationState.Value); }
+        catch (InvalidOperationException) { throw new ConflictException(LocalizedKeys.CourseOfferings.IllegalStateTransition); }
+    }
+
+    /// <summary>
+    /// Passive external-sync metadata. No invariants — just per-field
+    /// "set when sent" semantics. Kept as its own helper so the orchestration
+    /// reads as one statement per concern.
+    /// </summary>
+    private static void ApplyExternalSyncMetadata(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
+    {
+        if (request.ExternalSystemId is not null) offering.ExternalSystemId = request.ExternalSystemId;
+        if (request.ExternalSyncedAt.HasValue) offering.ExternalSyncedAt = request.ExternalSyncedAt;
     }
 
     internal static CourseOfferingResponse ToResponse(CourseOfferingEntity o) => new()

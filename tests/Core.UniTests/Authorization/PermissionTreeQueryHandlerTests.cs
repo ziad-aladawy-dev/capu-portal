@@ -1,4 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
@@ -17,30 +19,38 @@ public class PermissionTreeQueryHandlerTests
             .UseInMemoryDatabase("PermissionTree_" + Guid.NewGuid())
             .Options);
 
-    private static async Task<(Module module, Service service)> SeedOneModuleWithServiceAsync(
-        CoreDbContext db, string moduleKey = "academics", string serviceName = "Manage Academic Years")
+    private static IPermissionManifestRegistry BuildRegistry(string moduleKey = "academics", string resourceKey = "academic-years")
+    {
+        return new PermissionManifestRegistry(new[]
+        {
+            (IPermissionManifest)new TestCrudManifest(moduleKey, resourceKey, "Academic Timeline"),
+        });
+    }
+
+    private static async Task<(Module module, Resource resource)> SeedOneModuleWithResourceAsync(
+        CoreDbContext db, string moduleKey = "academics", string resourceKey = "academic-years", string resourceDisplay = "Academic Timeline")
     {
         var module = new Module { ModuleKey = moduleKey, DisplayName = "Academics" };
-        var service = new Service { Module = module, ModuleId = module.Id, DisplayName = serviceName };
+        var resource = new Resource { Module = module, ModuleId = module.Id, Key = resourceKey, DisplayName = resourceDisplay };
         db.Modules.Add(module);
-        db.Services.Add(service);
+        db.Resources.Add(resource);
         await db.SaveChangesAsync();
-        return (module, service);
+        return (module, resource);
     }
 
     [Fact]
     public async Task GetPermissionTree_ReturnsModulesWithResourcesAndUnassignedActions()
     {
         using var db = NewDb();
-        var (module, service) = await SeedOneModuleWithServiceAsync(db);
+        var (module, resource) = await SeedOneModuleWithResourceAsync(db);
 
-        var sut = new PermissionTreeQueryHandler(db);
+        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
         var tree = await sut.Handle(new GetPermissionTreeRequest(), CancellationToken.None);
 
         var moduleDto = Assert.Single(tree);
         Assert.Equal(module.Id, moduleDto.ModuleId);
         var resourceDto = Assert.Single(moduleDto.Resources);
-        Assert.Equal(service.Id, resourceDto.ResourceId);
+        Assert.Equal(resource.Id, resourceDto.ResourceId);
         Assert.Equal(5, resourceDto.Permissions.Count);
         Assert.All(resourceDto.Permissions, p => Assert.Null(p.IsAssigned));
         Assert.Contains(resourceDto.Permissions, p => p.Action == "View");
@@ -51,7 +61,7 @@ public class PermissionTreeQueryHandlerTests
     public async Task GetRolePermissions_UnknownRole_ReturnsNull()
     {
         using var db = NewDb();
-        var sut = new PermissionTreeQueryHandler(db);
+        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
 
         var result = await sut.Handle(new GetRolePermissionsRequest { RoleId = Guid.NewGuid() }, CancellationToken.None);
 
@@ -59,17 +69,17 @@ public class PermissionTreeQueryHandlerTests
     }
 
     [Fact]
-    public async Task GetRolePermissions_KnownRole_FlagsAssignedAtOrBelowGrantedLevel()
+    public async Task GetRolePermissions_KnownRole_FlagsAssignedActionsOnly()
     {
         using var db = NewDb();
-        var (module, service) = await SeedOneModuleWithServiceAsync(db);
+        var (_, resource) = await SeedOneModuleWithResourceAsync(db);
         var role = new Role { Name = "TestRole" };
         db.Roles.Add(role);
-        // Grant the role EditClose on this service → View+Insert+EditClose flagged true; Open+Delete false.
-        db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.EditClose));
+        // Per-action storage: explicit View+Insert+EditClose rows.
+        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.EditClose);
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db);
+        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
         var tree = await sut.Handle(new GetRolePermissionsRequest { RoleId = role.Id }, CancellationToken.None);
 
         Assert.NotNull(tree);
@@ -83,36 +93,57 @@ public class PermissionTreeQueryHandlerTests
     }
 
     [Fact]
-    public async Task GetRolePermissions_TakesMaxLevelWhenDuplicateRowsExist()
+    public async Task GetRolePermissions_UnionsAcrossMultipleRows()
     {
         using var db = NewDb();
-        var (_, service) = await SeedOneModuleWithServiceAsync(db);
+        var (_, resource) = await SeedOneModuleWithResourceAsync(db);
         var role = new Role { Name = "DupRole" };
         db.Roles.Add(role);
+        // Per-action storage with multiple rows — the handler should union actions.
         db.RolePermissions.AddRange(
-            new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.View),
-            new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.Delete));
+            new RolePermission(role.Id, resource.Id, "View"),
+            new RolePermission(role.Id, resource.Id, "Delete"));
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db);
+        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
         var tree = await sut.Handle(new GetRolePermissionsRequest { RoleId = role.Id }, CancellationToken.None);
 
         var resourceDto = Assert.Single(Assert.Single(tree!).Resources);
-        // Max(View, Delete) = Delete → all actions assigned.
-        Assert.All(resourceDto.Permissions, p => Assert.True(p.IsAssigned));
+        Assert.True(resourceDto.Permissions.Single(p => p.Action == "View").IsAssigned);
+        Assert.False(resourceDto.Permissions.Single(p => p.Action == "Insert").IsAssigned);
+        Assert.True(resourceDto.Permissions.Single(p => p.Action == "Delete").IsAssigned);
     }
 
     [Fact]
-    public async Task GetPermissionTree_ModuleWithNoServices_ReturnsEmptyResourceList()
+    public async Task GetPermissionTree_ModuleWithNoResources_ReturnsEmptyResourceList()
     {
         using var db = NewDb();
         db.Modules.Add(new Module { ModuleKey = "lonely", DisplayName = "Lonely" });
         await db.SaveChangesAsync();
 
-        var sut = new PermissionTreeQueryHandler(db);
+        var sut = new PermissionTreeQueryHandler(db, BuildRegistry());
         var tree = await sut.Handle(new GetPermissionTreeRequest(), CancellationToken.None);
 
         var moduleDto = Assert.Single(tree);
         Assert.Empty(moduleDto.Resources);
+    }
+
+    private sealed class TestCrudManifest : IPermissionManifest
+    {
+        private readonly string _module;
+        private readonly string _resource;
+        private readonly string _display;
+        public TestCrudManifest(string module, string resource, string display)
+        {
+            _module = module;
+            _resource = resource;
+            _display = display;
+            Resources = new[] { ResourceDefinition.WithCrudActions(resource, display, 0) };
+        }
+        public string Module => _module;
+        public string DisplayName => _module;
+        public string? Icon => null;
+        public int? OrderNumber => 0;
+        public IReadOnlyCollection<ResourceDefinition> Resources { get; }
     }
 }

@@ -58,17 +58,17 @@ private void SetupAuth()
 
     var userId = Guid.NewGuid();
 
-    // Seed the consolidated academic-timeline permission — one Service + one
+    // Seed the consolidated academic-timeline permission — one Resource + one
     // RolePermission row covers BOTH academic-years and semesters controllers
     // via canonical "academics.academic-years.*".
     var module = new Module { Id = Guid.NewGuid(), DisplayName = "Academic Timeline", ModuleKey = "academics" };
-    var service = new Service { Id = Guid.NewGuid(), ModuleId = module.Id, DisplayName = "Academic Timeline" };
+    var resource = new Resource { Id = Guid.NewGuid(), Module = module, ModuleId = module.Id, Key = "academic-years", DisplayName = "Academic Timeline" };
     var role = new Role { Id = Guid.NewGuid(), Name = "AdminRole" };
 
     db.Modules.Add(module);
-    db.Services.Add(service);
+    db.Resources.Add(resource);
     db.Roles.Add(role);
-    db.RolePermissions.Add(new RolePermission(role.Id, service.Id, "academic-years", ActionLevel.Delete));
+    db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
     db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
     // SessionVersionMiddleware needs a Staff row matching the token's user id.

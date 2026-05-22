@@ -11,15 +11,13 @@ namespace CapitalUniversity.Core.UniTests.Authorization;
 
 /// <summary>
 /// Synchroniser is additive + idempotent:
-///   - Empty DB → creates one Module + N Service rows per manifest.
+///   - Empty DB → creates one Module + one Resource per manifest-declared resource.
 ///   - Run twice → second pass is a no-op.
-///   - Pre-existing module / service rows are left intact (teammate-seeded data
+///   - Pre-existing module / resource rows are left intact (teammate-seeded data
 ///     must not be disturbed).
 /// </summary>
 public class PermissionManifestSynchronizerTests
 {
-    private static readonly string[] ExpectedThingServiceNames = { "View Things", "Create Things" };
-
     private static CoreDbContext NewDb() =>
         new(new DbContextOptionsBuilder<CoreDbContext>()
             .UseInMemoryDatabase("ManifestSync_" + Guid.NewGuid())
@@ -31,11 +29,11 @@ public class PermissionManifestSynchronizerTests
         public string DisplayName { get; init; } = string.Empty;
         public string? Icon { get; init; }
         public int? OrderNumber { get; init; }
-        public IReadOnlyCollection<PermissionDefinition> Permissions { get; init; } = Array.Empty<PermissionDefinition>();
+        public IReadOnlyCollection<ResourceDefinition> Resources { get; init; } = Array.Empty<ResourceDefinition>();
     }
 
     [Fact]
-    public async Task EmptyDb_CreatesModuleAndServicesPerManifest()
+    public async Task EmptyDb_CreatesModuleAndResourcesPerManifest()
     {
         using var db = NewDb();
         var registry = new PermissionManifestRegistry(new IPermissionManifest[]
@@ -44,10 +42,10 @@ public class PermissionManifestSynchronizerTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[]
+                Resources = new[]
                 {
-                    PermissionDefinition.Create("things", "View",   "View Things"),
-                    PermissionDefinition.Create("things", "Insert", "Create Things"),
+                    ResourceDefinition.Of("things", "Things", 0, "View", "Insert"),
+                    ResourceDefinition.Of("widgets", "Widgets", 1, "View"),
                 }
             }
         });
@@ -56,12 +54,12 @@ public class PermissionManifestSynchronizerTests
         var report = await sut.SynchronizeAsync();
 
         report.ModulesCreated.Should().Be(1);
-        report.ServicesCreated.Should().Be(2);
+        report.ResourcesCreated.Should().Be(2);
         report.ManifestsProcessed.Should().Be(1);
 
         (await db.Modules.AsNoTracking().SingleAsync()).ModuleKey.Should().Be("alpha");
-        var services = await db.Services.AsNoTracking().ToListAsync();
-        services.Select(s => s.DisplayName).Should().BeEquivalentTo(ExpectedThingServiceNames);
+        var resources = await db.Resources.AsNoTracking().ToListAsync();
+        resources.Select(r => r.Key).Should().BeEquivalentTo(new[] { "things", "widgets" });
     }
 
     [Fact]
@@ -74,7 +72,7 @@ public class PermissionManifestSynchronizerTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[] { PermissionDefinition.Create("things", "View", "View Things") }
+                Resources = new[] { ResourceDefinition.Of("things", "Things", 0, "View") }
             }
         });
 
@@ -83,9 +81,9 @@ public class PermissionManifestSynchronizerTests
         var second = await sut.SynchronizeAsync();
 
         second.ModulesCreated.Should().Be(0);
-        second.ServicesCreated.Should().Be(0);
+        second.ResourcesCreated.Should().Be(0);
         (await db.Modules.CountAsync()).Should().Be(1);
-        (await db.Services.CountAsync()).Should().Be(1);
+        (await db.Resources.CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -103,10 +101,11 @@ public class PermissionManifestSynchronizerTests
             Icon = "Building2",
             OrderNumber = 2
         });
-        db.Services.Add(new Service
+        db.Resources.Add(new Resource
         {
             Id = Guid.NewGuid(),
             ModuleId = teammateModuleId,
+            Key = "structure",
             DisplayName = "Manage Structure",
             OrderNumber = 1
         });
@@ -118,7 +117,7 @@ public class PermissionManifestSynchronizerTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha",
-                Permissions = new[] { PermissionDefinition.Create("things", "View", "View Things") }
+                Resources = new[] { ResourceDefinition.Of("things", "Things", 0, "View") }
             }
         });
 
@@ -133,24 +132,25 @@ public class PermissionManifestSynchronizerTests
     }
 
     [Fact]
-    public async Task ExistingServiceWithSameDisplayName_IsLeftIntact()
+    public async Task ExistingResourceWithSameKey_RefreshesMetadataButPreservesIdentity()
     {
         using var db = NewDb();
 
         // Pretend the legacy seeder already wrote the row we'd otherwise create.
         var existingModuleId = Guid.NewGuid();
-        var existingServiceId = Guid.NewGuid();
+        var existingResourceId = Guid.NewGuid();
         db.Modules.Add(new Module
         {
             Id = existingModuleId,
             ModuleKey = "alpha",
             DisplayName = "Alpha (legacy display)",
         });
-        db.Services.Add(new Service
+        db.Resources.Add(new Resource
         {
-            Id = existingServiceId,
+            Id = existingResourceId,
             ModuleId = existingModuleId,
-            DisplayName = "View Things",
+            Key = "things",
+            DisplayName = "Things (legacy display)",
             OrderNumber = 42
         });
         await db.SaveChangesAsync();
@@ -161,22 +161,32 @@ public class PermissionManifestSynchronizerTests
             {
                 Module = "alpha",
                 DisplayName = "Alpha (manifest display)",
-                Permissions = new[] { PermissionDefinition.Create("things", "View", "View Things") }
+                Resources = new[] { ResourceDefinition.Of("things", "Things (manifest display)", 0, "View") }
             }
         });
 
         var sut = new PermissionManifestSynchronizer(db, registry);
         var report = await sut.SynchronizeAsync();
 
+        // No new rows — these existed already and matched by natural key.
         report.ModulesCreated.Should().Be(0);
-        report.ServicesCreated.Should().Be(0);
+        report.ResourcesCreated.Should().Be(0);
 
+        // Identity (Id, ModuleKey, ResourceKey) is preserved so FKs stay valid.
         var module = await db.Modules.AsNoTracking().SingleAsync();
-        module.DisplayName.Should().Be("Alpha (legacy display)",
-            "additive sync must not rename rows that already match the natural key");
+        module.Id.Should().Be(existingModuleId, "natural-key match must reuse the existing row");
+        module.ModuleKey.Should().Be("alpha");
+        // Display metadata is refreshed so a rename in code propagates to the UI
+        // without orphaning historical assignments.
+        module.DisplayName.Should().Be("Alpha (manifest display)",
+            "the synchroniser must refresh DisplayName on existing rows so renames in code propagate");
 
-        var svc = await db.Services.AsNoTracking().SingleAsync();
-        svc.Id.Should().Be(existingServiceId, "the pre-existing row should remain in place");
-        svc.OrderNumber.Should().Be(42, "manifest-supplied OrderNumber must not overwrite legacy values");
+        var resource = await db.Resources.AsNoTracking().SingleAsync();
+        resource.Id.Should().Be(existingResourceId, "the pre-existing row should remain in place");
+        resource.Key.Should().Be("things");
+        resource.DisplayName.Should().Be("Things (manifest display)",
+            "the synchroniser must refresh resource DisplayName on existing rows");
+        resource.OrderNumber.Should().Be(0,
+            "the synchroniser must refresh OrderNumber on existing rows so re-ordering propagates");
     }
 }

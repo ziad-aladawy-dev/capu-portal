@@ -99,6 +99,7 @@ public class SemesterService : ISemesterService
 
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
+        semester.EnsureMutable();
 
         var year = await _unitOfWork.AcademicYears.GetByIdAsync(semester.AcademicYearId);
         if (year == null) throw new NotFoundException(LocalizedKeys.Semesters.AcademicYearNotFound);
@@ -138,8 +139,29 @@ public class SemesterService : ISemesterService
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
+        semester.EnsureMutable();
 
         _unitOfWork.Semesters.Delete(semester);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task CloseAsync(Guid id)
+    {
+        var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
+        if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
+
+        semester.Close();
+        _unitOfWork.Semesters.Update(semester);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task ReopenAsync(Guid id)
+    {
+        var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
+        if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
+
+        semester.Reopen();
+        _unitOfWork.Semesters.Update(semester);
         await _unitOfWork.SaveChangesAsync();
     }
 

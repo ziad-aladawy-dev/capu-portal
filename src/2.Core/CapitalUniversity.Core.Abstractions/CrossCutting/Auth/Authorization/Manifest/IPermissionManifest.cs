@@ -1,18 +1,22 @@
 namespace CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 
 /// <summary>
-/// Module-owned declaration of every permission the module needs. Implementations
-/// are discovered via DI (register every implementation as <c>IPermissionManifest</c>)
-/// and aggregated by <see cref="IPermissionManifestRegistry"/>; the
-/// <see cref="IPermissionManifestSynchronizer"/> reconciles the aggregated set into
-/// the database <c>Modules</c> + <c>Services</c> tables on startup.
+/// Module-owned declaration of every resource (and its action verbs) the module
+/// gates. Discovered via DI (register every implementation as
+/// <c>IPermissionManifest</c>), aggregated by
+/// <see cref="IPermissionManifestRegistry"/>, and reconciled into the
+/// <c>Modules</c> + <c>Resources</c> tables on startup by
+/// <see cref="IPermissionManifestSynchronizer"/>.
 ///
 /// <para>
-/// Each module is responsible for its own permissions — no scattered seeder code,
-/// no orphaned <c>[HasPermission(...)]</c> literals. The contract test against
-/// <c>PermissionNames</c> remains the build-time guard that <c>[HasPermission]</c>
-/// values exist somewhere structured; the manifest adds the runtime guarantee that
-/// the database row backing each value actually exists.
+/// Authoring shape is <c>Module → Resources → Actions</c>. Each module declares
+/// the resources it owns; each resource lists the action verbs it supports. The
+/// canonical identity used by <c>[HasPermission]</c> attributes is
+/// <c>{Module}.{ResourceKey}.{Action}</c>. The contract test against
+/// <c>PermissionNames</c> remains the build-time guard that
+/// <c>[HasPermission]</c> values exist somewhere structured; the manifest adds
+/// the runtime guarantee that the database row backing each value actually
+/// exists.
 /// </para>
 /// </summary>
 public interface IPermissionManifest
@@ -29,6 +33,9 @@ public interface IPermissionManifest
     /// <summary>Ordering inside the parent UI listing. Optional; defaults to end-of-list.</summary>
     int? OrderNumber { get; }
 
-    /// <summary>Every permission this module owns. <c>(Resource, Action)</c> pairs must be unique within the collection.</summary>
-    IReadOnlyCollection<PermissionDefinition> Permissions { get; }
+    /// <summary>
+    /// Every resource this module owns, each with its action verbs. <c>Key</c>
+    /// values must be unique within this collection.
+    /// </summary>
+    IReadOnlyCollection<ResourceDefinition> Resources { get; }
 }

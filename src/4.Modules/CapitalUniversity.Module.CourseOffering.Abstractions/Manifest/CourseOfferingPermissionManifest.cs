@@ -10,20 +10,13 @@ namespace CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest;
 /// </summary>
 public sealed class CourseOfferingPermissionManifest : IPermissionManifest
 {
-    private const string ResourceCourseOfferings = "course-offerings";
-    private const string DisplayCourseOfferings = "Course Offerings";
-
     public string Module => "course-offerings";
     public string DisplayName => "Course Offerings";
     public string? Icon => "CalendarCheck";
     public int? OrderNumber => 10;
 
-    public IReadOnlyCollection<PermissionDefinition> Permissions { get; } = new[]
+    public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
     {
-        PermissionDefinition.Create(ResourceCourseOfferings, "View",      DisplayCourseOfferings, 0),
-        PermissionDefinition.Create(ResourceCourseOfferings, "Insert",    DisplayCourseOfferings, 0),
-        PermissionDefinition.Create(ResourceCourseOfferings, "EditClose", DisplayCourseOfferings, 0),
-        PermissionDefinition.Create(ResourceCourseOfferings, "Open",      DisplayCourseOfferings, 0),
-        PermissionDefinition.Create(ResourceCourseOfferings, "Delete",    DisplayCourseOfferings, 0),
+        ResourceDefinition.WithCrudActions("course-offerings", "Course Offerings", 0),
     };
 }

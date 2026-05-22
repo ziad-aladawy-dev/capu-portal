@@ -77,5 +77,57 @@ public class CourseOfferingEntityTests
 
         offering.Capacity.Should().Be(2);
     }
+
+    // ----------------------------------------------------------------------
+    // Boundary + observable-effect tests that exercise the exact branches
+    // Stryker mutates. Each test kills a specific surviving mutant on the
+    // entity — see comments in each test for which guard it pins.
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public void InitializeCapacity_Zero_IsAllowed()
+    {
+        // Pins the boundary "< 0 → <= 0" mutation in InitializeCapacity.
+        // A zero-capacity offering is a legitimate draft (e.g. waitlist-only
+        // section); flipping the guard to "<= 0" would forbid that case.
+        var offering = new CourseOffering
+        {
+            CourseId = Guid.NewGuid(),
+            SemesterId = Guid.NewGuid(),
+            StructureNodeId = Guid.NewGuid(),
+            SectionCode = "A",
+        };
+        offering.InitializeCapacity(0);
+        offering.Capacity.Should().Be(0);
+        offering.RegisteredCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void AdjustCapacity_Zero_OnEmptyOffering_IsAllowed()
+    {
+        // Same boundary mutation, AdjustCapacity flavor. With no
+        // registrations, dropping capacity to 0 is legal — flipping the
+        // guard to "<= 0" would forbid it.
+        var offering = NewOffering(capacity: 5);
+        offering.AdjustCapacity(0);
+        offering.Capacity.Should().Be(0);
+    }
+
+    [Fact]
+    public void DecrementRegistration_PositiveCount_DecrementsByOne()
+    {
+        // The existing DecrementRegistration test starts at count = 0, which
+        // hits the early-return and never executes the subtraction line. This
+        // test exercises the actual "RegisteredCount -= 1" so a mutation that
+        // flips it to "+= 1" can no longer survive.
+        var offering = NewOffering(capacity: 5);
+        offering.IncrementRegistration();
+        offering.IncrementRegistration();
+        offering.IncrementRegistration();
+
+        offering.DecrementRegistration();
+
+        offering.RegisteredCount.Should().Be(2);
+    }
 }
 
