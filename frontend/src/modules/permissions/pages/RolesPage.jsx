@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { UserCog, Plus, Edit2, Trash2, X, AlertTriangle, RefreshCw, Shield } from "lucide-react";
+import { UserCog, Plus, Edit2, Trash2, X, AlertTriangle, RefreshCw, Shield, ShieldCheck } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
+import RolePermissionsModal from "../components/RolePermissionsModal";
 import "../styles/roles.css";
 
 const PAGE_SIZE = 10;
@@ -20,6 +21,8 @@ function RolesPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [permissionsRole, setPermissionsRole] = useState(null);
 
   const fetchRoles = useCallback(async (p = 1) => {
     setLoading(true);
@@ -287,6 +290,13 @@ function RolesPage() {
                     <td className="roles-date">{formatDate(role.createdAt)}</td>
                     <td className="col-actions">
                       <button
+                        className="roles-action-btn permissions"
+                        onClick={() => setPermissionsRole(role)}
+                        title="Manage permissions"
+                      >
+                        <ShieldCheck size={13} />
+                      </button>
+                      <button
                         className="roles-action-btn edit"
                         onClick={() => openEdit(role)}
                         title="Edit role"
@@ -381,6 +391,13 @@ function RolesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {permissionsRole && (
+        <RolePermissionsModal
+          role={permissionsRole}
+          onClose={() => setPermissionsRole(null)}
+        />
       )}
     </div>
   );

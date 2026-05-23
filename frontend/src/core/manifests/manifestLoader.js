@@ -7,6 +7,8 @@ import studentsManifest from "../../modules/students/manifest.json";
 import permissionsManifest from "../../modules/permissions/manifest.json";
 import coursesManifest from "../../modules/courses/manifest.json";
 import academicPlansManifest from "../../modules/academicPlans/manifest.json";
+import academicYearsManifest from "../../modules/academicYears/manifest.json";
+import studentPortalManifest from "../../modules/studentPortal/manifest.json";
 import invoicesManifest from "../../modules/invoices/manifest.json";
 import notificationsManifest from "../../modules/notifications/manifest.json";
 import studentProfileRecordsManifest from "../../modules/studentProfileRecords/manifest.json";
@@ -22,6 +24,8 @@ const MODULE_MANIFESTS = [
   permissionsManifest,
   coursesManifest,
   academicPlansManifest,
+  academicYearsManifest,
+  studentPortalManifest,
   invoicesManifest,
   notificationsManifest,
   studentProfileRecordsManifest,

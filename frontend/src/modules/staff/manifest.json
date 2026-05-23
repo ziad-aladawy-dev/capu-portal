@@ -7,7 +7,6 @@
     {
       "path": "/admin/staff",
       "component": "StaffDirectory",
-      "permission": "staff.directory.view",
       "moduleId": "staff"
     }
   ],
@@ -16,8 +15,7 @@
       "category": "People Management",
       "label": "Staff Directory",
       "path": "/admin/staff",
-      "icon": "Users",
-      "permission": "staff.directory.view"
+      "icon": "Users"
     }
   ],
   "permissions": {

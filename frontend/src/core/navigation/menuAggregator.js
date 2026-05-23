@@ -13,6 +13,11 @@ import {
   Bell,
   FolderTree,
   FileText,
+  Home,
+  BarChart3,
+  Calendar,
+  User,
+  CalendarRange,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../manifests/manifestLoader";
 
@@ -31,6 +36,21 @@ const ICON_MAP = {
   Bell,
   FolderTree,
   FileText,
+  Home,
+  BarChart3,
+  Calendar,
+  User,
+  CalendarRange,
+};
+
+const CATEGORY_ICONS = {
+  Overview: LayoutDashboard,
+  Administration: Building2,
+  "People Management": Users,
+  "Security & Access": Shield,
+  Academic: BookOpen,
+  Finance: Receipt,
+  Student: GraduationCap,
 };
 
 function resolveIcon(iconName) {
@@ -51,6 +71,7 @@ export function buildMenu(canAccess) {
 
     menu.push({
       category,
+      icon: CATEGORY_ICONS[category] || Building2,
       items: filteredItems.map((item) => ({
         label: item.label,
         path: item.path,
@@ -60,4 +81,8 @@ export function buildMenu(canAccess) {
   }
 
   return menu;
+}
+
+export function getCategoryIcon(category) {
+  return CATEGORY_ICONS[category] || Building2;
 }

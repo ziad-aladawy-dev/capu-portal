@@ -488,3 +488,140 @@
   border-color: #1a1f5e;
   color: #e0c06a;
 }
+
+.roles-action-btn.permissions:hover {
+  color: #7c3aed;
+  border-color: #e9d5ff;
+}
+
+.roles-modal-wide {
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.roles-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roles-modal-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.roles-permission-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.roles-permission-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: "Outfit", sans-serif;
+  color: #1a1f5e;
+  width: 100%;
+}
+
+.roles-permission-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.roles-permission-list {
+  max-height: 360px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.roles-permission-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.roles-permission-item:hover {
+  background: #f8f9fd;
+}
+
+.roles-permission-item.checked {
+  background: #f0fdf4;
+}
+
+.roles-permission-check {
+  flex-shrink: 0;
+}
+
+.roles-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.roles-checkbox.checked {
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  border-color: #c9a84c;
+}
+
+.roles-permission-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roles-permission-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1f5e;
+}
+
+.roles-permission-resource {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.roles-permission-level {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.roles-permission-count {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 8px;
+  border-top: 1px solid #f0f1f8;
+}

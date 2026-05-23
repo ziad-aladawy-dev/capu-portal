@@ -7,7 +7,6 @@
     {
       "path": "/admin/students",
       "component": "StudentDirectory",
-      "permission": "students.directory.view",
       "moduleId": "students"
     }
   ],
@@ -16,8 +15,7 @@
       "category": "People Management",
       "label": "Student Directory",
       "path": "/admin/students",
-      "icon": "GraduationCap",
-      "permission": "students.directory.view"
+      "icon": "GraduationCap"
     }
   ],
   "permissions": {

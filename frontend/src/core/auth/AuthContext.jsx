@@ -66,7 +66,8 @@ function AuthProvider({ children }) {
   const handleLogout = useCallback(() => {
     authService.logout().finally(() => {
       dispatch({ type: "AUTH_LOGOUT" });
-      navigate("/admin/login");
+      const loginPath = window.location.pathname.startsWith("/student") ? "/student/login" : "/admin/login";
+      navigate(loginPath);
     });
   }, [navigate]);
 

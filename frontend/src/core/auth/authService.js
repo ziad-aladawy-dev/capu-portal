@@ -19,19 +19,21 @@ function transformApiPermissions(apiPermissions) {
 }
 
 export async function login(identifier, password) {
-  const response = await api.post("/auth/login", { identifier, password });
-  api.setToken(response.token);
+  const { data } = await api.post("/auth/login", { identifier, password });
+  api.setToken(data.token);
+  if (data.refreshToken) api.setRefreshToken(data.refreshToken);
 
   return {
-    user: response.user,
-    token: response.token,
-    permissions: response.permissions ? transformApiPermissions(response.permissions) : [],
-    authorizedScopes: response.authorizedScopes || {
+    user: data.user,
+    token: data.token,
+    refreshToken: data.refreshToken,
+    permissions: data.permissions ? transformApiPermissions(data.permissions) : [],
+    authorizedScopes: data.authorizedScopes || {
       allowedNodeIds: [],
       allowedAcademicYearIds: [],
       allowedSemesterIds: [],
     },
-    activeScope: response.activeScope || {
+    activeScope: data.activeScope || {
       structural: { nodeId: null },
       temporal: { academicYearId: null, semesterId: null },
     },
@@ -45,16 +47,16 @@ export async function logout() {
 
 export async function getCurrentUser() {
   try {
-    const response = await api.get("/auth/me");
+    const { data } = await api.get("/auth/me");
     return {
-      ...response.user,
-      permissions: response.permissions ? transformApiPermissions(response.permissions) : [],
-      authorizedScopes: response.authorizedScopes || {
+      ...data.user,
+      permissions: data.permissions ? transformApiPermissions(data.permissions) : [],
+      authorizedScopes: data.authorizedScopes || {
         allowedNodeIds: [],
         allowedAcademicYearIds: [],
         allowedSemesterIds: [],
       },
-      activeScope: response.activeScope || {
+      activeScope: data.activeScope || {
         structural: { nodeId: null },
         temporal: { academicYearId: null, semesterId: null },
       },
@@ -62,4 +64,9 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
+}
+
+export async function forgotPassword(data) {
+  const response = await api.post("/auth/forgot-password", data);
+  return response.data;
 }

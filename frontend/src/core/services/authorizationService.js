@@ -1,9 +1,11 @@
 import api from "../api/apiClient";
 
 export async function fetchPermissionTree() {
-  return api.get("/authorization/permissions/tree");
+  const { data } = await api.get("/authorization/permissions/tree");
+  return data;
 }
 
 export async function fetchRolePermissions(roleId) {
-  return api.get(`/authorization/roles/${roleId}/permissions`);
+  const { data } = await api.get(`/authorization/roles/${roleId}/permissions`);
+  return data;
 }

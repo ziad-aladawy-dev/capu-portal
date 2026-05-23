@@ -1,41 +1,51 @@
 import api from "../api/apiClient";
 
 export async function fetchAllStaff(params = {}) {
-  return api.get("/staff", params);
+  const { data } = await api.get("/staff", { params });
+  return data;
 }
 
 export async function fetchStaffById(id) {
-  return api.get(`/staff/${id}`);
+  const { data } = await api.get(`/staff/${id}`);
+  return data;
 }
 
 export async function searchStaff(params = {}) {
-  return api.get("/staff/search", params);
+  const { data } = await api.get("/staff/search", { params });
+  return data;
 }
 
-export async function createStaff(data) {
-  return api.post("/staff", data);
+export async function createStaff(body) {
+  const { data } = await api.post("/staff", body);
+  return data;
 }
 
-export async function updateStaff(id, data) {
-  return api.put(`/staff/${id}`, data);
+export async function updateStaff(id, body) {
+  const { data } = await api.put(`/staff/${id}`, body);
+  return data;
 }
 
 export async function deleteStaff(id) {
-  return api.delete(`/staff/${id}`);
+  const { data } = await api.delete(`/staff/${id}`);
+  return data;
 }
 
 export async function toggleStaffStatus(id) {
-  return api.patch(`/staff/${id}/toggle-status`);
+  const { data } = await api.patch(`/staff/${id}/toggle-status`);
+  return data;
 }
 
 export async function fetchStaffStatistics(params = {}) {
-  return api.get("/staff/statistics", params);
+  const { data } = await api.get("/staff/statistics", { params });
+  return data;
 }
 
 export async function exportStaffCsv(params = {}) {
-  return api.get("/staff/export/csv", params);
+  const { data } = await api.get("/staff/export/csv", { params });
+  return data;
 }
 
 export async function exportStaffExcel(params = {}) {
-  return api.get("/staff/export-excel", params);
+  const { data } = await api.get("/staff/export-excel", { params });
+  return data;
 }

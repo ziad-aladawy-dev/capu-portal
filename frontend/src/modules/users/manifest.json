@@ -5,12 +5,6 @@
   "coreVersionRequired": "1.0.0",
   "routes": [
     {
-      "path": "/admin/users",
-      "component": "UserManagement",
-      "permission": "users.users.view",
-      "moduleId": "users"
-    },
-    {
       "path": "/admin/users/add-student",
       "component": "AddStudent",
       "permission": "users.users.insert",
@@ -36,7 +30,7 @@
     },
     {
       "path": "/admin/users/:id",
-      "component": "UserDetails",
+      "component": "UserHubPage",
       "permission": "users.users.view",
       "moduleId": "users"
     }

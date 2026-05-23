@@ -17,13 +17,16 @@ export function getNotificationTypeLabel(value) {
 }
 
 export async function fetchAllNotifications() {
-  return api.get("/Notifications");
+  const { data } = await api.get("/notifications");
+  return data;
 }
 
 export async function fetchUnreadNotifications() {
-  return api.get("/Notifications/unread");
+  const { data } = await api.get("/notifications/unread");
+  return data;
 }
 
 export async function markNotificationRead(id) {
-  return api.put(`/Notifications/${id}/read`);
+  const { data } = await api.put(`/notifications/${id}/read`);
+  return data;
 }

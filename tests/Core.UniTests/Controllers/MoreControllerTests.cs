@@ -241,7 +241,8 @@ public class PermissionsControllerEndpointTests
 
         var result = await ctrl.GetAssignment(query, CancellationToken.None);
 
-        Assert.IsType<NotFoundResult>(result.Result);
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Null(okResult.Value);
     }
 
     [Fact]

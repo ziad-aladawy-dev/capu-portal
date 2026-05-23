@@ -393,7 +393,7 @@ public class PermissionManagementService : IPermissionManagementService
 
         var roles = await _dbContext.StaffRoles
             .Where(sr => sr.StaffId == query.UserId &&
-                         sr.StructureNodeId == query.StructureNodeId &&
+                         sr.StructureNodeId == query.ScopeNodeId &&
                          sr.Year == year && sr.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -402,7 +402,7 @@ public class PermissionManagementService : IPermissionManagementService
             .Include(sp => sp.Resource)
                 .ThenInclude(r => r.Module)
             .Where(sp => sp.StaffId == query.UserId &&
-                         sp.StructureNodeId == query.StructureNodeId &&
+                         sp.StructureNodeId == query.ScopeNodeId &&
                          sp.Year == year && sp.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -419,7 +419,7 @@ public class PermissionManagementService : IPermissionManagementService
             PermissionOverrides = CollapseOverridesToDtos(overrides),
             StructuralScope = new StructuralScopeModel
             {
-                StructureNodeId = query.StructureNodeId
+                StructureNodeId = query.ScopeNodeId
             },
             TemporalScope = new TemporalScopeModel
             {

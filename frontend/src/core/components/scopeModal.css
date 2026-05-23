@@ -1,0 +1,339 @@
+.scope-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 30, 0.55);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  animation: scopeFadeIn 0.2s ease;
+}
+
+.scope-modal {
+  width: 640px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(7, 9, 30, 0.25);
+  display: flex;
+  flex-direction: column;
+  animation: scopeSlideIn 0.2s ease;
+  font-family: "Outfit", sans-serif;
+}
+
+.scope-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(26, 31, 94, 0.08);
+}
+
+.scope-modal-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1f5e;
+  margin: 0;
+}
+
+.scope-modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: rgba(26, 31, 94, 0.05);
+  color: rgba(26, 31, 94, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scope-modal-close:hover {
+  background: rgba(26, 31, 94, 0.1);
+  color: #1a1f5e;
+}
+
+.scope-modal-body {
+  flex: 1;
+  display: flex;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.scope-modal-tree-panel {
+  flex: 1;
+  border-right: 1px solid rgba(26, 31, 94, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.scope-modal-detail-panel {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.scope-modal-panel-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(26, 31, 94, 0.3);
+  padding: 14px 16px 8px;
+}
+
+.scope-tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.scope-tree-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.scope-tree-scroll::-webkit-scrollbar-thumb {
+  background: rgba(26, 31, 94, 0.12);
+  border-radius: 10px;
+}
+
+.scope-modal-loading {
+  padding: 40px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(26, 31, 94, 0.35);
+}
+
+.scope-tree-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.scope-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.15s ease;
+}
+
+.scope-tree-node:hover {
+  background: rgba(26, 31, 94, 0.04);
+}
+
+.scope-tree-node.is-selected {
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.scope-tree-toggle {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(26, 31, 94, 0.3);
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.scope-tree-toggle:hover {
+  background: rgba(26, 31, 94, 0.06);
+  color: rgba(26, 31, 94, 0.6);
+}
+
+.scope-tree-toggle-placeholder {
+  visibility: hidden;
+}
+
+.scope-tree-type-icon {
+  color: rgba(26, 31, 94, 0.4);
+  flex-shrink: 0;
+}
+
+.scope-tree-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1f5e;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope-tree-type {
+  font-size: 9px;
+  color: rgba(26, 31, 94, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scope-tree-check {
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.scope-tree-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Detail panel */
+
+.scope-selection-card {
+  margin: 8px 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(201, 168, 76, 0.06);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scope-selection-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(201, 168, 76, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.scope-selection-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.scope-selection-info strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1f5e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scope-selection-info span {
+  display: block;
+  font-size: 10px;
+  color: rgba(26, 31, 94, 0.4);
+}
+
+.scope-selection-clear {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgba(26, 31, 94, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.scope-selection-clear:hover {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+}
+
+.scope-selection-empty {
+  padding: 32px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: rgba(26, 31, 94, 0.25);
+}
+
+.scope-selection-empty p {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(26, 31, 94, 0.4);
+  margin: 0;
+}
+
+.scope-selection-empty span {
+  font-size: 10px;
+  color: rgba(26, 31, 94, 0.25);
+}
+
+/* Footer */
+
+.scope-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(26, 31, 94, 0.06);
+}
+
+.scope-btn {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.scope-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scope-btn-secondary {
+  background: rgba(26, 31, 94, 0.05);
+  color: rgba(26, 31, 94, 0.5);
+  border: 1px solid rgba(26, 31, 94, 0.08);
+}
+
+.scope-btn-secondary:hover {
+  background: rgba(26, 31, 94, 0.08);
+  color: rgba(26, 31, 94, 0.7);
+}
+
+.scope-btn-primary {
+  background: #1a1f5e;
+  color: white;
+}
+
+.scope-btn-primary:hover {
+  background: #2e3591;
+}
+
+@keyframes scopeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scopeSlideIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

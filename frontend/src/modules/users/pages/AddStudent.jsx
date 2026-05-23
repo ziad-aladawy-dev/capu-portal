@@ -4,10 +4,12 @@ import {
   User, Mail, Lock, Phone, CheckCircle2, UserPlus, KeyRound, BookOpen, Building2, Calendar, Award, Hash
 } from "lucide-react";
 import userService from "../services/userService";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/userForms.css";
 
 const AddStudent = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const steps = ["Basic Information", "Account Security", "Academic Information"];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -177,13 +179,27 @@ const AddStudent = () => {
       setShowSuccess(true);
       setTimeout(() => navigate("/admin/users"), 1600);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      addToast(err.response?.data?.message || err.message, "error");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="form-loading">Loading...</div>;
+  if (loading) return (
+    <div className="form-loading">
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto", padding: 20 }}>
+        <div style={{ height: 24, width: "40%", background: "#e5e7eb", borderRadius: 6, marginBottom: 24, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <div style={{ height: 12, width: "30%", background: "#e5e7eb", borderRadius: 4, marginBottom: 8, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 40, background: "#e5e7eb", borderRadius: 8, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="add-user-page">

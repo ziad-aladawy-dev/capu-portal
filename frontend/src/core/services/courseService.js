@@ -14,21 +14,26 @@ export function getCourseCategoryLabel(value) {
 }
 
 export async function fetchActiveCourses() {
-  return api.get("/courses");
+  const { data } = await api.get("/courses");
+  return data;
 }
 
 export async function fetchCourse(id) {
-  return api.get(`/courses/${id}`);
+  const { data } = await api.get(`/courses/${id}`);
+  return data;
 }
 
-export async function createCourse(data) {
-  return api.post("/courses", data);
+export async function createCourse(body) {
+  const { data } = await api.post("/courses", body);
+  return data;
 }
 
-export async function updateCourse(id, data) {
-  return api.patch(`/courses/${id}`, data);
+export async function updateCourse(id, body) {
+  const { data } = await api.patch(`/courses/${id}`, body);
+  return data;
 }
 
 export async function deleteCourse(id) {
-  return api.delete(`/courses/${id}`);
+  const { data } = await api.delete(`/courses/${id}`);
+  return data;
 }

@@ -39,7 +39,7 @@ public class PermissionsController : ControllerBase
     {
         var assignment = await _permissionService.GetAssignmentAsync(query, cancellationToken);
         if (assignment == null)
-            return NotFound();
+            return Ok(null);
 
         return Ok(assignment);
     }

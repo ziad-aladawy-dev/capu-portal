@@ -1,6 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { quickActions } from "../data/dashboardData";
+
+const quickActions = [
+  { label: "User Management", path: "/admin/users" },
+  { label: "Add New Student", path: "/admin/users/add-student" },
+  { label: "Add New Staff", path: "/admin/users/add-staff" },
+  { label: "University Structure", path: "/admin/university-structure" },
+  { label: "Roles & Permissions", path: "/admin/roles" },
+];
 
 function QuickActions() {
   const navigate = useNavigate();

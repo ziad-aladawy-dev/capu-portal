@@ -1,6 +1,6 @@
 import apiClient from "../../../core/api/apiClient";
 
-const BASE_URL = "/api/university-structure";
+const BASE_URL = "/university-structure";
 
 export const universityStructureService = {
   // Get full tree (nested StructureNodeDto[])

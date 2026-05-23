@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import userService from '../services/userService';
-import { useScope } from '../../../core/contexts/ScopeContext';
+import { useDomain } from '../../../core/contexts/DomainContext';
+import { useAcademic } from '../../../core/contexts/AcademicContext';
 
-export const useUsers = () => {
-  const { selectedScope } = useScope();
+export const useUsers = ({ initialTab } = {}) => {
+  const { scopeNode } = useDomain();
+  const { selectedYearObj, selectedSemesterObj } = useAcademic();
 
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -33,7 +35,8 @@ export const useUsers = () => {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [levels, setLevels] = useState([]);
-  const [activeTab, setActiveTab] = useState('students');
+  const isFixedTab = initialTab === 'students' || initialTab === 'staff';
+  const [activeTab, setActiveTab] = useState(isFixedTab ? initialTab : 'students');
 
   const resetPagination = useCallback(() => {
     setPagination(prev => ({ ...prev, pageNumber: 1 }));
@@ -43,11 +46,13 @@ export const useUsers = () => {
     setLoading(true);
     setError(null);
     try {
-      const scopeNodeId = selectedScope?.id || null;
+      const scopeNodeId = scopeNode?.id || null;
       const baseParams = {
         Page: pagination.pageNumber,
         PageSize: pagination.pageSize,
-        ScopeNodeId: scopeNodeId
+        ScopeNodeId: scopeNodeId,
+        AcademicYearId: selectedYearObj?.id || undefined,
+        SemesterId: selectedSemesterObj?.id || undefined,
       };
 
       if (activeTab === 'students') {
@@ -89,7 +94,7 @@ export const useUsers = () => {
       }
 
       // Reload statistics
-      const stats = await userService.getUserStatistics(scopeNodeId);
+      const stats = await userService.getUserStatistics(scopeNodeId, selectedYearObj?.id, selectedSemesterObj?.id);
       setStatistics(stats);
 
       // Load lookups once
@@ -106,7 +111,7 @@ export const useUsers = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, selectedScope]);
+  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, scopeNode, selectedYearObj, selectedSemesterObj]);
 
   useEffect(() => {
     loadData();
@@ -126,9 +131,10 @@ export const useUsers = () => {
   }, []);
 
   const changeTab = useCallback((tab) => {
+    if (isFixedTab) return;
     setActiveTab(tab);
     resetPagination();
-  }, [resetPagination]);
+  }, [isFixedTab, resetPagination]);
 
   const fetchPrograms = useCallback(async (facultyId) => {
     if (!facultyId) {
@@ -162,9 +168,11 @@ export const useUsers = () => {
 
   // Export function
   const exportToExcel = useCallback(async (format) => {
-    const scopeNodeId = selectedScope?.id || null;
+    const scopeNodeId = scopeNode?.id || null;
     const baseParams = {
       ScopeNodeId: scopeNodeId,
+      AcademicYearId: selectedYearObj?.id || undefined,
+      SemesterId: selectedSemesterObj?.id || undefined,
       Search: filters.search || undefined,
       IsActive: filters.isActive,
       PasswordExpired: filters.passwordExpired
@@ -214,7 +222,7 @@ export const useUsers = () => {
       console.error('Export failed', error);
       return { success: false, error: error.message };
     }
-  }, [activeTab, filters, selectedScope]);
+  }, [activeTab, filters, scopeNode, selectedYearObj, selectedSemesterObj]);
 
   const activateUser = useCallback(async (userId, userType) => {
     try {

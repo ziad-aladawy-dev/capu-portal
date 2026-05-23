@@ -9,21 +9,30 @@ import "./index.css";
 
 import { DomainProvider } from "./core/contexts/DomainContext";
 import { AcademicProvider } from "./core/contexts/AcademicContext";
+import { StickySelectionProvider } from "./core/contexts/StickySelectionContext";
 import { AuthProvider } from "./core/auth/AuthContext";
 import { PermissionProvider } from "./core/auth/PermissionContext";
+import { ToastProvider } from "./core/components/Toast";
+import ErrorBoundary from "./core/components/ErrorBoundary";
 
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
   <BrowserRouter>
-    <AuthProvider>
-      <PermissionProvider>
-        <DomainProvider>
-          <AcademicProvider>
-            <App />
-          </AcademicProvider>
-        </DomainProvider>
-      </PermissionProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <PermissionProvider>
+          <ToastProvider>
+            <DomainProvider>
+              <AcademicProvider>
+                <StickySelectionProvider>
+                  <App />
+                </StickySelectionProvider>
+              </AcademicProvider>
+            </DomainProvider>
+          </ToastProvider>
+        </PermissionProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </BrowserRouter>
 );

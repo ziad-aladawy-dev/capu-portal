@@ -27,28 +27,34 @@ export const STUDENT_PROFILE_CATEGORY_OPTIONS = Object.entries(
 ).map(([value, label]) => ({ value: Number(value), label }));
 
 export async function fetchProfileRecords(studentId) {
-  return api.get(`/students/${studentId}/profile-records`);
+  const { data } = await api.get(`/students/${studentId}/profile-records`);
+  return data;
 }
 
 export async function fetchProfileRecordByCategory(studentId, category, customKey) {
   const params = customKey ? { customKey } : undefined;
-  return api.get(`/students/${studentId}/profile-records/by-category/${category}`, params);
+  const { data } = await api.get(`/students/${studentId}/profile-records/by-category/${category}`, { params });
+  return data;
 }
 
 export async function fetchProfileRecordById(studentId, recordId) {
-  return api.get(`/students/${studentId}/profile-records/${recordId}`);
+  const { data } = await api.get(`/students/${studentId}/profile-records/${recordId}`);
+  return data;
 }
 
-export async function upsertProfileRecord(studentId, data) {
-  return api.put(`/students/${studentId}/profile-records`, data);
+export async function upsertProfileRecord(studentId, body) {
+  const { data } = await api.put(`/students/${studentId}/profile-records`, body);
+  return data;
 }
 
 export async function verifyProfileRecord(studentId, recordId, verifiedBy) {
-  return api.post(`/students/${studentId}/profile-records/${recordId}/verify`, {
+  const { data } = await api.post(`/students/${studentId}/profile-records/${recordId}/verify`, {
     verifiedBy,
   });
+  return data;
 }
 
 export async function deleteProfileRecord(studentId, recordId) {
-  return api.delete(`/students/${studentId}/profile-records/${recordId}`);
+  const { data } = await api.delete(`/students/${studentId}/profile-records/${recordId}`);
+  return data;
 }

@@ -6,7 +6,7 @@ function StudentLogin() {
       type="student"
       title="Student Portal"
       subtitle="Enter your credentials to continue"
-      redirectPath="/student/profile"
+      redirectPath="/student/dashboard"
       contactText="Contact admission office"
     />
   );

@@ -129,6 +129,13 @@ public static class DependencyInjection
                            CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.CreateRoleValidator>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleRequest>,
                            CapitalUniversity.Core.Infrastructure.Services.Roles.Validators.UpdateRoleValidator>();
+
+        // Role Command & Query Handlers
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.CreateRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.DeleteRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRoleByIdQueryHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRolesQueryHandler>();
         services.AddScoped<IValidator<CapitalUniversity.Core.Abstractions.Courses.DTOs.CreateCourseRequest>,
                            CapitalUniversity.Core.Application.Courses.Validators.CreateCourseValidator>();
         services.AddScoped<IValidator<(Guid Id, CapitalUniversity.Core.Abstractions.Courses.DTOs.UpdateCourseRequest Request)>,

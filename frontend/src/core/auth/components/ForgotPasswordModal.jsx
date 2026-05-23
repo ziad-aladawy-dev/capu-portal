@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { forgotPassword } from "../authService";
 import "../styles/forgotPasswordModal.css";
 
 function ForgotPasswordModal({ onClose }) {
@@ -25,7 +26,7 @@ function ForgotPasswordModal({ onClose }) {
     setMessage("");
 
     try {
-      await authService.forgotPassword(formData);
+      await forgotPassword(formData);
       setMessage("Reset link sent to your email. Please check your inbox.");
       setTimeout(onClose, 3000);
     } catch (err) {

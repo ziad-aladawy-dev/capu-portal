@@ -19,7 +19,7 @@ public class TemporalScopeModel
 public class GetPermissionAssignmentQueryDto
 {
     public Guid UserId { get; set; }
-    public Guid? StructureNodeId { get; set; }
+    public Guid? ScopeNodeId { get; set; }
     public Guid? AcademicYearId { get; set; }
     public Guid? SemesterId { get; set; }
     public bool AlwaysActive { get; set; }

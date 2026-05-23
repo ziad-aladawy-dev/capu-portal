@@ -3,8 +3,6 @@ using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
-using CapitalUniversity.Core.Domain.UniversityStructure;
 
 namespace CapitalUniversity.Core.Application.UniversityStructure;
 
@@ -48,23 +46,36 @@ public class StructureLookupService : IStructureLookupService
             .ToList();
     }
 
-    /// <summary>
-    /// Project a <see cref="Domain.UniversityStructure.StructureNode"/> onto
-    /// the lookup DTO, decoding <c>Name</c> against the current culture.
-    /// </summary>
+    public async Task<List<StructureNodeLookupDto>> GetProgramsByFacultyAsync(Guid facultyId)
+    {
+        var nodes = await _repository.GetAllAsync();
+        var nodeMap = nodes.ToLookup(x => x.ParentId);
+        var programs = new List<Domain.UniversityStructure.StructureNode>();
+
+        void CollectPrograms(Guid parentId)
+        {
+            foreach (var child in nodeMap[parentId])
+            {
+                if (child.Type == StructureNodeType.Program)
+                    programs.Add(child);
+                CollectPrograms(child.Id);
+            }
+        }
+
+        CollectPrograms(facultyId);
+
+        return programs.OrderBy(x => x.Order).Select(Map).ToList();
+    }
+
     private StructureNodeLookupDto Map(
         Domain.UniversityStructure.StructureNode node)
     {
         return new StructureNodeLookupDto
         {
             Id = node.Id,
-
             Name = _localization.Get<string>(node.Name),
-
-            LocalizedName = _localizationService.GetLocalizedString(node.Name),
-
+            LocalizedName = _localization.Get<string>(node.Name),
             Type = (int)node.Type,
-
             ParentId = node.ParentId
         };
     }

@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, X, ChevronDown, ChevronRight, Building2,
+  Search, X, Building2,
   CalendarRange, BookOpen, User, SlidersHorizontal, RotateCcw,
 } from "lucide-react";
 import { useDomain } from "../../contexts/DomainContext";
@@ -19,45 +19,56 @@ const DIRECTORY_META = {
   all: { heading: "User Directory", placeholder: "Search by name or ID" },
 };
 
+const DIRECTORY_FILTERS = {
+  staff: [
+    { key: "role", label: "Role" },
+    { key: "status", label: "Status", options: [
+      { value: "active", label: "Active" },
+      { value: "inactive", label: "Inactive" },
+    ]},
+    { key: "facultyId", label: "Faculty" },
+  ],
+  student: [
+    { key: "level", label: "Level" },
+    { key: "status", label: "Status", options: [
+      { value: "active", label: "Active" },
+      { value: "inactive", label: "Inactive" },
+    ]},
+    { key: "facultyId", label: "Faculty" },
+    { key: "enrollment", label: "Enrollment", options: [
+      { value: "active", label: "Currently Enrolled" },
+      { value: "graduated", label: "Graduated" },
+    ]},
+  ],
+  all: [
+    { key: "role", label: "Role" },
+    { key: "level", label: "Level" },
+    { key: "status", label: "Status", options: [
+      { value: "active", label: "Active" },
+      { value: "inactive", label: "Inactive" },
+    ]},
+    { key: "facultyId", label: "Faculty" },
+  ],
+};
+
 function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   const navigate = useNavigate();
-  const { selectedDomain } = useDomain();
-  const { selectedYear, selectedSemester } = useAcademic();
+  const { scopeNode } = useDomain();
+  const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
   const { selected, select, clear, isActive } = useStickySelection();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [filters, setFilters] = useState({});
   const [results, setResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const debounceRef = useRef(null);
-  const [structureTree, setStructureTree] = useState([]);
-  const [treeLoading, setTreeLoading] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [filterOptions, setFilterOptions] = useState({});
 
   const dirType = config?.directoryType || "all";
   const meta = DIRECTORY_META[dirType] || DIRECTORY_META.all;
-  const configFilters = config?.filters || [];
-
-  useEffect(() => {
-    const loadTree = async () => {
-      setTreeLoading(true);
-      try {
-        const roots = await structureService.fetchStructureTree();
-        const rootsArray = Array.isArray(roots) ? roots : [];
-        setStructureTree(rootsArray);
-        if (rootsArray.length > 0) {
-          setExpandedNodes(prev => new Set(prev).add(rootsArray[0].id));
-        }
-      } catch {
-        setStructureTree([]);
-      } finally {
-        setTreeLoading(false);
-      }
-    };
-    loadTree();
-  }, []);
+  const configFilters = (config?.filters && config.filters.length > 0)
+    ? config.filters
+    : (DIRECTORY_FILTERS[dirType] || []);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
@@ -78,21 +89,17 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     loadFilterOptions();
   }, [dirType]);
 
-  const buildSearchParams = useCallback((query, activeFilters, nodeId) => {
+  const buildSearchParams = useCallback((query, activeFilters) => {
     const params = {
       search: query || undefined,
       page: 1,
       pageSize: 20,
+      ScopeNodeId: scopeNode?.id || undefined,
+      AcademicYearId: selectedYearObj?.id || undefined,
+      SemesterId: selectedSemesterObj?.id || undefined,
     };
 
-    if (nodeId) {
-      params.structureNodeId = nodeId;
-    }
-
     if (activeFilters) {
-      if (activeFilters.structureNodeId) {
-        params.structureNodeId = activeFilters.structureNodeId;
-      }
       if (activeFilters.role) {
         params.role = activeFilters.role;
       }
@@ -107,25 +114,17 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       if (activeFilters.enrollment === "graduated") {
         params.isActive = false;
       }
-      if (activeFilters.department) {
-        params.structureNodeId = activeFilters.department;
-      }
       if (activeFilters.facultyId) {
         params.facultyId = activeFilters.facultyId;
       }
     }
     return params;
-  }, []);
+  }, [scopeNode, selectedYearObj, selectedSemesterObj]);
 
-  const doSearch = useCallback(async (query, activeFilters, nodeId) => {
-    const hasActiveFilters = activeFilters && Object.values(activeFilters).some(v => v !== undefined && v !== null && v !== '');
-    if (!query && !hasActiveFilters && !nodeId) {
-      setResults([]);
-      return;
-    }
+  const doSearch = useCallback(async (query, activeFilters) => {
     setResultsLoading(true);
     try {
-      const searchParams = buildSearchParams(query, activeFilters, nodeId);
+      const searchParams = buildSearchParams(query, activeFilters);
       let allItems = [];
       if (dirType === "staff" || dirType === "all") {
         const data = await staffService.searchStaff(searchParams);
@@ -162,61 +161,17 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      doSearch(searchQuery, filters, selectedNodeId);
+      doSearch(searchQuery, filters);
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchQuery, filters, selectedNodeId, doSearch]);
-
-  const toggleNode = useCallback((nodeId) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  }, []);
+  }, [searchQuery, filters, scopeNode, selectedYearObj, selectedSemesterObj, doSearch]);
 
   const handleClearFilters = useCallback(() => {
     setSearchQuery("");
     setFilters({});
-    setSelectedNodeId(null);
   }, []);
-
-  const renderTreeNodes = (nodes) => {
-    return nodes.map((node) => (
-      <Fragment key={node.id}>
-        <div className="sec-tree-node">
-          {node.children && node.children.length > 0 ? (
-            <button
-              className="sec-tree-toggle"
-              onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}
-            >
-              {expandedNodes.has(node.id) ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-            </button>
-          ) : (
-            <span className="sec-tree-toggle" style={{ visibility: 'hidden' }}>
-              <ChevronRight size={10} />
-            </span>
-          )}
-          <span
-            className={"sec-tree-label" + (selectedNodeId === node.id ? " active" : "")}
-            onClick={() => {
-              setSelectedNodeId(prev => prev === node.id ? null : node.id);
-            }}
-          >
-            {node.name}
-          </span>
-        </div>
-        {expandedNodes.has(node.id) && node.children && node.children.length > 0 && (
-          <div className="sec-tree-children">
-            {renderTreeNodes(node.children)}
-          </div>
-        )}
-      </Fragment>
-    ));
-  };
 
   const handleSelectEntity = useCallback((entity) => {
     select(entity);
@@ -253,7 +208,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
           <Building2 size={13} />
           <div className="sec-scope-content">
             <span className="sec-scope-label">Scope</span>
-            <strong>{selectedDomain?.name || "All"}</strong>
+            <strong>{scopeNode?.name || "All"}</strong>
           </div>
         </div>
         <div className="sec-scope-row">
@@ -282,26 +237,6 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
               <X size={12} />
             </button>
           )}
-        </div>
-
-        <div className="sec-filter-section">
-          <div className="sec-filter-header">
-            <SlidersHorizontal size={11} />
-            <span>Organization</span>
-          </div>
-          <div className="sec-tree-filter">
-            {treeLoading ? (
-              <div className="sec-tree-node">
-                <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>Loading...</span>
-              </div>
-            ) : structureTree.length === 0 ? (
-              <div className="sec-tree-node">
-                <span className="sec-tree-label" style={{ color: 'rgba(26,31,94,0.3)' }}>No structure data</span>
-              </div>
-            ) : (
-              renderTreeNodes(structureTree)
-            )}
-          </div>
         </div>
 
         {configFilters.map((filter) => {

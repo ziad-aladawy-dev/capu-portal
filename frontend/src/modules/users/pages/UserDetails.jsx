@@ -7,11 +7,13 @@ import {
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import { useToast } from '../../../core/components/Toast';
 import '../styles/UserDetails.css';
 
 const UserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
@@ -66,9 +68,9 @@ const UserDetails = () => {
       }
       const updatedUser = await (userType === 'student' ? userService.getStudentById(id) : userService.getStaffById(id));
       setUser(updatedUser);
-      alert(`User ${user.isActive ? 'deactivated' : 'activated'} successfully`);
+      addToast(`User ${user.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
     } catch (err) {
-      alert(err.message);
+      addToast(err.message, 'error');
     }
   };
 
@@ -80,10 +82,10 @@ const UserDetails = () => {
         } else {
           await userService.deleteStaff(id);
         }
-        alert('User deleted successfully');
+        addToast('User deleted successfully', 'success');
         navigate('/admin/users');
       } catch (err) {
-        alert(err.message);
+        addToast(err.message, 'error');
       }
     }
   };

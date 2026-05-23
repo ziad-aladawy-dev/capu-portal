@@ -7,12 +7,16 @@ import StudentTable from "../components/StudentTable";
 import StaffTable from "../components/StaffTable";
 import UserFilters from "../components/UserFilters";
 import UserStats from "../components/UserStats";
+import BulkImportModal from "../components/BulkImportModal";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/users.css";
 
-const UserManagement = () => {
+const UserManagement = ({ initialTab, hideTabs }) => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportButtonRef = useRef(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const {
     students,
@@ -39,7 +43,7 @@ const UserManagement = () => {
     restoreUser,
     resetUserPassword,
     exportToExcel,
-  } = useUsers();
+  } = useUsers({ initialTab });
 
   const [pageSize, setLocalPageSize] = useState(pagination.pageSize);
 
@@ -69,9 +73,9 @@ const UserManagement = () => {
         return;
     }
     if (result.success) {
-      alert("Operation completed successfully");
+      addToast("Operation completed successfully", "success");
     } else {
-      alert(`Error: ${result.error}`);
+      addToast(`Error: ${result.error}`, "error");
     }
   };
 
@@ -96,10 +100,11 @@ const UserManagement = () => {
   return (
     <div className="users-page">
       <FacultyPageHeader
-        title="User Management"
+        title={activeTab === 'students' ? 'Student Management' : 'Staff Management'}
         icon={Users}
         onAdd={handleAddUser}
         onExport={() => setShowExportMenu(!showExportMenu)}
+        onImport={() => setShowImportModal(true)}
         showActions={true}
         exportButtonRef={exportButtonRef}
       />
@@ -113,10 +118,12 @@ const UserManagement = () => {
         </>
       )}
       <UserStats statistics={statistics} loading={loading} />
-      <div className="users-tabs">
-        <button className={`users-tab ${activeTab === 'students' ? 'active' : ''}`} onClick={() => changeTab('students')}>Students</button>
-        <button className={`users-tab ${activeTab === 'staff' ? 'active' : ''}`} onClick={() => changeTab('staff')}>Staff</button>
-      </div>
+      {!hideTabs && (
+        <div className="users-tabs">
+          <button className={`users-tab ${activeTab === 'students' ? 'active' : ''}`} onClick={() => changeTab('students')}>Students</button>
+          <button className={`users-tab ${activeTab === 'staff' ? 'active' : ''}`} onClick={() => changeTab('staff')}>Staff</button>
+        </div>
+      )}
       <UserFilters
         filters={filters}
         roles={roles}
@@ -166,6 +173,12 @@ const UserManagement = () => {
           Showing {firstItem} - {lastItem} of {pagination.totalCount} results
         </div>
       </div>
+      {showImportModal && (
+        <BulkImportModal
+          userType={activeTab}
+          onClose={() => setShowImportModal(false)}
+        />
+      )}
     </div>
   );
 };

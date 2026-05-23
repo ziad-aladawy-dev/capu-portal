@@ -1,42 +1,57 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { ScopeProvider } from "../contexts/ScopeContext";
-import LandingPage from "../../modules/landing/pages/LandingPage";
-import AdminLogin from "../auth/pages/AdminLogin";
-import StudentLogin from "../auth/pages/StudentLogin";
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
-import AdminDashboard from "../../modules/admin/pages/AdminDashboard";
-import UserManagement from "../../modules/users/pages/UserManagement";
-import AddStudent from "../../modules/users/pages/AddStudent";
-import EditStudent from "../../modules/users/pages/EditStudent";
-import AddStaff from "../../modules/users/pages/AddStaff";
-import EditStaff from "../../modules/users/pages/EditStaff";
-import UserDetails from "../../modules/users/pages/UserDetails";
-import UniversityStructurePage from "../../modules/university/pages/UniversityStructurePage";
+import { buildProtectedRoutes } from "./routeRegistry";
+
+const LandingPage = lazy(() => import("../../modules/landing/pages/LandingPage"));
+const AdminLogin = lazy(() => import("../auth/pages/AdminLogin"));
+const StudentLogin = lazy(() => import("../auth/pages/StudentLogin"));
 
 function AppRouter() {
+  const protectedRoutes = buildProtectedRoutes();
+
   return (
-    <ScopeProvider>
+    <Suspense fallback={<div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      height: "100vh", color: "#9ca3af", fontFamily: '"Outfit", sans-serif',
+      fontSize: 13,
+    }}>Loading...</div>}>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
 
+        {/* Protected dashboard routes — manifest-driven, wrapped by RouteGuard */}
         <Route element={<DashboardLayout />}>
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<UserManagement />} />
-          <Route path="/admin/users/add-student" element={<AddStudent />} />
-          <Route path="/admin/users/edit-student/:id" element={<EditStudent />} />
-          <Route path="/admin/users/add-staff" element={<AddStaff />} />
-          <Route path="/admin/users/edit-staff/:id" element={<EditStaff />} />
-          <Route path="/admin/users/:id" element={<UserDetails />} />
-          <Route path="/admin/programs" element={<h1>Programs Page</h1>} />
-          <Route path="/admin/permissions" element={<h1>Permissions Page</h1>} />
-          <Route path="/admin/sync" element={<h1>SIS Sync Page</h1>} />
-          <Route path="/admin/university-structure" element={<UniversityStructurePage />} />
+          {protectedRoutes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={route.element}
+            />
+          ))}
         </Route>
+
+        {/* 404 catch-all */}
+        <Route
+          path="*"
+          element={
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              height: "100vh", flexDirection: "column",
+              color: "#c9a84c", background: "#07091e", fontFamily: "Inter, sans-serif",
+            }}>
+              <h1 style={{ fontSize: "4rem", margin: 0, fontWeight: 700 }}>404</h1>
+              <p style={{ opacity: 0.6, marginTop: 8 }}>Page not found</p>
+              <a href="/" style={{ color: "#c9a84c", marginTop: 20, fontSize: "0.9rem" }}>
+                ← Back to Home
+              </a>
+            </div>
+          }
+        />
       </Routes>
-    </ScopeProvider>
+    </Suspense>
   );
 }
 

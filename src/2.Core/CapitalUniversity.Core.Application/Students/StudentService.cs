@@ -15,23 +15,21 @@ public class StudentService : IStudentService
     private readonly IStudentRepository _repository;
     private readonly IStructureNodeRepository _structureRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ILocalizationService _localizationService;
-
     private readonly ISessionVersionService _sessionVersions;
-
     private readonly IUnitOfWork _unitOfWork;
-
     private readonly ILocalizationService _localization;
 
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
+        IPasswordHasher passwordHasher,
         ISessionVersionService sessionVersions,
         IUnitOfWork unitOfWork,
         ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
         _localization = localization;
@@ -289,8 +287,6 @@ public class StudentService : IStudentService
     private StudentDto MapInstance(
             Student student)
     {
-        var localizedName = _localizationService.GetLocalizedString(student.Name);
-
         var levelNode = student.StructureNode;
 
         string facultyName = string.Empty;
@@ -300,7 +296,9 @@ public class StudentService : IStudentService
         string levelName =
             _localization.Get<string>(student.StructureNode.Name);
 
-        if (levelNode != null)
+        var programNode = levelNode?.Parent;
+
+        if (programNode != null)
         {
             programName =
                 _localization.Get<string>(programNode.Name);
@@ -323,7 +321,7 @@ public class StudentService : IStudentService
 
             Name = _localization.Get<string>(student.Name),
 
-            LocalizedName = localizedName,
+            LocalizedName = _localization.Get<string>(student.Name),
 
             NationalId = student.NationalId,
 

@@ -7,10 +7,12 @@ import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { useUniversityStructure } from "../hooks/useUniversityStructure";
 import { universityStructureService } from "../services/universityStructureService";
 import { normalizeType, canMoveToParent } from "../utils/nodeTypeHelpers";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/universityStructure.css";
 import "../styles/scopeModal.css";
 
 const UniversityStructurePage = () => {
+  const { addToast } = useToast();
   const {
     treeData,
     loading,
@@ -63,7 +65,7 @@ const UniversityStructurePage = () => {
   const handleSaveAdd = async (request) => {
     const result = await createNode(request);
     if (!result.success) {
-      alert(`Error: ${result.error}`);
+      addToast(`Error: ${result.error}`, "error");
     }
   };
 
@@ -89,7 +91,7 @@ const UniversityStructurePage = () => {
     const targetParentNode = newParentId ? findNodeInTree(treeData, newParentId) : null;
     const targetParentType = targetParentNode ? targetParentNode.type : null;
     if (!canMoveToParent(selectedNode.type, targetParentType)) {
-      alert(`Cannot move ${selectedNode.type} under ${targetParentType || "Root"}`);
+      addToast(`Cannot move ${selectedNode.type} under ${targetParentType || "Root"}`, "error");
       return;
     }
     await moveNode(selectedNode.id, newParentId, order);
@@ -103,7 +105,7 @@ const UniversityStructurePage = () => {
 
     const targetParentType = targetNode.type;
     if (!canMoveToParent(draggedNode.type, targetParentType)) {
-      alert(`Cannot move ${draggedNode.type} under ${targetParentType}`);
+      addToast(`Cannot move ${draggedNode.type} under ${targetParentType}`, "error");
       return;
     }
 

@@ -5,6 +5,7 @@ function FacultyPageHeader({
   icon: Icon,
   onAdd,
   onExport,
+  onImport,
   showActions = true,
   exportButtonRef,
 }) {
@@ -24,6 +25,9 @@ function FacultyPageHeader({
       </div>
       {showActions && (
         <div className="users-page-actions">
+          <button type="button" className="users-secondary-btn" onClick={onImport}>
+            Import
+          </button>
           <button type="button" className="users-secondary-btn" onClick={onExport} ref={exportButtonRef}>
             Export
           </button>

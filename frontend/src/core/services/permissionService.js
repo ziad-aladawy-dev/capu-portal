@@ -1,41 +1,61 @@
 import api from "../api/apiClient";
 
 export async function fetchAllPermissions() {
-  return api.get("/permissions");
+  const { data } = await api.get("/permissions");
+  return data;
 }
 
-export async function createPermission(data) {
-  return api.post("/permissions", data);
+export async function createPermission(body) {
+  const { data } = await api.post("/permissions", body);
+  return data;
 }
 
 export async function fetchPermissionAssignment(params = {}) {
-  return api.get("/permissions/assignment", params);
+  const { data } = await api.get("/permissions/assignment", { params });
+  return data;
 }
 
-export async function createPermissionAssignment(data) {
-  return api.post("/permissions", data);
+export async function createPermissionAssignment(body) {
+  const { data } = await api.post("/permissions", body);
+  return data;
 }
 
-export async function updatePermissionAssignment(data) {
-  return api.put("/permissions/assignment", data);
+export async function updatePermissionAssignment(body) {
+  const { data } = await api.put("/permissions/assignment", body);
+  return data;
 }
 
 export async function fetchAllRoles(params = {}) {
-  return api.get("/roles", params);
+  const { data } = await api.get("/roles", { params });
+  return data;
 }
 
 export async function fetchRoleById(id) {
-  return api.get(`/roles/${id}`);
+  const { data } = await api.get(`/roles/${id}`);
+  return data;
 }
 
-export async function createRole(data) {
-  return api.post("/roles", data);
+export async function createRole(body) {
+  const { data } = await api.post("/roles", body);
+  return data;
 }
 
-export async function updateRole(id, data) {
-  return api.put(`/roles/${id}`, data);
+export async function updateRole(id, body) {
+  const { data } = await api.put(`/roles/${id}`, body);
+  return data;
 }
 
 export async function deleteRole(id) {
-  return api.delete(`/roles/${id}`);
+  const { data } = await api.delete(`/roles/${id}`);
+  return data;
+}
+
+export async function fetchRolePermissions(roleId) {
+  const { data } = await api.get(`/authorization/roles/${roleId}/permissions`);
+  return data;
+}
+
+export async function updateRolePermissions(roleId, body) {
+  const { data } = await api.put(`/authorization/roles/${roleId}/permissions`, body);
+  return data;
 }

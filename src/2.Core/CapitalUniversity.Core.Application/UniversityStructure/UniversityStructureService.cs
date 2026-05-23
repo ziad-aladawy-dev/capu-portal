@@ -592,14 +592,14 @@ public class UniversityStructureService : IUniversityStructureService
         {
             Id = node.Id,
             Name = node.Name,
-            LocalizedName = _localizationService.GetLocalizedString(node.Name),
+            LocalizedName = _localization.Get<string>(node.Name),
             Type = node.Type,
             ParentId = node.ParentId,
             Order = node.Order,
             Path = node.Path,
             Depth = node.Depth,
             IsActive = node.IsActive,
-            TypeNameLocalized = _localizationService.Get(node.Type),
+            TypeNameLocalized = _localization.Get(node.Type),
             Children = new List<StructureNodeDto>()
         };
     }

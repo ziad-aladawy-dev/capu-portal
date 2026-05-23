@@ -320,3 +320,44 @@ Every page handles the **three required render states**:
 - Manifest aggregation: 13 modules total now visible to `getAllRoutes`.
 
 ---
+
+---
+
+## Phase 0/1 — Remediation (2026-05-23)
+
+After the initial audit, critical and high-priority fixes were applied:
+
+### P0 Critical Fixes
+- Double `/api` prefix removed from `userService.js` and `universityStructureService.js`
+- `ForgotPasswordModal.jsx` — added missing `authService` import
+- `authService.js` — implemented `forgotPassword()` function
+
+### P1 High Fixes
+- Created `modules/academicYears/` — Full CRUD page with semester sub-manager, manifest & route registration
+
+## Phase 2 — Missing Flows (2026-05-23)
+
+- **Student Portal** — 6 pages: Dashboard, Profile, Courses, CourseRegistration, Grades, Schedule
+- **Role Permission Assignment** — Modal for toggling permissions per role
+- **Bulk Import UI** — Drag-and-drop Excel/CSV import for students/staff
+- **Token Refresh** — Auto-refresh logic in apiClient with request queue
+- **Global Search** — Navbar search wired to `/admin/users?search=...`
+- **Landing Page Footer** — 4-column footer with contact info + social links
+
+## Phase 3 — Polish (2026-05-23)
+
+- **Toast system** — `ToastProvider` + `useToast` replacing 13 `alert()` calls
+- **Loading skeletons** — `Skeleton`, `SkeletonTable`, `SkeletonStats` components
+- **Error boundary** — `ErrorBoundary` component wrapping the app
+
+## Phase 4 — Quality & Performance (2026-05-23)
+
+### Lazy Loading / Code Splitting
+All route components in `routeRegistry.js` and public routes in `AppRouter.jsx` switched to `React.lazy()` + `Suspense` for on-demand loading.
+
+### Frontend Tests
+- Installed `vitest` + `@testing-library/react` + `jsdom`
+- `src/test/basic.test.jsx` — 4 tests (authService login/forgotPassword, permissionService, ToastProvider)
+- `npm test` — all passing
+
+### Module Count: 16 modules now registered in manifest loader.

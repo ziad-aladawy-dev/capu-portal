@@ -15,23 +15,21 @@ public class StaffService : IStaffService
     private readonly IStaffRepository _repository;
     private readonly IStructureNodeRepository _structureRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ILocalizationService _localizationService;
-
     private readonly ISessionVersionService _sessionVersions;
-
     private readonly IUnitOfWork _unitOfWork;
-
     private readonly ILocalizationService _localization;
 
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
+        IPasswordHasher passwordHasher,
         ISessionVersionService sessionVersions,
         IUnitOfWork unitOfWork,
         ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
+        _passwordHasher = passwordHasher;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
         _localization = localization;
@@ -297,7 +295,7 @@ public class StaffService : IStaffService
 
             Name = _localization.Get<string>(staff.Name),
 
-            LocalizedName = localizedName,
+            LocalizedName = _localization.Get<string>(staff.Name),
 
             NationalId = staff.NationalId,
 

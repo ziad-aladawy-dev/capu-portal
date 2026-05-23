@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,32 @@ namespace CapitalUniversity.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authService;
+    private readonly IUserCredentialResolver _credentialResolver;
+    private readonly IPermissionManagementService _permissionService;
 
-    public AuthController(IAuthenticationService authService)
+    public AuthController(
+        IAuthenticationService authService,
+        IUserCredentialResolver credentialResolver,
+        IPermissionManagementService permissionService)
     {
         _authService = authService;
+        _credentialResolver = credentialResolver;
+        _permissionService = permissionService;
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<LoginResponseDto>> Me(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
+
+        var user = await _credentialResolver.ResolveByIdAsync(userId, cancellationToken);
+        if (user == null)
+            return Unauthorized();
+
+        var response = await _permissionService.GetBootstrapContextAsync(user, cancellationToken);
+        return Ok(response);
     }
 
     [AllowAnonymous]

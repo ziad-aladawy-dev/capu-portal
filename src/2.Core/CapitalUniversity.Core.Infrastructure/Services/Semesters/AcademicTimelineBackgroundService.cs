@@ -29,13 +29,17 @@ public class AcademicTimelineBackgroundService : BackgroundService
             try
             {
                 await ResolveTimelineAsync();
+                await Task.Delay(_checkInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while resolving academic timeline.");
+                await Task.Delay(_checkInterval, stoppingToken);
             }
-
-            await Task.Delay(_checkInterval, stoppingToken);
         }
 
         _logger.LogInformation("Academic Timeline Background Service is stopping.");

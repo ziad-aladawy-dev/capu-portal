@@ -1,29 +1,36 @@
 import api from "../api/apiClient";
 
 export async function fetchAcademicPlan(id) {
-  return api.get(`/academic-plans/${id}`);
+  const { data } = await api.get(`/academic-plans/${id}`);
+  return data;
 }
 
 export async function fetchPlansForStructure(structureNodeId) {
-  return api.get(`/academic-plans/by-structure/${structureNodeId}`);
+  const { data } = await api.get(`/academic-plans/by-structure/${structureNodeId}`);
+  return data;
 }
 
-export async function createAcademicPlan(data) {
-  return api.post("/academic-plans", data);
+export async function createAcademicPlan(body) {
+  const { data } = await api.post("/academic-plans", body);
+  return data;
 }
 
-export async function updateAcademicPlan(id, data) {
-  return api.patch(`/academic-plans/${id}`, data);
+export async function updateAcademicPlan(id, body) {
+  const { data } = await api.patch(`/academic-plans/${id}`, body);
+  return data;
 }
 
 export async function deleteAcademicPlan(id) {
-  return api.delete(`/academic-plans/${id}`);
+  const { data } = await api.delete(`/academic-plans/${id}`);
+  return data;
 }
 
-export async function addPlanCourse(planId, data) {
-  return api.post(`/academic-plans/${planId}/courses`, data);
+export async function addPlanCourse(planId, body) {
+  const { data } = await api.post(`/academic-plans/${planId}/courses`, body);
+  return data;
 }
 
 export async function removePlanCourse(planId, planCourseId) {
-  return api.delete(`/academic-plans/${planId}/courses/${planCourseId}`);
+  const { data } = await api.delete(`/academic-plans/${planId}/courses/${planCourseId}`);
+  return data;
 }

@@ -1,17 +1,19 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./useAuth";
 import { usePermission } from "./usePermission";
 
 function RouteGuard({ resource, minLevel = 1, fallback = "/admin/dashboard", children }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { can } = usePermission();
+  const location = useLocation();
 
   if (isLoading) {
     return <div className="route-guard-loading">Loading...</div>;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
+    const loginPath = location.pathname.startsWith("/student") ? "/student/login" : "/admin/login";
+    return <Navigate to={loginPath} replace />;
   }
 
   if (resource && !can(resource, minLevel)) {

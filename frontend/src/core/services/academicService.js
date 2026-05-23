@@ -1,38 +1,61 @@
 import api from "../api/apiClient";
 
 export async function fetchAcademicYears() {
-  return api.get("/academic-years");
+  const { data } = await api.get("/academic-years");
+  return data;
 }
 
 export async function fetchCurrentAcademicYear() {
-  const allYears = await api.get("/academic-years");
+  const allYears = await fetchAcademicYears();
   return (allYears || []).find((y) => y.isCurrent) || (allYears || [])[0] || null;
 }
 
 export async function fetchAcademicYear(id) {
-  return api.get(`/academic-years/${id}`);
+  const { data } = await api.get(`/academic-years/${id}`);
+  return data;
 }
 
-export async function createAcademicYear(data) {
-  return api.post("/academic-years", data);
+export async function createAcademicYear(body) {
+  const { data } = await api.post("/academic-years", body);
+  return data;
 }
 
-export async function updateAcademicYear(id, data) {
-  return api.patch(`/academic-years/${id}`, data);
+export async function updateAcademicYear(id, body) {
+  const { data } = await api.patch(`/academic-years/${id}`, body);
+  return data;
 }
 
 export async function deleteAcademicYear(id) {
-  return api.delete(`/academic-years/${id}`);
+  const { data } = await api.delete(`/academic-years/${id}`);
+  return data;
 }
 
 export async function fetchSemesters(academicYearId) {
-  return api.get(`/academic-years/${academicYearId}/semesters`);
+  const { data } = await api.get(`/academic-years/${academicYearId}/semesters`);
+  return data;
 }
 
 export async function fetchCurrentSemester() {
-  return api.get("/semesters/current");
+  const { data } = await api.get("/semesters/current");
+  return data;
 }
 
 export async function fetchSemester(id) {
-  return api.get(`/semesters/${id}`);
+  const { data } = await api.get(`/semesters/${id}`);
+  return data;
+}
+
+export async function createSemester(body) {
+  const { data } = await api.post("/semesters", body);
+  return data;
+}
+
+export async function updateSemester(id, body) {
+  const { data } = await api.patch(`/semesters/${id}`, body);
+  return data;
+}
+
+export async function deleteSemester(id) {
+  const { data } = await api.delete(`/semesters/${id}`);
+  return data;
 }

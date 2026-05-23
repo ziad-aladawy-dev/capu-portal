@@ -39,7 +39,7 @@ public class PermissionsControllerTests
     }
 
     [Fact]
-    public async Task GetAssignment_NotFound_ReturnsNotFoundResult()
+    public async Task GetAssignment_NotFound_ReturnsOkWithNull()
     {
         var mockService = new Mock<IPermissionManagementService>();
         var mockUser = new Mock<ICurrentUser>();
@@ -51,7 +51,8 @@ public class PermissionsControllerTests
 
         var result = await controller.GetAssignment(new GetPermissionAssignmentQueryDto(), CancellationToken.None);
 
-        Assert.IsType<NotFoundResult>(result.Result);
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Null(okResult.Value);
     }
 
     [Fact]

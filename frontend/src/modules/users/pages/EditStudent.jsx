@@ -6,11 +6,13 @@ import {
 } from "lucide-react";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/userForms.css";
 
 const EditStudent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const steps = ["Basic Information", "Academic Information"];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -155,7 +157,7 @@ const EditStudent = () => {
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      addToast(err.response?.data?.message || err.message, "error");
     } finally {
       setSubmitting(false);
     }

@@ -18,9 +18,11 @@
 
   overflow: hidden;
 
-  z-index: 300;
+  z-index: 200;
 
   font-family: "Outfit", sans-serif;
+
+  padding-top: 54px;
 
   box-shadow: 8px 0 30px rgba(7, 9, 30, 0.22);
 

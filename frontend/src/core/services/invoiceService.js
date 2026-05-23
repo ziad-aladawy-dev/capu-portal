@@ -21,17 +21,21 @@ export function getInvoiceStatusLabel(value) {
 }
 
 export async function fetchInvoice(id) {
-  return api.get(`/invoices/${id}`);
+  const { data } = await api.get(`/invoices/${id}`);
+  return data;
 }
 
 export async function fetchInvoicesForStudent(studentId) {
-  return api.get(`/invoices/by-student/${studentId}`);
+  const { data } = await api.get(`/invoices/by-student/${studentId}`);
+  return data;
 }
 
-export async function createInvoice(data) {
-  return api.post("/invoices", data);
+export async function createInvoice(body) {
+  const { data } = await api.post("/invoices", body);
+  return data;
 }
 
 export async function cancelInvoice(id, reason) {
-  return api.post(`/invoices/${id}/cancel`, { reason });
+  const { data } = await api.post(`/invoices/${id}/cancel`, { reason });
+  return data;
 }

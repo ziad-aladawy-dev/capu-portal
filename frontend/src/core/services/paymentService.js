@@ -18,10 +18,12 @@ export function getPaymentStatusLabel(value) {
   return PAYMENT_TX_STATUS_LABELS[value] || "Unknown";
 }
 
-export async function recordPayment(data) {
-  return api.post("/payments/transactions", data);
+export async function recordPayment(body) {
+  const { data } = await api.post("/payments/transactions", body);
+  return data;
 }
 
 export async function fetchTransactionsForInvoice(invoiceId) {
-  return api.get(`/payments/invoices/${invoiceId}/transactions`);
+  const { data } = await api.get(`/payments/invoices/${invoiceId}/transactions`);
+  return data;
 }

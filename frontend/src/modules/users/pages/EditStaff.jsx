@@ -7,11 +7,13 @@ import {
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ScopeTreeModal } from "../../university/components/ScopeTreeModal";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/userForms.css";
 
 const EditStaff = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const steps = ["Basic Information", "Employment Information"];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,7 +128,7 @@ const EditStaff = () => {
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      addToast(err.response?.data?.message || err.message, "error");
     } finally {
       setSubmitting(false);
     }

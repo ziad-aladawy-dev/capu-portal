@@ -1,20 +1,11 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { ChevronRight, LogOut, LayoutDashboard, Building2, Users, Shield, BookOpen, Receipt } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
 
 import { buildMenu } from "../menuAggregator";
 import { usePermission } from "../../auth/usePermission";
 import { useAuth } from "../../auth/useAuth";
 import "../../styles/sidebar.css";
-
-const CATEGORY_ICONS = {
-  Overview: LayoutDashboard,
-  Administration: Building2,
-  "People Management": Users,
-  "Security & Access": Shield,
-  Academic: BookOpen,
-  Finance: Receipt,
-};
 
 function Sidebar({ isOpen, isMobile, onClose }) {
   const [openedCategory, setOpenedCategory] = useState("Overview");
@@ -79,10 +70,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
                 onClick={() => setOpenedCategory(opened ? null : category.category)}
               >
                 <div className="sidebar-cat-icon">
-                  {(() => {
-                    const CatIcon = CATEGORY_ICONS[category.category] || Building2;
-                    return <CatIcon size={14} />;
-                  })()}
+                  <category.icon size={14} />
                 </div>
                 <span className="sidebar-category-title">{category.category}</span>
                 <ChevronRight size={11} className="sidebar-cat-arrow" />
