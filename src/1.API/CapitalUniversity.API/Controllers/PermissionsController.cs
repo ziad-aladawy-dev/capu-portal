@@ -6,6 +6,7 @@ using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -58,5 +59,51 @@ public class PermissionsController : ControllerBase
     {
         var assignment = await _permissionService.UpdateAssignmentAsync(request, cancellationToken);
         return Ok(assignment);
+    }
+
+    /// <summary>
+    /// 3.3 — bulk-create assignments. Body: <c>{ assignments: [...] }</c>.
+    /// All-or-nothing — wraps every per-row call in one transaction.
+    /// </summary>
+    [HttpPost("assignment/batch")]
+    [HasPermission(PermissionNames.Permissions.Insert)]
+    public async Task<IActionResult> BatchCreate([FromBody] BatchCreateAssignmentRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Assignments is null || request.Assignments.Count == 0)
+            return BadRequest(new { Message = "At least one assignment is required." });
+        if (request.Assignments.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot create more than {BulkConstants.MaxBulkSize} assignments in one request." });
+
+        var results = await _permissionService.BatchCreateAssignmentsAsync(request.Assignments, cancellationToken);
+        return Ok(results);
+    }
+
+    /// <summary>
+    /// 3.4 — bulk-update / revoke assignments. Body: <c>{ updates: [...] }</c>.
+    /// All-or-nothing — wraps every per-row call in one transaction. Each
+    /// update may carry <c>RolesToRemove</c> and <c>PermissionsToRemove</c>
+    /// so this single endpoint covers both bulk add and bulk revoke.
+    /// </summary>
+    [HttpPut("assignment/batch")]
+    [HasPermission(PermissionNames.Permissions.EditClose)]
+    public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateAssignmentRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Updates is null || request.Updates.Count == 0)
+            return BadRequest(new { Message = "At least one update is required." });
+        if (request.Updates.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot update more than {BulkConstants.MaxBulkSize} assignments in one request." });
+
+        var results = await _permissionService.BatchUpdateAssignmentsAsync(request.Updates, cancellationToken);
+        return Ok(results);
+    }
+
+    public sealed class BatchCreateAssignmentRequest
+    {
+        public IReadOnlyList<CreatePermissionAssignmentRequest> Assignments { get; init; } = Array.Empty<CreatePermissionAssignmentRequest>();
+    }
+
+    public sealed class BatchUpdateAssignmentRequest
+    {
+        public IReadOnlyList<UpdatePermissionAssignmentRequest> Updates { get; init; } = Array.Empty<UpdatePermissionAssignmentRequest>();
     }
 }

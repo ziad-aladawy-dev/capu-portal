@@ -2,6 +2,7 @@ using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
@@ -85,5 +86,19 @@ public class CoursesController : ControllerBase
     {
         await _service.OpenRecordAsync(id, cancellationToken);
         return Ok(new { Message = "Course reopened" });
+    }
+
+    /// <summary>3.9 — bulk delete catalog courses.</summary>
+    [HttpPost("delete")]
+    [HasPermission(PermissionNames.Courses.Delete)]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} courses in one request." });
+
+        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        return Ok(result);
     }
 }

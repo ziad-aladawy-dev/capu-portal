@@ -127,4 +127,18 @@ public class AcademicPlansController : ControllerBase
         await _service.OpenRecordAsync(id, cancellationToken);
         return Ok(new { Message = "Academic plan reopened" });
     }
+
+    /// <summary>3.9 — bulk delete academic plans.</summary>
+    [HttpPost("delete")]
+    [HasPermission(PermissionNames.AcademicPlans.Delete)]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} plans in one request." });
+
+        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        return Ok(result);
+    }
 }

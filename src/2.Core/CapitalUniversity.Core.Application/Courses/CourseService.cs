@@ -4,6 +4,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using FluentValidation;
@@ -153,6 +154,31 @@ public class CourseService : ICourseService
         _courses.Delete(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                await DeleteAsync(id, cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
     }
 
     public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)

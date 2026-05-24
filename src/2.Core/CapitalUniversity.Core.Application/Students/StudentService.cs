@@ -2,6 +2,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
@@ -226,6 +227,68 @@ public class StudentService : IStudentService
         await _repository.SoftDeleteAsync(id);
 
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<BulkActionResult> SetStatusManyAsync(IReadOnlyList<Guid> ids, bool isActive, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                var student = await _repository.GetByIdAsync(id);
+                if (student is null)
+                {
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Student not found" });
+                    continue;
+                }
+                if (student.IsActive == isActive)
+                {
+                    // Idempotent — already at target state.
+                    succeeded.Add(id);
+                    continue;
+                }
+                student.IsActive = isActive;
+                await _repository.UpdateAsync(student);
+                succeeded.Add(id);
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Unknown, Message = ex.Message });
+            }
+        }
+
+        if (succeeded.Count > 0) await _unitOfWork.SaveChangesAsync();
+        return BulkActionResult.From(succeeded, failures);
+    }
+
+    public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                if (!await _repository.ExistsAsync(id))
+                {
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Student not found" });
+                    continue;
+                }
+                await _repository.SoftDeleteAsync(id);
+                succeeded.Add(id);
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Unknown, Message = ex.Message });
+            }
+        }
+
+        if (succeeded.Count > 0) await _unitOfWork.SaveChangesAsync();
+        return BulkActionResult.From(succeeded, failures);
     }
 
     public async Task ToggleStatusAsync(Guid id)

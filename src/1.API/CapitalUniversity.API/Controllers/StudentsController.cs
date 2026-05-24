@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using ClosedXML.Excel;
@@ -18,13 +19,10 @@ public class StudentsController : ControllerBase
         _service = service;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var result = await _service.GetAllAsync();
-
-        return Ok(result);
-    }
+    // 3.1 — unfiltered `GET /api/students` removed in Phase 3 cleanup.
+    // Callers migrate to `GET /api/students/search` which already accepts the
+    // same query params and returns `PagedResult<StudentDto>`. The service's
+    // `GetAllAsync` stays for internal/test paths (no controller surface).
 
     [HttpGet("search")]
     public async Task<IActionResult> Search(
@@ -96,6 +94,41 @@ public class StudentsController : ControllerBase
         {
             Message = "Student status updated successfully"
         });
+    }
+
+    /// <summary>
+    /// 3.7 — bulk set active status. Idempotent (explicit value), per-row
+    /// commits with failure map.
+    /// </summary>
+    [HttpPost("status")]
+    public async Task<IActionResult> BulkSetStatus([FromBody] BulkSetStatusRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot update more than {BulkConstants.MaxBulkSize} students in one request." });
+
+        var result = await _service.SetStatusManyAsync(request.Ids, request.IsActive, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>3.9 — bulk soft-delete students.</summary>
+    [HttpPost("delete")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} students in one request." });
+
+        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed class BulkSetStatusRequest
+    {
+        public IReadOnlyList<Guid> Ids { get; init; } = Array.Empty<Guid>();
+        public bool IsActive { get; init; }
     }
 
     [HttpGet("statistics")]

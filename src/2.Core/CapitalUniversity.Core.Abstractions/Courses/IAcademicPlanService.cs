@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 
 namespace CapitalUniversity.Core.Abstractions.Courses;
 
@@ -28,4 +29,7 @@ public interface IAcademicPlanService
 
     Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);
     Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>3.9 — bulk delete academic plans. Per-row commits.</summary>
+    Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default);
 }

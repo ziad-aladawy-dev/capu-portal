@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 
 namespace CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
@@ -19,4 +20,19 @@ public interface IStudentProfileService
     // cannot distinguish "wrong owner" from "record absent" (no enumeration).
     Task VerifyAsync(Guid studentId, Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 3.5 — bulk upsert. Routes each record through the single-row
+    /// <see cref="UpsertAsync"/> so scope + validation + re-verification clear
+    /// stay identical. Independent per-row commits — a failed peer does not
+    /// roll back successes.
+    /// </summary>
+    Task<BulkActionResult> BatchUpsertAsync(Guid studentId, IReadOnlyList<UpsertStudentProfileRecordRequest> records, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 3.6 — bulk verify. <paramref name="verifiedBy"/> applies to every row in
+    /// the batch. Same per-row semantics as the bulk upsert (independent
+    /// commits, per-row failure reasons).
+    /// </summary>
+    Task<BulkActionResult> BatchVerifyAsync(Guid studentId, IReadOnlyList<Guid> recordIds, Guid verifiedBy, CancellationToken cancellationToken = default);
 }

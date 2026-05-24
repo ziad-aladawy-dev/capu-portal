@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using ClosedXML.Excel;
@@ -17,13 +18,10 @@ public class StaffController : ControllerBase
         _service = service;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var result = await _service.GetAllAsync();
-
-        return Ok(result);
-    }
+    // 3.2 — unfiltered `GET /api/staff` removed in Phase 3 cleanup.
+    // Callers migrate to `GET /api/staff/search` which already accepts the
+    // same query params and returns `PagedResult<StaffDto>`. The service's
+    // `GetAllAsync` stays for internal/test paths (no controller surface).
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] StaffQueryRequest request)
@@ -96,6 +94,38 @@ public class StaffController : ControllerBase
         {
             Message = "Staff status updated successfully"
         });
+    }
+
+    /// <summary>3.8 — bulk set active status. Idempotent (explicit value).</summary>
+    [HttpPost("status")]
+    public async Task<IActionResult> BulkSetStatus([FromBody] BulkSetStaffStatusRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot update more than {BulkConstants.MaxBulkSize} staff in one request." });
+
+        var result = await _service.SetStatusManyAsync(request.Ids, request.IsActive, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>3.9 — bulk soft-delete staff.</summary>
+    [HttpPost("delete")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Ids is null || request.Ids.Count == 0)
+            return BadRequest(new { Message = "At least one id is required." });
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} staff in one request." });
+
+        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed class BulkSetStaffStatusRequest
+    {
+        public IReadOnlyList<Guid> Ids { get; init; } = Array.Empty<Guid>();
+        public bool IsActive { get; init; }
     }
 
     [HttpGet("statistics")]

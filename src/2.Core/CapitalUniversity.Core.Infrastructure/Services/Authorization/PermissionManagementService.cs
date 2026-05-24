@@ -461,6 +461,43 @@ public class PermissionManagementService : IPermissionManagementService
             throw new ArgumentException("Cannot specify both AlwaysActive=true and specific Temporal limits");
     }
 
+    public async Task<IReadOnlyList<PermissionAssignmentResponse>> BatchCreateAssignmentsAsync(IReadOnlyList<CreatePermissionAssignmentRequest> requests, CancellationToken cancellationToken = default)
+    {
+        // All-or-nothing — wrap in a single transaction so partial seeding can
+        // never leak permissions or leave a user with a half-applied role set.
+        // Only relational providers support real transactions; on InMemory the
+        // execution strategy is a no-op (matches existing service patterns).
+        await using var tx = _dbContext.Database.IsRelational()
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var results = new List<PermissionAssignmentResponse>(requests.Count);
+        foreach (var req in requests)
+        {
+            results.Add(await CreateAssignmentAsync(req, cancellationToken));
+        }
+
+        if (tx is not null) await tx.CommitAsync(cancellationToken);
+        return results;
+    }
+
+    public async Task<IReadOnlyList<PermissionAssignmentResponse>> BatchUpdateAssignmentsAsync(IReadOnlyList<UpdatePermissionAssignmentRequest> requests, CancellationToken cancellationToken = default)
+    {
+        // All-or-nothing — same rationale as BatchCreateAssignmentsAsync.
+        await using var tx = _dbContext.Database.IsRelational()
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var results = new List<PermissionAssignmentResponse>(requests.Count);
+        foreach (var req in requests)
+        {
+            results.Add(await UpdateAssignmentAsync(req, cancellationToken));
+        }
+
+        if (tx is not null) await tx.CommitAsync(cancellationToken);
+        return results;
+    }
+
     public async Task<PermissionAssignmentResponse> CreateAssignmentAsync(CreatePermissionAssignmentRequest request, CancellationToken cancellationToken = default)
     {
         ValidateScopeCombinations(request.TemporalScope);

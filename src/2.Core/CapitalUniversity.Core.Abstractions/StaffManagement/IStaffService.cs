@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 
 namespace CapitalUniversity.Core.Abstractions.StaffManagement;
@@ -20,4 +21,10 @@ public interface IStaffService
     Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request);
 
     Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
+
+    /// <summary>3.8 — bulk set status (idempotent, explicit value).</summary>
+    Task<BulkActionResult> SetStatusManyAsync(IReadOnlyList<Guid> ids, bool isActive, CancellationToken cancellationToken = default);
+
+    /// <summary>3.9 — bulk soft-delete.</summary>
+    Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default);
 }

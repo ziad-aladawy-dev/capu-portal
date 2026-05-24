@@ -1,5 +1,6 @@
 using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -92,5 +93,60 @@ public class StudentProfileRecordsController : ControllerBase
     {
         await _service.DeleteAsync(studentId, recordId, cancellationToken);
         return Ok(new { Message = "Profile record deleted" });
+    }
+
+    /// <summary>
+    /// 3.5 — bulk upsert. Body: <c>{ records: [UpsertStudentProfileRecordRequest...] }</c>.
+    /// Independent per-row commits — see <see cref="BulkActionResult"/>.
+    /// Failure ids are synthetic per-row slots (no entity id exists yet).
+    /// </summary>
+    [HttpPut("batch")]
+    [HasPermission(PermissionNames.StudentProfileRecords.Insert, PermissionScopeKind.Student, "studentId")]
+    public async Task<IActionResult> BatchUpsert(Guid studentId, [FromBody] BatchUpsertProfileRecordsRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.Records is null || request.Records.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one record is required." });
+        }
+        if (request.Records.Count > BulkConstants.MaxBulkSize)
+        {
+            return BadRequest(new { Message = $"Cannot upsert more than {BulkConstants.MaxBulkSize} records in one request." });
+        }
+        var result = await _service.BatchUpsertAsync(studentId, request.Records, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 3.6 — bulk verify. Body: <c>{ recordIds: Guid[], verifiedBy: Guid }</c>.
+    /// </summary>
+    [HttpPost("verify")]
+    [HasPermission(PermissionNames.StudentProfileRecords.EditClose, PermissionScopeKind.Student, "studentId")]
+    public async Task<IActionResult> BatchVerify(Guid studentId, [FromBody] BatchVerifyProfileRecordsRequest request, CancellationToken cancellationToken)
+    {
+        if (request?.RecordIds is null || request.RecordIds.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one record id is required." });
+        }
+        if (request.RecordIds.Count > BulkConstants.MaxBulkSize)
+        {
+            return BadRequest(new { Message = $"Cannot verify more than {BulkConstants.MaxBulkSize} records in one request." });
+        }
+        if (request.VerifiedBy == Guid.Empty)
+        {
+            return BadRequest(new { Message = "verifiedBy is required." });
+        }
+        var result = await _service.BatchVerifyAsync(studentId, request.RecordIds, request.VerifiedBy, cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed class BatchUpsertProfileRecordsRequest
+    {
+        public IReadOnlyList<UpsertStudentProfileRecordRequest> Records { get; init; } = Array.Empty<UpsertStudentProfileRecordRequest>();
+    }
+
+    public sealed class BatchVerifyProfileRecordsRequest
+    {
+        public IReadOnlyList<Guid> RecordIds { get; init; } = Array.Empty<Guid>();
+        public Guid VerifiedBy { get; init; }
     }
 }

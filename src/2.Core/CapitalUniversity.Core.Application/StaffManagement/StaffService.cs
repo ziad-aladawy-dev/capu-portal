@@ -2,6 +2,7 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
@@ -227,6 +228,67 @@ public class StaffService : IStaffService
         await _repository.SoftDeleteAsync(id);
 
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<BulkActionResult> SetStatusManyAsync(IReadOnlyList<Guid> ids, bool isActive, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                var staff = await _repository.GetByIdAsync(id);
+                if (staff is null)
+                {
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Staff not found" });
+                    continue;
+                }
+                if (staff.IsActive == isActive)
+                {
+                    succeeded.Add(id);
+                    continue;
+                }
+                staff.IsActive = isActive;
+                await _repository.UpdateAsync(staff);
+                succeeded.Add(id);
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Unknown, Message = ex.Message });
+            }
+        }
+
+        if (succeeded.Count > 0) await _unitOfWork.SaveChangesAsync();
+        return BulkActionResult.From(succeeded, failures);
+    }
+
+    public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                if (!await _repository.ExistsAsync(id))
+                {
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Staff not found" });
+                    continue;
+                }
+                await _repository.SoftDeleteAsync(id);
+                succeeded.Add(id);
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Unknown, Message = ex.Message });
+            }
+        }
+
+        if (succeeded.Count > 0) await _unitOfWork.SaveChangesAsync();
+        return BulkActionResult.From(succeeded, failures);
     }
 
     public async Task ToggleStatusAsync(Guid id)

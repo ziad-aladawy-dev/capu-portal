@@ -133,24 +133,34 @@ public class MoveRequestWorkflowStateRequest
 ///     <item>Everything else: newest first.</item>
 ///   </list>
 /// </summary>
-public class StudentServiceRequestListQuery
+/// <remarks>
+/// 3.10 — inherits <see cref="PagedQueryRequest"/> for <c>Page</c> /
+/// <c>PageSize</c> / <c>Search</c>. The resource-specific <see cref="SortBy"/>
+/// / <see cref="SortAscending"/> pair stays because the service's pending-vs-
+/// non-pending default flip depends on the simpler boolean shape. New callers
+/// may also use the base <c>Sort</c> string for forward compatibility; the
+/// service prefers <c>SortBy</c> when set.
+/// </remarks>
+public class StudentServiceRequestListQuery : Core.Abstractions.Shared.Paging.PagedQueryRequest
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 25;
-
     public ServiceRequestStatus? Status { get; set; }
     public Guid? StudentServiceId { get; set; }
     public Guid? StudentId { get; set; }
     public Guid? AssignedStaffId { get; set; }
     public DateTime? SubmittedFrom { get; set; }
     public DateTime? SubmittedTo { get; set; }
-    public string? Search { get; set; }
 
     /// <summary>One of: <c>"createdAt"</c>, <c>"submittedAt"</c>, <c>"status"</c>. Defaults to <c>"createdAt"</c>.</summary>
     public string? SortBy { get; set; }
 
     /// <summary>True for ascending. Default depends on the caller's filter: pending lists default to ascending (oldest first), every other list to descending.</summary>
     public bool? SortAscending { get; set; }
+
+    public StudentServiceRequestListQuery()
+    {
+        // Preserve resource-specific historical default (25 vs the global 20).
+        PageSize = 25;
+    }
 }
 
 public class PagedResponse<T>
