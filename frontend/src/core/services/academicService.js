@@ -59,3 +59,19 @@ export async function deleteSemester(id) {
   const { data } = await api.delete(`/semesters/${id}`);
   return data;
 }
+
+// ---------------------- Year Lifecycle ----------------------
+export async function closeAcademicYear(id) {
+  const { data } = await api.post(`/academic-years/${id}/close`);
+  return data;
+}
+
+export async function reopenAcademicYear(id) {
+  const { data } = await api.post(`/academic-years/${id}/reopen`);
+  return data;
+}
+
+export async function resolveCurrentAcademicYear(id) {
+  const { data } = await api.post("/academic-years/resolve", { id });
+  return data;
+}

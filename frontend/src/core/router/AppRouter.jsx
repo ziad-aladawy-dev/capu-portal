@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { buildProtectedRoutes } from "./routeRegistry";
@@ -8,7 +8,7 @@ const AdminLogin = lazy(() => import("../auth/pages/AdminLogin"));
 const StudentLogin = lazy(() => import("../auth/pages/StudentLogin"));
 
 function AppRouter() {
-  const protectedRoutes = buildProtectedRoutes();
+  const protectedRoutes = useMemo(() => buildProtectedRoutes(), []);
 
   return (
     <Suspense fallback={<div style={{

@@ -45,11 +45,8 @@ function PermissionProvider({ children }) {
   };
 
   const can = (resource, minLevel = 1) => {
-    // If no permissions loaded (empty array), grant access
-    // This handles scope resolution issues where super admin has role assignments
-    // but query filters don't match (e.g., Year="*" vs scope Year="Global")
     if (!permissions || permissions.length === 0) {
-      return true;
+      return false;
     }
     return hasRequiredLevel(getLevel(resource), minLevel);
   };
@@ -57,11 +54,6 @@ function PermissionProvider({ children }) {
   const value = {
     can,
     getLevel,
-    canView,
-    canInsert,
-    canEditClose,
-    canOpen,
-    canDelete,
     permissions: permissionMap,
   };
 

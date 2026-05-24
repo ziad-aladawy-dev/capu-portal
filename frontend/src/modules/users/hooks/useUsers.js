@@ -167,7 +167,7 @@ export const useUsers = ({ initialTab } = {}) => {
   }, []);
 
   // Export function
-  const exportToExcel = useCallback(async (format) => {
+  const exportToExcel = useCallback(async (format, selectedIds = null) => {
     const scopeNodeId = scopeNode?.id || null;
     const baseParams = {
       ScopeNodeId: scopeNodeId,
@@ -177,6 +177,9 @@ export const useUsers = ({ initialTab } = {}) => {
       IsActive: filters.isActive,
       PasswordExpired: filters.passwordExpired
     };
+    if (selectedIds && selectedIds.length > 0) {
+      baseParams.Ids = selectedIds.join(',');
+    }
     let blob;
     let fileName;
     try {
@@ -267,6 +270,39 @@ export const useUsers = ({ initialTab } = {}) => {
     return { success: true };
   }, []);
 
+  const bulkActivateUsers = useCallback(async (ids) => {
+    const userType = activeTab === 'students' ? 'Student' : 'Staff';
+    try {
+      const result = await userService.bulkActivateUsers(ids, userType);
+      await loadData();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, [activeTab, loadData]);
+
+  const bulkDeactivateUsers = useCallback(async (ids) => {
+    const userType = activeTab === 'students' ? 'Student' : 'Staff';
+    try {
+      const result = await userService.bulkDeactivateUsers(ids, userType);
+      await loadData();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, [activeTab, loadData]);
+
+  const bulkDeleteUsers = useCallback(async (ids) => {
+    const userType = activeTab === 'students' ? 'Student' : 'Staff';
+    try {
+      const result = await userService.bulkDeleteUsers(ids, userType);
+      await loadData();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }, [activeTab, loadData]);
+
   const getCurrentUsers = () => activeTab === 'students' ? students : staff;
 
   return {
@@ -295,6 +331,9 @@ export const useUsers = ({ initialTab } = {}) => {
     restoreUser,
     resetUserPassword,
     exportToExcel,
+    bulkActivateUsers,
+    bulkDeactivateUsers,
+    bulkDeleteUsers,
     reloadData: loadData
   };
 };

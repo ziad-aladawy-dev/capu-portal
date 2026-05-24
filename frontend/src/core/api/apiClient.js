@@ -48,6 +48,7 @@ const processQueue = (error, token = null) => {
 };
 
 apiClient.interceptors.request.use((config) => {
+  if (config.skipScope) return config;
   const token = apiClient.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -64,7 +65,10 @@ apiClient.interceptors.request.use((config) => {
     if (Object.keys(params).length > 0) {
       config.params = { ...config.params, ...params };
     }
-  } catch {}
+    return config;
+  } catch {
+    // localStorage items may be absent or invalid
+  }
   return config;
 });
 

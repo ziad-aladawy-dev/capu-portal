@@ -11,6 +11,7 @@ import * as staffService from "../../services/staffService";
 import * as studentService from "../../services/studentService";
 import * as structureService from "../../services/structureService";
 import * as permissionService from "../../services/permissionService";
+import { PAGE_TYPES, APPLICABLE_TO } from "../../manifests/manifestTypes";
 import "./secondarySidebar.css";
 
 const DIRECTORY_META = {
@@ -64,17 +65,35 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   const debounceRef = useRef(null);
   const [filterOptions, setFilterOptions] = useState({});
 
-  const dirType = config?.directoryType || "all";
-  const meta = DIRECTORY_META[dirType] || DIRECTORY_META.all;
+  const { currentPageType = PAGE_TYPES.MANAGEMENT, currentApplicableTo = APPLICABLE_TO.BOTH } = config || {};
+
+  const dirType = config?.directoryType || (
+    currentApplicableTo === APPLICABLE_TO.STAFF ? "staff"
+    : currentApplicableTo === APPLICABLE_TO.STUDENT ? "student"
+    : "all"
+  );
+
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  useEffect(() => {
+    if (isActive && selected?.type && dirType === "all") {
+      setTypeFilter(selected.type);
+    } else if (!isActive && dirType === "all") {
+      setTypeFilter("all");
+    }
+  }, [isActive, selected, dirType]);
+
+  const effectiveDirType = dirType === "all" && typeFilter !== "all" ? typeFilter : dirType;
+  const meta = DIRECTORY_META[effectiveDirType] || DIRECTORY_META.all;
   const configFilters = (config?.filters && config.filters.length > 0)
     ? config.filters
-    : (DIRECTORY_FILTERS[dirType] || []);
+    : (DIRECTORY_FILTERS[effectiveDirType] || []);
 
   useEffect(() => {
     const loadFilterOptions = async () => {
       const options = {};
       try {
-        if (dirType === "staff" || dirType === "all") {
+        if (effectiveDirType === "staff" || effectiveDirType === "all") {
           const roles = await permissionService.fetchAllRoles({ pageSize: 100 });
           options.roles = (roles?.items || []).map(r => ({ value: r.id, label: r.name }));
         }
@@ -87,7 +106,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       setFilterOptions(options);
     };
     loadFilterOptions();
-  }, [dirType]);
+  }, [effectiveDirType]);
 
   const buildSearchParams = useCallback((query, activeFilters) => {
     const params = {
@@ -126,7 +145,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     try {
       const searchParams = buildSearchParams(query, activeFilters);
       let allItems = [];
-      if (dirType === "staff" || dirType === "all") {
+      if (effectiveDirType === "staff" || effectiveDirType === "all") {
         const data = await staffService.searchStaff(searchParams);
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
@@ -138,7 +157,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
           }))];
         }
       }
-      if (dirType === "student" || dirType === "all") {
+      if (effectiveDirType === "student" || effectiveDirType === "all") {
         const data = await studentService.searchStudents(searchParams);
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
@@ -156,7 +175,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     } finally {
       setResultsLoading(false);
     }
-  }, [dirType, buildSearchParams]);
+  }, [effectiveDirType, buildSearchParams]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -175,7 +194,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
 
   const handleSelectEntity = useCallback((entity) => {
     select(entity);
-    navigate(`/admin/users/${entity.id}`);
+    navigate(entity.type === "staff" ? "/admin/staff" : "/admin/students");
   }, [select, navigate]);
 
   const resolveOptions = (filter) => {
@@ -223,7 +242,49 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
         </div>
       </div>
 
+      {/* Sticky pinned card — top of filters area */}
+      {isActive && (
+        <div className="sec-sticky-card">
+          <div className={`sec-sticky-card-avatar type-${selected.type}`}>
+            {selected.name?.charAt(0).toUpperCase()}
+          </div>
+          <div className="sec-sticky-card-info">
+            <strong>{selected.name}</strong>
+            <span>{selected.code}</span>
+          </div>
+          <span className={`sec-sticky-card-badge type-${selected.type}`}>
+            {selected.type === "staff" ? "Staff" : "Student"}
+          </span>
+          <button className="sec-sticky-card-clear" onClick={clear} title="Clear selection">
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
       <div className="sec-sidebar-filters">
+        {/* User-type filter for "both" pages */}
+        {dirType === "all" && (
+          <div className="sec-filter-section">
+            <div className="sec-filter-header">
+              <User size={11} />
+              <span>Show</span>
+            </div>
+            <select
+              className="sec-filter-select"
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setFilters({});
+                setSearchQuery("");
+              }}
+            >
+              <option value="all">All Users</option>
+              <option value="staff">Staff Only</option>
+              <option value="student">Students Only</option>
+            </select>
+          </div>
+        )}
+
         <div className="sec-search-box">
           <Search size={13} />
           <input
@@ -271,7 +332,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       <div className="sec-sidebar-results">
         <div className="sec-results-header">
           <span className="sec-results-count">
-            {resultsLoading ? "Searching..." : `${results.length} ${dirType === "staff" ? "staff" : dirType === "student" ? "students" : "users"}`}
+            {resultsLoading ? "Searching..." : `${results.length} ${effectiveDirType === "staff" ? "staff" : effectiveDirType === "student" ? "students" : "users"}`}
           </span>
         </div>
         <div className="sec-results-list">
@@ -300,18 +361,6 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
           ))}
         </div>
       </div>
-
-      {isActive && (
-        <div className="sec-sticky-bar">
-          <div className="sec-sticky-info">
-            <User size={12} />
-            <span>{selected?.name}</span>
-          </div>
-          <button className="sec-sticky-clear" onClick={clear}>
-            <X size={12} />
-          </button>
-        </div>
-      )}
     </aside>
   );
 }

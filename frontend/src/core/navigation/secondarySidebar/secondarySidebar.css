@@ -374,36 +374,70 @@
   background: linear-gradient(135deg, #5e1a3a, #912e6b);
 }
 
-/* ── Sticky Selection Bar ── */
+/* ── Sticky Selection Card (top) ── */
 
-.sec-sticky-bar {
-  height: 38px;
-  border-top: 1px solid rgba(201, 168, 76, 0.2);
-  background: rgba(201, 168, 76, 0.06);
+.sec-sticky-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 0 10px 8px;
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
-.sec-sticky-info {
+.sec-sticky-card-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: white;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   font-size: 10px;
-  color: #1a1f5e;
-  font-weight: 500;
-  min-width: 0;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.sec-sticky-info span {
+.sec-sticky-card-avatar.type-staff {
+  background: linear-gradient(135deg, #1a5e3a, #2e9170);
+}
+
+.sec-sticky-card-avatar.type-student {
+  background: linear-gradient(135deg, #5e1a3a, #912e6b);
+}
+
+.sec-sticky-card-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.sec-sticky-card-info strong {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #1a1f5e;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.sec-sticky-clear {
+.sec-sticky-card-info span {
+  display: block;
+  font-size: 8.5px;
+  color: rgba(26, 31, 94, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sec-sticky-card-badge {
+  display: none;
+}
+
+.sec-sticky-card-clear {
   border: none;
   background: rgba(26, 31, 94, 0.05);
   width: 22px;
@@ -418,7 +452,7 @@
   flex-shrink: 0;
 }
 
-.sec-sticky-clear:hover {
+.sec-sticky-card-clear:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
 }

@@ -1,19 +1,55 @@
-import React from 'react';
+import { useRef, useEffect } from 'react';
 import { Eye, Edit3 } from 'lucide-react';
 import '../styles/UserTable.css';
 
-const StaffTable = ({ 
-  staff, 
-  loading, 
-  error, 
-  pagination, 
+const StaffTable = ({
+  staff,
+  loading,
+  error,
+  pagination,
   onPageChange,
   onViewDetails,
-  onEdit
+  onEdit,
+  selectedIds,
+  onSelectionChange,
 }) => {
+  const selectAllRef = useRef(null);
+
+  const allVisible = staff.length > 0 && staff.every((s) => selectedIds.has(s.id));
+  const someVisible = staff.some((s) => selectedIds.has(s.id));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisible && !allVisible;
+    }
+  }, [allVisible, someVisible]);
+
   if (loading) return <div className="table-container loading-state">Loading staff...</div>;
   if (error) return <div className="table-container error-state">Error: {error}</div>;
   if (!staff || staff.length === 0) return <div className="table-container"><div className="empty-state">No staff found</div></div>;
+
+  const handleSelectAll = () => {
+    const allVisibleSelected = staff.every((s) => selectedIds.has(s.id));
+    if (allVisibleSelected) {
+      const newSet = new Set(selectedIds);
+      staff.forEach((s) => newSet.delete(s.id));
+      onSelectionChange(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      staff.forEach((s) => newSet.add(s.id));
+      onSelectionChange(newSet);
+    }
+  };
+
+  const handleRowSelect = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    onSelectionChange(newSet);
+  };
 
   const getPageNumbers = () => {
     const delta = 2;
@@ -43,6 +79,15 @@ const StaffTable = ({
       <table className="users-table">
         <thead>
           <tr>
+            <th className="bulk-check-cell">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                className="bulk-checkbox"
+                checked={allVisible && staff.length > 0}
+                onChange={handleSelectAll}
+              />
+            </th>
             <th>#</th>
             <th>Staff Code</th>
             <th>National ID</th>
@@ -55,7 +100,15 @@ const StaffTable = ({
         </thead>
         <tbody>
           {staff.map((member, idx) => (
-            <tr key={member.id}>
+            <tr key={member.id} className={selectedIds.has(member.id) ? 'selected-row' : ''}>
+              <td className="bulk-check-cell">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={selectedIds.has(member.id)}
+                  onChange={() => handleRowSelect(member.id)}
+                />
+              </td>
               <td>{((pagination.pageNumber - 1) * pagination.pageSize) + idx + 1}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.employeeCode}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.nationalId}</td>

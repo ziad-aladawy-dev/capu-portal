@@ -18,8 +18,10 @@ import {
   Calendar,
   User,
   CalendarRange,
+  CalendarCheck,
+  Clock,
 } from "lucide-react";
-import { getGroupedMenuItems } from "../manifests/manifestLoader";
+import { getGroupedMenuItems } from "../router/routeRegistry";
 
 const ICON_MAP = {
   LayoutDashboard,
@@ -41,6 +43,8 @@ const ICON_MAP = {
   Calendar,
   User,
   CalendarRange,
+  CalendarCheck,
+  Clock,
 };
 
 const CATEGORY_ICONS = {

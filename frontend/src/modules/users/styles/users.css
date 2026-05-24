@@ -572,6 +572,41 @@
   border: 1px solid #fecaca;
 }
 
+.import-progress {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.import-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.import-progress-fill {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, #c9a84c, #e0c06a);
+  border-radius: 999px;
+  animation: import-progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes import-progress-indeterminate {
+  0% { transform: translateX(-100%); width: 30%; }
+  50% { width: 60%; }
+  100% { transform: translateX(400%); width: 30%; }
+}
+
+.import-progress-text {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
 .import-template {
   padding: 12px;
   background: #f9fafb;
@@ -593,6 +628,10 @@
   font-size: 12px;
   color: #2563eb;
   text-decoration: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
 }
 
 .template-link:hover { text-decoration: underline; }

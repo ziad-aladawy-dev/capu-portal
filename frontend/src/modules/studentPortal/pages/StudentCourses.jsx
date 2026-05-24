@@ -70,6 +70,14 @@ function StudentCourses() {
   const completedCourses = courses.filter((c) => c.status === "Completed");
   const activeCourses = courses.filter((c) => c.status === "In Progress");
 
+  const GRADE_POINTS = {
+    "A": 4.0, "A-": 3.7,
+    "B+": 3.3, "B": 3.0, "B-": 2.7,
+    "C+": 2.3, "C": 2.0, "C-": 1.7,
+    "D+": 1.3, "D": 1.0,
+    "F": 0.0
+  };
+
   const getGradeColor = (grade) => {
     if (!grade) return "";
     const firstChar = grade.charAt(0);
@@ -79,6 +87,8 @@ function StudentCourses() {
     if (firstChar === "D") return "grade-d";
     return "grade-f";
   };
+
+  const gradeToPoint = (grade) => GRADE_POINTS[grade] ?? 0;
 
   return (
     <div className="student-courses-container">
@@ -184,7 +194,7 @@ function StudentCourses() {
             <div className="stat-value">
               {courses
                 .filter((c) => c.grade)
-                .reduce((sum, c) => sum + parseFloat(c.grade), 0)
+                .reduce((sum, c) => sum + gradeToPoint(c.grade), 0)
                 .toFixed(1)}
             </div>
             <div className="stat-label">Average Grade (Numeric)</div>

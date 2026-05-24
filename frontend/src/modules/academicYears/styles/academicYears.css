@@ -167,6 +167,219 @@
   border-color: #fecaca;
 }
 
+.btn-icon.set-current { color: #16a34a; }
+.btn-icon.set-current:hover {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: rgba(22,163,74,0.06);
+}
+
+.btn-icon.close { color: #f59e0b; }
+.btn-icon.close:hover {
+  color: #d97706;
+  border-color: #f59e0b;
+  background: rgba(245,158,11,0.06);
+}
+
+.btn-icon.reopen { color: #2563eb; }
+.btn-icon.reopen:hover {
+  color: #1d4ed8;
+  border-color: #2563eb;
+  background: rgba(37,99,235,0.06);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* View toggle */
+.ay-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ay-view-toggle {
+  display: flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ay-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.ay-toggle-btn:hover {
+  background: #f8f9fb;
+  color: #1a1f5e;
+}
+
+.ay-toggle-btn.active {
+  background: #1a1f5e;
+  color: #e0c06a;
+}
+
+/* Timeline view */
+.ay-timeline {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 28px 24px;
+  box-shadow: 0 4px 16px rgba(26,31,94,0.04);
+}
+
+.ay-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.ay-timeline-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1f5e;
+}
+
+.ay-timeline-count {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.ay-timeline-years {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ay-timeline-year {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #f0f1f8;
+  transition: 0.15s ease;
+  min-height: 56px;
+}
+
+.ay-timeline-year:hover {
+  border-color: #e5e7eb;
+  background: #fafbfc;
+}
+
+.ay-timeline-year.is-current {
+  background: #fffbeb;
+  border-color: rgba(201,168,76,0.3);
+}
+
+.ay-timeline-year-bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ay-timeline-year-label {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ay-timeline-year-label .year-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1f5e;
+}
+
+.ay-timeline-year-label .year-dates {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.ay-timeline-bar {
+  flex: 1;
+  height: 32px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  min-width: 100px;
+}
+
+.ay-timeline-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+  position: relative;
+}
+
+.ay-timeline-bar-fill.current {
+  background: linear-gradient(90deg, #c9a84c, #e0c06a);
+}
+
+.ay-timeline-bar-fill.closed {
+  background: linear-gradient(90deg, #d1d5db, #e5e7eb);
+}
+
+.ay-timeline-bar-fill .bar-label {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.ay-timeline-bar-fill.closed .bar-label {
+  color: #6b7280;
+  text-shadow: none;
+}
+
+.ay-timeline-year-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ay-timeline-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: 0.15s ease;
+  color: #6b7280;
+}
+
+.ay-timeline-action-btn:hover { border-color: #1a1f5e; color: #1a1f5e; background: #f8f9fb; }
+.ay-timeline-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ay-timeline-action-btn.set-current:hover { border-color: #16a34a; color: #16a34a; }
+.ay-timeline-action-btn.close:hover { border-color: #f59e0b; color: #d97706; }
+.ay-timeline-action-btn.reopen:hover { border-color: #2563eb; color: #1d4ed8; }
+.ay-timeline-action-btn.delete:hover { border-color: #dc2626; color: #dc2626; }
+
 /* Alert */
 .alert {
   padding: 12px 16px;

@@ -6,6 +6,7 @@ import {
 import * as permissionService from "../../../core/services/permissionService";
 import * as staffService from "../../../core/services/staffService";
 import * as studentService from "../../../core/services/studentService";
+import { useUserScope } from "../../../core/hooks/useUserScope";
 import "../styles/permissions.css";
 
 const ACTION_LEVELS = [
@@ -23,6 +24,7 @@ const OVERRIDE_TYPES = [
 ];
 
 function PermissionsPage() {
+  const { scopedUser, isScoped, scopeToUser, clearScope } = useUserScope();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -87,7 +89,23 @@ function PermissionsPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (isScoped && scopedUser && scopedUser.id !== selectedUser?.id) {
+      setSelectedUser(scopedUser);
+      loadAssignment(scopedUser.id);
+    }
+  }, [scopedUser?.id, isScoped, selectedUser?.id, loadAssignment]);
+
+  useEffect(() => {
+    if (!isScoped && selectedUser) {
+      setSelectedUser(null);
+      setAssignedRoleIds([]);
+      setOverrides([]);
+    }
+  }, [isScoped]);
+
   const handleSelectUser = (user) => {
+    scopeToUser(user);
     setSelectedUser(user);
     setSearchQuery("");
     setSearchResults([]);

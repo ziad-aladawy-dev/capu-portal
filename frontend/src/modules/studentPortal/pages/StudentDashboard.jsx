@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Plus, BarChart3, BookOpen, Calendar, FileText, AlertCircle } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
 import * as studentService from "../../../core/services/studentService";
@@ -6,7 +7,6 @@ import "../styles/studentDashboard.css";
 
 function StudentDashboard() {
   const { user } = useAuth();
-  const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,8 +14,7 @@ function StudentDashboard() {
     const fetchStudentData = async () => {
       try {
         if (user?.id) {
-          const data = await studentService.fetchStudentById(user.id);
-          setStudentData(data);
+          await studentService.fetchStudentById(user.id);
         }
       } catch (err) {
         setError(err.message || "Failed to load student data");
@@ -106,34 +105,34 @@ function StudentDashboard() {
           <div className="sd-section">
             <h2>Quick Actions</h2>
             <div className="sd-actions-grid">
-              <a href="/student/courses" className="action-card">
+              <Link to="/student/courses" className="action-card">
                 <BookOpen size={20} />
                 <div>
                   <h3>My Courses</h3>
                   <p>View enrolled courses</p>
                 </div>
-              </a>
-              <a href="/student/courses/register" className="action-card">
+              </Link>
+              <Link to="/student/courses/register" className="action-card">
                 <Plus size={20} />
                 <div>
                   <h3>Register Courses</h3>
                   <p>Add new courses</p>
                 </div>
-              </a>
-              <a href="/student/grades" className="action-card">
+              </Link>
+              <Link to="/student/grades" className="action-card">
                 <BarChart3 size={20} />
                 <div>
                   <h3>View Grades</h3>
                   <p>Check your performance</p>
                 </div>
-              </a>
-              <a href="/student/schedule" className="action-card">
+              </Link>
+              <Link to="/student/schedule" className="action-card">
                 <Calendar size={20} />
                 <div>
                   <h3>My Schedule</h3>
                   <p>Class timetable</p>
                 </div>
-              </a>
+              </Link>
             </div>
           </div>
 

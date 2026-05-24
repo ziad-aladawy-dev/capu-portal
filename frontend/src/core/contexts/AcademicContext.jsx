@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import * as academicService from "../services/academicService";
 
 const AcademicContext = createContext();
@@ -12,6 +12,8 @@ export const AcademicProvider = ({ children }) => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [loading, setLoading] = useState(true);
+  const savedYearRef = useRef(null);
+  const savedSemRef = useRef(null);
 
   const saveYear = useCallback((year) => {
     if (year?.id) {
@@ -38,13 +40,12 @@ export const AcademicProvider = ({ children }) => {
       if (savedYear) {
         const parsed = JSON.parse(savedYear);
         if (parsed?.id) parsed._saved = true;
-        // Stash on window so the fetch handler can read it
-        window.__savedYear = parsed?.id ? parsed : null;
+        savedYearRef.current = parsed?.id ? parsed : null;
       }
       if (savedSem) {
         const parsed = JSON.parse(savedSem);
         if (parsed?.id) parsed._saved = true;
-        window.__savedSem = parsed?.id ? parsed : null;
+        savedSemRef.current = parsed?.id ? parsed : null;
       }
     } catch {}
   }, []);
@@ -64,7 +65,7 @@ export const AcademicProvider = ({ children }) => {
         const list = Array.isArray(years) ? years : [];
         setAcademicYears(list);
         // Prefer saved year, fall back to current or first
-        const saved = window.__savedYear;
+        const saved = savedYearRef.current;
         const match = saved
           ? list.find((y) => y.id === saved.id)
           : null;
@@ -73,7 +74,7 @@ export const AcademicProvider = ({ children }) => {
           setSelectedYear(current);
           saveYear(current);
         }
-        window.__savedYear = null;
+        savedYearRef.current = null;
       })
       .catch(() => {
         if (!cancelled) setAcademicYears([]);
@@ -99,14 +100,14 @@ export const AcademicProvider = ({ children }) => {
         const list = Array.isArray(sems) ? sems : [];
         setSemesters(list);
         // Prefer saved semester, fall back to current or first
-        const saved = window.__savedSem;
+        const saved = savedSemRef.current;
         const match = saved
           ? list.find((s) => s.id === saved.id)
           : null;
         const current = match || list.find((s) => s.isCurrent) || list[0] || null;
         setSelectedSemester(current);
         saveSemester(current);
-        window.__savedSem = null;
+        savedSemRef.current = null;
       })
       .catch(() => {
         if (!cancelled) {

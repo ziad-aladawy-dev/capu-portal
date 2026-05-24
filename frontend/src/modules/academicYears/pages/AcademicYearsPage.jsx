@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Edit2, Trash2, X, AlertTriangle, RefreshCw, Calendar, Clock } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertTriangle, Calendar, Clock, CheckCircle, Lock, Unlock, BarChart3, Table2 } from "lucide-react";
 import * as academicService from "../../../core/services/academicService";
 import AcademicYearForm from "../components/AcademicYearForm";
 import SemesterManager from "../components/SemesterManager";
+import AcademicTimeline from "../components/AcademicTimeline";
 import "../styles/academicYears.css";
 
 const PAGE_SIZE = 10;
@@ -25,6 +26,8 @@ function AcademicYearsPage() {
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [showSemesterManager, setShowSemesterManager] = useState(false);
+  const [viewMode, setViewMode] = useState("table");
+  const [lifecycleLoading, setLifecycleLoading] = useState(null);
 
   const fetchAcademicYears = useCallback(async (p = 1) => {
     setLoading(true);
@@ -141,6 +144,42 @@ function AcademicYearsPage() {
     }
   };
 
+  const handleSetCurrent = async (year) => {
+    setLifecycleLoading(year.id);
+    try {
+      await academicService.resolveCurrentAcademicYear(year.id);
+      await fetchAcademicYears(page);
+    } catch (err) {
+      setError(err.message || "Failed to set current academic year");
+    } finally {
+      setLifecycleLoading(null);
+    }
+  };
+
+  const handleCloseYear = async (year) => {
+    setLifecycleLoading(year.id);
+    try {
+      await academicService.closeAcademicYear(year.id);
+      await fetchAcademicYears(page);
+    } catch (err) {
+      setError(err.message || "Failed to close academic year");
+    } finally {
+      setLifecycleLoading(null);
+    }
+  };
+
+  const handleReopenYear = async (year) => {
+    setLifecycleLoading(year.id);
+    try {
+      await academicService.reopenAcademicYear(year.id);
+      await fetchAcademicYears(page);
+    } catch (err) {
+      setError(err.message || "Failed to reopen academic year");
+    } finally {
+      setLifecycleLoading(null);
+    }
+  };
+
   const openSemesterManager = (year) => {
     setSelectedYear(year);
     setShowSemesterManager(true);
@@ -166,9 +205,27 @@ function AcademicYearsPage() {
           <h1>Academic Years Management</h1>
           <p>Manage academic years and semesters for the institution</p>
         </div>
-        <button className="btn-create" onClick={openCreate}>
-          <Plus size={18} /> New Academic Year
-        </button>
+        <div className="ay-header-actions">
+          <div className="ay-view-toggle">
+            <button
+              className={`ay-toggle-btn ${viewMode === "table" ? "active" : ""}`}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <Table2 size={16} />
+            </button>
+            <button
+              className={`ay-toggle-btn ${viewMode === "timeline" ? "active" : ""}`}
+              onClick={() => setViewMode("timeline")}
+              title="Timeline View"
+            >
+              <BarChart3 size={16} />
+            </button>
+          </div>
+          <button className="btn-create" onClick={openCreate}>
+            <Plus size={18} /> New Academic Year
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -192,6 +249,16 @@ function AcademicYearsPage() {
             Create Academic Year
           </button>
         </div>
+      ) : viewMode === "timeline" ? (
+        <AcademicTimeline
+          years={academicYears}
+          onSetCurrent={handleSetCurrent}
+          onCloseYear={handleCloseYear}
+          onReopenYear={handleReopenYear}
+          onDeleteYear={openDelete}
+          onManageSemesters={openSemesterManager}
+          lifecycleLoading={lifecycleLoading}
+        />
       ) : (
         <>
           <div className="ay-table-wrapper">
@@ -213,8 +280,8 @@ function AcademicYearsPage() {
                       <span className="year-name">{year.name}</span>
                       {year.isCurrent && <span className="badge current">Current</span>}
                     </td>
-                    <td>{new Date(year.startDate).toLocaleDateString()}</td>
-                    <td>{new Date(year.endDate).toLocaleDateString()}</td>
+                    <td>{year.startDate ? new Date(year.startDate).toLocaleDateString() : "—"}</td>
+                    <td>{year.endDate ? new Date(year.endDate).toLocaleDateString() : "—"}</td>
                     <td>
                       <span className={`status-badge ${year.isCurrent ? "active" : "inactive"}`}>
                         {year.isCurrent ? "Active" : "Inactive"}
@@ -230,6 +297,16 @@ function AcademicYearsPage() {
                       </button>
                     </td>
                     <td className="actions-cell">
+                      {!year.isCurrent && (
+                        <button
+                          className="btn-icon set-current"
+                          onClick={() => handleSetCurrent(year)}
+                          disabled={lifecycleLoading === year.id}
+                          title="Set as Current Year"
+                        >
+                          <CheckCircle size={16} />
+                        </button>
+                      )}
                       <button
                         className="btn-icon edit"
                         onClick={() => openEdit(year)}
@@ -237,6 +314,25 @@ function AcademicYearsPage() {
                       >
                         <Edit2 size={16} />
                       </button>
+                      {year.isCurrent ? (
+                        <button
+                          className="btn-icon close"
+                          onClick={() => handleCloseYear(year)}
+                          disabled={lifecycleLoading === year.id}
+                          title="Close Year"
+                        >
+                          <Lock size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-icon reopen"
+                          onClick={() => handleReopenYear(year)}
+                          disabled={lifecycleLoading === year.id}
+                          title="Reopen Year"
+                        >
+                          <Unlock size={16} />
+                        </button>
+                      )}
                       <button
                         className="btn-icon delete"
                         onClick={() => openDelete(year)}

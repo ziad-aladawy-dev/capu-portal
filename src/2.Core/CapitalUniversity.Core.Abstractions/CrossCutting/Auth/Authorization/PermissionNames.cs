@@ -134,4 +134,20 @@ public static class PermissionNames
         public const string Open      = "student-information.profile-records.Open";
         public const string Delete    = "student-information.profile-records.Delete";
     }
+
+    /// <summary>
+    /// Course offering lifecycle (schedule sections per term + structure node).
+    /// Module = <c>course-offerings</c>, Resource = <c>course-offerings</c>.
+    /// Bound by <see cref="CourseOfferingsController"/>; declared by
+    /// <c>CourseOfferingPermissionManifest</c>.
+    /// </summary>
+    public static class CourseOfferings
+    {
+        public const string View      = "course-offerings.course-offerings.View";
+        public const string Insert    = "course-offerings.course-offerings.Insert";
+        public const string EditClose = "course-offerings.course-offerings.EditClose";
+        public const string Open      = "course-offerings.course-offerings.Open";
+        public const string Delete    = "course-offerings.course-offerings.Delete";
+    }
+
 }

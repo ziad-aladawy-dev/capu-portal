@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import * as invoiceService from "../../../core/services/invoiceService";
 import * as studentService from "../../../core/services/studentService";
+import { useUserScope } from "../../../core/hooks/useUserScope";
 import "../styles/invoices.css";
 
 const EMPTY_INVOICE = {
@@ -16,6 +17,7 @@ const EMPTY_INVOICE = {
 
 function InvoicesPage() {
   const navigate = useNavigate();
+  const { scopedUser, isScoped, scopeToUser, clearScope } = useUserScope();
 
   const [studentQuery, setStudentQuery] = useState("");
   const [studentResults, setStudentResults] = useState([]);
@@ -82,13 +84,30 @@ function InvoicesPage() {
     return invoices.filter((inv) => String(inv.status) === statusFilter);
   }, [invoices, statusFilter]);
 
+  useEffect(() => {
+    if (isScoped && scopedUser?.type === "student" && scopedUser.id !== selectedStudent?.id) {
+      setSelectedStudent({ id: scopedUser.id, name: scopedUser.name, code: scopedUser.studentCode });
+      setStudentQuery("");
+      setStudentResults([]);
+    }
+  }, [scopedUser?.id, isScoped, selectedStudent?.id]);
+
+  useEffect(() => {
+    if (!isScoped && selectedStudent) {
+      setSelectedStudent(null);
+      setInvoices([]);
+    }
+  }, [isScoped]);
+
   const handleSelectStudent = (s) => {
+    scopeToUser({ id: s.id, name: s.name, code: s.studentCode, type: "student" });
     setSelectedStudent({ id: s.id, name: s.name, code: s.studentCode });
     setStudentQuery("");
     setStudentResults([]);
   };
 
   const handleClearStudent = () => {
+    clearScope();
     setSelectedStudent(null);
     setInvoices([]);
   };

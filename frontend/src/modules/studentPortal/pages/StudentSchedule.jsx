@@ -124,7 +124,7 @@ function StudentSchedule() {
 
           <div className="calendar-grid">
             {calendarDays.map((day, i) => (
-              <div key={i} className={`calendar-day ${day === null ? "empty" : day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear() ? "today" : ""} ${day !== null && SCHEDULE_DATA.some(() => true) ? "has-events" : ""}`}>
+              <div key={i} className={`calendar-day ${day === null ? "empty" : day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear() ? "today" : ""}`}>
                 {day !== null && <span className="day-number">{day}</span>}
               </div>
             ))}

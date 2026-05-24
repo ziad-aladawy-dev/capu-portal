@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, CheckCircle, XCircle, Trash2, Download } from "lucide-react";
 import FacultyPageHeader from "../components/FacultyPageHeader";
 import { useUsers } from "../hooks/useUsers";
 import StudentTable from "../components/StudentTable";
@@ -43,9 +43,13 @@ const UserManagement = ({ initialTab, hideTabs }) => {
     restoreUser,
     resetUserPassword,
     exportToExcel,
+    bulkActivateUsers,
+    bulkDeactivateUsers,
+    bulkDeleteUsers,
   } = useUsers({ initialTab });
 
   const [pageSize, setLocalPageSize] = useState(pagination.pageSize);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const handlePageSizeChange = (e) => {
     const size = parseInt(e.target.value);
@@ -78,6 +82,49 @@ const UserManagement = ({ initialTab, hideTabs }) => {
       addToast(`Error: ${result.error}`, "error");
     }
   };
+
+  const handleSelectionChange = useCallback((newSet) => {
+    setSelectedIds(newSet);
+  }, []);
+
+  const handleBulkAction = useCallback(async (action) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    let result;
+    switch (action) {
+      case "activate":
+        result = await bulkActivateUsers(ids);
+        break;
+      case "deactivate":
+        result = await bulkDeactivateUsers(ids);
+        break;
+      case "delete":
+        if (!window.confirm(`Are you sure you want to delete ${ids.length} user(s)? This action cannot be undone.`)) return;
+        result = await bulkDeleteUsers(ids);
+        break;
+      default:
+        return;
+    }
+    if (result?.success) {
+      addToast(`${ids.length} user(s) processed successfully (${result.succeeded || ids.length} succeeded)`, "success");
+      setSelectedIds(new Set());
+    } else {
+      addToast(`Bulk operation failed: ${result?.error || "Unknown error"}`, "error");
+    }
+  }, [selectedIds, bulkActivateUsers, bulkDeactivateUsers, bulkDeleteUsers, addToast]);
+
+  const handleExportSelected = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const result = await exportToExcel('excel', ids);
+    if (result?.success) {
+      addToast(`Exported ${ids.length} user(s) successfully`, "success");
+      setSelectedIds(new Set());
+    } else {
+      addToast(`Export failed: ${result?.error || "Unknown error"}`, "error");
+    }
+  }, [selectedIds, exportToExcel, addToast]);
 
   const handleViewDetails = (id) => navigate(`/admin/users/${id}`);
   const handleEdit = (id) => {
@@ -145,6 +192,8 @@ const UserManagement = ({ initialTab, hideTabs }) => {
             onPageChange={changePage}
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
           />
         ) : (
           <StaffTable
@@ -155,6 +204,8 @@ const UserManagement = ({ initialTab, hideTabs }) => {
             onPageChange={changePage}
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
+            selectedIds={selectedIds}
+            onSelectionChange={handleSelectionChange}
           />
         )}
       </div>
@@ -173,6 +224,26 @@ const UserManagement = ({ initialTab, hideTabs }) => {
           Showing {firstItem} - {lastItem} of {pagination.totalCount} results
         </div>
       </div>
+      {selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <span className="bulk-action-count">{selectedIds.size} selected</span>
+          <div className="bulk-action-buttons">
+            <button className="bulk-action-btn activate" onClick={() => handleBulkAction("activate")}>
+              <CheckCircle size={14} /> Activate
+            </button>
+            <button className="bulk-action-btn deactivate" onClick={() => handleBulkAction("deactivate")}>
+              <XCircle size={14} /> Deactivate
+            </button>
+            <button className="bulk-action-btn export" onClick={handleExportSelected}>
+              <Download size={14} /> Export
+            </button>
+            <button className="bulk-action-btn delete" onClick={() => handleBulkAction("delete")}>
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
+        </div>
+      )}
+
       {showImportModal && (
         <BulkImportModal
           userType={activeTab}

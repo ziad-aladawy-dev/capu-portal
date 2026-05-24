@@ -1,9 +1,0 @@
-{
-  "id": "landing",
-  "name": "Landing Page",
-  "version": "1.0.0",
-  "coreVersionRequired": "1.0.0",
-  "routes": [],
-  "menuItems": [],
-  "permissions": {}
-}

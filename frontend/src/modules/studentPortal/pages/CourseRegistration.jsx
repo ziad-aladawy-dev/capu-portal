@@ -24,7 +24,6 @@ function CourseRegistration() {
   const [facultyFilter, setFacultyFilter] = useState("all");
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [success, setSuccess] = useState(null);
-  const [pendingRegistration, setPendingRegistration] = useState([]);
 
   const filteredCourses = AVAILABLE_COURSES.filter((c) => {
     const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,7 +43,6 @@ function CourseRegistration() {
   };
 
   const handleRegister = () => {
-    setPendingRegistration(selectedCourses);
     setSuccess("Registration submitted successfully! Your courses are pending approval.");
     setSelectedCourses([]);
     setTimeout(() => setSuccess(null), 5000);

@@ -4,8 +4,8 @@ import { Search, Filter, X } from "lucide-react";
 const UserFilters = ({ 
   filters, 
   roles, 
-  faculties, 
-  departments, 
+  faculties,
+  programs,
   levels,
   activeTab,
   onFilterChange, 
@@ -144,7 +144,7 @@ const UserFilters = ({
                   <label>Program</label>
                   <select name="programId" value={localFilters.programId} onChange={handleChange} disabled={!localFilters.facultyId}>
                     <option value="">All Programs</option>
-                    {departments.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="users-filter-field">

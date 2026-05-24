@@ -193,6 +193,29 @@ const userService = {
     ];
   },
 
+  // ---------------------- Bulk Actions ----------------------
+  bulkActivateUsers: async (ids, userType) => {
+    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
+    const results = await Promise.allSettled(
+      ids.map((id) => apiClient.patch(`${base}/${id}/toggle-status`))
+    );
+    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
+  },
+  bulkDeactivateUsers: async (ids, userType) => {
+    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
+    const results = await Promise.allSettled(
+      ids.map((id) => apiClient.patch(`${base}/${id}/toggle-status`))
+    );
+    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
+  },
+  bulkDeleteUsers: async (ids, userType) => {
+    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
+    const results = await Promise.allSettled(
+      ids.map((id) => apiClient.delete(`${base}/${id}`))
+    );
+    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
+  },
+
   // ---------------------- Helpers (for UI) ----------------------
   checkEmailUnique: async (email, userType) => {
     // Not implemented in backend; return true for now

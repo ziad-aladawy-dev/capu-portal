@@ -1,19 +1,55 @@
-import React from 'react';
+import { useRef, useEffect } from 'react';
 import { Eye, Edit3 } from 'lucide-react';
 import '../styles/UserTable.css';
 
-const StudentTable = ({ 
-  students, 
-  loading, 
-  error, 
-  pagination, 
+const StudentTable = ({
+  students,
+  loading,
+  error,
+  pagination,
   onPageChange,
   onViewDetails,
-  onEdit
+  onEdit,
+  selectedIds,
+  onSelectionChange,
 }) => {
+  const selectAllRef = useRef(null);
+
+  const allVisible = students.length > 0 && students.every((s) => selectedIds.has(s.id));
+  const someVisible = students.some((s) => selectedIds.has(s.id));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisible && !allVisible;
+    }
+  }, [allVisible, someVisible]);
+
   if (loading) return <div className="table-container loading-state">Loading students...</div>;
   if (error) return <div className="table-container error-state">Error: {error}</div>;
   if (!students || students.length === 0) return <div className="table-container"><div className="empty-state">No students found</div></div>;
+
+  const handleSelectAll = () => {
+    const allVisibleSelected = students.every((s) => selectedIds.has(s.id));
+    if (allVisibleSelected) {
+      const newSet = new Set(selectedIds);
+      students.forEach((s) => newSet.delete(s.id));
+      onSelectionChange(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      students.forEach((s) => newSet.add(s.id));
+      onSelectionChange(newSet);
+    }
+  };
+
+  const handleRowSelect = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    onSelectionChange(newSet);
+  };
 
   const getPageNumbers = () => {
     const delta = 2;
@@ -43,6 +79,15 @@ const StudentTable = ({
       <table className="users-table">
         <thead>
           <tr>
+            <th className="bulk-check-cell">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                className="bulk-checkbox"
+                checked={allVisible && students.length > 0}
+                onChange={handleSelectAll}
+              />
+            </th>
             <th>#</th>
             <th>Student Code</th>
             <th>National ID</th>
@@ -55,7 +100,15 @@ const StudentTable = ({
         </thead>
         <tbody>
           {students.map((student, idx) => (
-            <tr key={student.id}>
+            <tr key={student.id} className={selectedIds.has(student.id) ? 'selected-row' : ''}>
+              <td className="bulk-check-cell">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={selectedIds.has(student.id)}
+                  onChange={() => handleRowSelect(student.id)}
+                />
+              </td>
               <td>{((pagination.pageNumber - 1) * pagination.pageSize) + idx + 1}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{student.studentCode}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{student.nationalId}</td>

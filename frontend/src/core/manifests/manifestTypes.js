@@ -15,3 +15,14 @@ export const ACTION_LEVEL_LABELS = {
   [ACTION_LEVELS.OPEN]: "Open",
   [ACTION_LEVELS.DELETE]: "Delete",
 };
+
+export const PAGE_TYPES = {
+  ENTITY: "entity",
+  MANAGEMENT: "management",
+};
+
+export const APPLICABLE_TO = {
+  BOTH: "both",
+  STUDENT: "student",
+  STAFF: "staff",
+};

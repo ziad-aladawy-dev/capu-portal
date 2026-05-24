@@ -1,4 +1,21 @@
+import { useEffect } from "react";
+
 function Skeleton({ width = "100%", height = 16, borderRadius = 6, style = {} }) {
+  useEffect(() => {
+    const styleId = "skeleton-keyframes";
+    if (typeof document !== "undefined" && !document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        @keyframes skeletonPulse {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   return (
     <div
       style={{
@@ -76,20 +93,6 @@ export function SkeletonStats({ count = 4 }) {
   );
 }
 
-// Inject keyframes once
-if (typeof document !== "undefined") {
-  const styleId = "skeleton-keyframes";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.textContent = `
-      @keyframes skeletonPulse {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
+
 
 export default Skeleton;

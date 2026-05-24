@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Upload, FileText, X, AlertCircle, CheckCircle, Download, Loader } from "lucide-react";
 import userService from "../services/userService";
 import { useDomain } from "../../../core/contexts/DomainContext";
@@ -55,6 +55,31 @@ function BulkImportModal({ userType = "students", onClose, onSuccess }) {
     }
     return importFormat === "csv" ? userService.importStaffCsv : userService.importStaffExcel;
   };
+
+  const generateTemplate = useCallback(() => {
+    const studentHeaders = [
+      "StudentCode", "FirstName", "LastName", "Email", "NationalId",
+      "PhoneNumber", "DateOfBirth", "Gender", "FacultyName", "DepartmentName",
+      "ProgramName", "LevelName", "EnrollmentDate"
+    ];
+    const staffHeaders = [
+      "EmployeeCode", "FirstName", "LastName", "Email", "NationalId",
+      "PhoneNumber", "DateOfBirth", "Gender", "Role", "JobTitle",
+      "FacultyName", "DepartmentName", "HireDate"
+    ];
+    const headers = userType === "students" ? studentHeaders : staffHeaders;
+    const bom = "\uFEFF";
+    const csvContent = bom + headers.join(",") + "\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${userType}_import_template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }, [userType]);
 
   const handleImport = async () => {
     if (!file) return;
@@ -171,6 +196,15 @@ function BulkImportModal({ userType = "students", onClose, onSuccess }) {
                 )}
               </div>
 
+              {importing && (
+                <div className="import-progress">
+                  <div className="import-progress-bar">
+                    <div className="import-progress-fill" />
+                  </div>
+                  <span className="import-progress-text">Processing file...</span>
+                </div>
+              )}
+
               {error && (
                 <div className="alert alert-error">
                   <AlertCircle size={16} />
@@ -180,10 +214,10 @@ function BulkImportModal({ userType = "students", onClose, onSuccess }) {
 
               <div className="import-template">
                 <h4>Need a template?</h4>
-                <a href="#" className="template-link">
+                <button className="template-link" onClick={generateTemplate}>
                   <Download size={14} />
                   Download import template for {userType === "students" ? "students" : "staff"}
-                </a>
+                </button>
               </div>
             </>
           )}

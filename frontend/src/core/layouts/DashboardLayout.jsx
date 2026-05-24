@@ -4,7 +4,10 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../navigation/navbar/Navbar";
 import Sidebar from "../navigation/sidebar/Sidebar";
 import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
+import UserScopeBanner from "../components/UserScopeBanner";
 import { useAuth } from "../auth/useAuth";
+import { getCurrentRouteInfo } from "../router/routeRegistry";
+import { PAGE_TYPES, APPLICABLE_TO } from "../manifests/manifestTypes";
 
 const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH = 230;
@@ -18,6 +21,10 @@ function DashboardLayout() {
   const [secondaryOpen, setSecondaryOpen] = useState(false);
 
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+
+  const routeInfo = getCurrentRouteInfo(location.pathname);
+  const currentPageType = routeInfo?.pageType || PAGE_TYPES.MANAGEMENT;
+  const currentApplicableTo = routeInfo?.applicableTo || APPLICABLE_TO.BOTH;
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -81,10 +88,11 @@ function DashboardLayout() {
       {secondaryOpen && (
         <SecondarySidebar
           config={{
-            directoryType: location.pathname.startsWith("/admin/students") ? "student"
-              : location.pathname.startsWith("/admin/staff") ? "staff"
-              : location.pathname.startsWith("/admin/users") ? "all"
+            directoryType: currentApplicableTo === APPLICABLE_TO.STAFF ? "staff"
+              : currentApplicableTo === APPLICABLE_TO.STUDENT ? "student"
               : "all",
+            currentPageType,
+            currentApplicableTo,
           }}
           sidebarOpen={sidebarOpen}
           sidebarWidth={SIDEBAR_WIDTH}
@@ -105,6 +113,7 @@ function DashboardLayout() {
         />
 
         <main className="dashboard-page-content">
+          {currentPageType === PAGE_TYPES.MANAGEMENT && <UserScopeBanner />}
           <Outlet />
         </main>
       </div>

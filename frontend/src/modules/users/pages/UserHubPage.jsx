@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, User, Edit3, Key, Trash2, XCircle, CheckCircle, BookOpen, Shield, Receipt, GraduationCap, Info,
+  Edit3, Key, Trash2, XCircle, CheckCircle, BookOpen, Shield, Receipt, GraduationCap, Info,
 } from "lucide-react";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";

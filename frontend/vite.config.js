@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import babel from '@rolldown/plugin-babel'
+import react from '@vitejs/plugin-react'
 import federation from '@originjs/vite-plugin-federation'
 
 export default defineConfig({
   plugins: [
     react(),
-    babel({ presets: [reactCompilerPreset()] }),
     federation({
       name: 'shell',
       filename: 'remoteEntry.js',
