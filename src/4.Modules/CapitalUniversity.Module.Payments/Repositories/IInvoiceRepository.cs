@@ -1,5 +1,7 @@
 
 
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Modules.Payments.Domain;
 
 namespace CapitalUniversity.Modules.Payments.Repositories;
@@ -12,8 +14,17 @@ public interface IInvoiceRepository
     Task AddAsync(Invoice invoice, CancellationToken cancellationToken = default);
     void Update(Invoice invoice);
 
+    /// <summary>
+    /// Composable search — every non-null filter ANDs into the SQL WHERE.
+    /// Single round-trip; the slim summary projection drops <c>Items</c>.
+    /// </summary>
+    Task<PagedResult<Invoice>> SearchAsync(InvoiceSearchQuery query, CancellationToken cancellationToken = default);
+
     Task<PaymentTransaction?> GetTransactionByKeyAsync(Guid invoiceId, string idempotencyKey, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PaymentTransaction>> GetTransactionsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+
+    /// <summary>Paged transactions search across invoices. Single SQL query.</summary>
+    Task<PagedResult<PaymentTransaction>> SearchTransactionsAsync(PaymentTransactionSearchQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Persists the tracked changes, special-casing a unique-index violation on
@@ -24,4 +35,13 @@ public interface IInvoiceRepository
     Task<(PaymentTransaction Saved, bool WasReplay)> SaveTransactionWithIdempotencyAsync(
         PaymentTransaction newTransaction,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// H8 — drop every tracked entity on the underlying DbContext. Called by
+    /// <c>PaymentVerificationService.RecordAsync</c> between
+    /// <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/>
+    /// retries so the next attempt sees a fresh load with the current RowVersion
+    /// instead of identity-resolving back to the stale tracked invoice.
+    /// </summary>
+    void ResetChangeTracker();
 }

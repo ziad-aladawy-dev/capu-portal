@@ -13,10 +13,12 @@ namespace CapitalUniversity.Core.Infrastructure.Services.Outbox;
 public class OutboxPoisonQueue : IOutboxPoisonQueue
 {
     private readonly CoreDbContext _dbContext;
+    private readonly IEnumerable<IOutboxMessageHandler> _handlers;
 
-    public OutboxPoisonQueue(CoreDbContext dbContext)
+    public OutboxPoisonQueue(CoreDbContext dbContext, IEnumerable<IOutboxMessageHandler> handlers)
     {
         _dbContext = dbContext;
+        _handlers = handlers;
     }
 
     public async Task<IReadOnlyList<PoisonedOutboxEntry>> GetPoisonedAsync(int limit = 100, CancellationToken cancellationToken = default)
@@ -49,6 +51,16 @@ public class OutboxPoisonQueue : IOutboxPoisonQueue
             .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
         if (row is null || row.ProcessedAt is not null) return false;
+
+        // M11 — refuse to requeue messages whose handler has been removed from
+        // DI since the row was first written. Without this guard, the row goes
+        // straight back into the "no handler registered" failure path on the
+        // next dispatcher tick and ends up re-poisoned in a loop, masking the
+        // real issue (handler renamed / module unregistered). The operator
+        // sees false and gets the row id in the audit trail; they can decide
+        // whether to drop the row or restore the missing handler.
+        var hasHandler = _handlers.Any(h => string.Equals(h.MessageType, row.MessageType, StringComparison.Ordinal));
+        if (!hasHandler) return false;
 
         row.AttemptCount = 0;
         row.IsPoisoned = false;

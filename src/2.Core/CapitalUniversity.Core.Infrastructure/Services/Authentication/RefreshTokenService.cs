@@ -130,13 +130,16 @@ public class RefreshTokenService : IRefreshTokenService
     {
         // Walk forward through ReplacedByTokenHash links revoking anything still active.
         // Loops should be impossible (each link points to a freshly issued token), but
-        // cap depth to be safe against malformed data.
+        // cap depth to be safe against malformed data. L11 — depth is now
+        // RefreshTokenSettings.ChainRevokeDepth (default 64), so an operator can
+        // raise the cap from config if a legitimate chain ever bumps into it.
         var visited = new HashSet<string>();
         var current = start;
         var now = DateTime.UtcNow;
         var changed = false;
 
-        for (int i = 0; i < 64; i++)
+        var depthCap = Math.Max(1, _settings.ChainRevokeDepth);
+        for (int i = 0; i < depthCap; i++)
         {
             if (current.ReplacedByTokenHash is null) break;
             if (!visited.Add(current.ReplacedByTokenHash)) break;

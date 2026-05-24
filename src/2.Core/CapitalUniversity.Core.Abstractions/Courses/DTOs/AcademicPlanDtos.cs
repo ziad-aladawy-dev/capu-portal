@@ -43,3 +43,29 @@ public class AddPlanCourseRequest
     public int Semester { get; set; }
     public bool IsMandatory { get; set; }
 }
+
+/// <summary>
+/// Atomic add/remove diff applied to a plan's composition. The whole batch
+/// commits in a single transaction or none of it does — partial application
+/// would leave the plan in an inconsistent state (e.g. a curriculum revision
+/// landing only the additions but not the removals).
+/// </summary>
+public class BatchPlanCoursesRequest
+{
+    public IReadOnlyList<AddPlanCourseRequest> Add { get; set; } = Array.Empty<AddPlanCourseRequest>();
+
+    /// <summary>Ids of <c>AcademicPlanCourse</c> entries to remove from the plan.</summary>
+    public IReadOnlyList<Guid> Remove { get; set; } = Array.Empty<Guid>();
+}
+
+/// <summary>
+/// Academic-plan search. Sort whitelist: <c>name</c>, <c>effectiveFrom</c>, <c>createdAt</c>.
+/// Default order: <c>effectiveFrom:desc</c>.
+/// </summary>
+public class AcademicPlanSearchQuery : Shared.Paging.PagedQueryRequest
+{
+    public Guid? StructureNodeId { get; set; }
+    public bool? IsActive { get; set; }
+    public DateTime? EffectiveFromInclusive { get; set; }
+    public DateTime? EffectiveToExclusive { get; set; }
+}

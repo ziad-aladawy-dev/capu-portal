@@ -120,6 +120,19 @@ public class AuthAuditLogger : IAuthAuditLogger
                 [MetaRolesRemoved] = rolesRemoved.ToArray(),
             }));
 
+    public Task LogSessionRejectedAsync(Guid userId, string reason, string? path = null, CancellationToken cancellationToken = default) =>
+        SafeLogAsync(_appLogger.LogWarningAsync(
+            "Session-version check rejected token.",
+            Source,
+            _httpContextAccessor.HttpContext,
+            new Dictionary<string, object>
+            {
+                [MetaEventType] = AuthAuditEventTypes.SessionRejected,
+                [MetaUserId] = userId,
+                [MetaReason] = reason,
+                [MetaPath] = path ?? _httpContextAccessor.HttpContext?.Request?.Path.Value ?? string.Empty,
+            }));
+
     private static async Task SafeLogAsync(Task pending)
     {
         try
@@ -152,4 +165,5 @@ public static class AuthAuditEventTypes
     public const string TokenRevoked = "token_revoked";
     public const string RefreshReplay = "refresh_replay";
     public const string RoleAssignmentChanged = "role_assignment_changed";
+    public const string SessionRejected = "session_rejected";
 }

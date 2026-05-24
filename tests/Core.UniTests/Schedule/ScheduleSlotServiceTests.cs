@@ -50,6 +50,16 @@ public class ScheduleSlotServiceTests
         offerings.Setup(o => o.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                  .ReturnsAsync(parentOffering);
 
+        // M1 — ScheduleSlotService.CreateAsync wraps its conflict-check + add +
+        // save block in IUnitOfWork.ExecuteInSerializableTransactionAsync. The
+        // production impl opens a SERIALIZABLE transaction on relational
+        // providers; the mock here just runs the action so the existing
+        // behaviour-level assertions still see what the closure did.
+        uow.Setup(u => u.ExecuteInSerializableTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+           .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
+
         var httpContextAccessor = new HttpContextAccessor();
         var sut = new ScheduleSlotService(
             uow.Object,
@@ -61,7 +71,11 @@ public class ScheduleSlotServiceTests
             outbox.Object,
             logger.Object,
             httpContextAccessor,
-            new TestLocalizationService());
+            new TestLocalizationService(),
+            // L9 — Schedule now caches GetByIdAsync responses; the mock cache
+            // returns null on Get so behaviour falls through to the repo path
+            // (matches every existing assertion below).
+            Mock.Of<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.ICacheService>());
         return (sut, slotRepo, offerings, uow, outbox, logger);
     }
 

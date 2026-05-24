@@ -101,7 +101,7 @@ public class AcademicYearsControllerTests
         var ctrl = Build(out var svc);
         svc.Setup(s => s.ResolveCurrentYearAsync()).Returns(Task.CompletedTask).Verifiable();
 
-        var result = await ctrl.Resolve();
+        var result = await ctrl.RecomputeCurrent();
         Assert.IsType<OkObjectResult>(result);
         svc.Verify();
     }

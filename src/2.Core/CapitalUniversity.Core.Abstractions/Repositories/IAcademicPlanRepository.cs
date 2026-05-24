@@ -1,3 +1,5 @@
+using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Courses;
 
 namespace CapitalUniversity.Core.Abstractions.Repositories;
@@ -12,4 +14,7 @@ public interface IAcademicPlanRepository
     Task<bool> ContainsCourseAsync(Guid planId, Guid courseId, CancellationToken cancellationToken = default);
     Task<AcademicPlanCourse?> GetPlanCourseAsync(Guid planCourseId, CancellationToken cancellationToken = default);
     void RemovePlanCourse(AcademicPlanCourse planCourse);
+
+    /// <summary>Paged academic-plan search; never eager-loads composition.</summary>
+    Task<PagedResult<AcademicPlan>> SearchAsync(AcademicPlanSearchQuery query, CancellationToken cancellationToken = default);
 }

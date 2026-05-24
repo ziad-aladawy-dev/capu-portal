@@ -4,6 +4,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Courses;
@@ -91,6 +92,48 @@ public class AcademicPlanService : IAcademicPlanService
         var dto = ToResponse(plan);
         await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
         return Localize(dto);
+    }
+
+    public async Task<PagedResult<AcademicPlanResponse>> SearchAsync(AcademicPlanSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // If pinned to a node, scope-check once and short-circuit on miss.
+        if (query.StructureNodeId.HasValue &&
+            !await _scope.CanAccessStructureNodeAsync(query.StructureNodeId.Value, cancellationToken))
+        {
+            return new PagedResult<AcademicPlanResponse>
+            {
+                Items = new List<AcademicPlanResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+                TotalCount = 0,
+                TotalPages = 0,
+            };
+        }
+
+        var page = await _plans.SearchAsync(query, cancellationToken);
+        var visible = new List<AcademicPlanResponse>(page.Items.Count);
+        foreach (var p in page.Items)
+        {
+            if (!await _scope.CanAccessStructureNodeAsync(p.StructureNodeId, cancellationToken)) continue;
+            visible.Add(Localize(new AcademicPlanResponse
+            {
+                Id = p.Id,
+                StructureNodeId = p.StructureNodeId,
+                Name = p.Name,
+                EffectiveFrom = p.EffectiveFrom,
+                EffectiveTo = p.EffectiveTo,
+                IsActive = p.IsActive,
+            }));
+        }
+
+        return new PagedResult<AcademicPlanResponse>
+        {
+            Items = visible,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
     }
 
     public async Task<IReadOnlyList<AcademicPlanResponse>> GetForStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
@@ -224,6 +267,86 @@ public class AcademicPlanService : IAcademicPlanService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
         return entry.Id;
+    }
+
+    public async Task BatchUpdateCoursesAsync(Guid planId, BatchPlanCoursesRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request is null) throw new ValidationException("Request", LocalizedKeys.Infrastructure.Required);
+        if (request.Add.Count == 0 && request.Remove.Count == 0)
+        {
+            // Empty diff is a successful no-op — saves callers from special-casing.
+            return;
+        }
+
+        var plan = await _plans.GetByIdAsync(planId, includeCourses: true, cancellationToken)
+            ?? throw new NotFoundException(AcademicPlanNotFound);
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException(AcademicPlanNotFound);
+        }
+        plan.EnsureMutable();
+
+        // -- Validate the additions in one pass before mutating anything ----
+        // All-or-nothing means we want every step to be pre-checked so the
+        // first SaveChanges below either applies the full diff or none of it.
+        foreach (var add in request.Add)
+        {
+            var validation = await _validators.AddCourse.ValidateAsync(add, cancellationToken);
+            if (!validation.IsValid) throw ValidationFrom(validation);
+        }
+
+        // Duplicate detection inside the request itself — two adds for the
+        // same course in one batch would otherwise both pass ContainsCourseAsync.
+        if (request.Add
+            .GroupBy(a => a.CourseId)
+            .Any(g => g.Count() > 1))
+        {
+            throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
+        }
+
+        // Removals must each point at an existing entry on THIS plan.
+        var removals = new List<AcademicPlanCourse>(request.Remove.Count);
+        foreach (var planCourseId in request.Remove.Distinct())
+        {
+            var entry = plan.PlanCourses.FirstOrDefault(pc => pc.Id == planCourseId)
+                ?? throw new NotFoundException(PlanCourseEntryNotFound);
+            removals.Add(entry);
+        }
+
+        // -- Apply --------------------------------------------------------
+        foreach (var entry in removals)
+        {
+            _plans.RemovePlanCourse(entry);
+            plan.PlanCourses.Remove(entry);
+        }
+
+        foreach (var add in request.Add)
+        {
+            // Existence check on the catalog course.
+            var course = await _courses.GetByIdAsync(add.CourseId, cancellationToken)
+                ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+            // Re-check against the post-removal composition so an "add + remove
+            // of the same course" pair in one batch is legal.
+            if (plan.PlanCourses.Any(pc => pc.CourseId == add.CourseId))
+            {
+                throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
+            }
+
+            plan.PlanCourses.Add(new AcademicPlanCourse
+            {
+                AcademicPlanId = planId,
+                CourseId = course.Id,
+                Level = add.Level,
+                Semester = add.Semester,
+                IsMandatory = add.IsMandatory,
+            });
+        }
+
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
     }
 
     public async Task RemoveCourseAsync(Guid planId, Guid planCourseId, CancellationToken cancellationToken = default)

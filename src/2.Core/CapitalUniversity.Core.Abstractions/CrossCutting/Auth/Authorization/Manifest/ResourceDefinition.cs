@@ -16,6 +16,17 @@ public sealed record ResourceDefinition
     public int OrderNumber { get; init; }
     public IReadOnlyCollection<ActionDefinition> Actions { get; init; } = Array.Empty<ActionDefinition>();
 
+    // M13 — Previous key(s) this resource was known under. Used by the
+    // synchroniser to migrate existing grants (RolePermission,
+    // StaffPermissionOverride) onto the new key inside a single transaction
+    // when a manifest rename ships. Null/empty = no rename happening; the
+    // synchroniser treats the row as a normal upsert.
+    //
+    // Callers MUST drop a previous key from this list once the corresponding
+    // production migration has run, otherwise re-running the synchroniser on
+    // a freshly-renamed key picks up legacy keys it should no longer touch.
+    public IReadOnlyCollection<string>? PreviousKeys { get; init; }
+
     /// <summary>
     /// Declares a resource where actions are listed verbatim with no inheritance
     /// relationships. Used by tiny resources (e.g. notifications with View+Insert)

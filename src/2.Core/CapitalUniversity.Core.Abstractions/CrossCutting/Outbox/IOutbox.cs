@@ -36,7 +36,14 @@ public interface IOutboxMessageHandler
     /// passed to <see cref="IOutbox.EnqueueAsync"/>.</summary>
     string MessageType { get; }
 
+    /// <summary>
+    /// Process one outbox message.
+    /// <paramref name="outboxMessageId"/> is the row's primary key — handlers that
+    /// produce database state should use it as an idempotency key so an
+    /// at-least-once redelivery does not double-insert (H5).
+    /// </summary>
     System.Threading.Tasks.Task HandleAsync(
+        System.Guid outboxMessageId,
         string payload,
         System.Threading.CancellationToken cancellationToken);
 }

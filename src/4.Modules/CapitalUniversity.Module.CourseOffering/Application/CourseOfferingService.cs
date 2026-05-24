@@ -1,6 +1,8 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions.DTOs;
@@ -315,5 +317,104 @@ public class CourseOfferingService : ICourseOfferingService
             case RegistrationState.Waitlist: offering.SetWaitlist();       break;
             default: throw new InvalidOperationException($"Unknown registration state: {target}.");
         }
+    }
+
+    public async Task<PagedResult<CourseOfferingResponse>> SearchAsync(CourseOfferingSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // If the caller pinned a specific node, scope-check that one id; an
+        // out-of-scope request returns an empty page (no existence leak).
+        if (query.StructureNodeId.HasValue &&
+            !await _scope.CanAccessStructureNodeAsync(query.StructureNodeId.Value, cancellationToken))
+        {
+            return EmptyPage(query);
+        }
+        if (query.SemesterId.HasValue &&
+            !await _scope.CanAccessSemesterAsync(query.SemesterId.Value, cancellationToken))
+        {
+            return EmptyPage(query);
+        }
+
+        var page = await _offerings.SearchAsync(query, cancellationToken);
+
+        // For un-pinned cross-node queries, filter the materialized page by
+        // per-row node visibility. Total stays as the raw count — admins
+        // with the View permission typically have unrestricted scope. If a
+        // narrower-scoped reader hits this endpoint, the page may shrink
+        // post-filter; the trade-off keeps the query single-pass.
+        var visible = new List<CourseOfferingResponse>(page.Items.Count);
+        foreach (var o in page.Items)
+        {
+            if (!await _scope.CanAccessStructureNodeAsync(o.StructureNodeId, cancellationToken)) continue;
+            visible.Add(ToResponse(o));
+        }
+
+        return new PagedResult<CourseOfferingResponse>
+        {
+            Items = visible,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
+    private static PagedResult<CourseOfferingResponse> EmptyPage(CourseOfferingSearchQuery query) => new()
+    {
+        Items = new List<CourseOfferingResponse>(),
+        Page = query.NormalizedPage,
+        PageSize = query.NormalizedPageSize,
+        TotalCount = 0,
+        TotalPages = 0,
+    };
+
+    public Task<BulkActionResult> BulkPublishAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+        => BulkApplyAsync(ids, (o, _) => o.Activate(), reason: null, cancellationToken);
+
+    public Task<BulkActionResult> BulkCancelAsync(IReadOnlyList<Guid> ids, string reason, CancellationToken cancellationToken = default)
+        => BulkApplyAsync(ids, (o, _) => o.Cancel(), reason: reason, cancellationToken);
+
+    /// <summary>
+    /// Per-row driver shared by every bulk lifecycle endpoint. Loads each
+    /// offering through <see cref="LoadForWriteAsync"/> (re-using the existing
+    /// scope + mutability guards), applies <paramref name="apply"/>, and
+    /// commits independently so a failed peer does not roll back successes.
+    /// Reason is plumbed through for future audit storage — today it's
+    /// captured only in the in-process correlation/log path.
+    /// </summary>
+    private async Task<BulkActionResult> BulkApplyAsync(
+        IReadOnlyList<Guid> ids,
+        Action<CourseOfferingEntity, string?> apply,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                var offering = await LoadForWriteAsync(id, cancellationToken);
+                apply(offering, reason);
+                offering.UpdatedAt = DateTime.UtcNow;
+                _offerings.Update(offering);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.InvalidTransition, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
     }
 }

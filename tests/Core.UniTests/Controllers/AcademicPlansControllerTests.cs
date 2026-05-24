@@ -108,7 +108,15 @@ public class AcademicPlansControllerTests
 
         var result = await ctrl.AddCourse(planId, req, CancellationToken.None);
 
-        Assert.IsType<OkObjectResult>(result);
+        // Task 1 cleanup — the test name promised "with generated id" but the
+        // original only checked the result type. Assert the body actually
+        // carries the id the service produced so a mutation that swaps the
+        // returned shape (e.g. dropping the id field) is now caught.
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var body = ok.Value!;
+        var idProp = body.GetType().GetProperty("id") ?? body.GetType().GetProperty("Id");
+        Assert.NotNull(idProp);
+        Assert.Equal(planCourseId, idProp!.GetValue(body));
     }
 
     [Fact]

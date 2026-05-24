@@ -83,11 +83,14 @@ public class PermissionNamesManifestCoverageTests
     {
         // Reference one type from each module's abstractions assembly so the
         // CLR loads it. The actual symbols pulled don't matter — the assembly
-        // load is what enables reflection discovery below.
-        _ = typeof(CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest.CourseOfferingPermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest);
+        // load is what enables reflection discovery below. Each line uses
+        // Assembly.GetName() to defeat aggressive JIT elision of the typeof
+        // expression on Release builds.
+        _ = typeof(CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest.CourseOfferingPermissionManifest).Assembly.GetName();
+        _ = typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest).Assembly.GetName();
+        _ = typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest).Assembly.GetName();
+        _ = typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly.GetName();
+        _ = typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest).Assembly.GetName();
     }
 
     private static HashSet<string> CollectPermissionNameConstants()

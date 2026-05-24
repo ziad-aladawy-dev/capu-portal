@@ -47,4 +47,16 @@ public interface IAuthAuditLogger
         System.Collections.Generic.IReadOnlyCollection<System.Guid> rolesAdded,
         System.Collections.Generic.IReadOnlyCollection<System.Guid> rolesRemoved,
         System.Threading.CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// M16 — Records that the SessionVersion middleware rejected a token
+    /// (revoked, missing claim, expired-format, etc.). <paramref name="userId"/>
+    /// may be <see cref="System.Guid.Empty"/> when no user id could be parsed
+    /// off the token.
+    /// </summary>
+    System.Threading.Tasks.Task LogSessionRejectedAsync(
+        System.Guid userId,
+        string reason,
+        string? path = null,
+        System.Threading.CancellationToken cancellationToken = default);
 }

@@ -20,7 +20,16 @@ public class AcademicYearConfiguration : IEntityTypeConfiguration<AcademicYear>
         builder.Property(x => x.EndDate)
             .IsRequired();
 
+        // H7 — filtered UNIQUE index. The previous non-unique index served only
+        // as a lookup; in concert with the AcademicTimelineBackgroundService
+        // resolver, two concurrent writers could each set IsCurrent=1 on a
+        // different row and the database would accept both. Making the index
+        // unique pushes the invariant into SQL Server: at most one row may
+        // carry IsCurrent=1 at any moment. The resolver in
+        // AcademicYearService deactivates-before-activates in two flushes so
+        // a single SaveChanges never momentarily breaks the constraint.
         builder.HasIndex(x => x.IsCurrent)
+            .IsUnique()
             .HasFilter("[IsCurrent] = 1");
 
         builder.HasMany(x => x.Semesters)

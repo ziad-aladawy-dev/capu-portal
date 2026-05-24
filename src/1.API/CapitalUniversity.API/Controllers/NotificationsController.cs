@@ -1,9 +1,11 @@
 using System;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 
 namespace CapitalUniversity.API.Controllers;
 
@@ -22,8 +24,9 @@ public class NotificationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUserNotifications()
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdString, out var userId))
+        // L7 — single user-id extraction helper, used here and by any
+        // future endpoint that needs the caller's id off the JWT.
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -35,8 +38,7 @@ public class NotificationsController : ControllerBase
     [HttpGet("unread")]
     public async Task<IActionResult> GetUnreadNotifications()
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdString, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
@@ -48,13 +50,72 @@ public class NotificationsController : ControllerBase
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id)
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdString, out var userId))
+        if (!User.TryGetUserId(out var userId))
         {
             return Unauthorized();
         }
 
         await _notificationService.MarkAsReadAsync(id, userId);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Bulk-marks the supplied notifications as read for the caller. Ids that
+    /// don't exist or belong to another user are silently skipped. Already-read
+    /// rows are a no-op. The response counts only rows actually transitioned on
+    /// this call — replaying the same request returns <c>marked: 0</c>.
+    /// </summary>
+    [HttpPut("read")]
+    public async Task<IActionResult> MarkManyAsRead([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (request is null || request.Ids is null || request.Ids.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one notification id is required." });
+        }
+
+        if (request.Ids.Count > BulkConstants.MaxBulkSize)
+        {
+            return BadRequest(new { Message = $"Cannot mark more than {BulkConstants.MaxBulkSize} notifications in one request." });
+        }
+
+        var marked = await _notificationService.MarkManyAsReadAsync(request.Ids, userId, cancellationToken);
+        return Ok(new { Marked = marked });
+    }
+
+    /// <summary>
+    /// Marks every unread notification for the caller as read. Idempotent — a
+    /// repeat call returns <c>marked: 0</c>.
+    /// </summary>
+    [HttpPut("mark-all-read")]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var marked = await _notificationService.MarkAllAsReadAsync(userId, cancellationToken);
+        return Ok(new { Marked = marked });
+    }
+
+    /// <summary>
+    /// Paged inbox with filters (<c>isRead</c>, <c>type</c>, <c>from/to</c>
+    /// dates). Always scoped to the caller. Default sort: <c>createdAt:desc</c>.
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] NotificationSearchQuery query, CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _notificationService.SearchAsync(userId, query, cancellationToken);
+        return Ok(result);
     }
 }

@@ -23,10 +23,12 @@ public class RolesControllerEndpointTests
         var db = new CoreDbContext(options);
         db.Database.EnsureCreated();
 
+        var permissions = Mock.Of<IPermissionManagementService>();
+        var currentUser = Mock.Of<ICurrentUser>();
         var ctrl = new RolesController(
-            new CreateRoleCommandHandler(db, new TestLocalizationService()),
-            new UpdateRoleCommandHandler(db, new TestLocalizationService()),
-            new DeleteRoleCommandHandler(db, invalidator),
+            new CreateRoleCommandHandler(db, new TestLocalizationService(), permissions, currentUser),
+            new UpdateRoleCommandHandler(db, new TestLocalizationService(), permissions, currentUser),
+            new DeleteRoleCommandHandler(db, permissions, currentUser, invalidator),
             new GetRoleByIdQueryHandler(db, new TestLocalizationService()),
             new GetRolesQueryHandler(db, new TestLocalizationService()));
         return (ctrl, db);

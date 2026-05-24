@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using FluentValidation;
@@ -71,6 +72,19 @@ public class CourseService : ICourseService
     {
         var courses = await _courses.GetActiveAsync(cancellationToken);
         return courses.Select(c => Localize(_mapper.MapToResponse(c))).ToList();
+    }
+
+    public async Task<PagedResult<CourseResponse>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        var page = await _courses.SearchAsync(query, cancellationToken);
+        return new PagedResult<CourseResponse>
+        {
+            Items = page.Items.Select(c => Localize(_mapper.MapToResponse(c))).ToList(),
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
     }
 
     /// <summary>

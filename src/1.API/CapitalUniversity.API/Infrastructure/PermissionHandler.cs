@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 namespace CapitalUniversity.API.Infrastructure;
 
@@ -9,15 +10,21 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 {
     private readonly IPermissionManagementService _permissionService;
     private readonly ICurrentUser _currentUser;
+    private readonly IEffectiveScope _scope;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthAuditLogger? _audit;
 
     public PermissionHandler(
         IPermissionManagementService permissionService,
         ICurrentUser currentUser,
+        IEffectiveScope scope,
+        IHttpContextAccessor httpContextAccessor,
         IAuthAuditLogger? audit = null)
     {
         _permissionService = permissionService;
         _currentUser = currentUser;
+        _scope = scope;
+        _httpContextAccessor = httpContextAccessor;
         _audit = audit;
     }
 
@@ -31,15 +38,82 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
         // Optimized hashtable lookup (HashSet)
         var permissions = await _permissionService.GetPermissionLookupAsync(_currentUser.Id);
 
-        if (permissions.Contains(requirement.Permission))
+        if (!permissions.Contains(requirement.Permission))
         {
-            context.Succeed(requirement);
+            if (_audit is not null)
+            {
+                await _audit.LogPermissionDeniedAsync(_currentUser.Id, requirement.Permission);
+            }
             return;
         }
 
-        if (_audit is not null)
+        // C3 — When the policy carries a scope binding, project the route value
+        // through IEffectiveScope. The action grant is necessary but not enough:
+        // the caller must also be in-scope for the specific resource id. A
+        // mismatch here is logged at the same severity as a missing permission
+        // because it's an authorization decision, not a routing issue.
+        if (requirement.ScopeKind != PermissionScopeKind.None && !string.IsNullOrWhiteSpace(requirement.ScopeRouteValue))
         {
-            await _audit.LogPermissionDeniedAsync(_currentUser.Id, requirement.Permission);
+            if (!await EvaluateScopeAsync(requirement))
+            {
+                if (_audit is not null)
+                {
+                    await _audit.LogPermissionDeniedAsync(_currentUser.Id, $"{requirement.Permission}|scope:{requirement.ScopeKind}");
+                }
+                return;
+            }
         }
+
+        context.Succeed(requirement);
+    }
+
+    private async Task<bool> EvaluateScopeAsync(PermissionRequirement requirement)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            // No HTTP context (background work, tests in raw handler mode).
+            // Without a request we cannot evaluate scope; refuse rather than
+            // succeed silently.
+            return false;
+        }
+
+        if (!TryGetRouteGuid(httpContext, requirement.ScopeRouteValue!, out var resourceId))
+        {
+            return false;
+        }
+
+        return requirement.ScopeKind switch
+        {
+            PermissionScopeKind.Student       => await _scope.CanAccessStudentAsync(resourceId, httpContext.RequestAborted),
+            PermissionScopeKind.StructureNode => await _scope.CanAccessStructureNodeAsync(resourceId, httpContext.RequestAborted),
+            PermissionScopeKind.AcademicYear  => await _scope.CanAccessAcademicYearAsync(resourceId, httpContext.RequestAborted),
+            PermissionScopeKind.Semester      => await _scope.CanAccessSemesterAsync(resourceId, httpContext.RequestAborted),
+            _ => false,
+        };
+    }
+
+    private static bool TryGetRouteGuid(HttpContext context, string routeName, out Guid value)
+    {
+        value = Guid.Empty;
+
+        // Prefer route data; fall back to query string so endpoints with the id
+        // in either place still get scope-guarded.
+        if (context.Request.RouteValues.TryGetValue(routeName, out var routeValue)
+            && routeValue is not null
+            && Guid.TryParse(routeValue.ToString(), out var parsedFromRoute))
+        {
+            value = parsedFromRoute;
+            return true;
+        }
+
+        if (context.Request.Query.TryGetValue(routeName, out var queryValue)
+            && Guid.TryParse(queryValue.ToString(), out var parsedFromQuery))
+        {
+            value = parsedFromQuery;
+            return true;
+        }
+
+        return false;
     }
 }

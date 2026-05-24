@@ -29,11 +29,31 @@ public class NotificationsControllerTests
         return ctrl;
     }
 
-    [Fact]
-    public async Task GetUserNotifications_NoClaim_ReturnsUnauthorized()
+    // Task 1 cleanup — three near-duplicate "no claim → 401" tests folded
+    // into a single Theory. Same invariant (every action 401s when no user-id
+    // claim is present), so duplicating the scenario per endpoint added
+    // mutation-score noise without exercising different code.
+    public static IEnumerable<object[]> NoClaimActions()
+    {
+        yield return new object[] { "GetUserNotifications" };
+        yield return new object[] { "GetUnreadNotifications" };
+        yield return new object[] { "MarkAsRead" };
+    }
+
+    [Theory]
+    [MemberData(nameof(NoClaimActions))]
+    public async Task Action_WithoutUserIdClaim_ReturnsUnauthorized(string action)
     {
         var ctrl = NewController(null, out _);
-        var result = await ctrl.GetUserNotifications();
+
+        IActionResult result = action switch
+        {
+            "GetUserNotifications" => await ctrl.GetUserNotifications(),
+            "GetUnreadNotifications" => await ctrl.GetUnreadNotifications(),
+            "MarkAsRead" => await ctrl.MarkAsRead(Guid.NewGuid()),
+            _ => throw new InvalidOperationException($"Unknown action: {action}")
+        };
+
         Assert.IsType<UnauthorizedResult>(result);
     }
 
@@ -52,14 +72,6 @@ public class NotificationsControllerTests
     }
 
     [Fact]
-    public async Task GetUnreadNotifications_NoClaim_ReturnsUnauthorized()
-    {
-        var ctrl = NewController(null, out _);
-        var result = await ctrl.GetUnreadNotifications();
-        Assert.IsType<UnauthorizedResult>(result);
-    }
-
-    [Fact]
     public async Task GetUnreadNotifications_ValidClaim_ReturnsOk()
     {
         var userId = Guid.NewGuid();
@@ -71,14 +83,6 @@ public class NotificationsControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Same(notifs, ok.Value);
-    }
-
-    [Fact]
-    public async Task MarkAsRead_NoClaim_ReturnsUnauthorized()
-    {
-        var ctrl = NewController(null, out _);
-        var result = await ctrl.MarkAsRead(Guid.NewGuid());
-        Assert.IsType<UnauthorizedResult>(result);
     }
 
     [Fact]

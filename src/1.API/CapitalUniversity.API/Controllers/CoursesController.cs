@@ -25,6 +25,19 @@ public class CoursesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Paged catalog search. Filters: <c>category</c>, <c>isActive</c>, credit
+    /// range; free-text <c>search</c> matches code or title.
+    /// Sort: <c>code|creditHours|createdAt</c>.
+    /// </summary>
+    [HttpGet("search")]
+    [HasPermission(PermissionNames.Courses.View)]
+    public async Task<IActionResult> Search([FromQuery] CourseSearchQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.SearchAsync(query, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     [HasPermission(PermissionNames.Courses.View)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)

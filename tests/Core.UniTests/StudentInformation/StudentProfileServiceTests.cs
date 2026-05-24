@@ -144,7 +144,7 @@ public class StudentProfileServiceTests
         repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
 
         var verifier = Guid.NewGuid();
-        await sut.VerifyAsync(record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = verifier });
+        await sut.VerifyAsync(record.StudentId, record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = verifier });
 
         record.VerifiedBy.Should().Be(verifier);
         record.VerifiedAt.Should().NotBeNull();
@@ -157,7 +157,42 @@ public class StudentProfileServiceTests
         var (sut, repo, _, _) = Build();
         repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), default)).ReturnsAsync((StudentProfileRecord?)null);
 
-        var act = () => sut.VerifyAsync(Guid.NewGuid(), new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
+        var act = () => sut.VerifyAsync(Guid.NewGuid(), Guid.NewGuid(), new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Verify_WrongStudentId_ThrowsNotFound()
+    {
+        // C1 — a record whose StudentId disagrees with the route parameter
+        // must look identical to a missing record; otherwise an attacker can
+        // probe for record ids across students.
+        var (sut, repo, _, _) = Build();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(), StudentId = Guid.NewGuid(),
+            Category = StudentProfileCategory.MilitaryInformation,
+            SchemaVersion = 1, DataJson = "{}",
+        };
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        var act = () => sut.VerifyAsync(Guid.NewGuid(), record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Delete_WrongStudentId_ThrowsNotFound()
+    {
+        var (sut, repo, _, _) = Build();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(), StudentId = Guid.NewGuid(),
+            Category = StudentProfileCategory.EmergencyContact,
+            SchemaVersion = 1, DataJson = "{}",
+        };
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        var act = () => sut.DeleteAsync(Guid.NewGuid(), record.Id);
         await act.Should().ThrowAsync<NotFoundException>();
     }
 

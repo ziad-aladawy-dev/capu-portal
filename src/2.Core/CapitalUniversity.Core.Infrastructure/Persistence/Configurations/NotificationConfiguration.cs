@@ -33,5 +33,15 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             .IsRequired();
 
         builder.HasIndex(n => n.RecipientUserId);
+
+        // H5 — Filtered unique index. The handler stamps IdempotencyKey =
+        // OutboxMessage.Id, so a redelivery of the same outbox row collides
+        // on this constraint and the handler treats it as a successful
+        // replay rather than inserting a duplicate. Direct (non-outbox)
+        // creates leave the column null and are not constrained.
+        builder.Property(n => n.IdempotencyKey);
+        builder.HasIndex(n => n.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
     }
 }

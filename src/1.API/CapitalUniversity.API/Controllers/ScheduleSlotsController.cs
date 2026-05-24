@@ -1,5 +1,6 @@
 using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Modules.Schedule.Abstractions;
 using CapitalUniversity.Modules.Schedule.Abstractions.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,18 @@ public class ScheduleSlotsController : ControllerBase
     public async Task<IActionResult> GetForOffering(Guid offeringId, CancellationToken cancellationToken)
     {
         var result = await _service.GetForOfferingAsync(offeringId, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Cross-offering slot search. Filters: <c>courseOfferingId</c>,
+    /// <c>dayOfWeek</c>, <c>kind</c>, <c>from/to</c> (start time-of-day window).
+    /// </summary>
+    [HttpGet]
+    [HasPermission(PermissionNames.Schedule.View)]
+    public async Task<IActionResult> Search([FromQuery] ScheduleSlotSearchQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.SearchAsync(query, cancellationToken);
         return Ok(result);
     }
 
@@ -72,5 +85,28 @@ public class ScheduleSlotsController : ControllerBase
     {
         await _service.OpenRecordAsync(id, cancellationToken);
         return Ok(new { Message = "Schedule slot reopened" });
+    }
+
+    /// <summary>
+    /// Atomic bulk-create of slots under one parent offering. Either every slot
+    /// lands or none do — useful for the common "lecture + lab + recitation"
+    /// block. Intra-batch overlap is validated in addition to overlap against
+    /// existing siblings.
+    /// </summary>
+    [HttpPost("batch")]
+    [HasPermission(PermissionNames.Schedule.Insert)]
+    public async Task<IActionResult> BatchCreate([FromBody] BatchCreateScheduleSlotsRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || request.Slots is null || request.Slots.Count == 0)
+        {
+            return BadRequest(new { Message = "At least one slot is required." });
+        }
+        if (request.Slots.Count > BulkConstants.MaxBulkSize)
+        {
+            return BadRequest(new { Message = $"Cannot create more than {BulkConstants.MaxBulkSize} slots in one batch." });
+        }
+
+        var ids = await _service.BatchCreateAsync(request, cancellationToken);
+        return Ok(new { Ids = ids, Message = "Schedule slots created" });
     }
 }

@@ -79,7 +79,14 @@ public class AcademicYearService : IAcademicYearService
 
         if (year.IsCurrent)
         {
-            await DeactivateCurrentYearAsync();
+            // H7 — deactivate-then-activate in two flushes when (and only when)
+            // there is an existing current row to clear, so the filtered UNIQUE
+            // index never sees two rows with IsCurrent = 1 in flight. When no
+            // current row exists yet, the second flush below is the only one.
+            if (await DeactivateCurrentYearAsync())
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
 
         await _unitOfWork.AcademicYears.AddAsync(year);
@@ -121,7 +128,12 @@ public class AcademicYearService : IAcademicYearService
 
         if (year.IsCurrent)
         {
-            await DeactivateCurrentYearAsync(id);
+            // H7 — see CreateAsync. Flush only when there is a different row
+            // to clear; otherwise the single SaveChanges below is enough.
+            if (await DeactivateCurrentYearAsync(id))
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
 
         _unitOfWork.AcademicYears.Update(year);
@@ -160,25 +172,38 @@ public class AcademicYearService : IAcademicYearService
 
     public async Task ResolveCurrentYearAsync()
     {
+        // H7 — two-phase update so the filtered UNIQUE index on (IsCurrent
+        // WHERE IsCurrent = 1) never sees two true rows in the same SaveChanges
+        // batch. Pass 1: deactivate any row that should no longer be current.
+        // Flush. Pass 2: activate the row that should be current. Flush.
         var now = DateTime.UtcNow;
         var years = await _unitOfWork.AcademicYears.GetAllAsync();
         var currentYear = years.FirstOrDefault(x => IsDateInRange(now, x.StartDate, x.EndDate));
 
+        var dirty = false;
         foreach (var year in years)
         {
-            bool shouldBeCurrent = (currentYear != null && year.Id == currentYear.Id);
-            if (year.IsCurrent != shouldBeCurrent)
+            var shouldBeCurrent = currentYear != null && year.Id == currentYear.Id;
+            if (year.IsCurrent && !shouldBeCurrent)
             {
-                year.IsCurrent = shouldBeCurrent;
+                year.IsCurrent = false;
                 year.UpdatedAt = DateTime.UtcNow;
                 _unitOfWork.AcademicYears.Update(year);
+                dirty = true;
             }
         }
+        if (dirty) await _unitOfWork.SaveChangesAsync();
 
+        if (currentYear is null) return;
+        if (currentYear.IsCurrent) return;
+
+        currentYear.IsCurrent = true;
+        currentYear.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.AcademicYears.Update(currentYear);
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private async Task DeactivateCurrentYearAsync(Guid? excludeId = null)
+    private async Task<bool> DeactivateCurrentYearAsync(Guid? excludeId = null)
     {
         var current = await _unitOfWork.AcademicYears.GetCurrentAsync();
         if (current != null && current.Id != excludeId)
@@ -186,7 +211,9 @@ public class AcademicYearService : IAcademicYearService
             current.IsCurrent = false;
             current.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.AcademicYears.Update(current);
+            return true;
         }
+        return false;
     }
 
     private static bool IsDateInRange(DateTime date, DateTime start, DateTime end) =>

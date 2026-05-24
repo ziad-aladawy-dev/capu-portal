@@ -24,7 +24,7 @@ public class RoleHandlersTests
     public async Task CreateRole_PersistsCustomRoleAndReturnsResponse()
     {
         using var db = NewDb();
-        var handler = new CreateRoleCommandHandler(db, new TestLocalizationService());
+        var handler = new CreateRoleCommandHandler(db, new TestLocalizationService(), Mock.Of<IPermissionManagementService>(), Mock.Of<ICurrentUser>());
 
         var response = await handler.Handle(new CreateRoleRequest { Name = "Auditor" }, CancellationToken.None);
 
@@ -44,7 +44,7 @@ public class RoleHandlersTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService());
+        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService(), Mock.Of<IPermissionManagementService>(), Mock.Of<ICurrentUser>());
         var response = await handler.Handle(
             new UpdateRoleRequest { Id = role.Id, Name = "New" },
             CancellationToken.None);
@@ -61,7 +61,7 @@ public class RoleHandlersTests
     public async Task UpdateRole_MissingRole_ReturnsNull()
     {
         using var db = NewDb();
-        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService());
+        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService(), Mock.Of<IPermissionManagementService>(), Mock.Of<ICurrentUser>());
 
         var response = await handler.Handle(
             new UpdateRoleRequest { Id = Guid.NewGuid(), Name = "ghost" },
@@ -84,7 +84,7 @@ public class RoleHandlersTests
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        var handler = new DeleteRoleCommandHandler(db, invalidator.Object);
+        var handler = new DeleteRoleCommandHandler(db, Mock.Of<IPermissionManagementService>(), Mock.Of<ICurrentUser>(), invalidator.Object);
         var deleted = await handler.Handle(new DeleteRoleRequest { Id = role.Id }, CancellationToken.None);
 
         Assert.True(deleted);

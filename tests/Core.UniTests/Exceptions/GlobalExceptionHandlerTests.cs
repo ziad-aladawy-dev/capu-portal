@@ -265,6 +265,140 @@ public class GlobalExceptionHandlerTests
         pd.Extensions["traceId"]!.ToString().Should().Be("trace-0001");
     }
 
+    // ============================================================
+    // Task 2 mutation-resistance additions — exhaust the switch arms
+    // and the ResolveDetail / LocalizeErrors fallback branches.
+    // Targets surviving mutations from StrykerOutput on this file.
+    // ============================================================
+
+    [Fact]
+    public async Task UnauthorizedException_MapsTo401_AndLogsWarning()
+    {
+        var (ctx, _, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new UnauthorizedException(), default);
+
+        ctx.Response.StatusCode.Should().Be((int)HttpStatusCode.Unauthorized);
+        logger.Entries.Should().ContainSingle();
+        logger.Entries[0].Level.Should().Be(LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task ForbiddenException_MapsTo403_AndLogsWarning()
+    {
+        var (ctx, _, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new ForbiddenException(), default);
+
+        ctx.Response.StatusCode.Should().Be((int)HttpStatusCode.Forbidden);
+        logger.Entries.Should().ContainSingle();
+        logger.Entries[0].Level.Should().Be(LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task InstanceFieldEchoesMethodAndPath()
+    {
+        // Pins the `$"{Method} {Path}"` interpolation. Mutating that string to
+        // empty or swapping the order would change Instance.
+        var (ctx, body, logger, _) = BuildContext(method: "DELETE", path: "/api/widgets/42");
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new NotFoundException("missing"), default);
+
+        var pd = await Read(body);
+        pd.Instance.Should().Be("DELETE /api/widgets/42");
+    }
+
+    [Fact]
+    public async Task EmptyMessage_FallsBackToLocalizedKey()
+    {
+        // ResolveDetail: when the exception carries no message (whitespace),
+        // the handler must emit the localized fallback detail. Catches a
+        // mutation that flips `IsNullOrWhiteSpace` → `IsNullOrEmpty` (would
+        // still pass), and the `return localization.GetString(fallbackKey)`
+        // block-removal mutation (would return the message itself, empty).
+        var (ctx, body, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new NotFoundException("   "), default);
+
+        var pd = await Read(body);
+        pd.Detail.Should().NotBeNullOrWhiteSpace(
+            "an empty message must resolve to the localized infrastructure fallback");
+    }
+
+    [Fact]
+    public async Task NonKeyLiteralMessage_OnNotFound_IsPassedThroughVerbatim()
+    {
+        // ResolveDetail: a literal that is NOT a known localization key must
+        // pass through unchanged, not be replaced by the fallback. Catches a
+        // mutation that always returns the fallback.
+        var (ctx, body, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new NotFoundException("a free-form literal that is definitely not a known key"), default);
+
+        var pd = await Read(body);
+        pd.Detail.Should().Be("a free-form literal that is definitely not a known key");
+    }
+
+    [Fact]
+    public async Task ValidationException_MixedKeysAndLiterals_LocalizesOnlyTheKeys()
+    {
+        // LocalizeErrors: each entry should be checked individually — known
+        // keys translated, literals passed through. Catches a mutation that
+        // would either translate everything (including literals) or nothing
+        // (including keys).
+        var (ctx, body, logger, culture) = BuildContext();
+        culture.Language = "en";
+        var handler = new GlobalExceptionHandler(logger);
+
+        var errors = new Dictionary<string, string[]>
+        {
+            ["Code"] = new[] { LocalizedKeys.Courses.CodeInUse, "literal one" },
+            ["Name"] = new[] { "literal two" },
+        };
+        var ex = new ValidationException(errors);
+        await handler.TryHandleAsync(ctx, ex, default);
+
+        var pd = await Read(body);
+        var errorsJson = pd.Extensions["errors"]!.ToString()!;
+        errorsJson.Should().Contain("already in use", "the known-key entry must be translated");
+        errorsJson.Should().Contain("literal one", "the literal must pass through untouched");
+        errorsJson.Should().Contain("literal two", "the literal must pass through untouched");
+    }
+
+    [Fact]
+    public async Task NonValidationException_DoesNotEmitErrorsExtension()
+    {
+        // Only ValidationException populates Extensions["errors"]. Catches a
+        // mutation that removes the type-check guard and always tries to
+        // attach errors.
+        var (ctx, body, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        await handler.TryHandleAsync(ctx, new ConflictException("dup"), default);
+
+        var pd = await Read(body);
+        pd.Extensions.Should().NotContainKey("errors");
+    }
+
+    [Fact]
+    public async Task ReturnValue_TrueIndicatesHandled()
+    {
+        // Method-contract pin: TryHandleAsync MUST return true for every
+        // mapped exception (otherwise ASP.NET's exception-handler middleware
+        // would continue down the chain and produce a duplicate response).
+        var (ctx, _, logger, _) = BuildContext();
+        var handler = new GlobalExceptionHandler(logger);
+
+        var returned = await handler.TryHandleAsync(ctx, new InvalidOperationException("any"), default);
+
+        returned.Should().BeTrue();
+    }
+
     private sealed class RecordingLogger : ILogger<GlobalExceptionHandler>
     {
         public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = new();

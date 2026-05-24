@@ -30,5 +30,7 @@
 		<ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.CourseOffering\CapitalUniversity.Module.CourseOffering.csproj" />
 		<ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Schedule.Abstractions\CapitalUniversity.Module.Schedule.Abstractions.csproj" />
 		<ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Schedule\CapitalUniversity.Module.Schedule.csproj" />
+		<ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.StudentServices.Abstractions\CapitalUniversity.Module.StudentServices.Abstractions.csproj" />
+		<ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.StudentServices\CapitalUniversity.Module.StudentServices.csproj" />
 	</ItemGroup>
 </Project>

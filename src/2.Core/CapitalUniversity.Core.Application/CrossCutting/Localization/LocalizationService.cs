@@ -14,6 +14,12 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
         private readonly ICurrentCultureService _culture;
         private readonly ILogger<LocalizationService> _logger;
 
+        // L8 — Process-lifetime, per-culture caches for enum localizations.
+        // Bounded by the total enum-value count across the codebase (low
+        // hundreds at most), so memory growth is constant — no eviction
+        // needed. Per-culture buckets eliminate the cross-language race a
+        // single cache would have: a thread serving Arabic and a thread
+        // serving English never collide on the same key.
         private static readonly ConcurrentDictionary<Enum, string> ArabicCache = new();
         private static readonly ConcurrentDictionary<Enum, string> EnglishCache = new();
 

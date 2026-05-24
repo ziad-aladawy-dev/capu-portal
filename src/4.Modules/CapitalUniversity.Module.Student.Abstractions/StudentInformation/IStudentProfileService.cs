@@ -14,6 +14,9 @@ public interface IStudentProfileService
     Task<IReadOnlyList<StudentProfileRecordResponse>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default);
     Task<StudentProfileRecordResponse?> GetForStudentCategoryAsync(Guid studentId, StudentProfileCategory category, string? customCategoryKey = null, CancellationToken cancellationToken = default);
     Task<Guid> UpsertAsync(Guid studentId, UpsertStudentProfileRecordRequest request, CancellationToken cancellationToken = default);
-    Task VerifyAsync(Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    // C1 — studentId is required: the service asserts the record belongs to that
+    // student before any mutation. A mismatch surfaces as NotFound so callers
+    // cannot distinguish "wrong owner" from "record absent" (no enumeration).
+    Task VerifyAsync(Guid studentId, Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default);
 }

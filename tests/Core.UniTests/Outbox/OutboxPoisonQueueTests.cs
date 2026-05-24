@@ -135,7 +135,7 @@ public class OutboxPoisonQueueTests
         await h.Db.SaveChangesAsync();
         await h.Dispatcher.ProcessBatchAsync(CancellationToken.None);
 
-        var pq = new OutboxPoisonQueue(h.Db);
+        var pq = new OutboxPoisonQueue(h.Db, h.Scope.ServiceProvider.GetServices<IOutboxMessageHandler>());
         var rows = await pq.GetPoisonedAsync();
 
         rows.Should().HaveCount(2);
@@ -160,7 +160,7 @@ public class OutboxPoisonQueueTests
         var row = await h.Db.OutboxMessages.AsNoTracking().FirstAsync();
         row.IsPoisoned.Should().BeTrue();
 
-        var pq = new OutboxPoisonQueue(h.Db);
+        var pq = new OutboxPoisonQueue(h.Db, h.Scope.ServiceProvider.GetServices<IOutboxMessageHandler>());
         var requeued = await pq.RequeueAsync(row.Id);
         requeued.Should().BeTrue();
 
@@ -179,7 +179,7 @@ public class OutboxPoisonQueueTests
     public async Task RequeueAsync_ReturnsFalse_ForUnknownOrProcessedRows()
     {
         using var h = Build(maxAttempts: 1, handlerThrows: false);
-        var pq = new OutboxPoisonQueue(h.Db);
+        var pq = new OutboxPoisonQueue(h.Db, h.Scope.ServiceProvider.GetServices<IOutboxMessageHandler>());
 
         var missing = await pq.RequeueAsync(Guid.NewGuid());
         missing.Should().BeFalse();
@@ -204,7 +204,7 @@ public class OutboxPoisonQueueTests
         private readonly bool _throws;
         public ThrowingHandler(string type, bool throws) { MessageType = type; _throws = throws; }
         public string MessageType { get; }
-        public Task HandleAsync(string payload, CancellationToken cancellationToken)
+        public Task HandleAsync(Guid outboxMessageId, string payload, CancellationToken cancellationToken)
         {
             if (_throws) throw new InvalidOperationException("simulated failure");
             return Task.CompletedTask;

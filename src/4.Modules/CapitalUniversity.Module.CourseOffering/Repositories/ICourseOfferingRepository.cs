@@ -1,4 +1,6 @@
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
+using CapitalUniversity.Modules.CourseOffering.Abstractions.DTOs;
 using CourseOfferingEntity = CapitalUniversity.Modules.CourseOffering.Domain.CourseOffering;
 
 namespace CapitalUniversity.Modules.CourseOffering.Repositories;
@@ -6,6 +8,9 @@ namespace CapitalUniversity.Modules.CourseOffering.Repositories;
 public interface ICourseOfferingRepository
 {
     Task<CourseOfferingEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Cross-node paged search. Single SQL query.</summary>
+    Task<PagedResult<CourseOfferingEntity>> SearchAsync(CourseOfferingSearchQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Slim list of offerings for a (node, semester). Optional <paramref name="status"/>

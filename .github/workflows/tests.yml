@@ -1,0 +1,47 @@
+# CI test workflow.
+#
+# The concurrency suite uses Testcontainers.MsSql, which boots a SQL
+# Server container on demand. `ubuntu-latest` runners ship with Docker
+# pre-installed and the runner has permission to talk to the daemon
+# socket, so no extra setup step is required — just `dotnet test`.
+#
+# If you ever need to pin or warm the SQL image (image-pull delay shows
+# up as the first SqlServerDbFixture call on a fresh runner), uncomment
+# the explicit pull step below.
+
+name: tests
+
+on:
+  push:
+    branches: [ main, develop, "feat/**", "fix/**" ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore CapitalUniversity.sln
+
+      - name: Build
+        run: dotnet build CapitalUniversity.sln --configuration Release --no-restore
+
+      # Optional: pre-warm the SQL Server image so the first concurrency
+      # test fixture doesn't pay the image-pull latency. Comment out if
+      # you'd rather see the pull happen lazily on first use.
+      # - name: Warm Docker image
+      #   run: docker pull mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Test
+        run: dotnet test CapitalUniversity.sln --configuration Release --no-build --logger "console;verbosity=normal"

@@ -94,7 +94,7 @@ public class NotificationOutboxRoutingTests
         // Simulate the dispatcher: pull the row, invoke the handler.
         var row = await db.OutboxMessages.AsNoTracking().SingleAsync();
         var handler = new NotificationOutboxHandler(notifications);
-        await handler.HandleAsync(row.Payload, CancellationToken.None);
+        await handler.HandleAsync(row.Id, row.Payload, CancellationToken.None);
 
         var stored = await db.Notifications.AsNoTracking().SingleAsync();
         stored.RecipientUserId.Should().Be(recipient);

@@ -1,4 +1,6 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Application.Courses;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Courses;
@@ -9,6 +11,7 @@ using CapitalUniversity.Core.Infrastructure.Services.Roles.Mappings;
 using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CapitalUniversity.Core.UniTests;
@@ -117,7 +120,7 @@ public class UpdateStandardizationTests
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService());
+        var handler = new UpdateRoleCommandHandler(db, new TestLocalizationService(), Mock.Of<IPermissionManagementService>(), Mock.Of<ICurrentUser>());
         var request = new UpdateRoleRequest { Id = role.Id, Name = "Updated" };
 
         // Act

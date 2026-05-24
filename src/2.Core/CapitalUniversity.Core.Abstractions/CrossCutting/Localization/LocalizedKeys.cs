@@ -120,4 +120,27 @@ public static class LocalizedKeys
         public const string EndBeforeStart  = "schedule.end_before_start";
         public const string SlotConflict    = "schedule.slot_conflict";
     }
+
+    public static class StudentServices
+    {
+        public const string ServiceNotFound        = "student_services.service_not_found";
+        public const string ServiceInactive        = "student_services.service_inactive";
+        public const string ServiceCodeInUse       = "student_services.service_code_in_use";
+        public const string RequestNotFound        = "student_services.request_not_found";
+        public const string RequiredFieldMissing   = "student_services.required_field_missing";
+        public const string RequiredDocumentMissing = "student_services.required_document_missing";
+        public const string InvalidFieldValue      = "student_services.invalid_field_value";
+        public const string InvalidDropdownValue   = "student_services.invalid_dropdown_value";
+        public const string InvalidFileExtension   = "student_services.invalid_file_extension";
+        public const string FileTooLarge           = "student_services.file_too_large";
+        public const string InvalidTransition      = "student_services.invalid_transition";
+        public const string UnauthorizedTransition = "student_services.unauthorized_transition";
+        public const string CannotCancelAfterProcessing = "student_services.cannot_cancel_after_processing";
+        public const string WorkflowNotFound       = "student_services.workflow_not_found";
+        public const string WorkflowCodeInUse      = "student_services.workflow_code_in_use";
+        public const string WorkflowMissingInitial = "student_services.workflow_missing_initial";
+        public const string PaymentRequired        = "student_services.payment_required";
+        public const string RequestNotWaitingPayment = "student_services.request_not_waiting_payment";
+        public const string DuplicateFieldValue    = "student_services.duplicate_field_value";
+    }
 }

@@ -16,16 +16,14 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 table: "StudentProfileRecords",
                 type: "rowversion",
                 rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0]);
+                nullable: false);
 
             migrationBuilder.AddColumn<byte[]>(
                 name: "RowVersion",
                 table: "Invoices",
                 type: "rowversion",
                 rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0]);
+                nullable: false);
 
             migrationBuilder.AlterColumn<string>(
                 name: "Code",
@@ -43,8 +41,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 table: "AcademicPlans",
                 type: "rowversion",
                 rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0]);
+                nullable: false);
 
             migrationBuilder.CreateIndex(
                 name: "IX_StudentProfileRecords_StudentId_Category_CustomCategoryKey",

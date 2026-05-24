@@ -7,6 +7,7 @@ using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
+using CapitalUniversity.Modules.StudentServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -74,6 +75,10 @@ builder.Services.AddCourseOfferingModule();
 // checks — registered AFTER CourseOffering so the resolver finds the
 // dependency at construction time.
 builder.Services.AddScheduleModule();
+// Student Services depends on IFeeCreationService (Payments) for fee
+// authoring on submit — registered AFTER Payments so the resolver finds
+// the dependency at construction time.
+builder.Services.AddStudentServicesModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
@@ -164,6 +169,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseMiddleware<SessionVersionMiddleware>();
+// M14 — Preload UserScope before any authorisation handler or controller can
+// touch its synchronous accessors; eliminates the sync-over-async hot path.
+app.UseMiddleware<UserScopePreloadMiddleware>();
 app.UseAuthorization();
 
 // Health endpoint (anonymous).

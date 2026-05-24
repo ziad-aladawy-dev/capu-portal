@@ -2,6 +2,7 @@ using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
@@ -31,6 +32,19 @@ public class AcademicPlansController : ControllerBase
     public async Task<IActionResult> GetForStructureNode(Guid structureNodeId, CancellationToken cancellationToken)
     {
         var result = await _service.GetForStructureNodeAsync(structureNodeId, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Paged plan search. Filters: <c>structureNodeId</c>, <c>isActive</c>,
+    /// <c>effectiveFromInclusive</c>, <c>effectiveToExclusive</c>; free-text on name.
+    /// Sort: <c>name|effectiveFrom|createdAt</c>.
+    /// </summary>
+    [HttpGet("search")]
+    [HasPermission(PermissionNames.AcademicPlans.View)]
+    public async Task<IActionResult> Search([FromQuery] AcademicPlanSearchQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.SearchAsync(query, cancellationToken);
         return Ok(result);
     }
 
@@ -72,6 +86,30 @@ public class AcademicPlansController : ControllerBase
     {
         await _service.RemoveCourseAsync(id, planCourseId, cancellationToken);
         return Ok(new { Message = "Course removed from academic plan" });
+    }
+
+    /// <summary>
+    /// Atomic add/remove diff on the plan's composition. Either every step in
+    /// the diff lands or none do — a curriculum revision should never leave
+    /// the plan half-applied. Per-step errors surface as 4xx (validation / not
+    /// found / conflict) and the entire batch is rejected.
+    /// </summary>
+    [HttpPost("{id:guid}/courses/batch")]
+    [HasPermission(PermissionNames.AcademicPlans.EditClose)]
+    public async Task<IActionResult> BatchUpdateCourses(Guid id, [FromBody] BatchPlanCoursesRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return BadRequest(new { Message = "A batch request body is required." });
+        }
+        var total = request.Add.Count + request.Remove.Count;
+        if (total > BulkConstants.MaxBulkSize)
+        {
+            return BadRequest(new { Message = $"Cannot apply more than {BulkConstants.MaxBulkSize} composition changes in one batch." });
+        }
+
+        await _service.BatchUpdateCoursesAsync(id, request, cancellationToken);
+        return Ok(new { Message = "Academic plan composition updated" });
     }
 
     [HttpPost("{id:guid}/close-record")]

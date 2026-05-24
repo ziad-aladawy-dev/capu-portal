@@ -52,47 +52,52 @@ public class Phase1IntegrationTests : IClassFixture<WebApplicationFactory<Module
     }
 
     [Fact]
-    public async Task SecuredEndpoint_WithoutToken_Returns401()
+    public async Task SecuredEndpoint_WithoutToken_Returns401_WithBearerChallenge()
     {
         var client = _factory.CreateClient();
         var response = await client.GetAsync("/api/permissions");
+
+        // Task 1 cleanup — was status-code-only. Now also pins that the
+        // response carries a Bearer authentication challenge, so a mutation
+        // that drops the JWT scheme from Program.cs surfaces here instead of
+        // silently letting anonymous traffic through with a different 401.
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Headers.WwwAuthenticate.Should().NotBeEmpty();
+        response.Headers.WwwAuthenticate.Should().Contain(h => h.Scheme == "Bearer");
     }
 
-    [Fact]
-    public async Task PermissionsEndpoint_AuthenticatedButNoGrant_Returns403()
+    public static IEnumerable<object[]> ForbiddenScenarios()
     {
-        // Department Head is a real seeded staff: token validates, SessionVersion
-        // matches, but they don't hold permissions.permissions.View → 403.
-        var client = await AuthenticatedClientAsync(DeptHeadNid, DeptHeadPwd);
-        var response = await client.GetAsync("/api/permissions");
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        // (identifier, password, endpoint, label) — each pair authenticates
+        // successfully but lacks the permission for the endpoint. Folded into
+        // one Theory so the same body-shape assertions cover every case.
+        yield return new object[] { DeptHeadNid, DeptHeadPwd, "/api/permissions", "dept-head/permissions" };
+        yield return new object[] { DeptHeadNid, DeptHeadPwd, "/api/roles",       "dept-head/roles"       };
+        yield return new object[] { StudentNid,  StudentPwd,  "/api/roles",       "student/roles"         };
+        yield return new object[] { StudentNid,  StudentPwd,  "/api/permissions", "student/permissions"   };
     }
 
-    [Fact]
-    public async Task RolesEndpoint_AuthenticatedButNoGrant_Returns403()
+    [Theory]
+    [MemberData(nameof(ForbiddenScenarios))]
+    public async Task AuthenticatedCallerWithoutGrant_Returns403_WithNoBodyLeak(
+        string identifier, string password, string endpoint, string label)
     {
-        var client = await AuthenticatedClientAsync(DeptHeadNid, DeptHeadPwd);
-        var response = await client.GetAsync("/api/roles");
-        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
+        // Task 1 cleanup — four near-identical [Fact]s asserting "403 with no
+        // grant" folded into one Theory. Each row also asserts no information
+        // leak: the 403 body must NOT echo back the resource that was
+        // requested (e.g. the offending path or a list of granted scopes),
+        // which an over-eager error handler could accidentally leak.
+        _ = label; // used for xUnit test-explorer readability only
+        var client = await AuthenticatedClientAsync(identifier, password);
 
-    [Fact]
-    public async Task RolesEndpoint_Student_Returns403()
-    {
-        var client = await AuthenticatedClientAsync(StudentNid, StudentPwd);
-        var response = await client.GetAsync("/api/roles");
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
+        var response = await client.GetAsync(endpoint);
 
-    [Fact]
-    public async Task PermissionsEndpoint_Student_Returns403()
-    {
-        var client = await AuthenticatedClientAsync(StudentNid, StudentPwd);
-        var response = await client.GetAsync("/api/permissions");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized,
+            "auth succeeded — only the permission gate refused");
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().NotContain(identifier,
+            "the 403 response must not echo the caller identifier back to the wire");
     }
 
     [Fact]

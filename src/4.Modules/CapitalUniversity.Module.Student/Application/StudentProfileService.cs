@@ -141,7 +141,7 @@ public class StudentProfileService : IStudentProfileService
         return record.Id;
     }
 
-    public async Task VerifyAsync(Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default)
+    public async Task VerifyAsync(Guid studentId, Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default)
     {
         var validation = await _verifyValidator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
@@ -153,6 +153,14 @@ public class StudentProfileService : IStudentProfileService
 
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        // C1 — ownership guard. A record loaded by id whose StudentId disagrees
+        // with the route's studentId is reported identically to a missing record
+        // so an attacker cannot probe for cross-student record ids.
+        if (record.StudentId != studentId)
+        {
+            throw new NotFoundException(ProfileRecordNotFound);
+        }
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
@@ -167,10 +175,16 @@ public class StudentProfileService : IStudentProfileService
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default)
     {
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        // C1 — same ownership guard as VerifyAsync.
+        if (record.StudentId != studentId)
+        {
+            throw new NotFoundException(ProfileRecordNotFound);
+        }
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
