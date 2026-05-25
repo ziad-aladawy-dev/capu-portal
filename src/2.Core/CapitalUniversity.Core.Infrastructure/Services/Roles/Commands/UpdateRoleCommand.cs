@@ -45,7 +45,8 @@ public class UpdateRoleCommandHandler
         if (_currentUser.Id != Guid.Empty)
         {
             var grants = await _permissions.GetPermissionLookupAsync(_currentUser.Id, cancellationToken);
-            if (!grants.Contains(PermissionNames.Roles.EditClose))
+            // Canonicalise — see CreateRoleCommandHandler for rationale.
+            if (!grants.Contains(PermissionIdentity.Parse(PermissionNames.Roles.EditClose)))
             {
                 throw new ForbiddenException(LocalizedKeys.Permissions.Forbidden);
             }

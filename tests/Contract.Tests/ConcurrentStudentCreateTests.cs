@@ -76,7 +76,8 @@ public class ConcurrentStudentCreateTests : IClassFixture<WebApplicationFactory<
         {
             StudentCode = $"CONC-{Guid.NewGuid():N}".Substring(0, 12),
             NationalId = $"99{i:D12}",
-            Name = $"Concurrent Student {i}",
+            NameAr = $"طالب متزامن {i}",
+            NameEn = $"Concurrent Student {i}",
             BirthDate = new DateTime(2003, 1, 1),
             PhoneNumber = $"0100000{i:D4}",
             Email = $"conc{i}@test.eg",

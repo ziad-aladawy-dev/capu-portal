@@ -36,7 +36,8 @@ public class DeleteRoleCommandHandler
         if (_currentUser.Id != Guid.Empty)
         {
             var grants = await _permissions.GetPermissionLookupAsync(_currentUser.Id, cancellationToken);
-            if (!grants.Contains(PermissionNames.Roles.Delete))
+            // Canonicalise — see CreateRoleCommandHandler for rationale.
+            if (!grants.Contains(PermissionIdentity.Parse(PermissionNames.Roles.Delete)))
             {
                 throw new ForbiddenException(LocalizedKeys.Permissions.Forbidden);
             }

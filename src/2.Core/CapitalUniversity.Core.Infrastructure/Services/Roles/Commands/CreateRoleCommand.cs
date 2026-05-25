@@ -67,7 +67,12 @@ public class CreateRoleCommandHandler
     {
         if (_currentUser.Id == Guid.Empty) return;
         var grants = await _permissions.GetPermissionLookupAsync(_currentUser.Id, cancellationToken);
-        if (!grants.Contains(permission))
+        // GetPermissionLookupAsync stores entries via PermissionIdentity.Create, which
+        // capitalises each segment ("Permissions.Roles.Insert"). PermissionNames
+        // constants are lowercase ("permissions.roles.Insert"), so we must canonicalise
+        // before doing an ordinal Contains — otherwise super admin trips the check
+        // even when the controller-level [HasPermission] already passed.
+        if (!grants.Contains(PermissionIdentity.Parse(permission)))
         {
             throw new ForbiddenException(LocalizedKeys.Permissions.Forbidden);
         }

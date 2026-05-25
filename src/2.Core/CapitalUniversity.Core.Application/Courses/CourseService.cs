@@ -89,11 +89,14 @@ public class CourseService : ICourseService
     }
 
     /// <summary>
-    /// Decode the bilingual <c>Title</c> field on a <see cref="CourseResponse"/>
-    /// against the current culture. Plain-text rows pass through unchanged.
+    /// Decode the bilingual <c>Code</c> and <c>Title</c> fields on a
+    /// <see cref="CourseResponse"/> against the current culture. Plain-text
+    /// rows pass through unchanged — <see cref="ILocalizationService.Get{T}"/>
+    /// treats a non-JSON value as a single-culture literal.
     /// </summary>
     private CourseResponse Localize(CourseResponse response)
     {
+        response.Code = _localization.Get<string>(response.Code);
         response.Title = _localization.Get<string>(response.Title);
         return response;
     }

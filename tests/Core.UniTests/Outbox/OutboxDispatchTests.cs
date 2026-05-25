@@ -152,7 +152,7 @@ public class OutboxDispatchTests
         public int Calls;
         public EchoHandler(bool throws) { _throws = throws; }
         public string MessageType => TestMessageType;
-        public Task HandleAsync(string payload, CancellationToken cancellationToken)
+        public Task HandleAsync(Guid outboxMessageId, string payload, CancellationToken cancellationToken)
         {
             Calls++;
             if (_throws) throw new InvalidOperationException("simulated handler failure");

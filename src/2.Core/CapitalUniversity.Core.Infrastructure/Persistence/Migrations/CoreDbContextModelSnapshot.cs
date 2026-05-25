@@ -1221,6 +1221,211 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("StudentProfileRecords", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AllowedExtensions")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<long>("MaxFileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentServiceId", "DisplayOrder");
+
+                    b.HasIndex("StudentServiceId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceDocumentDefinitions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DocumentDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("StudentServiceRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentDefinitionId");
+
+                    b.HasIndex("StudentServiceRequestId", "DocumentDefinitionId");
+
+                    b.ToTable("ServiceDocumentSubmissions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DropdownValues")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("FieldType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int?>("MaxLength")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MaxValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int?>("MinLength")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MinValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentServiceId", "DisplayOrder");
+
+                    b.HasIndex("StudentServiceId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceFieldDefinitions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("StudentServiceRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId");
+
+                    b.HasIndex("StudentServiceRequestId", "FieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("ServiceFieldValues", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentService", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1353,218 +1558,13 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PaymentReferenceId");
 
+                    b.HasIndex("CurrentStatus", "SubmittedAt");
+
                     b.HasIndex("StudentId", "CurrentStatus");
 
                     b.HasIndex("StudentServiceId", "CurrentStatus");
 
-                    b.HasIndex("CurrentStatus", "SubmittedAt");
-
                     b.ToTable("StudentServiceRequests", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DropdownValues")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<int>("FieldType")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<int?>("MaxLength")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("MaxValue")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int?>("MinLength")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("MinValue")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("StudentServiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentServiceId", "Name")
-                        .IsUnique();
-
-                    b.HasIndex("StudentServiceId", "DisplayOrder");
-
-                    b.ToTable("ServiceFieldDefinitions", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldValue", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("FieldDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("StudentServiceRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FieldDefinitionId");
-
-                    b.HasIndex("StudentServiceRequestId", "FieldDefinitionId")
-                        .IsUnique();
-
-                    b.ToTable("ServiceFieldValues", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AllowedExtensions")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<long>("MaxFileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("StudentServiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentServiceId", "Name")
-                        .IsUnique();
-
-                    b.HasIndex("StudentServiceId", "DisplayOrder");
-
-                    b.ToTable("ServiceDocumentDefinitions", (string)null);
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("DocumentDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("StoredFileName")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<Guid>("StudentServiceRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DocumentDefinitionId");
-
-                    b.HasIndex("StudentServiceRequestId", "DocumentDefinitionId");
-
-                    b.ToTable("ServiceDocumentSubmissions", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowDefinition", b =>
@@ -1875,21 +1875,34 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
                 {
-                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
-                        .WithMany()
+                        .WithMany("Documents")
                         .HasForeignKey("StudentServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("StudentService");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", "DocumentDefinition")
+                        .WithMany()
+                        .HasForeignKey("DocumentDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", "StudentServiceRequest")
+                        .WithMany("Documents")
+                        .HasForeignKey("StudentServiceRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentDefinition");
+
+                    b.Navigation("StudentServiceRequest");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", b =>
@@ -1922,34 +1935,21 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("StudentServiceRequest");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", b =>
                 {
-                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
-                        .WithMany("Documents")
-                        .HasForeignKey("StudentServiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StudentService");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
-                {
-                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", "DocumentDefinition")
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
                         .WithMany()
-                        .HasForeignKey("DocumentDefinitionId")
+                        .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", "StudentServiceRequest")
-                        .WithMany("Documents")
-                        .HasForeignKey("StudentServiceRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
+                        .WithMany()
+                        .HasForeignKey("StudentServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("DocumentDefinition");
-
-                    b.Navigation("StudentServiceRequest");
+                    b.Navigation("StudentService");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowState", b =>

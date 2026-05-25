@@ -204,7 +204,7 @@ public class OutboxPoisonQueueTests
         private readonly bool _throws;
         public ThrowingHandler(string type, bool throws) { MessageType = type; _throws = throws; }
         public string MessageType { get; }
-        public Task HandleAsync(string payload, CancellationToken cancellationToken)
+        public Task HandleAsync(Guid outboxMessageId, string payload, CancellationToken cancellationToken)
         {
             if (_throws) throw new InvalidOperationException("simulated failure");
             return Task.CompletedTask;

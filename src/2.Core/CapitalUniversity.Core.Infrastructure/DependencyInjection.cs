@@ -192,6 +192,15 @@ public static class DependencyInjection
         services.AddScoped<IPermissionManagementService, PermissionManagementService>();
         services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
 
+        // Role command/query handlers — concrete classes injected directly into
+        // RolesController. No interface abstraction yet (kept simple per the
+        // handler's "// Keeping it simple as a service/handler for now" note).
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.CreateRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.DeleteRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRoleByIdQueryHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRolesQueryHandler>();
+
         // Security-event audit logger (PR-B4) — routes denials, auth failures,
         // token revocations + role assignment changes through the async audit
         // pipeline. Wired as Scoped so it picks up the per-request HttpContext.
