@@ -49,6 +49,8 @@ public static class ScheduleModuleExtensions
         services.AddScoped<IOutboxMessageHandler, ScheduleSlotCreatedHandler>();
         services.AddScoped<IOutboxMessageHandler, ScheduleSlotUpdatedHandler>();
         services.AddScoped<IOutboxMessageHandler, ScheduleSlotDeletedHandler>();
+        // M2 — cleans up orphan slots when a CourseOffering is deleted.
+        services.AddScoped<IOutboxMessageHandler, CourseOfferingDeletedHandler>();
 
         var moduleAssembly = typeof(ScheduleModuleExtensions).Assembly;
         if (!CoreDbContext.ModuleConfigurationAssemblies.Contains(moduleAssembly))

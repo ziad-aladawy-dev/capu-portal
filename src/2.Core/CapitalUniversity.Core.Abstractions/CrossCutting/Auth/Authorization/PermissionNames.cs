@@ -135,12 +135,6 @@ public static class PermissionNames
         public const string Delete    = "student-information.profile-records.Delete";
     }
 
-    /// <summary>
-    /// Course offering lifecycle (schedule sections per term + structure node).
-    /// Module = <c>course-offerings</c>, Resource = <c>course-offerings</c>.
-    /// Bound by <see cref="CourseOfferingsController"/>; declared by
-    /// <c>CourseOfferingPermissionManifest</c>.
-    /// </summary>
     public static class CourseOfferings
     {
         public const string View      = "course-offerings.course-offerings.View";
@@ -150,4 +144,53 @@ public static class PermissionNames
         public const string Delete    = "course-offerings.course-offerings.Delete";
     }
 
+    public static class Schedule
+    {
+        public const string View      = "schedule.schedule-slots.View";
+        public const string Insert    = "schedule.schedule-slots.Insert";
+        public const string EditClose = "schedule.schedule-slots.EditClose";
+        public const string Open      = "schedule.schedule-slots.Open";
+        public const string Delete    = "schedule.schedule-slots.Delete";
+    }
+
+    /// <summary>
+    /// Student Services — service catalog management (admin only).
+    /// Module = <c>student-services</c>, Resource = <c>services</c>.
+    /// </summary>
+    public static class StudentServicesCatalog
+    {
+        public const string View      = "student-services.services.View";
+        public const string Insert    = "student-services.services.Insert";
+        public const string EditClose = "student-services.services.EditClose";
+        public const string Open      = "student-services.services.Open";
+        public const string Delete    = "student-services.services.Delete";
+    }
+
+    /// <summary>
+    /// Student Services — request lifecycle. Students hold View+Insert through
+    /// their default role grant (own-row scope enforced in the service layer);
+    /// staff hold the higher verbs.
+    /// Module = <c>student-services</c>, Resource = <c>requests</c>.
+    /// </summary>
+    public static class StudentServiceRequests
+    {
+        public const string View      = "student-services.requests.View";
+        public const string Insert    = "student-services.requests.Insert";
+        public const string EditClose = "student-services.requests.EditClose";
+        public const string Open      = "student-services.requests.Open";
+        public const string Delete    = "student-services.requests.Delete";
+    }
+
+    /// <summary>
+    /// Student Services — workflow configuration (admin only).
+    /// Module = <c>student-services</c>, Resource = <c>workflows</c>.
+    /// </summary>
+    public static class StudentServiceWorkflows
+    {
+        public const string View      = "student-services.workflows.View";
+        public const string Insert    = "student-services.workflows.Insert";
+        public const string EditClose = "student-services.workflows.EditClose";
+        public const string Open      = "student-services.workflows.Open";
+        public const string Delete    = "student-services.workflows.Delete";
+    }
 }

@@ -72,6 +72,7 @@ public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
         int resourcesCreated = 0;
         int resourcesUpdated = 0;
 
+        int resourcesRenamed = 0;
         foreach (var manifest in _registry.Manifests)
         {
             var moduleRow = moduleByKey[manifest.Module];
@@ -93,6 +94,37 @@ public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
                     continue;
                 }
 
+                // M13 — rename detection. When the manifest declares
+                // PreviousKeys and one of them matches an existing row under
+                // the same module, treat the new declaration as a rename:
+                // update the row's Key (FK pointers from RolePermission /
+                // StaffPermissionOverride survive automatically because they
+                // reference ResourceId, not Key) and refresh metadata. Grants
+                // remain valid; admins do not silently lose permissions on
+                // the new key.
+                Resource? renamed = null;
+                if (resource.PreviousKeys is { Count: > 0 })
+                {
+                    foreach (var previousKey in resource.PreviousKeys)
+                    {
+                        if (byKey.TryGetValue(previousKey, out var legacyRow))
+                        {
+                            renamed = legacyRow;
+                            break;
+                        }
+                    }
+                }
+
+                if (renamed is not null)
+                {
+                    byKey.Remove(renamed.Key);
+                    renamed.Key = resource.Key;
+                    RefreshResourceMetadata(renamed, resource);
+                    byKey[renamed.Key] = renamed;
+                    resourcesRenamed++;
+                    continue;
+                }
+
                 var row = new Resource
                 {
                     Id = Guid.NewGuid(),
@@ -107,7 +139,7 @@ public class PermissionManifestSynchronizer : IPermissionManifestSynchronizer
             }
         }
 
-        if (resourcesCreated > 0 || resourcesUpdated > 0)
+        if (resourcesCreated > 0 || resourcesUpdated > 0 || resourcesRenamed > 0)
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }

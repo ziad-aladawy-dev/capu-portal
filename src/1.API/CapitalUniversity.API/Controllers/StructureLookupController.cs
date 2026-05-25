@@ -93,10 +93,4 @@ public class StructureLookupController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("faculties/{facultyId}/programs")]
-    public async Task<IActionResult> GetProgramsByFaculty(Guid facultyId)
-    {
-        var result = await _service.GetProgramsByFacultyAsync(facultyId);
-        return Ok(result);
-    }
 }

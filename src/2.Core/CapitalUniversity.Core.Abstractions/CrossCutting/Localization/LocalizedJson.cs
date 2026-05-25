@@ -25,6 +25,43 @@ public static class LocalizedJson
     public static string Of(string ar, string en) =>
         $"{{\"ar\":\"{Escape(ar)}\",\"en\":\"{Escape(en)}\"}}";
 
+    /// <summary>
+    /// Ensure a string is always a valid bilingual JSON object <c>{"ar":"…","en":"…"}</c>.
+    /// <list type="bullet">
+    /// <item>If <paramref name="value"/> is already a valid bilingual JSON, it is returned as-is.</item>
+    /// <item>If it is a JSON object missing a key, the missing key is added with an empty string.</item>
+    /// <item>If it is plain text or invalid JSON, it is treated as the value for both cultures.</item>
+    /// </list>
+    /// </summary>
+    public static string Normalize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return Of(string.Empty, string.Empty);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(value);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                var ar = doc.RootElement.TryGetProperty("ar", out var arProp) ? arProp.GetString() : null;
+                var en = doc.RootElement.TryGetProperty("en", out var enProp) ? enProp.GetString() : null;
+
+                // If it's already a localized object (even if one key is missing), 
+                // fill the gaps and return the canonical shape.
+                if (ar != null || en != null)
+                {
+                    return Of(ar ?? string.Empty, en ?? string.Empty);
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Not a JSON object — treat as plain text.
+        }
+
+        // Plain text or non-bilingual JSON: use the input for both cultures.
+        return Of(value, value);
+    }
+
     private static string Escape(string value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;

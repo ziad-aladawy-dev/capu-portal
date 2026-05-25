@@ -23,7 +23,12 @@ public class SemesterConfiguration : IEntityTypeConfiguration<Semester>
         builder.Property(x => x.EndDate)
             .IsRequired();
 
-        builder.HasIndex(x => x.IsCurrent)
+        // H7 — filtered UNIQUE index keyed on (AcademicYearId, IsCurrent) so
+        // at most one semester per academic year can be marked current. See
+        // the matching note on AcademicYearConfiguration. The composite key
+        // matches the resolver's per-year scope.
+        builder.HasIndex(x => new { x.AcademicYearId, x.IsCurrent })
+            .IsUnique()
             .HasFilter("[IsCurrent] = 1");
 
         builder.HasOne(x => x.AcademicYear)

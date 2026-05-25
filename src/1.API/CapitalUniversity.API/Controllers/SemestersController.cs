@@ -59,27 +59,47 @@ public class SemestersController : ControllerBase
         return Ok(new { Message = "Semester deleted successfully" });
     }
 
+    /// <summary>
+    /// Recomputes the <c>IsCurrent</c> flag across all semesters in the
+    /// current academic year against the server's UTC clock. At most one
+    /// semester per academic year ends up with <c>IsCurrent = true</c>;
+    /// when no academic year is current, all semester flags are cleared.
+    /// Idempotent — invoking twice with no intervening date or schema change
+    /// is a no-op. The same logic runs on a background timer
+    /// (<see cref="Infrastructure.Services.Semesters.AcademicTimelineBackgroundService"/>);
+    /// this endpoint is the manual trigger.
+    /// </summary>
+    /// <remarks>
+    /// This is a WRITE operation despite taking no body. Side effects:
+    /// <list type="bullet">
+    ///   <item><description>UPDATEs <c>Semesters.IsCurrent</c> on zero or more rows.</description></item>
+    ///   <item><description>UPDATEs <c>Semesters.UpdatedAt</c> on every mutated row.</description></item>
+    /// </list>
+    /// The <c>resolve</c> route is a deprecated alias retained for the frontend
+    /// and the background service; new callers should use <c>recompute-current</c>.
+    /// </remarks>
+    [HttpPost("recompute-current")]
     [HttpPost("resolve")]
     [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
-    public async Task<IActionResult> Resolve()
+    public async Task<IActionResult> RecomputeCurrent()
     {
         await _service.ResolveCurrentSemesterAsync();
-        return Ok(new { Message = "Semester resolution triggered" });
+        return Ok(new { Message = "Current semester flag recomputed" });
     }
 
-    [HttpPost("{id:guid}/close")]
+    [HttpPost("{id:guid}/close-record")]
     [HasPermission(PermissionNames.AcademicTimeline.EditClose)]
-    public async Task<IActionResult> Close(Guid id)
+    public async Task<IActionResult> CloseRecord(Guid id)
     {
-        await _service.CloseAsync(id);
+        await _service.CloseRecordAsync(id);
         return Ok(new { Message = "Semester closed" });
     }
 
-    [HttpPost("{id:guid}/reopen")]
+    [HttpPost("{id:guid}/open-record")]
     [HasPermission(PermissionNames.AcademicTimeline.Open)]
-    public async Task<IActionResult> Reopen(Guid id)
+    public async Task<IActionResult> OpenRecord(Guid id)
     {
-        await _service.ReopenAsync(id);
+        await _service.OpenRecordAsync(id);
         return Ok(new { Message = "Semester reopened" });
     }
 }

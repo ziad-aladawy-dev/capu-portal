@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation.DTOs;
@@ -141,7 +142,7 @@ public class StudentProfileService : IStudentProfileService
         return record.Id;
     }
 
-    public async Task VerifyAsync(Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default)
+    public async Task VerifyAsync(Guid studentId, Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default)
     {
         var validation = await _verifyValidator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
@@ -153,6 +154,14 @@ public class StudentProfileService : IStudentProfileService
 
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        // C1 — ownership guard. A record loaded by id whose StudentId disagrees
+        // with the route's studentId is reported identically to a missing record
+        // so an attacker cannot probe for cross-student record ids.
+        if (record.StudentId != studentId)
+        {
+            throw new NotFoundException(ProfileRecordNotFound);
+        }
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
@@ -167,10 +176,16 @@ public class StudentProfileService : IStudentProfileService
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default)
     {
         var record = await _records.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        // C1 — same ownership guard as VerifyAsync.
+        if (record.StudentId != studentId)
+        {
+            throw new NotFoundException(ProfileRecordNotFound);
+        }
 
         if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken))
         {
@@ -180,6 +195,76 @@ public class StudentProfileService : IStudentProfileService
         _records.Delete(record);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task<BulkActionResult> BatchUpsertAsync(Guid studentId, IReadOnlyList<UpsertStudentProfileRecordRequest> records, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(records.Count);
+        var failures = new List<BulkActionFailure>();
+
+        for (var idx = 0; idx < records.Count; idx++)
+        {
+            // Stable per-index pseudo-id so the caller can correlate failures
+            // with the original record (no entity id exists pre-upsert).
+            var slot = SlotId(idx);
+            try
+            {
+                var id = await UpsertAsync(studentId, records[idx], cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = slot, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ValidationException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = slot, Code = BulkFailureCodes.Validation, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = slot, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
+    }
+
+    public async Task<BulkActionResult> BatchVerifyAsync(Guid studentId, IReadOnlyList<Guid> recordIds, Guid verifiedBy, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(recordIds.Count);
+        var failures = new List<BulkActionFailure>();
+        var verifyReq = new VerifyStudentProfileRecordRequest { VerifiedBy = verifiedBy };
+
+        foreach (var id in recordIds.Distinct())
+        {
+            try
+            {
+                await VerifyAsync(studentId, id, verifyReq, cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ValidationException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Validation, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
+    }
+
+    /// <summary>
+    /// Synthetic per-index id used in <see cref="BatchUpsertAsync"/> failures
+    /// so callers can correlate a failing record with its position in the
+    /// request (no entity id exists for a record that never persisted).
+    /// </summary>
+    private static Guid SlotId(int index)
+    {
+        var bytes = new byte[16];
+        BitConverter.GetBytes(index).CopyTo(bytes, 12);
+        return new Guid(bytes);
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

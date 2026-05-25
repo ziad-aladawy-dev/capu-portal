@@ -32,4 +32,16 @@ public class PaymentsController : ControllerBase
         var result = await _service.GetForInvoiceAsync(invoiceId, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Paged transactions search. Filters: <c>invoiceId</c>, <c>studentId</c>,
+    /// <c>status</c>, <c>provider</c>, <c>from/to</c>, amount range, free-text.
+    /// </summary>
+    [HttpGet("transactions")]
+    [HasPermission(PermissionNames.PaymentTransactions.View)]
+    public async Task<IActionResult> SearchTransactions([FromQuery] PaymentTransactionSearchQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.SearchAsync(query, cancellationToken);
+        return Ok(result);
+    }
 }

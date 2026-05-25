@@ -27,4 +27,16 @@ public interface IEffectiveScope
     /// the student's own ancestor path (so they see their own program/plan).
     /// </summary>
     Task<bool> CanAccessStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// True when the caller's active temporal scope (from headers) covers the
+    /// requested <paramref name="academicYearId"/>.
+    /// </summary>
+    Task<bool> CanAccessAcademicYearAsync(Guid academicYearId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// True when the caller's active temporal scope (from headers) covers the
+    /// requested <paramref name="semesterId"/>.
+    /// </summary>
+    Task<bool> CanAccessSemesterAsync(Guid semesterId, CancellationToken cancellationToken = default);
 }

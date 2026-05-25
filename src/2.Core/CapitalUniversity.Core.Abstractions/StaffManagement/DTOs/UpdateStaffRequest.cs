@@ -2,9 +2,7 @@
 
 public class UpdateStaffRequest
 {
-    public string NameAr { get; set; } = string.Empty;
-
-    public string NameEn { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 
     public string NationalId { get; set; } = string.Empty;
 

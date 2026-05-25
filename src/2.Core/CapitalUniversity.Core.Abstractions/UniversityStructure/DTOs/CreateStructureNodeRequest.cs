@@ -6,8 +6,6 @@ public class CreateStructureNodeRequest
 {
     public string Name { get; set; } = string.Empty;
 
-    public string NameEn { get; set; } = string.Empty;
-
     public StructureNodeType Type { get; set; }
 
     public Guid? ParentId { get; set; }

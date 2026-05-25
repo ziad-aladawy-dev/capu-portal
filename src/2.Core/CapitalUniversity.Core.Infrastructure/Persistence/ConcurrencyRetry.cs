@@ -20,6 +20,13 @@ public static class ConcurrencyRetry
 {
     public const int DefaultMaxAttempts = 3;
 
+    // H10 — jittered exponential backoff between attempts. Caps prevent
+    // runaway delays from compounding when the helper is composed with the
+    // EF Core SQL provider's transient-error retry policy on top.
+    internal const int BaseDelayMilliseconds = 20;
+    internal const int MaxJitterMilliseconds = 30;
+    internal const int MaxDelayMilliseconds = 500;
+
     public static async Task<T> ExecuteAsync<T>(
         Func<CancellationToken, Task<T>> action,
         int maxAttempts = DefaultMaxAttempts,
@@ -35,9 +42,22 @@ public static class ConcurrencyRetry
             }
             catch (DbUpdateConcurrencyException) when (attempt < maxAttempts)
             {
-                // Loop. The action is expected to reload state on its next call.
+                // H10 — exponential backoff with jitter so concurrent retries
+                // don't dogpile the same row. Capped at MaxDelayMilliseconds so
+                // we don't trade a CPU storm for an unbounded latency tail.
+                await Task.Delay(NextDelay(attempt), cancellationToken);
             }
         }
+    }
+
+    internal static TimeSpan NextDelay(int attempt)
+    {
+        // attempt is 1-based after the throw, so the first wait uses 2^0.
+        var exponent = Math.Max(0, attempt - 1);
+        var baseMs = BaseDelayMilliseconds * Math.Pow(2, exponent);
+        var jitter = Random.Shared.Next(0, MaxJitterMilliseconds);
+        var capped = Math.Min(MaxDelayMilliseconds, baseMs + jitter);
+        return TimeSpan.FromMilliseconds(capped);
     }
 
     public static Task ExecuteAsync(

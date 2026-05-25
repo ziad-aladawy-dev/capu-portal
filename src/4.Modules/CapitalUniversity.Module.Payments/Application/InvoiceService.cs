@@ -1,6 +1,8 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Core.Abstractions.Repositories;
@@ -149,7 +151,7 @@ public class InvoiceService : IInvoiceService
                 FeeType = i.FeeType,
                 SourceModule = i.SourceModule,
                 ReferenceId = i.ReferenceId,
-                Description = i.Description,
+                Description = LocalizedJson.Normalize(i.Description),
             });
         }
         invoice.TotalAmount = invoice.Items.Sum(it => it.Amount);
@@ -170,6 +172,8 @@ public class InvoiceService : IInvoiceService
             throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
         }
 
+        invoice.EnsureMutable();
+
         if (invoice.Status == InvoiceStatus.Paid)
         {
             throw new ConflictException(LocalizedKeys.Payments.PaidCannotCancel);
@@ -184,6 +188,107 @@ public class InvoiceService : IInvoiceService
         _invoices.Update(invoice);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await LoadForWriteAsync(id, cancellationToken);
+        invoice.Close();
+        _invoices.Update(invoice);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var invoice = await LoadForWriteAsync(id, cancellationToken);
+        invoice.Reopen();
+        _invoices.Update(invoice);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    private async Task<Invoice> LoadForWriteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var invoice = await _invoices.GetByIdAsync(id, includeItems: false, includeTransactions: false, cancellationToken: cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
+
+        if (!await _scope.CanAccessStudentAsync(invoice.StudentId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
+        }
+        return invoice;
+    }
+
+    public async Task<PagedResult<InvoiceResponse>> SearchAsync(InvoiceSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // P1.1 — if the caller pinned a studentId, enforce scope on that one id
+        // (returns an empty page if the student is invisible to the caller — no
+        // existence leak). Cross-student queries are guarded at the route
+        // permission level (Invoices.View — admin-scoped).
+        if (query.StudentId.HasValue &&
+            !await _scope.CanAccessStudentAsync(query.StudentId.Value, cancellationToken))
+        {
+            return new PagedResult<InvoiceResponse>
+            {
+                Items = new List<InvoiceResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+                TotalCount = 0,
+                TotalPages = 0,
+            };
+        }
+
+        var page = await _invoices.SearchAsync(query, cancellationToken);
+
+        return new PagedResult<InvoiceResponse>
+        {
+            // Slim summary projection — drops Items to keep the list payload
+            // cheap. Callers re-fetch by id for the full breakdown.
+            Items = page.Items.Select(i => new InvoiceResponse
+            {
+                Id = i.Id,
+                StudentId = i.StudentId,
+                Status = i.Status,
+                TotalAmount = i.TotalAmount,
+                Currency = i.Currency,
+                DueAt = i.DueAt,
+                CreatedAt = i.CreatedAt,
+            }).ToList(),
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
+    public async Task<BulkActionResult> BulkCancelAsync(IReadOnlyList<Guid> ids, string reason, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+        // Reason is plumbed via single-row CancelAsync (which already ingests
+        // CancelInvoiceRequest); persistence of the reason is a separate item
+        // owned by the Phase-2 audit work.
+        var request = new CancelInvoiceRequest { Reason = reason };
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                await CancelAsync(id, request, cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

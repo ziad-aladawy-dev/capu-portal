@@ -1,3 +1,5 @@
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Modules.Schedule.Abstractions.DTOs;
 using CapitalUniversity.Modules.Schedule.Domain;
 
 namespace CapitalUniversity.Modules.Schedule.Repositories;
@@ -5,6 +7,9 @@ namespace CapitalUniversity.Modules.Schedule.Repositories;
 public interface IScheduleSlotRepository
 {
     Task<ScheduleSlot?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Cross-offering paged search. Single SQL query.</summary>
+    Task<PagedResult<ScheduleSlot>> SearchAsync(ScheduleSlotSearchQuery query, CancellationToken cancellationToken = default);
 
     /// <summary>All slots attached to one offering, ordered by day then start time. Suitable for a weekly-timetable render.</summary>
     Task<IReadOnlyList<ScheduleSlot>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default);
@@ -34,4 +39,12 @@ public interface IScheduleSlotRepository
     void Update(ScheduleSlot slot);
 
     void Delete(ScheduleSlot slot);
+
+    /// <summary>
+    /// M2 — bulk delete every slot for a given offering. Used by the
+    /// schedule module's outbox handler when a CourseOffering is deleted,
+    /// so slot rows do not orphan against a missing FK target.
+    /// Returns the count removed for audit / log fidelity.
+    /// </summary>
+    Task<int> DeleteForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 
 namespace CapitalUniversity.Core.Abstractions.Students;

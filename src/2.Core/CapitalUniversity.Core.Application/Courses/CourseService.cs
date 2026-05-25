@@ -3,6 +3,8 @@ using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using FluentValidation;
@@ -73,6 +75,19 @@ public class CourseService : ICourseService
         return courses.Select(c => Localize(_mapper.MapToResponse(c))).ToList();
     }
 
+    public async Task<PagedResult<CourseResponse>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        var page = await _courses.SearchAsync(query, cancellationToken);
+        return new PagedResult<CourseResponse>
+        {
+            Items = page.Items.Select(c => Localize(_mapper.MapToResponse(c))).ToList(),
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
     /// <summary>
     /// Decode the bilingual <c>Title</c> field on a <see cref="CourseResponse"/>
     /// against the current culture. Plain-text rows pass through unchanged.
@@ -117,6 +132,9 @@ public class CourseService : ICourseService
         var course = await _courses.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
+        course.EnsureMutable();
+
+        if (request.Title != null) course.Title = LocalizedJson.Normalize(request.Title);
         _mapper.ApplyUpdate(request, course);
         course.UpdatedAt = DateTime.UtcNow;
 
@@ -131,7 +149,56 @@ public class CourseService : ICourseService
         var course = await _courses.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
 
+        course.EnsureMutable();
+
         _courses.Delete(course);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                await DeleteAsync(id, cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var course = await _courses.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+        course.Close();
+        _courses.Update(course);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var course = await _courses.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+        course.Reopen();
+        _courses.Update(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
     }

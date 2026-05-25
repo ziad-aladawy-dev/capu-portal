@@ -2,12 +2,14 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
+using CapitalUniversity.Core.Abstractions.Shared.Paging;
+
 namespace CapitalUniversity.Core.Infrastructure.Services.Roles.Queries;
 
-public class GetRolesRequest
+public class GetRolesRequest : PagedQueryRequest
 {
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    /// <summary>Filter by system-role flag. <c>null</c> returns both.</summary>
+    public bool? IsSystem { get; set; }
 }
 
 public class PagedRoleResponse
@@ -30,6 +32,17 @@ public class GetRolesQueryHandler
     public async Task<PagedRoleResponse> Handle(GetRolesRequest request, CancellationToken cancellationToken)
     {
         var query = _dbContext.Roles.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var s = request.Search.Trim();
+            // Raw JSON-encoded Name — Contains works against bilingual JSON.
+            query = query.Where(r => r.Name.Contains(s));
+        }
+        if (request.IsSystem.HasValue)
+        {
+            query = query.Where(r => r.IsSystemRole == request.IsSystem.Value);
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 

@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -25,7 +26,8 @@ public class SessionVersionMiddleware
     public async Task InvokeAsync(
         HttpContext context,
         ISessionVersionService sessionVersionService,
-        IOptions<SessionVersionOptions> options)
+        IOptions<SessionVersionOptions> options,
+        IAuthAuditLogger? audit = null)
     {
         if (context.User?.Identity?.IsAuthenticated != true)
         {
@@ -39,7 +41,7 @@ public class SessionVersionMiddleware
 
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            await Reject(context, "session.no_user_id");
+            await Reject(context, "session.no_user_id", audit, Guid.Empty);
             return;
         }
 
@@ -54,37 +56,45 @@ public class SessionVersionMiddleware
                 return;
             }
 
-            await Reject(context, "session.missing_version_claim");
+            await Reject(context, "session.missing_version_claim", audit, userId);
             return;
         }
 
         if (!int.TryParse(tokenVersionClaim, out var tokenVersion))
         {
-            await Reject(context, "session.invalid_version_claim");
+            await Reject(context, "session.invalid_version_claim", audit, userId);
             return;
         }
 
         var currentVersion = await sessionVersionService.GetCurrentVersionAsync(userId, context.RequestAborted);
         if (currentVersion is null)
         {
-            await Reject(context, "session.user_not_found");
+            await Reject(context, "session.user_not_found", audit, userId);
             return;
         }
 
         if (currentVersion.Value != tokenVersion)
         {
-            await Reject(context, "session.revoked");
+            await Reject(context, "session.revoked", audit, userId);
             return;
         }
 
         await _next(context);
     }
 
-    private static Task Reject(HttpContext context, string reason)
+    private static async Task Reject(HttpContext context, string reason, IAuthAuditLogger? audit, Guid userId)
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         context.Response.Headers.WWWAuthenticate = $"Bearer error=\"invalid_token\", error_description=\"{reason}\"";
-        return Task.CompletedTask;
+
+        // M16 — fire-and-forget audit so a session rejection (forced logout,
+        // stale token after password change, etc.) is visible in the audit
+        // trail. Audit failures are swallowed inside the logger so they can
+        // never deny the rejection itself.
+        if (audit is not null)
+        {
+            await audit.LogSessionRejectedAsync(userId, reason, context.Request.Path.Value);
+        }
     }
 }
 

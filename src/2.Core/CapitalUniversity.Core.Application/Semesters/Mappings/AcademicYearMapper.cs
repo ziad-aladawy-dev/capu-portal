@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Semsters;
 using Riok.Mapperly.Abstractions;
 
@@ -16,7 +17,10 @@ public partial class AcademicYearMapper
 {
     public partial AcademicYearResponse MapToResponse(AcademicYear entity);
 
+    [MapProperty(nameof(CreateAcademicYearRequest.Name), nameof(AcademicYear.Name), Use = nameof(ForceNormalizeIncoming))]
     public partial AcademicYear MapToEntity(CreateAcademicYearRequest request);
 
     public partial void UpdateEntity(UpdateAcademicYearRequest request, AcademicYear entity);
+
+    protected string ForceNormalizeIncoming(string value) => LocalizedJson.Normalize(value);
 }

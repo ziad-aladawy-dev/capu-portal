@@ -14,4 +14,16 @@ public interface IUnitOfWork : IDisposable
     // Module.Payments / Module.Student. Module services inject the
     // repositories directly; Core.Abstractions has no module dependency.
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// M1 — run a write-side critical section under a SERIALIZABLE transaction
+    /// on the underlying relational connection, so range-locks block other
+    /// writers between a read predicate and the matching insert. Used by
+    /// the schedule module's overlap-then-insert flow. On non-relational
+    /// providers (InMemory tests) this is a no-op and the action runs
+    /// directly — those providers cannot race in any case.
+    /// </summary>
+    Task ExecuteInSerializableTransactionAsync(
+        Func<CancellationToken, Task> action,
+        CancellationToken cancellationToken = default);
 }

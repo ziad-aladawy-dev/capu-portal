@@ -1,5 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
-using CapitalUniversity.Core.Abstractions.UniversityStructure;
+﻿using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,20 +9,17 @@ namespace CapitalUniversity.API.Controllers;
 public class UniversityStructureController : ControllerBase
 {
     private readonly IUniversityStructureService _service;
-    private readonly ILocalizationService _localizationService;
 
     public UniversityStructureController(
-        IUniversityStructureService service, ILocalizationService localizationService)
+        IUniversityStructureService service)
     {
         _service = service;
-        _localizationService = localizationService;
     }
 
     [HttpGet("tree")]
     public async Task<IActionResult> GetTree()
     {
         var result = await _service.GetTreeAsync();
-        TranslateStructureNodes(result);
         return Ok(result);
     }
 
@@ -149,14 +145,5 @@ public class UniversityStructureController : ControllerBase
         {
             Message = "Node reordered successfully"
         });
-    }
-
-    private void TranslateStructureNodes(List<StructureNodeDto> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            node.TypeNameLocalized = _localizationService.Get(node.Type);
-            TranslateStructureNodes(node.Children);
-        }
     }
 }

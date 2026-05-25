@@ -1,6 +1,8 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions.DTOs;
@@ -50,6 +52,7 @@ public class CourseOfferingService : ICourseOfferingService
         var offering = await _offerings.GetByIdAsync(id, cancellationToken);
         if (offering is null) return null;
         if (!await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken)) return null;
+        if (!await _scope.CanAccessSemesterAsync(offering.SemesterId, cancellationToken)) return null;
         return ToResponse(offering);
     }
 
@@ -64,6 +67,11 @@ public class CourseOfferingService : ICourseOfferingService
             return Array.Empty<CourseOfferingResponse>();
         }
 
+        if (!await _scope.CanAccessSemesterAsync(semesterId, cancellationToken))
+        {
+            return Array.Empty<CourseOfferingResponse>();
+        }
+
         var offerings = await _offerings.GetForNodeSemesterAsync(structureNodeId, semesterId, status, cancellationToken);
         return offerings.Select(ToResponse).ToList();
     }
@@ -73,6 +81,11 @@ public class CourseOfferingService : ICourseOfferingService
         Guid semesterId,
         CancellationToken cancellationToken = default)
     {
+        if (!await _scope.CanAccessSemesterAsync(semesterId, cancellationToken))
+        {
+            return Array.Empty<CourseOfferingResponse>();
+        }
+
         var offerings = await _offerings.GetForCourseAsync(courseId, semesterId, cancellationToken);
         if (offerings.Count == 0) return Array.Empty<CourseOfferingResponse>();
 
@@ -98,6 +111,11 @@ public class CourseOfferingService : ICourseOfferingService
         if (!await _scope.CanAccessStructureNodeAsync(request.StructureNodeId, cancellationToken))
         {
             throw new NotFoundException(LocalizedKeys.Courses.StructureNodeNotFound);
+        }
+
+        if (!await _scope.CanAccessSemesterAsync(request.SemesterId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }
 
         if (await _offerings.SectionExistsAsync(request.CourseId, request.SemesterId, request.StructureNodeId, request.SectionCode, cancellationToken))
@@ -233,6 +251,22 @@ public class CourseOfferingService : ICourseOfferingService
             .GroupBy(e => e.PropertyName)
             .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray()));
 
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var offering = await LoadForWriteAsync(id, cancellationToken);
+        offering.Close();
+        _offerings.Update(offering);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var offering = await LoadForWriteAsync(id, cancellationToken);
+        offering.Reopen();
+        _offerings.Update(offering);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Fetch a tracked offering by id and require the caller's scope to cover
     /// its owning structure node. Single helper so every write path uses the
@@ -249,6 +283,14 @@ public class CourseOfferingService : ICourseOfferingService
         {
             throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }
+
+        if (!await _scope.CanAccessSemesterAsync(offering.SemesterId, cancellationToken))
+        {
+            throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
+        }
+
+        offering.EnsureMutable();
+
         return offering;
     }
 
@@ -275,5 +317,104 @@ public class CourseOfferingService : ICourseOfferingService
             case RegistrationState.Waitlist: offering.SetWaitlist();       break;
             default: throw new InvalidOperationException($"Unknown registration state: {target}.");
         }
+    }
+
+    public async Task<PagedResult<CourseOfferingResponse>> SearchAsync(CourseOfferingSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // If the caller pinned a specific node, scope-check that one id; an
+        // out-of-scope request returns an empty page (no existence leak).
+        if (query.StructureNodeId.HasValue &&
+            !await _scope.CanAccessStructureNodeAsync(query.StructureNodeId.Value, cancellationToken))
+        {
+            return EmptyPage(query);
+        }
+        if (query.SemesterId.HasValue &&
+            !await _scope.CanAccessSemesterAsync(query.SemesterId.Value, cancellationToken))
+        {
+            return EmptyPage(query);
+        }
+
+        var page = await _offerings.SearchAsync(query, cancellationToken);
+
+        // For un-pinned cross-node queries, filter the materialized page by
+        // per-row node visibility. Total stays as the raw count — admins
+        // with the View permission typically have unrestricted scope. If a
+        // narrower-scoped reader hits this endpoint, the page may shrink
+        // post-filter; the trade-off keeps the query single-pass.
+        var visible = new List<CourseOfferingResponse>(page.Items.Count);
+        foreach (var o in page.Items)
+        {
+            if (!await _scope.CanAccessStructureNodeAsync(o.StructureNodeId, cancellationToken)) continue;
+            visible.Add(ToResponse(o));
+        }
+
+        return new PagedResult<CourseOfferingResponse>
+        {
+            Items = visible,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
+    private static PagedResult<CourseOfferingResponse> EmptyPage(CourseOfferingSearchQuery query) => new()
+    {
+        Items = new List<CourseOfferingResponse>(),
+        Page = query.NormalizedPage,
+        PageSize = query.NormalizedPageSize,
+        TotalCount = 0,
+        TotalPages = 0,
+    };
+
+    public Task<BulkActionResult> BulkPublishAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+        => BulkApplyAsync(ids, (o, _) => o.Activate(), reason: null, cancellationToken);
+
+    public Task<BulkActionResult> BulkCancelAsync(IReadOnlyList<Guid> ids, string reason, CancellationToken cancellationToken = default)
+        => BulkApplyAsync(ids, (o, _) => o.Cancel(), reason: reason, cancellationToken);
+
+    /// <summary>
+    /// Per-row driver shared by every bulk lifecycle endpoint. Loads each
+    /// offering through <see cref="LoadForWriteAsync"/> (re-using the existing
+    /// scope + mutability guards), applies <paramref name="apply"/>, and
+    /// commits independently so a failed peer does not roll back successes.
+    /// Reason is plumbed through for future audit storage — today it's
+    /// captured only in the in-process correlation/log path.
+    /// </summary>
+    private async Task<BulkActionResult> BulkApplyAsync(
+        IReadOnlyList<Guid> ids,
+        Action<CourseOfferingEntity, string?> apply,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                var offering = await LoadForWriteAsync(id, cancellationToken);
+                apply(offering, reason);
+                offering.UpdatedAt = DateTime.UtcNow;
+                _offerings.Update(offering);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.InvalidTransition, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
     }
 }

@@ -1,3 +1,5 @@
+using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Courses;
 
 namespace CapitalUniversity.Core.Abstractions.Repositories;
@@ -11,4 +13,7 @@ public interface ICourseRepository
     Task AddAsync(Course course, CancellationToken cancellationToken = default);
     void Update(Course course);
     void Delete(Course course);
+
+    /// <summary>Paged catalog search with filters + free-text on code/title.</summary>
+    Task<PagedResult<Course>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default);
 }

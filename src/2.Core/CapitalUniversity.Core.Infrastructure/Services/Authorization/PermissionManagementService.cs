@@ -393,7 +393,7 @@ public class PermissionManagementService : IPermissionManagementService
 
         var roles = await _dbContext.StaffRoles
             .Where(sr => sr.StaffId == query.UserId &&
-                         sr.StructureNodeId == query.ScopeNodeId &&
+                         sr.StructureNodeId == query.StructureNodeId &&
                          sr.Year == year && sr.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -402,7 +402,7 @@ public class PermissionManagementService : IPermissionManagementService
             .Include(sp => sp.Resource)
                 .ThenInclude(r => r.Module)
             .Where(sp => sp.StaffId == query.UserId &&
-                         sp.StructureNodeId == query.ScopeNodeId &&
+                         sp.StructureNodeId == query.StructureNodeId &&
                          sp.Year == year && sp.Semester == semester)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -419,7 +419,7 @@ public class PermissionManagementService : IPermissionManagementService
             PermissionOverrides = CollapseOverridesToDtos(overrides),
             StructuralScope = new StructuralScopeModel
             {
-                StructureNodeId = query.ScopeNodeId
+                StructureNodeId = query.StructureNodeId
             },
             TemporalScope = new TemporalScopeModel
             {
@@ -459,6 +459,43 @@ public class PermissionManagementService : IPermissionManagementService
     {
         if (temporal.AlwaysActive && (temporal.AcademicYearId.HasValue || temporal.SemesterId.HasValue))
             throw new ArgumentException("Cannot specify both AlwaysActive=true and specific Temporal limits");
+    }
+
+    public async Task<IReadOnlyList<PermissionAssignmentResponse>> BatchCreateAssignmentsAsync(IReadOnlyList<CreatePermissionAssignmentRequest> requests, CancellationToken cancellationToken = default)
+    {
+        // All-or-nothing — wrap in a single transaction so partial seeding can
+        // never leak permissions or leave a user with a half-applied role set.
+        // Only relational providers support real transactions; on InMemory the
+        // execution strategy is a no-op (matches existing service patterns).
+        await using var tx = _dbContext.Database.IsRelational()
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var results = new List<PermissionAssignmentResponse>(requests.Count);
+        foreach (var req in requests)
+        {
+            results.Add(await CreateAssignmentAsync(req, cancellationToken));
+        }
+
+        if (tx is not null) await tx.CommitAsync(cancellationToken);
+        return results;
+    }
+
+    public async Task<IReadOnlyList<PermissionAssignmentResponse>> BatchUpdateAssignmentsAsync(IReadOnlyList<UpdatePermissionAssignmentRequest> requests, CancellationToken cancellationToken = default)
+    {
+        // All-or-nothing — same rationale as BatchCreateAssignmentsAsync.
+        await using var tx = _dbContext.Database.IsRelational()
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        var results = new List<PermissionAssignmentResponse>(requests.Count);
+        foreach (var req in requests)
+        {
+            results.Add(await UpdateAssignmentAsync(req, cancellationToken));
+        }
+
+        if (tx is not null) await tx.CommitAsync(cancellationToken);
+        return results;
     }
 
     public async Task<PermissionAssignmentResponse> CreateAssignmentAsync(CreatePermissionAssignmentRequest request, CancellationToken cancellationToken = default)

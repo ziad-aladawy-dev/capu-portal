@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using ClosedXML.Excel;
@@ -17,13 +18,10 @@ public class StaffController : ControllerBase
         _service = service;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var result = await _service.GetAllAsync();
-
-        return Ok(result);
-    }
+    // 3.2 — unfiltered `GET /api/staff` removed in Phase 3 cleanup.
+    // Callers migrate to `GET /api/staff/search` which already accepts the
+    // same query params and returns `PagedResult<StaffDto>`. The service's
+    // `GetAllAsync` stays for internal/test paths (no controller surface).
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] StaffQueryRequest request)
@@ -96,6 +94,12 @@ public class StaffController : ControllerBase
         {
             Message = "Staff status updated successfully"
         });
+    }
+
+    public sealed class BulkSetStaffStatusRequest
+    {
+        public IReadOnlyList<Guid> Ids { get; init; } = Array.Empty<Guid>();
+        public bool IsActive { get; init; }
     }
 
     [HttpGet("statistics")]
@@ -264,14 +268,19 @@ public class StaffController : ControllerBase
         var worksheet = workbook.Worksheet(1);
 
         var rows = worksheet.RowsUsed().Skip(1);
+        
 
         foreach (var row in rows)
         {
+            var NameSerialized = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                ar = row.Cell(2).GetString(),
+                en = row.Cell(3).GetString()
+            });
             var request = new CreateStaffRequest
             {
                 EmployeeCode = row.Cell(1).GetString(),
-                NameAr = row.Cell(2).GetString(),
-                NameEn = row.Cell(3).GetString(),
+                Name = NameSerialized,
                 NationalId = row.Cell(4).GetString(),
                 Email = row.Cell(5).GetString(),
                 PhoneNumber = row.Cell(6).GetString(),

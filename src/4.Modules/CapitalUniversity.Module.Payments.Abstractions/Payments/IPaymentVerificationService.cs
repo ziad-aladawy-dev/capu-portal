@@ -1,5 +1,6 @@
 
 
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 
 namespace CapitalUniversity.Modules.Payments.Abstractions;
@@ -20,4 +21,11 @@ public interface IPaymentVerificationService
     Task<PaymentTransactionResponse> RecordAsync(RecordPaymentRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PaymentTransactionResponse>> GetForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Paged transactions search across invoices. Filters: <c>invoiceId</c>,
+    /// <c>studentId</c> (joins Invoice), <c>status</c>, <c>provider</c>,
+    /// <c>from/to</c> dates, amount range, free-text on provider + transaction id.
+    /// </summary>
+    Task<PagedResult<PaymentTransactionResponse>> SearchAsync(PaymentTransactionSearchQuery query, CancellationToken cancellationToken = default);
 }

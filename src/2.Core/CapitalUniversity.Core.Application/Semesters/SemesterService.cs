@@ -95,7 +95,13 @@ public class SemesterService : ISemesterService
 
         if (semester.IsCurrent)
         {
-            await DeactivateCurrentSemesterAsync();
+            // H7 — deactivate-then-activate in two flushes when (and only when)
+            // there is an existing current row to clear, so the filtered
+            // UNIQUE index never sees two rows with IsCurrent = 1 in flight.
+            if (await DeactivateCurrentSemesterAsync())
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
 
         await _unitOfWork.Semesters.AddAsync(semester);
@@ -135,16 +141,22 @@ public class SemesterService : ISemesterService
 
         if (await _unitOfWork.Semesters.HasOverlapAsync(semester.AcademicYearId, startDate, endDate, id))
         {
-            throw new ValidationException(SemesterField, LocalizedKeys.Semesters.DatesOverlap);
+            throw new ValidationException("Semester", LocalizedKeys.Semesters.DatesOverlap);
         }
 
+        if (request.Name != null) semester.Name = LocalizedJson.Normalize(request.Name);
         _mapper.UpdateEntity(request, semester);
+
         semester.IsCurrent = IsDateInRange(DateTime.UtcNow, semester.StartDate, semester.EndDate);
         semester.UpdatedAt = DateTime.UtcNow;
 
         if (semester.IsCurrent)
         {
-            await DeactivateCurrentSemesterAsync(id);
+            // H7 — see CreateAsync.
+            if (await DeactivateCurrentSemesterAsync(id))
+            {
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
 
         _unitOfWork.Semesters.Update(semester);
@@ -161,7 +173,7 @@ public class SemesterService : ISemesterService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task CloseAsync(Guid id)
+    public async Task CloseRecordAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
@@ -171,7 +183,7 @@ public class SemesterService : ISemesterService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task ReopenAsync(Guid id)
+    public async Task OpenRecordAsync(Guid id)
     {
         var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
         if (semester == null) throw new NotFoundException(LocalizedKeys.Semesters.NotFound);
@@ -181,8 +193,12 @@ public class SemesterService : ISemesterService
         await _unitOfWork.SaveChangesAsync();
     }
 
+
     public async Task ResolveCurrentSemesterAsync()
     {
+        // H7 — two-phase update against the new filtered UNIQUE index on
+        // (AcademicYearId, IsCurrent) WHERE IsCurrent = 1. See the matching
+        // comment on AcademicYearService.ResolveCurrentYearAsync.
         var now = DateTime.UtcNow;
         var currentYear = await _unitOfWork.AcademicYears.GetCurrentAsync();
         if (currentYear == null)
@@ -195,21 +211,30 @@ public class SemesterService : ISemesterService
         var semesters = await _unitOfWork.Semesters.GetByAcademicYearIdAsync(currentYear.Id);
         var currentSemester = semesters.FirstOrDefault(x => IsDateInRange(now, x.StartDate, x.EndDate));
 
+        var dirty = false;
         foreach (var semester in semesters)
         {
-            bool shouldBeCurrent = (currentSemester != null && semester.Id == currentSemester.Id);
-            if (semester.IsCurrent != shouldBeCurrent)
+            var shouldBeCurrent = currentSemester != null && semester.Id == currentSemester.Id;
+            if (semester.IsCurrent && !shouldBeCurrent)
             {
-                semester.IsCurrent = shouldBeCurrent;
+                semester.IsCurrent = false;
                 semester.UpdatedAt = DateTime.UtcNow;
                 _unitOfWork.Semesters.Update(semester);
+                dirty = true;
             }
         }
-        
+        if (dirty) await _unitOfWork.SaveChangesAsync();
+
+        if (currentSemester is null) return;
+        if (currentSemester.IsCurrent) return;
+
+        currentSemester.IsCurrent = true;
+        currentSemester.UpdatedAt = DateTime.UtcNow;
+        _unitOfWork.Semesters.Update(currentSemester);
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private async Task DeactivateCurrentSemesterAsync(Guid? excludeId = null)
+    private async Task<bool> DeactivateCurrentSemesterAsync(Guid? excludeId = null)
     {
         var current = await _unitOfWork.Semesters.GetCurrentAsync();
         if (current != null && current.Id != excludeId)
@@ -217,7 +242,9 @@ public class SemesterService : ISemesterService
             current.IsCurrent = false;
             current.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.Semesters.Update(current);
+            return true;
         }
+        return false;
     }
 
     private static bool IsDateInRange(DateTime date, DateTime start, DateTime end) =>

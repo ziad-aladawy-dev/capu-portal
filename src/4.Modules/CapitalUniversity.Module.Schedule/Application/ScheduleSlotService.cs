@@ -1,7 +1,9 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
 using CapitalUniversity.Modules.Schedule.Abstractions;
@@ -57,6 +59,13 @@ public sealed record ScheduleSlotValidators(
 /// </summary>
 public class ScheduleSlotService : IScheduleSlotService
 {
+    // L9 — Shared-object cache key prefix, matches the Invoice pattern. The
+    // cached payload is the culture-agnostic ScheduleSlotResponse DTO; the
+    // current culture is applied in Localize at read time, so a single
+    // cache entry serves all callers regardless of Accept-Language.
+    internal const string CacheKeyPrefix = "schedule-slot:object:";
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(15);
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IScheduleSlotRepository _slots;
     private readonly ICourseOfferingService _offerings;
@@ -65,6 +74,7 @@ public class ScheduleSlotService : IScheduleSlotService
     private readonly IAppLogger _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILocalizationService _localization;
+    private readonly ICacheService _cache;
 
     public ScheduleSlotService(
         IUnitOfWork unitOfWork,
@@ -74,7 +84,8 @@ public class ScheduleSlotService : IScheduleSlotService
         IOutbox outbox,
         IAppLogger logger,
         IHttpContextAccessor httpContextAccessor,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        ICacheService cache)
     {
         _unitOfWork = unitOfWork;
         _slots = slots;
@@ -84,10 +95,26 @@ public class ScheduleSlotService : IScheduleSlotService
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
         _localization = localization;
+        _cache = cache;
     }
+
+    internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";
 
     public async Task<ScheduleSlotResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        // L9 — shared-object cache hit path, mirrors the Invoice pattern. The
+        // cached DTO carries the bilingual JSON for Location / Notes; Localize
+        // applies the request's culture on read so a single cache entry serves
+        // every Accept-Language. The parent-offering scope check still runs
+        // on every call so a revoked grant cannot serve stale data.
+        var key = CacheKey(id);
+        var cached = await _cache.GetAsync<ScheduleSlotResponse>(key, cancellationToken);
+        if (cached is not null)
+        {
+            if (await _offerings.GetByIdAsync(cached.CourseOfferingId, cancellationToken) is null) return null;
+            return Localize(cached);
+        }
+
         var slot = await _slots.GetByIdAsync(id, cancellationToken);
         if (slot is null) return null;
 
@@ -95,7 +122,9 @@ public class ScheduleSlotService : IScheduleSlotService
         // "doesn't exist" or "out of scope" — both should hide the slot.
         if (await _offerings.GetByIdAsync(slot.CourseOfferingId, cancellationToken) is null) return null;
 
-        return Localize(MapToResponse(slot));
+        var raw = MapToResponse(slot);
+        await _cache.SetAsync(key, raw, CacheTtl, cancellationToken);
+        return Localize(raw);
     }
 
     public async Task<IReadOnlyList<ScheduleSlotResponse>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default)
@@ -123,39 +152,55 @@ public class ScheduleSlotService : IScheduleSlotService
             throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
         }
 
-        // Exact-duplicate check (same tuple) stays — the DB unique index is
-        // the real guard, this surfaces a friendly Conflict before SaveChanges.
-        if (await _slots.ExistsAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, cancellationToken))
+        // M1 — close the TOCTOU window between conflict-check and insert.
+        // Without a SERIALIZABLE wrapper, two concurrent CreateAsync calls
+        // against the same (offering, day) can each pass the half-open
+        // overlap query and then both SaveChanges. The unique index on
+        // (CourseOfferingId, DayOfWeek, StartTime, EndTime) only catches
+        // EXACT duplicates; an overlapping-but-not-identical pair slips
+        // through. Serialising the read+write block forces the second writer
+        // to block on the range lock until the first commits, so its
+        // conflict re-check sees the in-flight row.
+        var newId = Guid.Empty;
+        await _unitOfWork.ExecuteInSerializableTransactionAsync(async ct =>
         {
-            throw new ConflictException(LocalizedKeys.Schedule.DuplicateSlot);
-        }
+            // Exact-duplicate check (same tuple) stays — the DB unique index
+            // is the real guard, this surfaces a friendly Conflict before
+            // SaveChanges.
+            if (await _slots.ExistsAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, ct))
+            {
+                throw new ConflictException(LocalizedKeys.Schedule.DuplicateSlot);
+            }
 
-        // Half-open-interval overlap check — the new deterministic conflict
-        // rule. Strict inequality ensures adjacency (10:00-11:00 + 11:00-12:00)
-        // is NOT a conflict.
-        if (await _slots.HasConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, excludeId: null, cancellationToken))
-        {
-            await LogConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, slotId: null);
-            throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
-        }
+            // Half-open-interval overlap check — the deterministic conflict
+            // rule. Strict inequality keeps adjacency (10:00-11:00 + 11:00-
+            // 12:00) out of the conflict set by design.
+            if (await _slots.HasConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, excludeId: null, ct))
+            {
+                await LogConflictAsync(request.CourseOfferingId, request.DayOfWeek, request.StartTime, request.EndTime, slotId: null);
+                throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
+            }
 
-        var slot = new ScheduleSlot
-        {
-            CourseOfferingId = request.CourseOfferingId,
-            DayOfWeek = request.DayOfWeek,
-            Kind = request.Kind,
-            Location = request.Location,
-            Notes = request.Notes,
-        };
-        // Funnel start/end through the entity invariant — the validator covers
-        // the create payload, but the entity is the single source of truth so
-        // a future code path that bypasses the validator still gets caught.
-        slot.SetTimeRange(request.StartTime, request.EndTime);
+            var slot = new ScheduleSlot
+            {
+                CourseOfferingId = request.CourseOfferingId,
+                DayOfWeek = request.DayOfWeek,
+                Kind = request.Kind,
+                Location = LocalizedJson.Normalize(request.Location),
+                Notes = LocalizedJson.Normalize(request.Notes),
+            };
+            // Funnel start/end through the entity invariant — the validator
+            // covers the create payload, but the entity is the single source
+            // of truth so a future code path that bypasses the validator
+            // still gets caught.
+            slot.SetTimeRange(request.StartTime, request.EndTime);
 
-        await _slots.AddAsync(slot, cancellationToken);
-        await EnqueueLifecycleAsync(ScheduleSlotCreatedHandler.TypeKey, slot, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return slot.Id;
+            await _slots.AddAsync(slot, ct);
+            await EnqueueLifecycleAsync(ScheduleSlotCreatedHandler.TypeKey, slot, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            newId = slot.Id;
+        }, cancellationToken);
+        return newId;
     }
 
     public async Task UpdateAsync(Guid id, UpdateScheduleSlotRequest request, CancellationToken cancellationToken = default)
@@ -194,8 +239,8 @@ public class ScheduleSlotService : IScheduleSlotService
 
         if (request.DayOfWeek.HasValue) slot.DayOfWeek = request.DayOfWeek.Value;
         if (request.Kind.HasValue) slot.Kind = request.Kind.Value;
-        if (request.Location is not null) slot.Location = request.Location;
-        if (request.Notes is not null) slot.Notes = request.Notes;
+        if (request.Location is not null) slot.Location = LocalizedJson.Normalize(request.Location);
+        if (request.Notes is not null) slot.Notes = LocalizedJson.Normalize(request.Notes);
 
         var tupleMoved = slot.DayOfWeek != originalDay
                       || slot.StartTime != originalStart
@@ -221,6 +266,8 @@ public class ScheduleSlotService : IScheduleSlotService
         _slots.Update(slot);
         await EnqueueLifecycleAsync(ScheduleSlotUpdatedHandler.TypeKey, slot, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // L9 — evict the cached DTO so the next read picks up the new fields.
+        await _cache.RemoveAsync(CacheKey(slot.Id), cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -229,6 +276,161 @@ public class ScheduleSlotService : IScheduleSlotService
         _slots.Delete(slot);
         await EnqueueLifecycleAsync(ScheduleSlotDeletedHandler.TypeKey, slot, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(slot.Id), cancellationToken);
+    }
+
+    public async Task<PagedResult<ScheduleSlotResponse>> SearchAsync(ScheduleSlotSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // If the caller pinned an offering, scope-check via the offering
+        // service (returns empty page if invisible) before hitting the slots
+        // table. Cross-offering searches require the caller to be route-gated.
+        if (query.CourseOfferingId.HasValue &&
+            await _offerings.GetByIdAsync(query.CourseOfferingId.Value, cancellationToken) is null)
+        {
+            return new PagedResult<ScheduleSlotResponse>
+            {
+                Items = new List<ScheduleSlotResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+                TotalCount = 0,
+                TotalPages = 0,
+            };
+        }
+
+        var page = await _slots.SearchAsync(query, cancellationToken);
+
+        // For cross-offering queries, filter the materialized page by per-row
+        // parent visibility. Total stays as the raw count — admins typically
+        // have unrestricted scope.
+        var visible = new List<ScheduleSlotResponse>(page.Items.Count);
+        foreach (var s in page.Items)
+        {
+            if (!query.CourseOfferingId.HasValue
+                && await _offerings.GetByIdAsync(s.CourseOfferingId, cancellationToken) is null) continue;
+            visible.Add(Localize(MapToResponse(s)));
+        }
+
+        return new PagedResult<ScheduleSlotResponse>
+        {
+            Items = visible,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
+    public async Task<IReadOnlyList<Guid>> BatchCreateAsync(BatchCreateScheduleSlotsRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request is null || request.Slots is null || request.Slots.Count == 0)
+        {
+            throw new ValidationException("Slots", LocalizedKeys.Infrastructure.Required);
+        }
+
+        // Pre-validate every slot against the single-slot validator before
+        // touching the DB. Map each item to a CreateScheduleSlotRequest so the
+        // existing validator covers the batch path without duplication.
+        var perSlotRequests = request.Slots
+            .Select(s => new CreateScheduleSlotRequest
+            {
+                CourseOfferingId = request.CourseOfferingId,
+                DayOfWeek = s.DayOfWeek,
+                StartTime = s.StartTime,
+                EndTime = s.EndTime,
+                Kind = s.Kind,
+                Location = s.Location,
+                Notes = s.Notes,
+            })
+            .ToList();
+
+        foreach (var item in perSlotRequests)
+        {
+            var validation = await _validators.Create.ValidateAsync(item, cancellationToken);
+            if (!validation.IsValid) throw ValidationFrom(validation);
+        }
+
+        // Intra-batch overlap check — half-open intervals, same (day) within
+        // the same offering. Adjacency stays legal (matches single-row policy).
+        for (var i = 0; i < perSlotRequests.Count; i++)
+        {
+            for (var j = i + 1; j < perSlotRequests.Count; j++)
+            {
+                var a = perSlotRequests[i];
+                var b = perSlotRequests[j];
+                if (a.DayOfWeek != b.DayOfWeek) continue;
+                var overlap = a.StartTime < b.EndTime && b.StartTime < a.EndTime;
+                if (overlap)
+                {
+                    throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
+                }
+            }
+        }
+
+        // Parent visibility check once (single round-trip vs once-per-slot in
+        // CreateAsync — that's the whole reason this lives at the service layer
+        // and not as a controller-side loop).
+        if (await _offerings.GetByIdAsync(request.CourseOfferingId, cancellationToken) is null)
+        {
+            throw new NotFoundException(LocalizedKeys.CourseOfferings.NotFound);
+        }
+
+        var newIds = new List<Guid>(perSlotRequests.Count);
+
+        // Single SERIALIZABLE transaction so the batch is atomic against
+        // concurrent writers. Mirrors CreateAsync's M1 protection.
+        await _unitOfWork.ExecuteInSerializableTransactionAsync(async ct =>
+        {
+            foreach (var item in perSlotRequests)
+            {
+                if (await _slots.ExistsAsync(item.CourseOfferingId, item.DayOfWeek, item.StartTime, item.EndTime, ct))
+                {
+                    throw new ConflictException(LocalizedKeys.Schedule.DuplicateSlot);
+                }
+
+                if (await _slots.HasConflictAsync(item.CourseOfferingId, item.DayOfWeek, item.StartTime, item.EndTime, excludeId: null, ct))
+                {
+                    await LogConflictAsync(item.CourseOfferingId, item.DayOfWeek, item.StartTime, item.EndTime, slotId: null);
+                    throw new ConflictException(LocalizedKeys.Schedule.SlotConflict);
+                }
+
+                var slot = new ScheduleSlot
+                {
+                    CourseOfferingId = item.CourseOfferingId,
+                    DayOfWeek = item.DayOfWeek,
+                    Kind = item.Kind,
+                    Location = LocalizedJson.Normalize(item.Location),
+                    Notes = LocalizedJson.Normalize(item.Notes),
+                };
+                slot.SetTimeRange(item.StartTime, item.EndTime);
+                await _slots.AddAsync(slot, ct);
+                await EnqueueLifecycleAsync(ScheduleSlotCreatedHandler.TypeKey, slot, ct);
+                newIds.Add(slot.Id);
+            }
+
+            await _unitOfWork.SaveChangesAsync(ct);
+        }, cancellationToken);
+
+        return newIds;
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var slot = await LoadForWriteAsync(id, cancellationToken);
+        slot.Close();
+        _slots.Update(slot);
+        await EnqueueLifecycleAsync(ScheduleSlotUpdatedHandler.TypeKey, slot, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(slot.Id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var slot = await LoadForWriteAsync(id, cancellationToken);
+        slot.Reopen();
+        _slots.Update(slot);
+        await EnqueueLifecycleAsync(ScheduleSlotUpdatedHandler.TypeKey, slot, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(slot.Id), cancellationToken);
     }
 
     /// <summary>
@@ -281,6 +483,9 @@ public class ScheduleSlotService : IScheduleSlotService
         {
             throw new NotFoundException(LocalizedKeys.Schedule.NotFound);
         }
+
+        slot.EnsureMutable();
+
         return slot;
     }
 

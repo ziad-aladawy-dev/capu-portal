@@ -2,6 +2,8 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.Paging;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Notifications;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -36,20 +38,61 @@ public class NotificationService : INotificationService
         return dto;
     }
 
-    public async Task CreateNotificationAsync(Guid recipientUserId, string title, string message, NotificationType type)
+    public async Task CreateNotificationAsync(
+        Guid recipientUserId,
+        string title,
+        string message,
+        NotificationType type,
+        Guid? idempotencyKey = null,
+        CancellationToken cancellationToken = default)
     {
+        // H5 — Negative idempotency check: when the caller supplied a key, see
+        // if a row with the same key already exists. Cheap (covered by the
+        // filtered unique index) and avoids the noisy DbUpdateException path
+        // in the common replay case.
+        if (idempotencyKey.HasValue)
+        {
+            var alreadyExists = await _context.Notifications
+                .AsNoTracking()
+                .AnyAsync(n => n.IdempotencyKey == idempotencyKey, cancellationToken);
+            if (alreadyExists) return;
+        }
+
         var notification = new Notification
         {
             RecipientUserId = recipientUserId,
-            Title = title,
-            Message = message,
+            Title = LocalizedJson.Normalize(title),
+            Message = LocalizedJson.Normalize(message),
             Type = type,
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IdempotencyKey = idempotencyKey,
         };
 
         _context.Notifications.Add(notification);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (idempotencyKey.HasValue && IsIdempotencyDuplicate(ex))
+        {
+            // A concurrent dispatcher tick won the race between the AnyAsync
+            // probe above and SaveChanges. Treat as a successful replay so the
+            // outbox marks the message processed and stops retrying.
+            _context.Entry(notification).State = EntityState.Detached;
+        }
+    }
+
+    private const string IdempotencyIndexFragment = "IdempotencyKey";
+
+    private static bool IsIdempotencyDuplicate(DbUpdateException ex)
+    {
+        // SQL Server: 2627 = unique constraint, 2601 = unique index violation.
+        // Narrowed to errors that mention the IdempotencyKey index so unrelated
+        // unique constraints don't get swallowed here.
+        if (ex.InnerException is not Microsoft.Data.SqlClient.SqlException sql) return false;
+        if (sql.Number != 2627 && sql.Number != 2601) return false;
+        return sql.Message.Contains(IdempotencyIndexFragment, StringComparison.OrdinalIgnoreCase);
     }
 
     public Task EnqueueNotificationAsync(Guid recipientUserId, string title, string message, NotificationType type, CancellationToken cancellationToken = default)
@@ -62,7 +105,10 @@ public class NotificationService : INotificationService
         }
 
         var payload = new NotificationOutboxHandler.NotificationPayload(
-            recipientUserId, title, message, type);
+            recipientUserId, 
+            LocalizedJson.Normalize(title), 
+            LocalizedJson.Normalize(message), 
+            type);
 
         // Outbox stages the row on this DbContext; the caller's SaveChangesAsync
         // commits the notification atomically with whatever business state they're
@@ -102,6 +148,79 @@ public class NotificationService : INotificationService
             notification.IsRead = true;
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<int> MarkManyAsReadAsync(IReadOnlyList<Guid> notificationIds, Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (notificationIds is null || notificationIds.Count == 0) return 0;
+
+        // Dedup and project to a HashSet for the SQL IN clause.
+        var ids = notificationIds.Distinct().ToArray();
+
+        var rows = await _context.Notifications
+            .Where(n => n.RecipientUserId == userId && !n.IsRead && ids.Contains(n.Id))
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0) return 0;
+
+        foreach (var n in rows) n.IsRead = true;
+        await _context.SaveChangesAsync(cancellationToken);
+        return rows.Count;
+    }
+
+    private static readonly HashSet<string> NotificationSortFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "createdAt"
+    };
+
+    public async Task<PagedResult<NotificationDto>> SearchAsync(Guid userId, NotificationSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        var q = _context.Notifications.AsNoTracking().Where(n => n.RecipientUserId == userId);
+
+        if (query.IsRead.HasValue) q = q.Where(n => n.IsRead == query.IsRead.Value);
+        if (query.Type.HasValue) q = q.Where(n => n.Type == query.Type.Value);
+        if (query.From.HasValue) q = q.Where(n => n.CreatedAt >= query.From.Value);
+        if (query.To.HasValue) q = q.Where(n => n.CreatedAt < query.To.Value);
+
+        // Free-text matches against the raw JSON-encoded Title/Message — surface
+        // hits regardless of culture. Acceptable for inbox triage volume.
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = query.Search.Trim();
+            q = q.Where(n => n.Title.Contains(s) || n.Message.Contains(s));
+        }
+
+        // Sort whitelist is a single field; validate to surface typos as 400.
+        SortClause.Parse(query.Sort, NotificationSortFields);
+        q = q.OrderByDescending(n => n.CreatedAt);
+
+        var total = await q.CountAsync(cancellationToken);
+        var rows = await q
+            .Skip((query.NormalizedPage - 1) * query.NormalizedPageSize)
+            .Take(query.NormalizedPageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<NotificationDto>
+        {
+            Items = rows.Select(n => Localize(_mapper.MapToDto(n))).ToList(),
+            Page = query.NormalizedPage,
+            PageSize = query.NormalizedPageSize,
+            TotalCount = total,
+            TotalPages = (int)Math.Ceiling(total / (double)query.NormalizedPageSize),
+        };
+    }
+
+    public async Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.Notifications
+            .Where(n => n.RecipientUserId == userId && !n.IsRead)
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0) return 0;
+
+        foreach (var n in rows) n.IsRead = true;
+        await _context.SaveChangesAsync(cancellationToken);
+        return rows.Count;
     }
 }
 

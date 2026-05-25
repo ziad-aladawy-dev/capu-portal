@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.Notifications;
@@ -7,6 +8,7 @@ using CapitalUniversity.Core.Domain.Semsters;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
@@ -62,11 +64,50 @@ public class CoreDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        // M6 — central audit-field stamping for every entity that derives from
+        // BaseEntity. Runs BEFORE AuditChangesAsync so the log captures the
+        // values that hit the database, not the pre-stamp state.
+        //
+        // Scope limitation requested for this rollout: Student, Staff, and
+        // StructureNode repositories already set UpdatedAt by hand inside
+        // every mutator and we are not refactoring those repos in this pass,
+        // so we leave their manual stamping in place. The central pass below
+        // simply re-writes the same value (last-write-wins, deterministic).
+        // When those repositories migrate to the central pattern, drop the
+        // manual stamping rather than this guard.
+        StampAuditFields();
+
         if (_logger != null)
         {
             await AuditChangesAsync();
         }
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void StampAuditFields()
+    {
+        var now = DateTime.UtcNow;
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    // Respect explicit CreatedAt from seeders / migrations
+                    // (BaseEntity defaults to DateTime.UtcNow at construction).
+                    if (entry.Entity.CreatedAt == default)
+                    {
+                        entry.Entity.CreatedAt = now;
+                    }
+                    break;
+                case EntityState.Modified:
+                    // M6 — fill in UpdatedAt even when the caller forgot.
+                    // Repositories that already set UpdatedAt manually
+                    // (StudentRepository, StaffRepository, StructureNodeRepository)
+                    // emit the same value milliseconds earlier — harmless.
+                    entry.Entity.UpdatedAt = now;
+                    break;
+            }
+        }
     }
 
     private async Task AuditChangesAsync()

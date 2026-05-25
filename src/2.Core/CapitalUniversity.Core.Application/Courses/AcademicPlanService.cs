@@ -4,6 +4,8 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Courses;
@@ -93,6 +95,48 @@ public class AcademicPlanService : IAcademicPlanService
         return Localize(dto);
     }
 
+    public async Task<PagedResult<AcademicPlanResponse>> SearchAsync(AcademicPlanSearchQuery query, CancellationToken cancellationToken = default)
+    {
+        // If pinned to a node, scope-check once and short-circuit on miss.
+        if (query.StructureNodeId.HasValue &&
+            !await _scope.CanAccessStructureNodeAsync(query.StructureNodeId.Value, cancellationToken))
+        {
+            return new PagedResult<AcademicPlanResponse>
+            {
+                Items = new List<AcademicPlanResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+                TotalCount = 0,
+                TotalPages = 0,
+            };
+        }
+
+        var page = await _plans.SearchAsync(query, cancellationToken);
+        var visible = new List<AcademicPlanResponse>(page.Items.Count);
+        foreach (var p in page.Items)
+        {
+            if (!await _scope.CanAccessStructureNodeAsync(p.StructureNodeId, cancellationToken)) continue;
+            visible.Add(Localize(new AcademicPlanResponse
+            {
+                Id = p.Id,
+                StructureNodeId = p.StructureNodeId,
+                Name = p.Name,
+                EffectiveFrom = p.EffectiveFrom,
+                EffectiveTo = p.EffectiveTo,
+                IsActive = p.IsActive,
+            }));
+        }
+
+        return new PagedResult<AcademicPlanResponse>
+        {
+            Items = visible,
+            Page = page.Page,
+            PageSize = page.PageSize,
+            TotalCount = page.TotalCount,
+            TotalPages = page.TotalPages,
+        };
+    }
+
     public async Task<IReadOnlyList<AcademicPlanResponse>> GetForStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
     {
         if (!await _scope.CanAccessStructureNodeAsync(structureNodeId, cancellationToken))
@@ -155,6 +199,9 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(AcademicPlanNotFound);
         }
 
+        plan.EnsureMutable();
+
+        if (request.Name != null) plan.Name = LocalizedJson.Normalize(request.Name);
         _mapper.ApplyUpdate(request, plan);
 
         if (plan.EffectiveTo.HasValue && plan.EffectiveTo <= plan.EffectiveFrom)
@@ -178,9 +225,36 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(AcademicPlanNotFound);
         }
 
+        plan.EnsureMutable();
+
         _plans.Delete(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var succeeded = new List<Guid>(ids.Count);
+        var failures = new List<BulkActionFailure>();
+
+        foreach (var id in ids.Distinct())
+        {
+            try
+            {
+                await DeleteAsync(id, cancellationToken);
+                succeeded.Add(id);
+            }
+            catch (NotFoundException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = ex.Message });
+            }
+            catch (ConflictException ex)
+            {
+                failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.Conflict, Message = ex.Message });
+            }
+        }
+
+        return BulkActionResult.From(succeeded, failures);
     }
 
     public async Task<Guid> AddCourseAsync(Guid planId, AddPlanCourseRequest request, CancellationToken cancellationToken = default)
@@ -195,6 +269,8 @@ public class AcademicPlanService : IAcademicPlanService
         {
             throw new NotFoundException(AcademicPlanNotFound);
         }
+
+        plan.EnsureMutable();
 
         var course = await _courses.GetByIdAsync(request.CourseId, cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
@@ -219,6 +295,86 @@ public class AcademicPlanService : IAcademicPlanService
         return entry.Id;
     }
 
+    public async Task BatchUpdateCoursesAsync(Guid planId, BatchPlanCoursesRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request is null) throw new ValidationException("Request", LocalizedKeys.Infrastructure.Required);
+        if (request.Add.Count == 0 && request.Remove.Count == 0)
+        {
+            // Empty diff is a successful no-op — saves callers from special-casing.
+            return;
+        }
+
+        var plan = await _plans.GetByIdAsync(planId, includeCourses: true, cancellationToken)
+            ?? throw new NotFoundException(AcademicPlanNotFound);
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException(AcademicPlanNotFound);
+        }
+        plan.EnsureMutable();
+
+        // -- Validate the additions in one pass before mutating anything ----
+        // All-or-nothing means we want every step to be pre-checked so the
+        // first SaveChanges below either applies the full diff or none of it.
+        foreach (var add in request.Add)
+        {
+            var validation = await _validators.AddCourse.ValidateAsync(add, cancellationToken);
+            if (!validation.IsValid) throw ValidationFrom(validation);
+        }
+
+        // Duplicate detection inside the request itself — two adds for the
+        // same course in one batch would otherwise both pass ContainsCourseAsync.
+        if (request.Add
+            .GroupBy(a => a.CourseId)
+            .Any(g => g.Count() > 1))
+        {
+            throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
+        }
+
+        // Removals must each point at an existing entry on THIS plan.
+        var removals = new List<AcademicPlanCourse>(request.Remove.Count);
+        foreach (var planCourseId in request.Remove.Distinct())
+        {
+            var entry = plan.PlanCourses.FirstOrDefault(pc => pc.Id == planCourseId)
+                ?? throw new NotFoundException(PlanCourseEntryNotFound);
+            removals.Add(entry);
+        }
+
+        // -- Apply --------------------------------------------------------
+        foreach (var entry in removals)
+        {
+            _plans.RemovePlanCourse(entry);
+            plan.PlanCourses.Remove(entry);
+        }
+
+        foreach (var add in request.Add)
+        {
+            // Existence check on the catalog course.
+            var course = await _courses.GetByIdAsync(add.CourseId, cancellationToken)
+                ?? throw new NotFoundException(LocalizedKeys.Courses.NotFound);
+
+            // Re-check against the post-removal composition so an "add + remove
+            // of the same course" pair in one batch is legal.
+            if (plan.PlanCourses.Any(pc => pc.CourseId == add.CourseId))
+            {
+                throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
+            }
+
+            plan.PlanCourses.Add(new AcademicPlanCourse
+            {
+                AcademicPlanId = planId,
+                CourseId = course.Id,
+                Level = add.Level,
+                Semester = add.Semester,
+                IsMandatory = add.IsMandatory,
+            });
+        }
+
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+    }
+
     public async Task RemoveCourseAsync(Guid planId, Guid planCourseId, CancellationToken cancellationToken = default)
     {
         var entry = await _plans.GetPlanCourseAsync(planCourseId, cancellationToken)
@@ -238,9 +394,45 @@ public class AcademicPlanService : IAcademicPlanService
             throw new NotFoundException(PlanCourseEntryNotFound);
         }
 
+        plan.EnsureMutable();
+
         _plans.RemovePlanCourse(entry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await LoadForWriteAsync(id, cancellationToken);
+        plan.Close();
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var plan = await LoadForWriteAsync(id, cancellationToken);
+        plan.Reopen();
+        _plans.Update(plan);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+    }
+
+    /// <summary>
+    /// Fetch a tracked plan by id and require the caller's scope to cover
+    /// its owning structure node.
+    /// </summary>
+    private async Task<AcademicPlan> LoadForWriteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var plan = await _plans.GetByIdAsync(id, includeCourses: false, cancellationToken)
+            ?? throw new NotFoundException(AcademicPlanNotFound);
+
+        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken))
+        {
+            throw new NotFoundException(AcademicPlanNotFound);
+        }
+        return plan;
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

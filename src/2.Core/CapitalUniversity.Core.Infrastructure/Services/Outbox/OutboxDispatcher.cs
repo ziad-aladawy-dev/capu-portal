@@ -87,6 +87,13 @@ public class OutboxDispatcher : BackgroundService
             .GroupBy(h => h.MessageType)
             .ToDictionary(g => g.Key, g => g.First());
 
+        // M12 — Single SELECT, ordered by EnqueuedAt across ALL message types,
+        // capped at BatchSize. The foreach below iterates this list in order,
+        // so dispatch is globally oldest-first regardless of handler grouping.
+        // Do NOT reorder by message type here — the contract with producers is
+        // "rows enqueued earlier are processed first", which is the only
+        // ordering guarantee they can rely on when staging a series of related
+        // events in the same transaction.
         var batch = await db.OutboxMessages
             .Where(m => m.ProcessedAt == null && m.AttemptCount < _options.MaxAttempts)
             .OrderBy(m => m.EnqueuedAt)
@@ -125,7 +132,7 @@ public class OutboxDispatcher : BackgroundService
 
             try
             {
-                await handler.HandleAsync(row.Payload, cancellationToken);
+                await handler.HandleAsync(row.Id, row.Payload, cancellationToken);
                 row.ProcessedAt = DateTime.UtcNow;
                 row.LastError = null;
             }

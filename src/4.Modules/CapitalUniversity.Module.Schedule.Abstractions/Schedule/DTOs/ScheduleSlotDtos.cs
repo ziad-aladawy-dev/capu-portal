@@ -49,3 +49,27 @@ public class UpdateScheduleSlotRequest
     public string? Location { get; set; }
     public string? Notes { get; set; }
 }
+
+/// <summary>
+/// Atomic bulk-create of multiple slots under one parent offering. The whole
+/// batch commits together or is rejected — a partial schedule (e.g. lecture
+/// + lab but no recitation) is rarely useful. Intra-batch overlap is checked
+/// in addition to the per-slot conflict check against existing siblings.
+/// </summary>
+public class BatchCreateScheduleSlotsRequest
+{
+    public Guid CourseOfferingId { get; set; }
+
+    public IReadOnlyList<BatchScheduleSlotItem> Slots { get; set; } = Array.Empty<BatchScheduleSlotItem>();
+}
+
+/// <summary>Single slot row inside a batch — same shape as <see cref="CreateScheduleSlotRequest"/> minus the parent id (carried once on the batch).</summary>
+public class BatchScheduleSlotItem
+{
+    public DayOfWeek DayOfWeek { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+    public ScheduleSlotKind Kind { get; set; } = ScheduleSlotKind.Lecture;
+    public string? Location { get; set; }
+    public string? Notes { get; set; }
+}

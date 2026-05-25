@@ -15,23 +15,17 @@ public class StudentService : IStudentService
     private readonly IStudentRepository _repository;
     private readonly IStructureNodeRepository _structureRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ISessionVersionService _sessionVersions;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ILocalizationService _localization;
 
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
         IPasswordHasher passwordHasher,
-        ISessionVersionService sessionVersions,
-        IUnitOfWork unitOfWork,
         ILocalizationService localization)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _passwordHasher = passwordHasher;
-        _sessionVersions = sessionVersions;
-        _unitOfWork = unitOfWork;
         _localization = localization;
     }
 
@@ -111,11 +105,10 @@ public class StudentService : IStudentService
 
         await _repository.AddAsync(student);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         // P2.6 — evict any negative-cached "user not found" entry so the new
         // student's first authenticated request resolves cleanly.
-        await _sessionVersions.InvalidateCacheAsync(student.Id);
 
         return student.Id;
     }
@@ -190,7 +183,7 @@ public class StudentService : IStudentService
 
         await _repository.UpdateAsync(student);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -202,7 +195,7 @@ public class StudentService : IStudentService
 
         await _repository.SoftDeleteAsync(id);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -216,7 +209,7 @@ public class StudentService : IStudentService
 
         await _repository.ToggleStatusAsync(id);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
     }
 
     public async Task<StudentDto?> GetByIdAsync(Guid id)
@@ -277,21 +270,16 @@ public class StudentService : IStudentService
         };
     }
 
-    /// <summary>
-    /// Project a <see cref="Student"/> onto its DTO, decoding every bilingual
-    /// string against the caller's culture. Personal <c>Name</c> is also
-    /// decoded — operators store the canonical
-    /// <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON for bilingual records
-    /// and plain text for single-language data; the resolver round-trips both.
-    /// </summary>
     private StudentDto MapInstance(
             Student student)
     {
-        var levelNode = student.StructureNode;
-
         string facultyName = string.Empty;
 
         string programName = string.Empty;
+
+        var localizedName = _localization.Get<string>(student.Name);
+
+        var levelNode = student.StructureNode;
 
         string levelName =
             _localization.Get<string>(student.StructureNode.Name);
@@ -321,7 +309,7 @@ public class StudentService : IStudentService
 
             Name = _localization.Get<string>(student.Name),
 
-            LocalizedName = _localization.Get<string>(student.Name),
+            LocalizedName = localizedName,
 
             NationalId = student.NationalId,
 

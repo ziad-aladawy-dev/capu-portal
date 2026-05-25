@@ -67,8 +67,25 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     /// <summary>Timestamp of the last successful sync from the upstream system. Optional.</summary>
     public DateTime? ExternalSyncedAt { get; set; }
 
+    /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/>. Only callers holding the <c>Open</c>
+    /// permission may reopen via <see cref="Reopen"/>.
+    /// </summary>
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
     /// <summary>SQL Server <c>rowversion</c>. EF maps this to optimistic concurrency — co-edits on capacity/state must not silently overwrite each other.</summary>
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    /// <summary>
+    /// Guards every mutating operation on the entity.
+    /// </summary>
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Course offering is closed and cannot be modified. Reopen it first.");
+    }
 
     /// <summary>
     /// Construction-time initializer. Validation that requires the request DTO
@@ -89,6 +106,7 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     /// </summary>
     public void AdjustCapacity(int newCapacity)
     {
+        EnsureMutable();
         if (newCapacity < 0) throw new ArgumentOutOfRangeException(nameof(newCapacity), "Capacity must be non-negative.");
         if (newCapacity < RegisteredCount)
         {
@@ -141,6 +159,7 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     /// <summary>Draft → Open. Already-Open is a no-op. Reopening a Closed or Cancelled offering is rejected — that's a "create a new offering" decision, not a state flip.</summary>
     public void Activate()
     {
+        EnsureMutable();
         if (_status == OfferingStatus.Open) return;
         if (_status != OfferingStatus.Draft)
         {
@@ -163,11 +182,24 @@ public class CourseOffering : BaseEntity, ISoftDeletable
         }
         _status = OfferingStatus.Closed;
         _registrationState = RegistrationState.Closed;
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new InvalidOperationException("Offering is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        _status = OfferingStatus.Open;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>Any non-cancelled state → Cancelled. Registration is forced to Closed so cancellation cannot leave a "still accepting students" flag dangling. Already-Cancelled is a no-op.</summary>
     public void Cancel()
     {
+        EnsureMutable();
         if (_status == OfferingStatus.Cancelled) return;
         _status = OfferingStatus.Cancelled;
         _registrationState = RegistrationState.Closed;
@@ -176,6 +208,7 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     /// <summary>Flip registration to Open. Requires an active (<see cref="OfferingStatus.Open"/>) offering — registration on Draft / Closed / Cancelled would mean either "accepting before launch" or "accepting after shutdown", both wrong.</summary>
     public void OpenRegistration()
     {
+        EnsureMutable();
         if (_status != OfferingStatus.Open)
         {
             throw new InvalidOperationException("Registration can only be opened on an active offering.");
@@ -186,12 +219,14 @@ public class CourseOffering : BaseEntity, ISoftDeletable
     /// <summary>Flip registration to Closed. Always allowed — safe to call defensively from any state, including Cancelled.</summary>
     public void CloseRegistration()
     {
+        EnsureMutable();
         _registrationState = RegistrationState.Closed;
     }
 
     /// <summary>Flip registration to Waitlist. Requires an active offering — same rationale as <see cref="OpenRegistration"/>.</summary>
     public void SetWaitlist()
     {
+        EnsureMutable();
         if (_status != OfferingStatus.Open)
         {
             throw new InvalidOperationException("Waitlist requires an active offering.");
