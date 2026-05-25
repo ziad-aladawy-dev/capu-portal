@@ -73,17 +73,12 @@ public class NotificationsController : ControllerBase
             return Unauthorized();
         }
 
-        if (request is null || request.Ids is null || request.Ids.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one notification id is required." });
-        }
+        // Throws ValidationException with a localized key on empty / oversize.
+        // GlobalExceptionHandler maps to 400 ProblemDetails with the standard
+        // errors dictionary — no hardcoded English in the response payload.
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
 
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot mark more than {BulkConstants.MaxBulkSize} notifications in one request." });
-        }
-
-        var marked = await _notificationService.MarkManyAsReadAsync(request.Ids, userId, cancellationToken);
+        var marked = await _notificationService.MarkManyAsReadAsync(request!.Ids, userId, cancellationToken);
         return Ok(new { Marked = marked });
     }
 

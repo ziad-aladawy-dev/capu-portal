@@ -97,16 +97,9 @@ public class ScheduleSlotsController : ControllerBase
     [HasPermission(PermissionNames.Schedule.Insert)]
     public async Task<IActionResult> BatchCreate([FromBody] BatchCreateScheduleSlotsRequest request, CancellationToken cancellationToken)
     {
-        if (request is null || request.Slots is null || request.Slots.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one slot is required." });
-        }
-        if (request.Slots.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot create more than {BulkConstants.MaxBulkSize} slots in one batch." });
-        }
+        BulkRequestGuard.EnsureRecords(request?.Slots, propertyName: "slots");
 
-        var ids = await _service.BatchCreateAsync(request, cancellationToken);
+        var ids = await _service.BatchCreateAsync(request!, cancellationToken);
         return Ok(new { Ids = ids, Message = "Schedule slots created" });
     }
 }

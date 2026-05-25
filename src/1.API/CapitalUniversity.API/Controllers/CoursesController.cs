@@ -93,12 +93,9 @@ public class CoursesController : ControllerBase
     [HasPermission(PermissionNames.Courses.Delete)]
     public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
     {
-        if (request?.Ids is null || request.Ids.Count == 0)
-            return BadRequest(new { Message = "At least one id is required." });
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} courses in one request." });
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
 
-        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        var result = await _service.DeleteManyAsync(request!.Ids, cancellationToken);
         return Ok(result);
     }
 }

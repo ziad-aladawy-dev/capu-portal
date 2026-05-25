@@ -73,21 +73,11 @@ public class StudentServiceRequestsController : ControllerBase
     [HasPermission(PermissionNames.StudentServiceRequests.EditClose)]
     public async Task<IActionResult> BulkTransition([FromBody] BulkActionRequest<MoveRequestWorkflowStateRequest> request, CancellationToken cancellationToken)
     {
-        if (request is null || request.Ids is null || request.Ids.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one request id is required." });
-        }
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot transition more than {BulkConstants.MaxBulkSize} requests in one request." });
-        }
-        if (request.Payload is null)
-        {
-            return BadRequest(new { Message = "A target status payload is required." });
-        }
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
+        BulkRequestGuard.EnsurePayload(request?.Payload);
 
         var staffId = ResolveCallerId();
-        var result = await _service.BulkTransitionAsync(request.Ids, staffId, request.Payload, cancellationToken);
+        var result = await _service.BulkTransitionAsync(request!.Ids, staffId, request.Payload!, cancellationToken);
         return Ok(result);
     }
 

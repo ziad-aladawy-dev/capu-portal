@@ -106,6 +106,16 @@ public static class LocalizedStrings
                 [LocalizedKeys.StudentServices.PaymentRequired]              = "Payment is required before the request can be processed.",
                 [LocalizedKeys.StudentServices.RequestNotWaitingPayment]     = "The request is not in a waiting-for-payment state.",
                 [LocalizedKeys.StudentServices.DuplicateFieldValue]          = "The same field was submitted more than once.",
+
+                [LocalizedKeys.BulkActions.IdsRequired]          = "At least one id is required.",
+                [LocalizedKeys.BulkActions.BatchExceedsMaxSize]  = "Batch size exceeds the allowed maximum.",
+                [LocalizedKeys.BulkActions.PayloadRequired]      = "A request payload is required.",
+                [LocalizedKeys.BulkActions.ReasonRequired]       = "A reason is required.",
+                [LocalizedKeys.BulkActions.RecordsRequired]      = "At least one record is required.",
+                [LocalizedKeys.BulkActions.VerifiedByRequired]   = "A verifier id is required.",
+
+                [LocalizedKeys.Paging.UnknownSortField]     = "Unknown sort field.",
+                [LocalizedKeys.Paging.UnknownSortDirection] = "Unknown sort direction. Use 'asc' or 'desc'.",
             },
             ["ar"] = new(StringComparer.Ordinal)
             {
@@ -188,6 +198,16 @@ public static class LocalizedStrings
                 [LocalizedKeys.StudentServices.PaymentRequired]              = "يجب إتمام الدفع قبل معالجة الطلب.",
                 [LocalizedKeys.StudentServices.RequestNotWaitingPayment]     = "الطلب ليس في حالة انتظار الدفع.",
                 [LocalizedKeys.StudentServices.DuplicateFieldValue]          = "تم إرسال نفس الحقل أكثر من مرة.",
+
+                [LocalizedKeys.BulkActions.IdsRequired]          = "يجب توفير معرّف واحد على الأقل.",
+                [LocalizedKeys.BulkActions.BatchExceedsMaxSize]  = "حجم الدفعة يتجاوز الحد الأقصى المسموح به.",
+                [LocalizedKeys.BulkActions.PayloadRequired]      = "يجب توفير حمولة الطلب.",
+                [LocalizedKeys.BulkActions.ReasonRequired]       = "يجب توفير سبب.",
+                [LocalizedKeys.BulkActions.RecordsRequired]      = "يجب توفير سجل واحد على الأقل.",
+                [LocalizedKeys.BulkActions.VerifiedByRequired]   = "يجب توفير معرّف المُوثِّق.",
+
+                [LocalizedKeys.Paging.UnknownSortField]     = "حقل ترتيب غير معروف.",
+                [LocalizedKeys.Paging.UnknownSortDirection] = "اتجاه ترتيب غير معروف. استخدم 'asc' أو 'desc'.",
             },
         };
 

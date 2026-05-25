@@ -69,12 +69,9 @@ public class PermissionsController : ControllerBase
     [HasPermission(PermissionNames.Permissions.Insert)]
     public async Task<IActionResult> BatchCreate([FromBody] BatchCreateAssignmentRequest request, CancellationToken cancellationToken)
     {
-        if (request?.Assignments is null || request.Assignments.Count == 0)
-            return BadRequest(new { Message = "At least one assignment is required." });
-        if (request.Assignments.Count > BulkConstants.MaxBulkSize)
-            return BadRequest(new { Message = $"Cannot create more than {BulkConstants.MaxBulkSize} assignments in one request." });
+        BulkRequestGuard.EnsureRecords(request?.Assignments, propertyName: "assignments");
 
-        var results = await _permissionService.BatchCreateAssignmentsAsync(request.Assignments, cancellationToken);
+        var results = await _permissionService.BatchCreateAssignmentsAsync(request!.Assignments, cancellationToken);
         return Ok(results);
     }
 
@@ -88,12 +85,9 @@ public class PermissionsController : ControllerBase
     [HasPermission(PermissionNames.Permissions.EditClose)]
     public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateAssignmentRequest request, CancellationToken cancellationToken)
     {
-        if (request?.Updates is null || request.Updates.Count == 0)
-            return BadRequest(new { Message = "At least one update is required." });
-        if (request.Updates.Count > BulkConstants.MaxBulkSize)
-            return BadRequest(new { Message = $"Cannot update more than {BulkConstants.MaxBulkSize} assignments in one request." });
+        BulkRequestGuard.EnsureRecords(request?.Updates, propertyName: "updates");
 
-        var results = await _permissionService.BatchUpdateAssignmentsAsync(request.Updates, cancellationToken);
+        var results = await _permissionService.BatchUpdateAssignmentsAsync(request!.Updates, cancellationToken);
         return Ok(results);
     }
 

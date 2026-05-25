@@ -2,6 +2,7 @@ using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -98,14 +99,15 @@ public class AcademicPlansController : ControllerBase
     [HasPermission(PermissionNames.AcademicPlans.EditClose)]
     public async Task<IActionResult> BatchUpdateCourses(Guid id, [FromBody] BatchPlanCoursesRequest request, CancellationToken cancellationToken)
     {
-        if (request is null)
-        {
-            return BadRequest(new { Message = "A batch request body is required." });
-        }
-        var total = request.Add.Count + request.Remove.Count;
+        BulkRequestGuard.EnsurePayload(request);
+        // Custom cap check — the shape has two parallel collections (add +
+        // remove). Throwing the localized BatchExceedsMaxSize key gives the
+        // same wire response as every other oversized-batch failure.
+        var total = request!.Add.Count + request.Remove.Count;
         if (total > BulkConstants.MaxBulkSize)
         {
-            return BadRequest(new { Message = $"Cannot apply more than {BulkConstants.MaxBulkSize} composition changes in one batch." });
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ValidationException(
+                "batch", LocalizedKeys.BulkActions.BatchExceedsMaxSize);
         }
 
         await _service.BatchUpdateCoursesAsync(id, request, cancellationToken);
@@ -133,12 +135,9 @@ public class AcademicPlansController : ControllerBase
     [HasPermission(PermissionNames.AcademicPlans.Delete)]
     public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
     {
-        if (request?.Ids is null || request.Ids.Count == 0)
-            return BadRequest(new { Message = "At least one id is required." });
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-            return BadRequest(new { Message = $"Cannot delete more than {BulkConstants.MaxBulkSize} plans in one request." });
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
 
-        var result = await _service.DeleteManyAsync(request.Ids, cancellationToken);
+        var result = await _service.DeleteManyAsync(request!.Ids, cancellationToken);
         return Ok(result);
     }
 }

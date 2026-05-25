@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 
 namespace CapitalUniversity.Core.Abstractions.Shared.Paging;
@@ -51,13 +52,16 @@ public sealed class SortClause
                 descending = dir.Equals("desc", StringComparison.OrdinalIgnoreCase);
                 if (!descending && !dir.Equals("asc", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ValidationException("sort", $"Unknown sort direction '{dir}'. Use 'asc' or 'desc'.");
+                    // Localized key resolved by GlobalExceptionHandler — the literal
+                    // 'dir' value would leak as English text, so we surface only the
+                    // catalog key. Field name + direction stay in the trace logs.
+                    throw new ValidationException("sort", LocalizedKeys.Paging.UnknownSortDirection);
                 }
             }
 
             if (!allowedFields.Contains(field))
             {
-                throw new ValidationException("sort", $"Unknown sort field '{field}'.");
+                throw new ValidationException("sort", LocalizedKeys.Paging.UnknownSortField);
             }
             clauses.Add(new SortClause(field, descending));
         }

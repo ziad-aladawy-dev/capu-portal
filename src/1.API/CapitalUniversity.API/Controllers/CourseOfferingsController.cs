@@ -89,16 +89,8 @@ public class CourseOfferingsController : ControllerBase
     [HasPermission(PermissionNames.CourseOfferings.EditClose)]
     public async Task<IActionResult> BulkPublish([FromBody] BulkActionRequest request, CancellationToken cancellationToken)
     {
-        if (request is null || request.Ids is null || request.Ids.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one offering id is required." });
-        }
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot publish more than {BulkConstants.MaxBulkSize} offerings in one request." });
-        }
-
-        var result = await _service.BulkPublishAsync(request.Ids, cancellationToken);
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
+        var result = await _service.BulkPublishAsync(request!.Ids, cancellationToken);
         return Ok(result);
     }
 
@@ -111,18 +103,9 @@ public class CourseOfferingsController : ControllerBase
     [HasPermission(PermissionNames.CourseOfferings.EditClose)]
     public async Task<IActionResult> BulkCancel([FromBody] BulkActionRequest<BulkCancelPayload> request, CancellationToken cancellationToken)
     {
-        if (request is null || request.Ids is null || request.Ids.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one offering id is required." });
-        }
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot cancel more than {BulkConstants.MaxBulkSize} offerings in one request." });
-        }
-        if (request.Payload is null || string.IsNullOrWhiteSpace(request.Payload.Reason))
-        {
-            return BadRequest(new { Message = "A cancellation reason is required." });
-        }
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
+        BulkRequestGuard.EnsurePayload(request?.Payload);
+        BulkRequestGuard.EnsureReason(request!.Payload!.Reason);
 
         var result = await _service.BulkCancelAsync(request.Ids, request.Payload.Reason, cancellationToken);
         return Ok(result);

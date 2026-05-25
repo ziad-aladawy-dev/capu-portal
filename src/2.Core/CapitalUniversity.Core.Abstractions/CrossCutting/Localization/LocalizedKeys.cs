@@ -121,6 +121,32 @@ public static class LocalizedKeys
         public const string SlotConflict    = "schedule.slot_conflict";
     }
 
+    /// <summary>
+    /// Cross-cutting validation messages for bulk-action endpoints (Phase 1 /
+    /// Phase 3). Used by <c>BulkRequestGuard</c> when a controller-level
+    /// guard fires before the per-row service work runs.
+    /// </summary>
+    public static class BulkActions
+    {
+        public const string IdsRequired         = "bulk_actions.ids_required";
+        public const string BatchExceedsMaxSize = "bulk_actions.batch_exceeds_max_size";
+        public const string PayloadRequired     = "bulk_actions.payload_required";
+        public const string ReasonRequired      = "bulk_actions.reason_required";
+        public const string RecordsRequired     = "bulk_actions.records_required";
+        public const string VerifiedByRequired  = "bulk_actions.verified_by_required";
+    }
+
+    /// <summary>
+    /// Cross-cutting validation messages for paged-query / search endpoints
+    /// (Phase 2). Produced by <c>SortClause.Parse</c> when the caller asks
+    /// for an unsupported sort field or direction.
+    /// </summary>
+    public static class Paging
+    {
+        public const string UnknownSortField     = "paging.unknown_sort_field";
+        public const string UnknownSortDirection = "paging.unknown_sort_direction";
+    }
+
     public static class StudentServices
     {
         public const string ServiceNotFound        = "student_services.service_not_found";

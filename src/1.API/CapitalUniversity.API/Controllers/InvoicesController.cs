@@ -92,18 +92,9 @@ public class InvoicesController : ControllerBase
     [HasPermission(PermissionNames.Invoices.EditClose)]
     public async Task<IActionResult> BulkCancel([FromBody] BulkActionRequest<BulkCancelInvoicesPayload> request, CancellationToken cancellationToken)
     {
-        if (request is null || request.Ids is null || request.Ids.Count == 0)
-        {
-            return BadRequest(new { Message = "At least one invoice id is required." });
-        }
-        if (request.Ids.Count > BulkConstants.MaxBulkSize)
-        {
-            return BadRequest(new { Message = $"Cannot cancel more than {BulkConstants.MaxBulkSize} invoices in one request." });
-        }
-        if (request.Payload is null || string.IsNullOrWhiteSpace(request.Payload.Reason))
-        {
-            return BadRequest(new { Message = "A cancellation reason is required." });
-        }
+        BulkRequestGuard.EnsureValidIds(request?.Ids);
+        BulkRequestGuard.EnsurePayload(request?.Payload);
+        BulkRequestGuard.EnsureReason(request!.Payload!.Reason);
 
         var result = await _service.BulkCancelAsync(request.Ids, request.Payload.Reason, cancellationToken);
         return Ok(result);
