@@ -96,12 +96,12 @@ public class AcademicYearsControllerTests
     }
 
     [Fact]
-    public async Task Resolve_DelegatesAndReturnsOk()
+    public async Task RecomputeCurrent_DelegatesAndReturnsOk()
     {
         var ctrl = Build(out var svc);
         svc.Setup(s => s.ResolveCurrentYearAsync()).Returns(Task.CompletedTask).Verifiable();
 
-        var result = await ctrl.Resolve();
+        var result = await ctrl.RecomputeCurrent();
         Assert.IsType<OkObjectResult>(result);
         svc.Verify();
     }
@@ -241,8 +241,7 @@ public class PermissionsControllerEndpointTests
 
         var result = await ctrl.GetAssignment(query, CancellationToken.None);
 
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        Assert.Null(okResult.Value);
+        Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]

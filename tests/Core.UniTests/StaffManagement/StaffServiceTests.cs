@@ -34,7 +34,15 @@ public class StaffServiceTests
         staff.Setup(r => r.EmployeeCodeExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
         staff.Setup(r => r.GetLastEmployeeCodeAsync()).ReturnsAsync((string?)null);
         structure.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new StructureNode { Id = Guid.NewGuid(), Name = "Faculty of CS" });
-        var sut = new StaffService(staff.Object, structure.Object, sessions.Object, uow.Object, new TestLocalizationService());
+        
+        var sut = new StaffService(
+            staff.Object, 
+            structure.Object, 
+            new Mock<IPasswordHasher>().Object, 
+            sessions.Object, 
+            uow.Object, 
+            new TestLocalizationService());
+            
         return (sut, staff, structure, sessions, uow);
     }
 
@@ -66,7 +74,7 @@ public class StaffServiceTests
         captured.Should().NotBeNull();
         captured!.Id.Should().Be(id);
         captured.EmployeeCode.Should().Be("EMP-2001");
-        captured.Name.Should().Be("Aya");
+        captured.Name.Should().Be("{\"ar\":\"Aya\",\"en\":\"Aya\"}");
         captured.IsActive.Should().BeTrue("newly-created staff are active by default");
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
         sessions.Verify(s => s.InvalidateCacheAsync(id, default), Times.Once,
@@ -193,7 +201,7 @@ public class StaffServiceTests
             BirthDate = new DateTime(2000, 1, 1), IsActive = true,
         });
 
-        existing.Name.Should().Be("new");
+        existing.Name.Should().Contain("new");
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
     }
 
@@ -291,19 +299,19 @@ public class StaffServiceTests
     public async Task GetById_Existing_ProjectsAllFields()
     {
         var (sut, staff, _, _, _) = Build();
-        var faculty = new StructureNode { Id = Guid.NewGuid(), Name = "Faculty of Engineering" };
-        var node = new StructureNode { Id = Guid.NewGuid(), Name = "Computer Science Dept", Parent = faculty };
+        var faculty = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"Faculty of Engineering\",\"en\":\"Faculty of Engineering\"}" };
+        var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"Computer Science Dept\",\"en\":\"Computer Science Dept\"}", Parent = faculty };
         var entity = new Staff
         {
             Id = Guid.NewGuid(),
             EmployeeCode = "EMP-9000",
-            Name = "Ali",
+            Name = "{\"ar\":\"Ali\",\"en\":\"Ali\"}",
             NationalId = "1",
             BirthDate = new DateTime(1990, 6, 1),
             PhoneNumber = "+20",
             Email = "ali@x",
             Role = "Lecturer",
-            JobTitle = "Senior",
+            JobTitle = "{\"ar\":\"Senior\",\"en\":\"Senior\"}",
             StructureNodeId = node.Id,
             StructureNode = node,
             PasswordExpiry = new DateTime(2030, 1, 1),
@@ -325,7 +333,7 @@ public class StaffServiceTests
     public async Task GetById_OrphanNode_FacultyNameEmpty()
     {
         var (sut, staff, _, _, _) = Build();
-        var rootNode = new StructureNode { Id = Guid.NewGuid(), Name = "Faculty", Parent = null };
+        var rootNode = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"Faculty\",\"en\":\"Faculty\"}", Parent = null };
         var entity = new Staff
         {
             Id = Guid.NewGuid(), Email = "x", NationalId = "1",
@@ -354,14 +362,14 @@ public class StaffServiceTests
     public async Task GetStatistics_CountsActiveAndInactiveSeparately()
     {
         var (sut, staff, _, _, _) = Build();
-        var node = new StructureNode { Id = Guid.NewGuid(), Name = "N" };
+        var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"N\",\"en\":\"N\"}" };
         staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>())).ReturnsAsync(new PagedResult<Staff>
         {
             Items = new List<Staff>
             {
-                new() { Id = Guid.NewGuid(), Email = "1", IsActive = true,  StructureNode = node, StructureNodeId = node.Id },
-                new() { Id = Guid.NewGuid(), Email = "2", IsActive = true,  StructureNode = node, StructureNodeId = node.Id },
-                new() { Id = Guid.NewGuid(), Email = "3", IsActive = false, StructureNode = node, StructureNodeId = node.Id },
+                new() { Id = Guid.NewGuid(), Email = "1", IsActive = true,  StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"1\",\"en\":\"1\"}", JobTitle = "{\"ar\":\"1\",\"en\":\"1\"}" },
+                new() { Id = Guid.NewGuid(), Email = "2", IsActive = true,  StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"2\",\"en\":\"2\"}", JobTitle = "{\"ar\":\"2\",\"en\":\"2\"}" },
+                new() { Id = Guid.NewGuid(), Email = "3", IsActive = false, StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"3\",\"en\":\"3\"}", JobTitle = "{\"ar\":\"3\",\"en\":\"3\"}" },
             },
         });
 

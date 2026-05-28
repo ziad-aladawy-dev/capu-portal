@@ -88,6 +88,7 @@ public class PermissionNamesManifestCoverageTests
         _ = typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest);
         _ = typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest);
         _ = typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest);
+        _ = typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest);
     }
 
     private static HashSet<string> CollectPermissionNameConstants()

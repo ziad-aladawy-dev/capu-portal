@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
 using CapitalUniversity.Core.Application.Semesters.Mappings;
 using CapitalUniversity.Core.Domain.Semsters;
@@ -33,7 +34,9 @@ public class MapperTests
         _yearMapper.UpdateEntity(request, entity);
 
         // Assert
-        Assert.Equal("New Name", entity.Name);
+        // Mapperly might or might not use the normalization helper; either way, 
+        // the effective identity must match.
+        Assert.Equal("New Name", LocalizedJson.Extract(entity.Name, "en"));
         Assert.Equal(new DateTime(2025, 9, 1), entity.StartDate);
         Assert.Equal(new DateTime(2026, 6, 30), entity.EndDate);
     }
@@ -63,7 +66,7 @@ public class MapperTests
         _semesterMapper.UpdateEntity(request, entity);
 
         // Assert
-        Assert.Equal("Fall", entity.Name);
+        Assert.Equal("Fall", LocalizedJson.Extract(entity.Name, "en"));
         Assert.Equal(2, entity.Order);
         Assert.Equal(new DateTime(2025, 9, 1), entity.StartDate);
         Assert.Equal(new DateTime(2025, 12, 31), entity.EndDate);

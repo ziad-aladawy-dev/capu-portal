@@ -131,3 +131,6 @@ Sonar*
 .sonarqube/
 tools
 coverage*
+
+artifacts/*
+tools/*

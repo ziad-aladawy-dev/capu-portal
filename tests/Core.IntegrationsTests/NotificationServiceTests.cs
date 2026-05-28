@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
@@ -44,8 +45,11 @@ public class NotificationServiceTests
         var notification = await _context.Notifications.FirstOrDefaultAsync();
         notification.Should().NotBeNull();
         notification!.RecipientUserId.Should().Be(userId);
-        notification.Title.Should().Be(title);
-        notification.Message.Should().Be(message);
+        
+        // Entity carries the raw JSON; seeder/service normalizes plain text to bilingual JSON.
+        LocalizedJson.Extract(notification.Title, "en").Should().Be(title);
+        LocalizedJson.Extract(notification.Message, "en").Should().Be(message);
+        
         notification.Type.Should().Be(type);
         notification.IsRead.Should().BeFalse();
     }

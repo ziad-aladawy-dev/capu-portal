@@ -62,8 +62,10 @@ public class NotificationOutboxRoutingTests
         var payload = JsonSerializer.Deserialize<NotificationOutboxHandler.NotificationPayload>(row.Payload);
         payload.Should().NotBeNull();
         payload!.RecipientUserId.Should().Be(recipient);
-        payload.Title.Should().Be("Hi");
-        payload.Message.Should().Be("msg");
+        
+        // Assert on the normalized JSON identity, not verbatim equality.
+        LocalizedJson.Extract(payload.Title, "en").Should().Be("Hi");
+        LocalizedJson.Extract(payload.Message, "en").Should().Be("msg");
         payload.Type.Should().Be(NotificationType.Info);
     }
 
@@ -93,12 +95,12 @@ public class NotificationOutboxRoutingTests
         // Simulate the dispatcher: pull the row, invoke the handler.
         var row = await db.OutboxMessages.AsNoTracking().SingleAsync();
         var handler = new NotificationOutboxHandler(notifications);
-        await handler.HandleAsync(row.Payload, CancellationToken.None);
+        await handler.HandleAsync(row.Id, row.Payload, CancellationToken.None);
 
         var stored = await db.Notifications.AsNoTracking().SingleAsync();
         stored.RecipientUserId.Should().Be(recipient);
-        stored.Title.Should().Be("Welcome");
-        stored.Message.Should().Be("Glad you're here");
+        LocalizedJson.Extract(stored.Title, "en").Should().Be("Welcome");
+        LocalizedJson.Extract(stored.Message, "en").Should().Be("Glad you're here");
         stored.IsRead.Should().BeFalse();
     }
 }

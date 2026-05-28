@@ -9,6 +9,7 @@ using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
@@ -20,8 +21,11 @@ public class PermissionTreeQueryHandlerTests
             .UseInMemoryDatabase("PermissionTree_" + Guid.NewGuid())
             .Options);
 
-    private static PermissionTreeQueryHandler NewHandler(CoreDbContext db, IPermissionManifestRegistry? registry = null) =>
-        new(db, registry ?? BuildRegistry(), new PassthroughLocalization());
+    private static PermissionTreeQueryHandler NewHandler(CoreDbContext db, IPermissionManifestRegistry? registry = null)
+    {
+        var mockPermSvc = new Mock<IPermissionManagementService>();
+        return new(db, registry ?? BuildRegistry(), new PassthroughLocalization(), mockPermSvc.Object);
+    }
 
     /// <summary>
     /// Minimal stand-in for <see cref="ILocalizationService"/>. The handler
@@ -79,14 +83,12 @@ public class PermissionTreeQueryHandlerTests
     }
 
     [Fact]
-    public async Task GetRolePermissions_UnknownRole_ReturnsNull()
+    public async Task GetRolePermissions_UnknownRole_ThrowsNotFoundException()
     {
         using var db = NewDb();
         var sut = NewHandler(db);
 
-        var result = await sut.Handle(new GetRolePermissionsRequest { RoleId = Guid.NewGuid() }, CancellationToken.None);
-
-        Assert.Null(result);
+        await Assert.ThrowsAsync<NotFoundException>(() => sut.Handle(new GetRolePermissionsRequest { RoleId = Guid.NewGuid() }, CancellationToken.None));
     }
 
     [Fact]

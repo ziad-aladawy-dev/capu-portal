@@ -135,16 +135,17 @@ public class StudentProfileServiceTests
     public async Task Verify_HappyPath_StampsAndInvalidatesCache()
     {
         var (sut, repo, _, cache) = Build();
+        var studentId = Guid.NewGuid();
         var record = new StudentProfileRecord
         {
-            Id = Guid.NewGuid(), StudentId = Guid.NewGuid(),
+            Id = Guid.NewGuid(), StudentId = studentId,
             Category = StudentProfileCategory.MilitaryInformation, IsSensitive = true,
             SchemaVersion = 1, DataJson = "{}",
         };
         repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
 
         var verifier = Guid.NewGuid();
-        await sut.VerifyAsync(record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = verifier });
+        await sut.VerifyAsync(studentId, record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = verifier });
 
         record.VerifiedBy.Should().Be(verifier);
         record.VerifiedAt.Should().NotBeNull();
@@ -155,9 +156,10 @@ public class StudentProfileServiceTests
     public async Task Verify_UnknownRecord_ThrowsNotFound()
     {
         var (sut, repo, _, _) = Build();
+        var studentId = Guid.NewGuid();
         repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), default)).ReturnsAsync((StudentProfileRecord?)null);
 
-        var act = () => sut.VerifyAsync(Guid.NewGuid(), new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
+        var act = () => sut.VerifyAsync(studentId, Guid.NewGuid(), new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
         await act.Should().ThrowAsync<NotFoundException>();
     }
 

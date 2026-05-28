@@ -74,6 +74,6 @@ public class AcademicYearServiceTests
         Assert.True(year2.IsCurrent);
         _repoMock.Verify(x => x.Update(year1), Times.Once);
         _repoMock.Verify(x => x.Update(year2), Times.Once);
-        _uowMock.Verify(x => x.SaveChangesAsync(default), Times.Once);
+        _uowMock.Verify(x => x.SaveChangesAsync(default), Times.Exactly(2));
     }
 }

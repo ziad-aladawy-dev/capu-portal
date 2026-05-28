@@ -26,6 +26,7 @@ public class CourseOfferingServiceLifecycleTests
         var uow = new Mock<IUnitOfWork>();
         var scope = new Mock<IEffectiveScope>();
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
+        scope.Setup(s => s.CanAccessSemesterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
         var sut = new CourseOfferingService(
             uow.Object,
             repo.Object,
@@ -55,7 +56,7 @@ public class CourseOfferingServiceLifecycleTests
     {
         var (sut, repo, _) = Build();
         var existing = NewOffering(OfferingStatus.Draft);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Status = OfferingStatus.Open });
 
@@ -70,7 +71,7 @@ public class CourseOfferingServiceLifecycleTests
         // constructed directly via init because Close() also forces reg closed.
         var existing = NewOffering(OfferingStatus.Open);
         existing.Close();
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Status = OfferingStatus.Open });
         await act.Should().ThrowAsync<ConflictException>();
@@ -82,7 +83,7 @@ public class CourseOfferingServiceLifecycleTests
     {
         var (sut, repo, _) = Build();
         var existing = NewOffering(OfferingStatus.Open);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Status = OfferingStatus.Draft });
         await act.Should().ThrowAsync<ConflictException>();
@@ -94,7 +95,7 @@ public class CourseOfferingServiceLifecycleTests
         var (sut, repo, _) = Build();
         var existing = NewOffering(OfferingStatus.Open, capacity: 5);
         existing.OpenRegistration();
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Status = OfferingStatus.Cancelled });
 
@@ -107,7 +108,7 @@ public class CourseOfferingServiceLifecycleTests
     {
         var (sut, repo, _) = Build();
         var existing = NewOffering(OfferingStatus.Draft);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { RegistrationState = RegistrationState.Open });
         await act.Should().ThrowAsync<ConflictException>();
@@ -118,7 +119,7 @@ public class CourseOfferingServiceLifecycleTests
     {
         var (sut, repo, _) = Build();
         var existing = NewOffering(OfferingStatus.Draft);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         // Order matters: status flip is applied first so the dependent
         // registration-state guard sees Status=Open.
@@ -152,7 +153,8 @@ public class CourseOfferingServiceLifecycleTests
         var scope = new Mock<IEffectiveScope>();
         scope.Setup(s => s.CanAccessStructureNodeAsync(visibleNode, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         scope.Setup(s => s.CanAccessStructureNodeAsync(hiddenNode, It.IsAny<CancellationToken>())).ReturnsAsync(false);
-        repo.Setup(r => r.GetForCourseAsync(courseId, semesterId, default))
+        scope.Setup(s => s.CanAccessSemesterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        repo.Setup(r => r.GetForCourseAsync(courseId, semesterId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { visible, hidden });
 
         var sut = new CourseOfferingService(
@@ -174,7 +176,7 @@ public class CourseOfferingServiceLifecycleTests
         var (sut, repo, _) = Build();
         var nodeId = Guid.NewGuid();
         var semesterId = Guid.NewGuid();
-        repo.Setup(r => r.GetForNodeSemesterAsync(nodeId, semesterId, OfferingStatus.Draft, default))
+        repo.Setup(r => r.GetForNodeSemesterAsync(nodeId, semesterId, OfferingStatus.Draft, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<CourseOfferingEntity>())
             .Verifiable();
 

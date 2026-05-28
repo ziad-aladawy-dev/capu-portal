@@ -1,5 +1,6 @@
 using CapitalUniversity.Modules.CourseOffering.Abstractions;
 using CapitalUniversity.Modules.CourseOffering.Domain;
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using FluentAssertions;
 using Xunit;
 
@@ -57,7 +58,7 @@ public class CourseOfferingLifecycleTests
         var offering = NewOpenOffering();
         offering.Close();
         var act = offering.Activate;
-        act.Should().Throw<InvalidOperationException>("reopening a closed offering must be a new-offering decision, not a state flip");
+        act.Should().Throw<ConflictException>().WithMessage("*closed*");
     }
 
     [Fact]
@@ -66,7 +67,7 @@ public class CourseOfferingLifecycleTests
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.Activate;
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public class CourseOfferingLifecycleTests
     {
         var offering = NewDraftOffering();
         var act = offering.Close;
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]
@@ -95,7 +96,7 @@ public class CourseOfferingLifecycleTests
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.Close;
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]
@@ -126,7 +127,7 @@ public class CourseOfferingLifecycleTests
     {
         var draft = NewDraftOffering();
         var act = draft.OpenRegistration;
-        act.Should().Throw<InvalidOperationException>("registration on a Draft offering would accept students before launch");
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]
@@ -142,7 +143,7 @@ public class CourseOfferingLifecycleTests
     {
         var draft = NewDraftOffering();
         var act = draft.SetWaitlist;
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ConflictException>();
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public class CourseOfferingLifecycleTests
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.IncrementRegistration;
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<ConflictException>();
         offering.RegisteredCount.Should().Be(0);
     }
 }

@@ -39,7 +39,7 @@ public class PaymentVerificationServiceTests
         repo.Setup(r => r.SaveTransactionWithIdempotencyAsync(It.IsAny<PaymentTransaction>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PaymentTransaction tx, CancellationToken _) => (tx, false));
 
-        return (new PaymentVerificationService(repo.Object, new RecordPaymentValidator(), cache), repo, uow, cache);
+        return (new PaymentVerificationService(repo.Object, new RecordPaymentValidator(), cache, uow.Object), repo, uow, cache);
     }
 
     private static RecordPaymentRequest ValidRequest(Guid invoiceId, decimal amount, PaymentTransactionStatus status = PaymentTransactionStatus.Succeeded, string? idem = null) => new()

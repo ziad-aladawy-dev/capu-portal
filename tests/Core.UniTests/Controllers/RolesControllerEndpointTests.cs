@@ -1,5 +1,7 @@
 using CapitalUniversity.API.Controllers;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
@@ -23,12 +25,16 @@ public class RolesControllerEndpointTests
         var db = new CoreDbContext(options);
         db.Database.EnsureCreated();
 
+        var localization = new TestLocalizationService();
+        var permissions = new Mock<IPermissionManagementService>().Object;
+        var currentUser = new Mock<ICurrentUser>().Object;
+
         var ctrl = new RolesController(
-            new CreateRoleCommandHandler(db),
-            new UpdateRoleCommandHandler(db),
-            new DeleteRoleCommandHandler(db, invalidator),
-            new GetRoleByIdQueryHandler(db, new TestLocalizationService()),
-            new GetRolesQueryHandler(db, new TestLocalizationService()));
+            new CreateRoleCommandHandler(db, localization, permissions, currentUser),
+            new UpdateRoleCommandHandler(db, localization, permissions, currentUser),
+            new DeleteRoleCommandHandler(db, permissions, currentUser, invalidator),
+            new GetRoleByIdQueryHandler(db, localization),
+            new GetRolesQueryHandler(db, localization));
         return (ctrl, db);
     }
 

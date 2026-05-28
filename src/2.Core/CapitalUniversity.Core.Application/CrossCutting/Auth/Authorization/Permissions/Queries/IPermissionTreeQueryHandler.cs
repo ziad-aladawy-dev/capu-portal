@@ -10,5 +10,7 @@ public interface IPermissionTreeQueryHandler
 {
     Task<List<ModulePermissionTreeDto>> Handle(GetPermissionTreeRequest request, CancellationToken cancellationToken);
 
-    Task<List<ModulePermissionTreeDto>?> Handle(GetRolePermissionsRequest request, CancellationToken cancellationToken);
+    Task<List<ModulePermissionTreeDto>> Handle(GetRolePermissionsRequest request, CancellationToken cancellationToken);
+
+    Task<List<ModulePermissionTreeDto>> Handle(GetUserPermissionTreeRequest request, CancellationToken cancellationToken);
 }

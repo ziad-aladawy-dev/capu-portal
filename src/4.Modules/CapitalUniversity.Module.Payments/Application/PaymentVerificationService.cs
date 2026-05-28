@@ -31,26 +31,19 @@ public class PaymentVerificationService : IPaymentVerificationService
     private readonly IValidator<RecordPaymentRequest> _validator;
     private readonly ICacheService _cache;
     private readonly IOutbox? _outbox;
+    private readonly IUnitOfWork _unitOfWork;
 
-    // SaveChanges is funneled through IInvoiceRepository.SaveTransactionWithIdempotencyAsync,
-    // so IUnitOfWork isn't needed here — the repository persists directly on its
-    // CoreDbContext and surfaces the idempotency-replay outcome to this service.
-    //
-    // <para>
-    // <see cref="IOutbox"/> is optional so unit tests that don't wire the
-    // outbox infrastructure still construct the service. In production it is
-    // always registered, and the on-transition-to-Paid event is staged on the
-    // same CoreDbContext as the invoice update so both commit atomically.
-    // </para>
     public PaymentVerificationService(
         IInvoiceRepository invoices,
         IValidator<RecordPaymentRequest> validator,
         ICacheService cache,
+        IUnitOfWork unitOfWork,
         IOutbox? outbox = null)
     {
         _invoices = invoices;
         _validator = validator;
         _cache = cache;
+        _unitOfWork = unitOfWork;
         _outbox = outbox;
     }
 
@@ -127,7 +120,7 @@ public class PaymentVerificationService : IPaymentVerificationService
             invoice.UpdatedAt = DateTime.UtcNow;
             _invoices.Update(invoice);
 
-            // Stage the lifecycle fact BEFORE SaveTransactionWithIdempotencyAsync
+            // Stage the lifecycle fact BEFORE SaveChangesAsync
             // so the outbox row commits in the same transaction as the
             // invoice + transaction rows. If a duplicate idempotency key
             // causes SaveChangesAsync to throw, nothing is persisted — the
@@ -150,19 +143,32 @@ public class PaymentVerificationService : IPaymentVerificationService
                     ct);
             }
 
-            // P1.3 — narrow idempotency handling: the repo returns the existing
-            // row on a unique-index collision (2627/2601 on
-            // IX_PaymentTransactions_InvoiceId_IdempotencyKey). Any other
-            // DbUpdateException still rethrows.
-            var (savedTx, wasReplay) = await _invoices.SaveTransactionWithIdempotencyAsync(tx, ct);
-            if (wasReplay)
+            // P1.3 — narrow idempotency handling: we catch unique-index collision 
+            // (2627/2601 on IX_PaymentTransactions_InvoiceId_IdempotencyKey).
+            try
             {
-                return ToResponse(savedTx);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+                when (IsIdempotencyViolation(ex))
+            {
+                // Unique index collision — another thread won the race.
+                // Reset tracker and fetch the winner's row.
+                _invoices.ResetChangeTracker();
+                var winner = await _invoices.GetTransactionByKeyAsync(request.InvoiceId, request.IdempotencyKey, ct);
+                return ToResponse(winner!);
             }
 
             await _cache.RemoveAsync(InvoiceService.CacheKey(invoice.Id), ct);
-            return ToResponse(savedTx);
+            return ToResponse(tx);
         }, cancellationToken: cancellationToken);
+    }
+
+    private static bool IsIdempotencyViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex)
+    {
+        if (ex.InnerException is not Microsoft.Data.SqlClient.SqlException sqlEx) return false;
+        // 2627: Unique constraint violation. 2601: Unique index violation.
+        return sqlEx.Number is 2627 or 2601;
     }
 
     public async Task<IReadOnlyList<PaymentTransactionResponse>> GetForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default)

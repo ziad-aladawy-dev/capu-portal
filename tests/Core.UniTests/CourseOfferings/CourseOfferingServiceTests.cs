@@ -27,6 +27,7 @@ public class CourseOfferingServiceTests
         var uow = new Mock<IUnitOfWork>();
         var scope = new Mock<IEffectiveScope>();
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
+        scope.Setup(s => s.CanAccessSemesterAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(inScope);
         var sut = new CourseOfferingService(
             uow.Object,
             repo.Object,
@@ -49,10 +50,10 @@ public class CourseOfferingServiceTests
     public async Task Create_HappyPath_PersistsAndReturnsId()
     {
         var (sut, repo, uow, _) = Build();
-        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), default))
+        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         CourseOfferingEntity? captured = null;
-        repo.Setup(r => r.AddAsync(It.IsAny<CourseOfferingEntity>(), default))
+        repo.Setup(r => r.AddAsync(It.IsAny<CourseOfferingEntity>(), It.IsAny<CancellationToken>()))
             .Callback<CourseOfferingEntity, CancellationToken>((o, _) => captured = o);
 
         var id = await sut.CreateAsync(ValidCreate());
@@ -62,14 +63,14 @@ public class CourseOfferingServiceTests
         captured!.Capacity.Should().Be(30);
         captured.RegisteredCount.Should().Be(0);
         captured.Status.Should().Be(OfferingStatus.Draft);
-        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Create_DuplicateSection_ThrowsConflict()
     {
         var (sut, repo, _, _) = Build();
-        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), default))
+        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var act = () => sut.CreateAsync(ValidCreate());
@@ -102,8 +103,8 @@ public class CourseOfferingServiceTests
     {
         var (sut, repo, _, _) = Build();
         var existing = NewOffering(sectionCode: "A");
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
-        repo.Setup(r => r.SectionExistsAsync(existing.CourseId, existing.SemesterId, existing.StructureNodeId, "B", default))
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+        repo.Setup(r => r.SectionExistsAsync(existing.CourseId, existing.SemesterId, existing.StructureNodeId, "B", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { SectionCode = "B" });
@@ -117,7 +118,7 @@ public class CourseOfferingServiceTests
         var (sut, repo, uow, _) = Build();
         // NewOffering() defaults to Status=Draft, RegistrationState=Closed.
         var existing = NewOffering(sectionCode: "A");
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest
         {
@@ -128,13 +129,8 @@ public class CourseOfferingServiceTests
         existing.Status.Should().Be(OfferingStatus.Open);
         existing.RegistrationState.Should().Be(RegistrationState.Closed);
         existing.UpdatedAt.Should().NotBeNull();
-        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         // Pins that the service actually marks the entity for update.
-        // Without this assertion, a mutation that drops `_offerings.Update(...)`
-        // from the service body still saves the (tracked) entity in production
-        // EF — but the explicit Update() call is the contract callers rely on
-        // for the repository abstraction (untracked entities, sandboxed
-        // contexts, etc.). Mutation L143 survived without this check.
         repo.Verify(r => r.Update(existing), Times.Once);
     }
 
@@ -146,7 +142,7 @@ public class CourseOfferingServiceTests
         existing.IncrementRegistration();
         existing.IncrementRegistration();
         existing.IncrementRegistration();
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Capacity = 2 });
         await act.Should().ThrowAsync<ConflictException>();
@@ -159,7 +155,7 @@ public class CourseOfferingServiceTests
         var existing = NewOffering();
 
         var (sut, repo, _, _) = Build(inScope: false);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var act = () => sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Status = OfferingStatus.Open });
         await act.Should().ThrowAsync<NotFoundException>();
@@ -171,7 +167,7 @@ public class CourseOfferingServiceTests
         var existing = NewOffering();
 
         var (sut, repo, _, _) = Build(inScope: false);
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var result = await sut.GetByIdAsync(existing.Id);
         result.Should().BeNull();
@@ -184,16 +180,11 @@ public class CourseOfferingServiceTests
     [Fact]
     public async Task GetById_RepoReturnsNull_ReturnsNullWithoutScopeCheck()
     {
-        // Pins the "offering is null" early-return guard in GetByIdAsync. A
-        // mutation that flips it to "is not null" would skip the return and
-        // call _scope.CanAccessStructureNodeAsync on a null entity, throwing
-        // NullReferenceException. Verify both the null result AND that scope
-        // was never consulted (no entity = no node to check).
         var repo = new Mock<ICourseOfferingRepository>();
         var uow = new Mock<IUnitOfWork>();
         var scope = new Mock<IEffectiveScope>();
         scope.Setup(s => s.CanAccessStructureNodeAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), default)).ReturnsAsync((CourseOfferingEntity?)null);
+        repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((CourseOfferingEntity?)null);
 
         var sut = new CourseOfferingService(
             uow.Object, repo.Object,
@@ -209,11 +200,8 @@ public class CourseOfferingServiceTests
     }
 
     [Fact]
-    public async Task GetForNodeSemester_OutOfScope_ReturnsEmpty_DoesNotQueryRepo()
+    public async Task GetForNodeSemesterAsync_OutOfScope_ReturnsEmpty_DoesNotQueryRepo()
     {
-        // Pins the early-return on out-of-scope reads. A mutation that
-        // removes the return short-circuits to the repo call which would
-        // leak rows the caller cannot see.
         var (sut, repo, _, _) = Build(inScope: false);
 
         var result = await sut.GetForNodeSemesterAsync(Guid.NewGuid(), Guid.NewGuid());
@@ -228,13 +216,11 @@ public class CourseOfferingServiceTests
     [Fact]
     public async Task Create_PersistsFieldsFromRequest()
     {
-        // Pins the object-initializer mutation: if the initializer body is
-        // emptied, the persisted entity loses CourseId, SemesterId, etc.
         var (sut, repo, uow, _) = Build();
-        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), default))
+        repo.Setup(r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         CourseOfferingEntity? captured = null;
-        repo.Setup(r => r.AddAsync(It.IsAny<CourseOfferingEntity>(), default))
+        repo.Setup(r => r.AddAsync(It.IsAny<CourseOfferingEntity>(), It.IsAny<CancellationToken>()))
             .Callback<CourseOfferingEntity, CancellationToken>((o, _) => captured = o);
 
         var req = new CreateCourseOfferingRequest
@@ -260,20 +246,15 @@ public class CourseOfferingServiceTests
         captured.Status.Should().Be(OfferingStatus.Open);
         captured.RegistrationState.Should().Be(RegistrationState.Open);
         captured.ExternalSystemId.Should().Be("ext-123");
-        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Update_SectionCodeSameAsCurrent_SkipsSectionExistsCheck()
     {
-        // Pins the AND→OR logical mutation on ApplySectionCodeAsync's guard.
-        // The guard short-circuits when SectionCode is null OR unchanged.
-        // If mutated to OR, a same-value section would trigger an unnecessary
-        // SectionExists query (and potentially conflict against itself if the
-        // index hit on the current row).
         var (sut, repo, _, _) = Build();
         var existing = NewOffering(sectionCode: "A");
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest
         {
@@ -282,21 +263,17 @@ public class CourseOfferingServiceTests
 
         repo.Verify(
             r => r.SectionExistsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never,
-            "same-section no-op must NOT hit the section-exists index");
+            Times.Never);
         existing.SectionCode.Should().Be("A");
     }
 
     [Fact]
     public async Task Update_ExternalSyncedAtProvided_PersistsValue()
     {
-        // Pins the "ExternalSyncedAt.HasValue" guard in ApplyExternalSyncMetadata.
-        // Without the test, a mutation that negates the HasValue check would
-        // either always-apply or never-apply, both surviving silently.
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
         existing.ExternalSyncedAt = null;
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var syncedAt = new DateTime(2026, 5, 21, 14, 0, 0, DateTimeKind.Utc);
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { ExternalSyncedAt = syncedAt });
@@ -307,14 +284,11 @@ public class CourseOfferingServiceTests
     [Fact]
     public async Task Update_ExternalSyncedAtOmitted_LeavesPreviousValueIntact()
     {
-        // Symmetry with the previous test: omitting the field must NOT
-        // overwrite the persisted value. Without this, a mutation that
-        // unconditionally assigns null would slip through.
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
         var original = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         existing.ExternalSyncedAt = original;
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Capacity = 50 });
 
@@ -327,7 +301,7 @@ public class CourseOfferingServiceTests
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
         existing.ExternalSystemId = null;
-        repo.Setup(r => r.GetByIdAsync(existing.Id, default)).ReturnsAsync(existing);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { ExternalSystemId = "ext-9" });
 

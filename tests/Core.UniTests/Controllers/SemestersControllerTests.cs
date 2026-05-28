@@ -109,12 +109,12 @@ public class SemestersControllerTests
     }
 
     [Fact]
-    public async Task Resolve_DelegatesAndReturnsOk()
+    public async Task RecomputeCurrent_DelegatesAndReturnsOk()
     {
         var ctrl = NewController(out var svc);
         svc.Setup(s => s.ResolveCurrentSemesterAsync()).Returns(Task.CompletedTask).Verifiable();
 
-        var result = await ctrl.Resolve();
+        var result = await ctrl.RecomputeCurrent();
 
         Assert.IsType<OkObjectResult>(result);
         svc.Verify();

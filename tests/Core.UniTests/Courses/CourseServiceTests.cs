@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Application.Courses;
 using CapitalUniversity.Core.Application.Courses.Validators;
@@ -75,7 +76,9 @@ public class CourseServiceTests
         });
 
         id.Should().NotBeEmpty();
-        repo.Verify(r => r.AddAsync(It.Is<Course>(c => c.Code == "CS101"), default), Times.Once);
+        
+        // Assert on the normalized identity, not verbatim equality.
+        repo.Verify(r => r.AddAsync(It.Is<Course>(c => LocalizedJson.Extract(c.Code, "en") == "CS101"), default), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
     }
 

@@ -1,4 +1,6 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
@@ -28,17 +30,21 @@ public class RoleHandlersTests
     public async Task CreateRole_PersistsCustomRoleAndReturnsResponse()
     {
         using var db = NewDb();
-        var handler = new CreateRoleCommandHandler(db);
+        var handler = new CreateRoleCommandHandler(
+            db,
+            new TestLocalizationService(),
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object);
 
         var response = await handler.Handle(new CreateRoleRequest { Name = "Auditor" }, CancellationToken.None);
 
         Assert.Equal("Auditor", response.Name);
-        Assert.NotEqual(Guid.Empty, response.Id);
+        Assert.NotEqual(Guid.NewGuid(), response.Id);
 
         var stored = await db.Roles.FindAsync(response.Id);
         Assert.NotNull(stored);
         Assert.False(stored!.IsSystemRole);
-        Assert.Equal("Auditor", stored.Name);
+        Assert.Equal("Auditor", LocalizedJson.Extract(stored.Name, "en"));
     }
 
     [Fact]
@@ -49,7 +55,11 @@ public class RoleHandlersTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var handler = new UpdateRoleCommandHandler(db);
+        var handler = new UpdateRoleCommandHandler(
+            db,
+            new TestLocalizationService(),
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object);
         var response = await handler.Handle(
             new UpdateRoleRequest { Id = role.Id, Name = "New" },
             CancellationToken.None);
@@ -59,14 +69,18 @@ public class RoleHandlersTests
         Assert.Equal("New", response.Name);
 
         var reloaded = await db.Roles.FindAsync(role.Id);
-        Assert.Equal("New", reloaded!.Name);
+        Assert.Equal("New", LocalizedJson.Extract(reloaded!.Name, "en"));
     }
 
     [Fact]
     public async Task UpdateRole_MissingRole_ReturnsNull()
     {
         using var db = NewDb();
-        var handler = new UpdateRoleCommandHandler(db);
+        var handler = new UpdateRoleCommandHandler(
+            db,
+            new TestLocalizationService(),
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object);
 
         var response = await handler.Handle(
             new UpdateRoleRequest { Id = Guid.NewGuid(), Name = "ghost" },
@@ -89,7 +103,11 @@ public class RoleHandlersTests
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        var handler = new DeleteRoleCommandHandler(db, invalidator.Object);
+        var handler = new DeleteRoleCommandHandler(
+            db,
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object,
+            invalidator.Object);
         var deleted = await handler.Handle(new DeleteRoleRequest { Id = role.Id }, CancellationToken.None);
 
         Assert.True(deleted);
@@ -105,7 +123,11 @@ public class RoleHandlersTests
         db.Roles.Add(role);
         await db.SaveChangesAsync();
 
-        var handler = new DeleteRoleCommandHandler(db, null);
+        var handler = new DeleteRoleCommandHandler(
+            db,
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object,
+            null);
         var deleted = await handler.Handle(new DeleteRoleRequest { Id = role.Id }, CancellationToken.None);
 
         Assert.True(deleted);
@@ -117,7 +139,11 @@ public class RoleHandlersTests
     {
         using var db = NewDb();
         var invalidator = new Mock<IPermissionCacheInvalidator>(MockBehavior.Strict);
-        var handler = new DeleteRoleCommandHandler(db, invalidator.Object);
+        var handler = new DeleteRoleCommandHandler(
+            db,
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object,
+            invalidator.Object);
 
         var deleted = await handler.Handle(new DeleteRoleRequest { Id = Guid.NewGuid() }, CancellationToken.None);
 

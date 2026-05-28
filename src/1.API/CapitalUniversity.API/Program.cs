@@ -141,11 +141,11 @@ using (var scope = app.Services.CreateScope())
     // app pick up schema changes shipped in the same release without an explicit
     // "dotnet ef database update" step. Disable by setting
     // "Database:AutoMigrate" = false in appsettings if you prefer explicit gating.
-    var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
-    if (autoMigrate && db.Database.IsRelational())
-    {
-        await db.Database.MigrateAsync();
-    }
+    //var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
+    //if (autoMigrate && db.Database.IsRelational())
+    //{
+    //    await db.Database.MigrateAsync();
+    //}
 
     await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);

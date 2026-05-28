@@ -157,9 +157,14 @@ public class CoreDbContext : DbContext
         // Module-provided EF configurations. Each module (e.g. Payments) calls
         // CoreDbContext.ModuleConfigurationAssemblies.Add(...) from its
         // AddXxxModule() DI extension before the context is first used.
-        foreach (var assembly in ModuleConfigurationAssemblies)
+        // Copy the list to avoid "collection modified" errors during model build.
+        var modules = ModuleConfigurationAssemblies.ToList();
+        foreach (var assembly in modules)
         {
-            modelBuilder.ApplyConfigurationsFromAssembly(assembly);
+            if (assembly != null)
+            {
+                modelBuilder.ApplyConfigurationsFromAssembly(assembly);
+            }
         }
 
         modelBuilder.Entity<StructureNode>()

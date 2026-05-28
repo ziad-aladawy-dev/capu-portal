@@ -1,4 +1,7 @@
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Application.Courses;
 using CapitalUniversity.Core.Application.Courses.Mappings;
 using CapitalUniversity.Core.Domain.Courses;
@@ -8,6 +11,7 @@ using CapitalUniversity.Core.Infrastructure.Services.Roles.Commands;
 using CapitalUniversity.Core.Infrastructure.Services.Roles.Mappings;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CapitalUniversity.Core.UniTests;
@@ -39,7 +43,7 @@ public class UpdateStandardizationTests
         mapper.ApplyUpdate(request, entity);
 
         // Assert
-        entity.Title.Should().Be("Updated Title");
+        LocalizedJson.Extract(entity.Title, "en").Should().Be("Updated Title");
         entity.Code.Should().Be("CS101"); // Unchanged
         entity.CreditHours.Should().Be(3); // Unchanged
         entity.Category.Should().Be(CourseCategory.ProgramRequirement); // Unchanged
@@ -96,7 +100,7 @@ public class UpdateStandardizationTests
         mapper.ApplyUpdate(request, entity);
 
         // Assert
-        entity.Name.Should().Be("Updated Role");
+        LocalizedJson.Extract(entity.Name, "en").Should().Be("Updated Role");
         entity.IsSystemRole.Should().BeTrue(); // Unchanged (not in DTO)
     }
 
@@ -114,7 +118,14 @@ public class UpdateStandardizationTests
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
-        var handler = new UpdateRoleCommandHandler(db);
+        var localization = new Mock<ILocalizationService>();
+        localization.Setup(x => x.Get<string>(It.IsAny<string>())).Returns((string s) => s);
+
+        var handler = new UpdateRoleCommandHandler(
+            db,
+            localization.Object,
+            new Mock<IPermissionManagementService>().Object,
+            new Mock<ICurrentUser>().Object);
         var request = new UpdateRoleRequest { Id = role.Id, Name = "Updated" };
 
         // Act
@@ -122,10 +133,10 @@ public class UpdateStandardizationTests
 
         // Assert
         response.Should().NotBeNull();
-        response!.Name.Should().Be("Updated");
+        LocalizedJson.Extract(response!.Name, "en").Should().Be("Updated");
 
         var updatedRole = await db.Roles.FindAsync(role.Id);
-        updatedRole!.Name.Should().Be("Updated");
+        LocalizedJson.Extract(updatedRole!.Name, "en").Should().Be("Updated");
         updatedRole.IsSystemRole.Should().BeTrue(); // Unchanged
         
         // Verify tracking: only Name should be modified if we were using a real provider

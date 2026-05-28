@@ -16,3 +16,8 @@ public class GetRolePermissionsRequest
 {
     public Guid RoleId { get; set; }
 }
+
+public class GetUserPermissionTreeRequest
+{
+    public Guid UserId { get; set; }
+}

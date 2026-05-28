@@ -45,12 +45,20 @@ public class AuthorizationController : ControllerBase
     public async Task<ActionResult<List<ModulePermissionTreeDto>>> GetRolePermissions(Guid roleId, CancellationToken cancellationToken)
     {
         var result = await _permissionTreeHandler.Handle(new GetRolePermissionsRequest { RoleId = roleId }, cancellationToken);
+        return Ok(result);
+    }
 
-        if (result == null)
-        {
-            return NotFound(new { Message = $"Role with ID {roleId} not found." });
-        }
-
+    /// <summary>
+    /// Gets all permissions grouped by module and resource, marking those assigned to a specific user along with their scopes.
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of modules with their resources, permissions, assignment status, and scope metadata.</returns>
+    [HttpGet("users/{userId:guid}/permission-tree")]
+    [HasPermission(PermissionNames.Permissions.EditClose)]
+    public async Task<ActionResult<List<ModulePermissionTreeDto>>> GetPermissionTreeForUser(Guid userId, CancellationToken cancellationToken)
+    {
+        var result = await _permissionTreeHandler.Handle(new GetUserPermissionTreeRequest { UserId = userId }, cancellationToken);
         return Ok(result);
     }
 }

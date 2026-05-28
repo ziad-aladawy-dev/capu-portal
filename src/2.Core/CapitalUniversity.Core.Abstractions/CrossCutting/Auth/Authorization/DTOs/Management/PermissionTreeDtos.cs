@@ -75,4 +75,20 @@ public class PermissionActionDto
     /// Only populated when querying for a specific role or user.
     /// </summary>
     public bool? IsAssigned { get; set; }
+
+    /// <summary>
+    /// The specific contextual scopes (e.g., specific faculties, academic years) in which this permission is granted.
+    /// Only populated when querying for a specific user.
+    /// </summary>
+    public List<PermissionScopeDto>? Scopes { get; set; }
+
+    /// <summary>
+    /// Indicates if this permission has an explicit Allow override in any scope for the user.
+    /// </summary>
+    public bool? HasAllowOverride { get; set; }
+
+    /// <summary>
+    /// Indicates if this permission has an explicit Deny override in any scope for the user.
+    /// </summary>
+    public bool? HasDenyOverride { get; set; }
 }

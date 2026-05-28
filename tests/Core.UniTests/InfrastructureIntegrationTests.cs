@@ -1,9 +1,11 @@
 using System.Globalization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Application.CrossCutting.Localization;
 using CapitalUniversity.Core.Domain.Outbox;
@@ -98,7 +100,7 @@ public class InfrastructureIntegrationTests
         var execContext = new Mock<IExecutionContext>();
         
         execContext.Setup(e => e.IsSystem).Returns(true);
-        var sut = new EffectiveScope(userScope.Object, db, execContext.Object);
+        var sut = new EffectiveScope(userScope.Object, db, execContext.Object, new Mock<IRequestContext>().Object);
 
         // Act
         var canAccessNode = await sut.CanAccessStructureNodeAsync(Guid.NewGuid());

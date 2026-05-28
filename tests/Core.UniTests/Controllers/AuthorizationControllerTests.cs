@@ -43,17 +43,4 @@ public class AuthorizationControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Same(tree, ok.Value);
     }
-
-    [Fact]
-    public async Task GetRolePermissions_UnknownRole_ReturnsNotFound()
-    {
-        var ctrl = NewController(out var handler);
-        var roleId = Guid.NewGuid();
-        handler.Setup(h => h.Handle(It.IsAny<GetRolePermissionsRequest>(), It.IsAny<CancellationToken>()))
-               .ReturnsAsync((List<ModulePermissionTreeDto>?)null);
-
-        var result = await ctrl.GetRolePermissions(roleId, CancellationToken.None);
-
-        Assert.IsType<NotFoundObjectResult>(result.Result);
-    }
 }

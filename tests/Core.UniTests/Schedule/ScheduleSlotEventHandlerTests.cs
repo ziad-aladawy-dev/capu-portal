@@ -42,7 +42,7 @@ public class ScheduleSlotEventHandlerTests
         var logger = new Mock<IAppLogger>();
         var sut = new ScheduleSlotCreatedHandler(logger.Object);
 
-        await sut.HandleAsync(SerializePayload(), CancellationToken.None);
+        await sut.HandleAsync(Guid.NewGuid(), SerializePayload(), CancellationToken.None);
 
         logger.Verify(l => l.LogInfoAsync(
             It.IsAny<string>(),
@@ -65,7 +65,7 @@ public class ScheduleSlotEventHandlerTests
         var logger = new Mock<IAppLogger>();
         var sut = new ScheduleSlotUpdatedHandler(logger.Object);
 
-        await sut.HandleAsync(SerializePayload(), CancellationToken.None);
+        await sut.HandleAsync(Guid.NewGuid(), SerializePayload(), CancellationToken.None);
 
         logger.Verify(l => l.LogInfoAsync(
             It.IsAny<string>(),
@@ -82,7 +82,7 @@ public class ScheduleSlotEventHandlerTests
         var logger = new Mock<IAppLogger>();
         var sut = new ScheduleSlotDeletedHandler(logger.Object);
 
-        await sut.HandleAsync(SerializePayload(), CancellationToken.None);
+        await sut.HandleAsync(Guid.NewGuid(), SerializePayload(), CancellationToken.None);
 
         logger.Verify(l => l.LogInfoAsync(
             It.IsAny<string>(),
@@ -102,7 +102,7 @@ public class ScheduleSlotEventHandlerTests
         // row, which is the desired "loud failure" behavior.
         var sut = new ScheduleSlotCreatedHandler(Mock.Of<IAppLogger>());
 
-        var act = () => sut.HandleAsync("null", CancellationToken.None);
+        var act = () => sut.HandleAsync(Guid.NewGuid(), "null", CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 }

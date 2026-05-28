@@ -573,8 +573,15 @@ public class PermissionManagementService : IPermissionManagementService
         var semester = request.TemporalScope.AlwaysActive ? ScopeKeys.Global : (request.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
         var nodePath = await ResolveNodePathAsync(request.StructuralScope.StructureNodeId, cancellationToken);
 
+        var currentOverrides = await _dbContext.StaffPermissions
+            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == request.UserId &&
+                         sp.StructureNodeId == request.StructuralScope.StructureNodeId &&
+                         sp.Year == year && sp.Semester == semester)
+            .ToListAsync(cancellationToken);
+
         await ApplyRoleUpdatesAsync(request, year, semester, nodePath, cancellationToken);
-        await ApplyOverrideUpdatesAsync(request, year, semester, nodePath, cancellationToken);
+        await ApplyOverrideUpdatesAsync(request, year, semester, nodePath, currentOverrides, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         await InvalidateUserCacheAsync(request.UserId, cancellationToken);
@@ -625,7 +632,8 @@ public class PermissionManagementService : IPermissionManagementService
         var rolesToRemoveEntities = currentRoles.Where(cr => roleIdsToRemove.Contains(cr.RoleId)).ToList();
         _dbContext.StaffRoles.RemoveRange(rolesToRemoveEntities);
 
-        foreach (var roleId in request.RolesToAdd.Where(rid => currentRoles.All(cr => cr.RoleId != rid)))
+        var addedRoles = request.RolesToAdd.Where(rid => currentRoles.All(cr => cr.RoleId != rid)).ToList();
+        foreach (var roleId in addedRoles)
         {
             var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, year, semester)
             {
@@ -637,15 +645,9 @@ public class PermissionManagementService : IPermissionManagementService
     }
 
     private async Task ApplyOverrideUpdatesAsync(
-        UpdatePermissionAssignmentRequest request, string year, string semester, string? nodePath, CancellationToken cancellationToken)
+        UpdatePermissionAssignmentRequest request, string year, string semester, string? nodePath, 
+        List<StaffPermissionOverride> currentOverrides, CancellationToken cancellationToken)
     {
-        var currentOverrides = await _dbContext.StaffPermissions
-            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
-            .Where(sp => sp.StaffId == request.UserId &&
-                         sp.StructureNodeId == request.StructuralScope.StructureNodeId &&
-                         sp.Year == year && sp.Semester == semester)
-            .ToListAsync(cancellationToken);
-
         foreach (var permToRemove in request.PermissionsToRemove)
         {
             var actionsToRemove = ResolveActionSetForDto(permToRemove, currentOverrides);
@@ -689,8 +691,19 @@ public class PermissionManagementService : IPermissionManagementService
 
         foreach (var action in targetActions)
         {
-            var existing = existingForScope
-                .FirstOrDefault(eo => eo.ResourceId == perm.ResourceId && eo.Type == perm.Type && eo.Action == action);
+            // Toggle Logic: If the requested override is the exact opposite of what
+            // is stored, just delete the stored override to return to default behavior.
+            var oppositeType = perm.Type == OverrideType.Allow ? OverrideType.Deny : OverrideType.Allow;
+            var conflicting = existingForScope.FirstOrDefault(eo => eo.ResourceId == perm.ResourceId && eo.Type == oppositeType && eo.Action == action);
+            if (conflicting != null)
+            {
+                _dbContext.StaffPermissions.Remove(conflicting);
+                existingForScope.Remove(conflicting);
+                continue; // Do NOT insert the new override. Removing the opposite is enough.
+            }
+
+            // Prevent duplicates
+            var existing = existingForScope.FirstOrDefault(eo => eo.ResourceId == perm.ResourceId && eo.Type == perm.Type && eo.Action == action);
             if (existing is not null) continue;
 
             var row = new StaffPermissionOverride(userId, perm.ResourceId, action, perm.Type, year, semester)
