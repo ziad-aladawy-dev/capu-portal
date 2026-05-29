@@ -209,11 +209,5 @@ namespace CapitalUniversity.Core.Application.CrossCutting.Localization
             }
             return string.Empty;
         }
-
-        public string GetCurrentLanguage()
-        {
-            var lang = _culture.Language?.ToLowerInvariant() ?? DefaultLanguage;
-            return lang == EnglishLanguage ? EnglishLanguage : DefaultLanguage;
-        }
     }
 }

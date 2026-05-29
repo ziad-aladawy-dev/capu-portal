@@ -15,18 +15,18 @@ public class StudentService : IStudentService
     private readonly IStudentRepository _repository;
     private readonly IStructureNodeRepository _structureRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly ILocalizationService _localization;
+    private readonly ILocalizationService _localizationService;
 
     public StudentService(
         IStudentRepository repository,
         IStructureNodeRepository structureRepository,
         IPasswordHasher passwordHasher,
-        ILocalizationService localization)
+        ILocalizationService localizationService)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _passwordHasher = passwordHasher;
-        _localization = localization;
+        _localizationService = localizationService;
     }
 
     public async Task<Guid> CreateAsync(CreateStudentRequest request)
@@ -104,7 +104,6 @@ public class StudentService : IStudentService
         };
 
         await _repository.AddAsync(student);
-
         await _repository.SaveChangesAsync();
 
         // P2.6 — evict any negative-cached "user not found" entry so the new
@@ -182,7 +181,6 @@ public class StudentService : IStudentService
         student.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(student);
-
         await _repository.SaveChangesAsync();
     }
 
@@ -194,7 +192,6 @@ public class StudentService : IStudentService
             throw new Exception("Student not found");
 
         await _repository.SoftDeleteAsync(id);
-
         await _repository.SaveChangesAsync();
     }
 
@@ -208,7 +205,6 @@ public class StudentService : IStudentService
         }
 
         await _repository.ToggleStatusAsync(id);
-
         await _repository.SaveChangesAsync();
     }
 
@@ -219,16 +215,14 @@ public class StudentService : IStudentService
         if (student == null)
             return null;
 
-        return MapInstance(student);
+        return Map(student);
     }
 
     public async Task<List<StudentDto>> GetAllAsync()
     {
         var students = await _repository.GetAllAsync();
 
-        return students
-            .Select(MapInstance)
-            .ToList();
+        return students.Select(Map).ToList();
     }
 
     public async Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request)
@@ -237,9 +231,7 @@ public class StudentService : IStudentService
 
         return new PagedResult<StudentDto>
         {
-            Items = result.Items
-                .Select(MapInstance)
-                .ToList(),
+            Items = result.Items.Select(Map).ToList(),
 
             Page = result.Page,
 
@@ -270,35 +262,30 @@ public class StudentService : IStudentService
         };
     }
 
-    private StudentDto MapInstance(
-            Student student)
+    private StudentDto Map(Student student)
     {
+        var localizedName = _localizationService.GetLocalizedString(student.Name);
+
+        var levelNode = student.StructureNode;
+
         string facultyName = string.Empty;
 
         string programName = string.Empty;
 
-        var localizedName = _localization.Get<string>(student.Name);
+        string levelName = string.Empty;
 
-        var levelNode = student.StructureNode;
-
-        string levelName =
-            _localization.Get<string>(student.StructureNode.Name);
-
-        var programNode = levelNode?.Parent;
-
-        if (programNode != null)
+        if (levelNode != null)
         {
-            programName =
-                _localization.Get<string>(programNode.Name);
-        }
-
-        var facultyNode =
-            programNode?.Parent;
-
-        if (facultyNode != null)
-        {
-            facultyName =
-                _localization.Get<string>(facultyNode.Name);
+            levelName = _localizationService.GetLocalizedString(levelNode.Name);
+            var currentNode = levelNode.Parent;
+            while (currentNode != null)
+            {
+                if (currentNode.Type == StructureNodeType.Program && string.IsNullOrEmpty(programName))
+                    programName = _localizationService.GetLocalizedString(currentNode.Name);
+                else if (currentNode.Type == StructureNodeType.Faculty && string.IsNullOrEmpty(facultyName))
+                    facultyName = _localizationService.GetLocalizedString(currentNode.Name);
+                currentNode = currentNode.Parent;
+            }
         }
 
         return new StudentDto
@@ -307,7 +294,7 @@ public class StudentService : IStudentService
 
             StudentCode = student.StudentCode,
 
-            Name = _localization.Get<string>(student.Name),
+            Name = student.Name,
 
             LocalizedName = localizedName,
 
@@ -321,8 +308,7 @@ public class StudentService : IStudentService
 
             StructureNodeId = student.StructureNodeId,
 
-            StructureNodeName =
-                _localization.Get<string>(student.StructureNode.Name),
+            StructureNodeName = levelName,
 
             FacultyName = facultyName,
 

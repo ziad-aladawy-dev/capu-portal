@@ -96,6 +96,11 @@ public class StructureNodeRepository : IStructureNodeRepository
             .AnyAsync(x => x.Id == id);
     }
 
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<List<StructureNode>> GetDescendantsAsync(string path)
     {
         return await _context.StructureNodes
@@ -157,11 +162,6 @@ public class StructureNodeRepository : IStructureNodeRepository
                 !x.IsDeleted)
             .OrderBy(x => x.Order)
             .ToListAsync();
-    }
-
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
     }
 
     public async Task<int> RepairPermissionPathPrefixAsync(string oldPath, string newPath, CancellationToken cancellationToken = default)

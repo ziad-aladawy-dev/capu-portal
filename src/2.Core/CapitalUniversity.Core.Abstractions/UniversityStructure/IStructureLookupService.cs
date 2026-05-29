@@ -10,4 +10,6 @@ public interface IStructureLookupService
     Task<List<StructureNodeLookupDto>> GetChildrenAsync(Guid parentId);
 
     Task<List<StructureNodeLookupDto>> GetChildrenByTypeAsync(Guid parentId, StructureNodeType type);
+
+    Task<List<StructureNodeLookupDto>> GetProgramsByFacultyAsync(Guid facultyId);
 }

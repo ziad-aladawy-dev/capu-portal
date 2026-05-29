@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.4.11626.88
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.API", "src\1.API\CapitalUniversity.API\CapitalUniversity.API.csproj", "{B647B9EB-9F7F-450A-A512-BCAB0FE67270}"
 EndProject
@@ -62,6 +62,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.Schedule", "src\4.Modules\CapitalUniversity.Module.Schedule\CapitalUniversity.Module.Schedule.csproj", "{8916F5F1-E53C-B523-83CF-7F7BE0C557D2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.Schedule.Abstractions", "src\4.Modules\CapitalUniversity.Module.Schedule.Abstractions\CapitalUniversity.Module.Schedule.Abstractions.csproj", "{E3634C04-C7AF-6558-D395-7528A3731B3B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.StudentServices.Abstractions", "src\4.Modules\CapitalUniversity.Module.StudentServices.Abstractions\CapitalUniversity.Module.StudentServices.Abstractions.csproj", "{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.StudentServices", "src\4.Modules\CapitalUniversity.Module.StudentServices\CapitalUniversity.Module.StudentServices.csproj", "{815AF787-7F0D-2260-B2E7-CA586EFDB02F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -301,6 +305,30 @@ Global
 		{E3634C04-C7AF-6558-D395-7528A3731B3B}.Release|x64.Build.0 = Release|Any CPU
 		{E3634C04-C7AF-6558-D395-7528A3731B3B}.Release|x86.ActiveCfg = Release|Any CPU
 		{E3634C04-C7AF-6558-D395-7528A3731B3B}.Release|x86.Build.0 = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|x64.Build.0 = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Debug|x86.Build.0 = Debug|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|x64.ActiveCfg = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|x64.Build.0 = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|x86.ActiveCfg = Release|Any CPU
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12}.Release|x86.Build.0 = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|x64.Build.0 = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Debug|x86.Build.0 = Debug|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|x64.ActiveCfg = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|x64.Build.0 = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|x86.ActiveCfg = Release|Any CPU
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -330,6 +358,8 @@ Global
 		{0428DBBE-AF00-C5CE-CF38-0169EE91C8CF} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 		{8916F5F1-E53C-B523-83CF-7F7BE0C557D2} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 		{E3634C04-C7AF-6558-D395-7528A3731B3B} = {05BB4593-248D-4292-B05B-06FF83355A2D}
+		{15D4CE0E-D3F9-CF67-A34D-BEA8F8EF6F12} = {05BB4593-248D-4292-B05B-06FF83355A2D}
+		{815AF787-7F0D-2260-B2E7-CA586EFDB02F} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8DF18C70-881E-4A42-A9B0-BAD283D97E48}

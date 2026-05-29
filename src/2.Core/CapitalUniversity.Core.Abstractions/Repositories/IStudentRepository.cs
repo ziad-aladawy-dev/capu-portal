@@ -29,5 +29,6 @@ public interface IStudentRepository
     Task<string?> GetLastStudentCodeAsync();
 
     Task ToggleStatusAsync(Guid id);
+
     Task SaveChangesAsync();
 }

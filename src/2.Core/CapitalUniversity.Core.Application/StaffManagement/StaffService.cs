@@ -6,92 +6,80 @@ using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+using System.Text.Json;
 
 namespace CapitalUniversity.Core.Application.StaffManagement;
 
 public class StaffService : IStaffService
 {
     private readonly IStaffRepository _repository;
-
-    private readonly IStructureNodeRepository
-        _structureRepository;
-
+    private readonly IStructureNodeRepository _structureRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ILocalizationService _localizationService;
 
     private readonly ISessionVersionService _sessionVersions;
-
     private readonly IUnitOfWork _unitOfWork;
-
-    private readonly ILocalizationService _localization;
 
     public StaffService(
         IStaffRepository repository,
         IStructureNodeRepository structureRepository,
         IPasswordHasher passwordHasher,
+        ILocalizationService localizationService,
         ISessionVersionService sessionVersions,
-        IUnitOfWork unitOfWork,
-        ILocalizationService localization)
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _structureRepository = structureRepository;
         _passwordHasher = passwordHasher;
+        _localizationService = localizationService;
         _sessionVersions = sessionVersions;
         _unitOfWork = unitOfWork;
-        _localization = localization;
     }
 
     public async Task<Guid> CreateAsync(CreateStaffRequest request)
     {
-        if (await _repository.EmailExistsAsync(
-                    request.Email))
+        if (await _repository.EmailExistsAsync(request.Email))
         {
-            throw new Exception(
-                "Email already exists");
+            throw new Exception("Email already exists");
         }
 
-        if (await _repository
-            .NationalIdExistsAsync(
-                request.NationalId))
+        if (await _repository.NationalIdExistsAsync(request.NationalId))
         {
-            throw new Exception(
-                "National ID already exists");
+            throw new Exception("National ID already exists");
         }
 
-        if (request.Password !=
-            request.ConfirmPassword)
+        if (request.Password != request.ConfirmPassword)
         {
-            throw new Exception(
-                "Passwords do not match");
+            throw new Exception("Passwords do not match");
         }
 
         var hashedPassword = _passwordHasher.HashPassword(request.Password);
 
-        var structureNode = await _structureRepository
-            .GetByIdAsync(request.StructureNodeId);
+        var structureNode = await _structureRepository.GetByIdAsync(request.StructureNodeId);
 
         if (structureNode == null)
         {
-            throw new Exception(
-                "Structure node not found");
+            throw new Exception("Structure node not found");
         }
 
-        if (string.IsNullOrWhiteSpace(
-           request.EmployeeCode))
+        if (string.IsNullOrWhiteSpace(request.EmployeeCode))
         {
-            request.EmployeeCode =
-                await GenerateEmployeeCodeAsync();
+            request.EmployeeCode = await GenerateEmployeeCodeAsync();
         }
 
-        bool codeExists =
-           await _repository
-               .EmployeeCodeExistsAsync(
-                   request.EmployeeCode);
+        bool codeExists = await _repository.EmployeeCodeExistsAsync(request.EmployeeCode);
 
         if (codeExists)
         {
-            throw new Exception(
-                "Employee code already exists");
+            throw new Exception("Employee code already exists");
         }
+
+        var nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            { "ar", request.NameAr },
+            { "en", string.IsNullOrWhiteSpace(request.NameEn) ? request.NameAr : request.NameEn }
+        });
 
         var staff = new Staff
         {
@@ -101,7 +89,7 @@ public class StaffService : IStaffService
 
             PasswordHash = hashedPassword,
 
-            Name = LocalizedJson.Normalize(request.Name),
+            Name = nameJson,
 
             NationalId = request.NationalId,
 
@@ -113,20 +101,17 @@ public class StaffService : IStaffService
 
             Role = request.Role,
 
-            JobTitle = LocalizedJson.Normalize(request.JobTitle),
+            JobTitle = request.JobTitle,
 
-            StructureNodeId =
-                request.StructureNodeId,
+            StructureNodeId = request.StructureNodeId,
 
-            PasswordExpiry =
-                request.PasswordExpiry,
+            PasswordExpiry = request.PasswordExpiry,
 
             IsActive = true
         };
 
         await _repository.AddAsync(staff);
-
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         // P2.6 — evict any negative-cached "user not found" entry so the new
         // staff's first authenticated request resolves cleanly.
@@ -135,64 +120,52 @@ public class StaffService : IStaffService
         return staff.Id;
     }
 
-    public async Task UpdateAsync(
-        Guid id,
-        UpdateStaffRequest request)
+    public async Task UpdateAsync(Guid id, UpdateStaffRequest request)
     {
-        var staff = await _repository
-            .GetByIdAsync(id);
+        var staff = await _repository.GetByIdAsync(id);
 
         if (staff == null)
             throw new Exception("Staff not found");
 
-        var structureNode = await _structureRepository
-            .GetByIdAsync(request.StructureNodeId);
+        var structureNode = await _structureRepository.GetByIdAsync(request.StructureNodeId);
 
         if (structureNode == null)
         {
-            throw new Exception(
-                "Structure node not found");
+            throw new Exception("Structure node not found");
         }
 
-        bool emailExists =
-            await _repository
-                .EmailExistsAsync(
-                    request.Email);
+        bool emailExists = await _repository.EmailExistsAsync(request.Email);
 
-        if (emailExists &&
-            staff.Email != request.Email)
+        if (emailExists && staff.Email != request.Email)
         {
-            throw new Exception(
-                "Email already exists");
+            throw new Exception("Email already exists");
         }
 
-        bool nationalIdExists =
-            await _repository
-                .NationalIdExistsAsync(
-                    request.NationalId);
+        bool nationalIdExists = await _repository.NationalIdExistsAsync(request.NationalId);
 
-        if (nationalIdExists &&
-            staff.NationalId !=
-            request.NationalId)
+        if (nationalIdExists && staff.NationalId != request.NationalId)
         {
-            throw new Exception(
-                "National ID already exists");
+            throw new Exception("National ID already exists");
         }
 
-        if (!string.IsNullOrWhiteSpace(
-            request.Password))
+        if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            if (request.Password !=
-                request.ConfirmPassword)
+            if (request.Password != request.ConfirmPassword)
             {
-                throw new Exception(
-                    "Passwords do not match");
+                throw new Exception("Passwords do not match");
             }
-
             staff.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
 
-        staff.Name = LocalizedJson.Normalize(request.Name);
+        if (!string.IsNullOrEmpty(request.NameAr) || !string.IsNullOrEmpty(request.NameEn))
+        {
+            var dict = new Dictionary<string, string>();
+            try { dict = JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name) ?? new(); }
+            catch { dict = new(); }
+            if (!string.IsNullOrEmpty(request.NameAr)) dict["ar"] = request.NameAr;
+            if (!string.IsNullOrEmpty(request.NameEn)) dict["en"] = request.NameEn;
+            staff.Name = JsonSerializer.Serialize(dict);
+        }
 
         staff.NationalId = request.NationalId;
 
@@ -204,7 +177,7 @@ public class StaffService : IStaffService
 
         staff.Role = request.Role;
 
-        staff.JobTitle = LocalizedJson.Normalize(request.JobTitle);
+        staff.JobTitle = request.JobTitle;
 
         staff.StructureNodeId = request.StructureNodeId;
 
@@ -213,23 +186,21 @@ public class StaffService : IStaffService
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(staff);
-
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        bool exists = await _repository
-            .ExistsAsync(id);
+        bool exists = await _repository.ExistsAsync(id);
 
         if (!exists)
             throw new Exception("Staff not found");
 
         await _repository.SoftDeleteAsync(id);
-
         await _unitOfWork.SaveChangesAsync();
     }
 
+    //---
     public async Task<BulkActionResult> SetStatusManyAsync(IReadOnlyList<Guid> ids, bool isActive, CancellationToken cancellationToken = default)
     {
         var succeeded = new List<Guid>(ids.Count);
@@ -290,55 +261,45 @@ public class StaffService : IStaffService
         if (succeeded.Count > 0) await _unitOfWork.SaveChangesAsync();
         return BulkActionResult.From(succeeded, failures);
     }
+    //---
 
     public async Task ToggleStatusAsync(Guid id)
     {
-        bool exists = await _repository
-            .ExistsAsync(id);
+        bool exists = await _repository.ExistsAsync(id);
 
         if (!exists)
         {
-            throw new Exception(
-                "Staff not found");
+            throw new Exception("Staff not found");
         }
 
         await _repository.ToggleStatusAsync(id);
-
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
     }
 
     public async Task<StaffDto?> GetByIdAsync(Guid id)
     {
-        var staff = await _repository
-            .GetByIdAsync(id);
+        var staff = await _repository.GetByIdAsync(id);
 
         if (staff == null)
             return null;
 
-        return MapInstance(staff);
+        return Map(staff);
     }
 
     public async Task<List<StaffDto>> GetAllAsync()
     {
-        var staff = await _repository
-            .GetAllAsync();
+        var staff = await _repository.GetAllAsync();
 
-        return staff
-            .Select(MapInstance)
-            .ToList();
+        return staff.Select(Map).ToList();
     }
 
-    public async Task<PagedResult<StaffDto>>
-        SearchAsync(StaffQueryRequest request)
+    public async Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request)
     {
-        var result = await _repository
-            .SearchAsync(request);
+        var result = await _repository.SearchAsync(request);
 
         return new PagedResult<StaffDto>
         {
-            Items = result.Items
-                .Select(MapInstance)
-                .ToList(),
+            Items = result.Items.Select(Map).ToList(),
 
             Page = result.Page,
 
@@ -349,50 +310,46 @@ public class StaffService : IStaffService
             TotalPages = result.TotalPages
         };
     }
-    public async Task<UserStatisticsDto>
-        GetStatisticsAsync(
-            UserStatisticsRequest request)
+
+    public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        var result =
-            await SearchAsync(
-                new StaffQueryRequest
-                {
-                    ScopeNodeId =
-                        request.ScopeNodeId,
+        var result = await SearchAsync(new StaffQueryRequest
+        {
+            ScopeNodeId = request.ScopeNodeId,
 
-                    Page = 1,
+            Page = 1,
 
-                    PageSize = int.MaxValue
-                });
+            PageSize = int.MaxValue
+        });
 
         return new UserStatisticsDto
         {
-            TotalStaff =
-                result.Items.Count,
-
-            ActiveStaff =
-                result.Items.Count(
-                    x => x.IsActive),
-
-            InactiveStaff =
-                result.Items.Count(
-                    x => !x.IsActive)
+            TotalStaff = result.Items.Count,
+            ActiveStaff = result.Items.Count(x => x.IsActive),
+            InactiveStaff = result.Items.Count(x => !x.IsActive)
         };
     }
 
-    /// <summary>
-    /// Project staff onto its DTO, decoding every bilingual string against
-    /// the current culture. Personal <c>Name</c> is also decoded — operators
-    /// store the canonical <c>{"ar":"منة مجدى","en":"Menna Magdy"}</c> JSON
-    /// for bilingual records and plain text for single-language data; the
-    /// resolver round-trips both shapes safely.
-    /// </summary>
-    private StaffDto MapInstance(Staff staff)
+    private StaffDto Map(Staff staff)
     {
-        string facultyName =
-            staff.StructureNode.Parent?.Name is { } parentName
-                ? _localization.Get<string>(parentName)
-                : string.Empty;
+        var localizedName = _localizationService.GetLocalizedString(staff.Name);
+
+        string structureNodeName = staff.StructureNode != null
+            ? _localizationService.GetLocalizedString(staff.StructureNode.Name)
+            : string.Empty;
+
+        string facultyName = string.Empty;
+        var currentNode = staff.StructureNode?.Parent;
+
+        while (currentNode != null)
+        {
+            if (currentNode.Type == StructureNodeType.Faculty)
+            {
+                facultyName = _localizationService.GetLocalizedString(currentNode.Name);
+                break;
+            }
+            currentNode = currentNode.Parent;
+        }
 
         return new StaffDto
         {
@@ -400,7 +357,9 @@ public class StaffService : IStaffService
 
             EmployeeCode = staff.EmployeeCode,
 
-            Name = _localization.Get<string>(staff.Name),
+            Name = staff.Name,
+
+            LocalizedName = localizedName,
 
             NationalId = staff.NationalId,
 
@@ -412,11 +371,11 @@ public class StaffService : IStaffService
 
             Role = staff.Role,
 
-            JobTitle = _localization.Get<string>(staff.JobTitle),
+            JobTitle = _localizationService.GetLocalizedString(staff.JobTitle),
 
             StructureNodeId = staff.StructureNodeId,
 
-            StructureNodeName = _localization.Get<string>(staff.StructureNode.Name),
+            StructureNodeName = structureNodeName,
 
             FacultyName = facultyName,
 
@@ -428,26 +387,18 @@ public class StaffService : IStaffService
         };
     }
 
-    private async Task<string>
-            GenerateEmployeeCodeAsync()
+    private async Task<string> GenerateEmployeeCodeAsync()
     {
-        var lastCode =
-            await _repository
-                .GetLastEmployeeCodeAsync();
+        var lastCode = await _repository.GetLastEmployeeCodeAsync();
 
-        if (string.IsNullOrWhiteSpace(
-            lastCode))
+        if (string.IsNullOrWhiteSpace(lastCode))
         {
             return "EMP-1001";
         }
 
-        var numberPart =
-            lastCode.Replace(
-                "EMP-",
-                "");
+        var numberPart = lastCode.Replace("EMP-", "");
 
-        int number =
-            int.Parse(numberPart);
+        int number = int.Parse(numberPart);
 
         number++;
 

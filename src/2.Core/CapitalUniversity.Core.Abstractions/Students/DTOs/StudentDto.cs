@@ -7,6 +7,7 @@ public class StudentDto
     public string StudentCode { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
+
     public string LocalizedName { get; set; } = string.Empty;
 
     public string NationalId { get; set; } = string.Empty;

@@ -8,6 +8,8 @@ public class StructureNodeDto
 
     public string Name { get; set; } = string.Empty;
 
+    public string LocalizedName { get; set; } = string.Empty;
+
     public StructureNodeType Type { get; set; }
 
     public Guid? ParentId { get; set; }
@@ -19,6 +21,10 @@ public class StructureNodeDto
     public int Depth { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string TypeName => Type.ToString();
+
+    public string TypeNameLocalized { get; set; } = string.Empty;
 
     public List<StructureNodeDto> Children { get; set; } = new();
 }

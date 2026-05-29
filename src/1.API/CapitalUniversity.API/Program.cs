@@ -78,7 +78,7 @@ builder.Services.AddScheduleModule();
 // Student Services depends on IFeeCreationService (Payments) for fee
 // authoring on submit — registered AFTER Payments so the resolver finds
 // the dependency at construction time.
-builder.Services.AddStudentServicesModule();
+//builder.Services.AddStudentServicesModule();
 
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
@@ -147,9 +147,9 @@ using (var scope = app.Services.CreateScope())
     //    await db.Database.MigrateAsync();
     //}
 
-    await DataSeeder.SeedAsync(db, passwordHasher);
+    //await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
-    await IdentitySeeder.SeedAsync(db);
+    await IdentitySeeder.SeedAsync(db, passwordHasher);
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
     // every module owns its permissions through IPermissionManifest, and the

@@ -21,4 +21,6 @@ public interface ILocalizationService
     /// through verbatim.
     /// </summary>
     bool ContainsKey(string? key);
+
+    string GetLocalizedString(string? json);
 }

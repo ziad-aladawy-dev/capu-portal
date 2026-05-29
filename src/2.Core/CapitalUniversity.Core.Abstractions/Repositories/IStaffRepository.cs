@@ -29,5 +29,6 @@ public interface IStaffRepository
     Task<string?> GetLastEmployeeCodeAsync();
 
     Task ToggleStatusAsync(Guid id);
+
     Task SaveChangesAsync();
 }

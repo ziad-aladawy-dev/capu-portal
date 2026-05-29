@@ -1,6 +1,6 @@
 ﻿using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
-namespace CapitalUniversity.Core.Application.DTOs.UniversityStructure;
+namespace CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
 
 public class BreadcrumbItemDto
 {
