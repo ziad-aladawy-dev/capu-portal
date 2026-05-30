@@ -625,3 +625,96 @@
   padding: 8px;
   border-top: 1px solid #f0f1f8;
 }
+
+/* New Role Permissions modal tree + level selectors */
+
+.rp-module-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.rp-module {
+  border: 1px solid #f0f1f8;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.rp-module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: #f8f9fd;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1f5e;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.rp-module-header:hover {
+  background: #f0f1f8;
+}
+
+.rp-module-name {
+  flex: 1;
+}
+
+.rp-module-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #f0f1f8;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.rp-module-resources {
+  border-top: 1px solid #f0f1f8;
+}
+
+.rp-resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 8px 28px;
+  border-bottom: 1px solid #f8f9fd;
+}
+
+.rp-resource-row:last-child {
+  border-bottom: none;
+}
+
+.rp-resource-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rp-resource-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1f5e;
+}
+
+.rp-level-select {
+  padding: 5px 8px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: "Outfit", sans-serif;
+  color: #1a1f5e;
+  background: #f4f5f7;
+  outline: none;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.rp-level-select:focus {
+  border-color: #c9a84c;
+}

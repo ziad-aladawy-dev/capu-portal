@@ -13,7 +13,7 @@ import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
 import ScopeModal from "../../components/ScopeModal";
 import "../../styles/navbar.css";
 
-function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary }) {
+function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenCommandPalette }) {
   const { scopeNode } = useDomain();
   const { selectedYear, selectedSemester, academicYears = [], semesters = [], selectYear, selectSemester, loading: academicLoading } = useAcademic();
   const { user, logout } = useAuth();
@@ -107,6 +107,12 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary }) {
     navigate(`/admin/users?search=${encodeURIComponent(trimmed)}`);
     setSearchQuery("");
   };
+
+  const scopeBadgeText = [
+    scopeNode?.name,
+    selectedYear !== "—" ? selectedYear : null,
+    selectedSemester !== "—" ? selectedSemester : null,
+  ].filter(Boolean).join(" | ") || "All Scopes";
 
   return (
     <>
@@ -209,19 +215,22 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary }) {
         </div>
 
         <div className="navbar-right">
-          <div className="nav-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <form onSubmit={handleSearch} style={{ display: 'contents' }}>
-              <input
-                placeholder="Search anything…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
+          {/* Scope badge summary */}
+          <div className="nav-scope-badge" title={`Viewing: ${scopeBadgeText}`}>
+            <span className="nav-scope-badge-dot" />
+            <span className="nav-scope-badge-text">{scopeBadgeText}</span>
           </div>
+
+          {/* Cmd+K trigger */}
+          <button
+            className="nav-search nav-cmdk-trigger"
+            onClick={onOpenCommandPalette}
+            title="Search (Ctrl+K)"
+          >
+            <Search size={13} />
+            <span className="nav-cmdk-label">Search…</span>
+            <kbd className="nav-cmdk-kbd">⌘K</kbd>
+          </button>
 
           {/* Notification Bell */}
           <div className="nav-dropdown-wrapper" ref={bellRef}>

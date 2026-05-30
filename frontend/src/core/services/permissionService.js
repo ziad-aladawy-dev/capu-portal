@@ -11,8 +11,15 @@ export async function createPermission(body) {
 }
 
 export async function fetchPermissionAssignment(params = {}) {
-  const { data } = await api.get("/permissions/assignment", { params });
-  return data;
+  try {
+    const { data } = await api.get("/permissions/assignment", { params });
+    return data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      return { roleIds: [], permissionOverrides: [] };
+    }
+    throw err;
+  }
 }
 
 export async function createPermissionAssignment(body) {

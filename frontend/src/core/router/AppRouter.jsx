@@ -37,16 +37,24 @@ function AppRouter() {
         <Route
           path="*"
           element={
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              height: "100vh", flexDirection: "column",
-              color: "#c9a84c", background: "#07091e", fontFamily: "Inter, sans-serif",
-            }}>
-              <h1 style={{ fontSize: "4rem", margin: 0, fontWeight: 700 }}>404</h1>
-              <p style={{ opacity: 0.6, marginTop: 8 }}>Page not found</p>
-              <a href="/" style={{ color: "#c9a84c", marginTop: 20, fontSize: "0.9rem" }}>
-                ← Back to Home
-              </a>
+            <div className="error-page-container">
+              <div className="error-page-card">
+                <div className="error-page-icon not-found">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m15 9-6 6" />
+                    <path d="m9 9 6 6" />
+                  </svg>
+                </div>
+                <h1 className="error-page-code">404</h1>
+                <h2 className="error-page-title">Page Not Found</h2>
+                <p className="error-page-desc">
+                  The page you're looking for doesn't exist or has been moved.
+                </p>
+                <a href="/admin/dashboard" className="error-page-link">
+                  ← Back to Dashboard
+                </a>
+              </div>
             </div>
           }
         />

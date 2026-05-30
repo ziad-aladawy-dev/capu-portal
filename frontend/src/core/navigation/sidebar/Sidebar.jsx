@@ -105,6 +105,10 @@ function Sidebar({ isOpen, isMobile, onClose }) {
       </div>
 
       <div className="sidebar-footer">
+        <div className="sidebar-shortcut-hint">
+          <span>Search</span>
+          <kbd>Ctrl+K</kbd>
+        </div>
         <button className="sidebar-footer-btn" onClick={logout}>
           <LogOut size={14} />
           <span>Sign out</span>

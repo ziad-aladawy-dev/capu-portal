@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search, X, Building2,
   CalendarRange, BookOpen, User, SlidersHorizontal, RotateCcw,
@@ -54,6 +54,7 @@ const DIRECTORY_FILTERS = {
 
 function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { scopeNode } = useDomain();
   const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
   const { selected, select, clear, isActive } = useStickySelection();
@@ -194,8 +195,10 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
 
   const handleSelectEntity = useCallback((entity) => {
     select(entity);
-    navigate(entity.type === "staff" ? "/admin/staff" : "/admin/students");
-  }, [select, navigate]);
+    if (location.pathname !== "/admin/permissions") {
+      navigate(entity.type === "staff" ? "/admin/staff" : "/admin/students");
+    }
+  }, [select, navigate, location.pathname]);
 
   const resolveOptions = (filter) => {
     if (filter.options) {

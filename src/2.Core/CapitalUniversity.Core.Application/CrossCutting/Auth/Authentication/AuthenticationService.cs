@@ -104,6 +104,13 @@ public class AuthenticationService : IAuthenticationService
         return true;
     }
 
+    public async Task<LoginResponseDto?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var credential = await _credentialResolver.ResolveByIdAsync(userId, cancellationToken);
+        if (credential is null) return null;
+        return await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
+    }
+
     public async Task<RefreshTokenResponseDto?> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.RefreshToken)) return null;

@@ -1,27 +1,66 @@
 import { useState, useEffect } from "react";
-import { X, Shield, Check, Search, AlertCircle, Save } from "lucide-react";
+import { X, Shield, ChevronDown, ChevronRight, Save, AlertCircle } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import "../../permissions/styles/roles.css";
 
+const ACTION_LEVELS = [
+  { value: 0, label: "None" },
+  { value: 1, label: "View" },
+  { value: 2, label: "Insert" },
+  { value: 3, label: "Edit" },
+  { value: 4, label: "Open" },
+  { value: 5, label: "Delete" },
+];
+
+const ACTION_NAME_TO_LEVEL = {
+  View: 1,
+  Insert: 2,
+  EditClose: 3,
+  Open: 4,
+  Delete: 5,
+};
+
+function computeResourceLevel(permissions) {
+  if (!permissions || permissions.length === 0) return 0;
+  let maxLevel = 0;
+  for (const p of permissions) {
+    if (p.isAssigned) {
+      const level = ACTION_NAME_TO_LEVEL[p.action] || 0;
+      if (level > maxLevel) maxLevel = level;
+    }
+  }
+  return maxLevel;
+}
+
 function RolePermissionsModal({ role, onClose }) {
-  const [allPermissions, setAllPermissions] = useState([]);
-  const [rolePermissionIds, setRolePermissionIds] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [resourceLevels, setResourceLevels] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedModules, setExpandedModules] = useState(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [perms, rolePerms] = await Promise.all([
-          permissionService.fetchAllPermissions(),
-          permissionService.fetchRolePermissions(role.id),
-        ]);
-        setAllPermissions(perms?.items || perms || []);
-        setRolePermissionIds(rolePerms?.permissionIds || rolePerms?.map((p) => p.id) || []);
+        const data = await permissionService.fetchRolePermissions(role.id);
+        const tree = Array.isArray(data) ? data : [];
+        setModules(tree);
+
+        const levels = {};
+        for (const mod of tree) {
+          for (const res of (mod.resources || [])) {
+            // Use a composite key: moduleId + resourceId to guarantee uniqueness
+            const key = `${mod.moduleId}::${res.resourceId}`;
+            levels[key] = computeResourceLevel(res.permissions || []);
+          }
+        }
+        setResourceLevels(levels);
+
+        // Expand all modules by default so the user sees the full structure
+        setExpandedModules(new Set(tree.map(m => m.moduleId)));
       } catch (err) {
         setError(err.message || "Failed to load permissions");
       } finally {
@@ -31,21 +70,32 @@ function RolePermissionsModal({ role, onClose }) {
     fetchData();
   }, [role.id]);
 
-  const togglePermission = (permId) => {
-    setRolePermissionIds((prev) =>
-      prev.includes(permId)
-        ? prev.filter((id) => id !== permId)
-        : [...prev, permId]
-    );
+  const toggleModule = (moduleId) => {
+    setExpandedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(moduleId)) next.delete(moduleId);
+      else next.add(moduleId);
+      return next;
+    });
+  };
+
+  const handleLevelChange = (compositeKey, level) => {
+    setResourceLevels((prev) => ({ ...prev, [compositeKey]: level }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
-      await permissionService.updateRolePermissions(role.id, {
-        permissionIds: rolePermissionIds,
-      });
+      // Extract the actual resourceId from the composite key (moduleId::resourceId)
+      const permissions = Object.entries(resourceLevels)
+        .filter(([, level]) => level > 0)
+        .map(([compositeKey, level]) => {
+          const resourceId = compositeKey.split("::")[1];
+          return { resourceId, level };
+        });
+
+      await permissionService.updateRolePermissions(role.id, { permissions });
       onClose();
     } catch (err) {
       setError(err.message || "Failed to save permissions");
@@ -54,10 +104,8 @@ function RolePermissionsModal({ role, onClose }) {
     }
   };
 
-  const filteredPermissions = allPermissions.filter((p) => {
-    const name = (p.name || p.resource || "").toLowerCase();
-    return name.includes(searchTerm.toLowerCase());
-  });
+  const totalCount = modules.reduce((sum, m) => sum + (m.resources?.length || 0), 0);
+  const configuredCount = Object.values(resourceLevels).filter((l) => l > 0).length;
 
   return (
     <div className="roles-modal-overlay" onClick={onClose}>
@@ -67,9 +115,7 @@ function RolePermissionsModal({ role, onClose }) {
             <Shield size={18} />
             <div>
               <h2>Role Permissions</h2>
-              <p className="roles-modal-subtitle">
-                {role.name}
-              </p>
+              <p className="roles-modal-subtitle">{role.name}</p>
             </div>
           </div>
           <button className="roles-modal-close" onClick={onClose} disabled={saving}>
@@ -85,64 +131,69 @@ function RolePermissionsModal({ role, onClose }) {
             </div>
           )}
 
-          <div className="roles-permission-search">
-            <Search size={14} />
-            <input
-              type="text"
-              placeholder="Search permissions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
           {loading ? (
             <div className="roles-loading" style={{ padding: "40px 0" }}>
               <div className="roles-spinner" />
               <p>Loading permissions...</p>
             </div>
-          ) : filteredPermissions.length === 0 ? (
+          ) : modules.length === 0 ? (
             <div className="roles-empty" style={{ padding: "40px 0" }}>
               <p>No permissions found</p>
             </div>
           ) : (
-            <div className="roles-permission-list">
-              {filteredPermissions.map((perm) => {
-                const isChecked = rolePermissionIds.includes(perm.id);
+            <div className="rp-module-list">
+              {modules.map((mod) => {
+                const isExpanded = expandedModules.has(mod.moduleId);
+                const resCount = mod.resources?.length || 0;
+                const configuredResCount = (mod.resources || []).filter(
+                  (r) => (resourceLevels[`${mod.moduleId}::${r.resourceId}`] || 0) > 0
+                ).length;
+
                 return (
-                  <label
-                    key={perm.id}
-                    className={`roles-permission-item ${isChecked ? "checked" : ""}`}
-                  >
-                    <div className="roles-permission-check">
-                      <div className={`roles-checkbox ${isChecked ? "checked" : ""}`}>
-                        {isChecked && <Check size={12} />}
+                  <div key={mod.moduleId} className="rp-module">
+                    <button
+                      className="rp-module-header"
+                      onClick={() => toggleModule(mod.moduleId)}
+                    >
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      <span className="rp-module-name">{mod.moduleName}</span>
+                      <span className="rp-module-count">
+                        {configuredResCount}/{resCount}
+                      </span>
+                    </button>
+                    {isExpanded && (
+                      <div className="rp-module-resources">
+                        {(mod.resources || []).map((res) => {
+                          const compositeKey = `${mod.moduleId}::${res.resourceId}`;
+                          return (
+                            <div key={compositeKey} className="rp-resource-row">
+                              <div className="rp-resource-info">
+                                <span className="rp-resource-name">{res.resourceName}</span>
+                              </div>
+                              <select
+                                className="rp-level-select"
+                                value={resourceLevels[compositeKey] || 0}
+                                onChange={(e) => handleLevelChange(compositeKey, Number(e.target.value))}
+                              >
+                                {ACTION_LEVELS.map((l) => (
+                                  <option key={l.value} value={l.value}>
+                                    {l.label} ({l.value})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => togglePermission(perm.id)}
-                        style={{ display: "none" }}
-                      />
-                    </div>
-                    <div className="roles-permission-info">
-                      <span className="roles-permission-name">
-                        {perm.name || perm.resource}
-                      </span>
-                      <span className="roles-permission-resource">
-                        {perm.module || ""} {perm.resource ? `> ${perm.resource}` : ""}
-                      </span>
-                    </div>
-                    <span className="roles-permission-level">
-                      {perm.action || "View"}
-                    </span>
-                  </label>
+                    )}
+                  </div>
                 );
               })}
             </div>
           )}
 
           <div className="roles-permission-count">
-            {rolePermissionIds.length} of {allPermissions.length} permissions selected
+            {configuredCount} of {totalCount} resources configured
           </div>
         </div>
 
@@ -159,13 +210,7 @@ function RolePermissionsModal({ role, onClose }) {
             onClick={handleSave}
             disabled={saving || loading}
           >
-            {saving ? (
-              <>Saving...</>
-            ) : (
-              <>
-                <Save size={14} /> Save Permissions
-              </>
-            )}
+            {saving ? "Saving..." : <><Save size={14} /> Save Permissions</>}
           </button>
         </div>
       </div>

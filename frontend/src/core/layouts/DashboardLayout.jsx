@@ -1,24 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 
 import Navbar from "../navigation/navbar/Navbar";
 import Sidebar from "../navigation/sidebar/Sidebar";
 import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
 import UserScopeBanner from "../components/UserScopeBanner";
+import Breadcrumbs from "../components/Breadcrumbs";
+import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
 import { useAuth } from "../auth/useAuth";
 import { getCurrentRouteInfo } from "../router/routeRegistry";
 import { PAGE_TYPES, APPLICABLE_TO } from "../manifests/manifestTypes";
+import "../components/shellComponents.css";
+
+const CommandPalette = lazy(() => import("../components/CommandPalette"));
+const KeyboardShortcutsModal = lazy(() => import("../components/KeyboardShortcutsModal"));
 
 const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH = 230;
 const SECONDARY_SIDEBAR_WIDTH = 280;
 
 function DashboardLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, logout } = useAuth();
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > MOBILE_BREAKPOINT);
   const [secondaryOpen, setSecondaryOpen] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
 
@@ -38,6 +46,31 @@ function DashboardLayout() {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
+  // Global keyboard shortcuts: Cmd+K → Command Palette, ? → Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Ignore when inside input/textarea/contenteditable
+      const tag = e.target.tagName;
+      const isInput = tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable;
+
+      // Cmd+K / Ctrl+K → Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+        return;
+      }
+
+      // ? → Keyboard Shortcuts (only when not in input)
+      if (e.key === "?" && !isInput) {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);
   };
@@ -49,6 +82,10 @@ function DashboardLayout() {
   const closeSidebar = () => {
     setSidebarOpen(false);
   };
+
+  const openCommandPalette = useCallback(() => {
+    setShowCommandPalette(true);
+  }, []);
 
   const getContentMargin = () => {
     if (isMobile) return "0px";
@@ -75,6 +112,9 @@ function DashboardLayout() {
 
   return (
     <div className="dashboard-wrapper">
+      {/* Session timeout warning (fixed banner) */}
+      <SessionTimeoutWarning onLogout={logout} />
+
       {isMobile && sidebarOpen && (
         <div className="sidebar-overlay" onClick={closeSidebar} />
       )}
@@ -110,13 +150,30 @@ function DashboardLayout() {
           onToggleSidebar={toggleSidebar}
           showSecondary={secondaryOpen}
           onToggleSecondary={toggleSecondary}
+          onOpenCommandPalette={openCommandPalette}
         />
+
+        <Breadcrumbs />
 
         <main className="dashboard-page-content">
           {currentPageType === PAGE_TYPES.MANAGEMENT && <UserScopeBanner />}
           <Outlet />
         </main>
       </div>
+
+      {/* Command Palette (Cmd+K) */}
+      {showCommandPalette && (
+        <Suspense fallback={null}>
+          <CommandPalette onClose={() => setShowCommandPalette(false)} />
+        </Suspense>
+      )}
+
+      {/* Keyboard Shortcuts Modal (?) */}
+      {showShortcuts && (
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

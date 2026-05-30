@@ -464,6 +464,26 @@
   transform: translateY(-1px);
 }
 
+.sidebar-shortcut-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 11px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.sidebar-shortcut-hint kbd {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: "Space Mono", monospace;
+  color: rgba(255, 255, 255, 0.28);
+}
+
 /* SCROLLBAR */
 
 .sidebar-content::-webkit-scrollbar {
@@ -554,7 +574,8 @@
   .sidebar-section-label,
   .sidebar-category-title,
   .sidebar-cat-arrow,
-  .sidebar-footer-btn span {
+  .sidebar-footer-btn span,
+  .sidebar-shortcut-hint {
     display: none;
   }
 
