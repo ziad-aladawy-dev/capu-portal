@@ -1,14 +1,16 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 function FacultyPageHeader({
   title,
   icon: Icon,
   onAdd,
   onExport,
-  onImport,
   showActions = true,
   exportButtonRef,
 }) {
+  const { t } = useTranslation();
+
   return (
     <section className="users-page-header">
       <div className="users-page-title">
@@ -18,21 +20,18 @@ function FacultyPageHeader({
           </div>
         )}
         <div>
-          <span className="users-page-kicker">Users Module</span>
+          <span className="users-page-kicker">{t("users_module")}</span>
           <h1>{title}</h1>
-          <p>Manage users, roles and permissions.</p>
+          <p>{t("manage_users_roles_permissions")}</p>
         </div>
       </div>
       {showActions && (
         <div className="users-page-actions">
-          <button type="button" className="users-secondary-btn" onClick={onImport}>
-            Import
-          </button>
           <button type="button" className="users-secondary-btn" onClick={onExport} ref={exportButtonRef}>
-            Export
+            {t("export")}
           </button>
           <button type="button" className="users-primary-btn" onClick={onAdd}>
-            Add User
+            {t("add_user")}
           </button>
         </div>
       )}

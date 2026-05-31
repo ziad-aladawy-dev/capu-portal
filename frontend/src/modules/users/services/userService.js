@@ -1,8 +1,8 @@
 import apiClient from "../../../core/api/apiClient";
 
-const STUDENTS_BASE = "/students";
-const STAFF_BASE = "/staff";
-const STRUCTURE_LOOKUP_BASE = "/structure/lookups";
+const STUDENTS_BASE = "/api/students";
+const STAFF_BASE = "/api/staff";
+const STRUCTURE_LOOKUP_BASE = "/api/structure/lookups";
 
 const userService = {
   // ---------------------- Students ----------------------
@@ -41,6 +41,14 @@ const userService = {
     const response = await apiClient.get(`${STUDENTS_BASE}/export/csv`, {
       params,
       responseType: 'blob'
+    });
+    return response.data;
+  },
+  importStudentsExcel: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(`${STUDENTS_BASE}/import-excel`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   },
@@ -84,59 +92,18 @@ const userService = {
     });
     return response.data;
   },
-
-  // ---------------------- Bulk Import ----------------------
-  importStudentsExcel: async (file, scopeNodeId, academicYearId, semesterId) => {
+  importStaffExcel: async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    if (scopeNodeId) formData.append("ScopeNodeId", scopeNodeId);
-    if (academicYearId) formData.append("AcademicYearId", academicYearId);
-    if (semesterId) formData.append("SemesterId", semesterId);
-    const response = await apiClient.post(`${STUDENTS_BASE}/import-excel`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data;
-  },
-  importStaffExcel: async (file, scopeNodeId, academicYearId, semesterId) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (scopeNodeId) formData.append("ScopeNodeId", scopeNodeId);
-    if (academicYearId) formData.append("AcademicYearId", academicYearId);
-    if (semesterId) formData.append("SemesterId", semesterId);
     const response = await apiClient.post(`${STAFF_BASE}/import-excel`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data;
-  },
-  importStudentsCsv: async (file, scopeNodeId, academicYearId, semesterId) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (scopeNodeId) formData.append("ScopeNodeId", scopeNodeId);
-    if (academicYearId) formData.append("AcademicYearId", academicYearId);
-    if (semesterId) formData.append("SemesterId", semesterId);
-    const response = await apiClient.post(`${STUDENTS_BASE}/bulk-import`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data;
-  },
-  importStaffCsv: async (file, scopeNodeId, academicYearId, semesterId) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (scopeNodeId) formData.append("ScopeNodeId", scopeNodeId);
-    if (academicYearId) formData.append("AcademicYearId", academicYearId);
-    if (semesterId) formData.append("SemesterId", semesterId);
-    const response = await apiClient.post(`${STAFF_BASE}/bulk-import`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   },
 
   // ---------------------- Statistics ----------------------
-  getUserStatistics: async (scopeNodeId = null, academicYearId = null, semesterId = null) => {
-    const params = {};
-    if (scopeNodeId) params.ScopeNodeId = scopeNodeId;
-    if (academicYearId) params.AcademicYearId = academicYearId;
-    if (semesterId) params.SemesterId = semesterId;
+  getUserStatistics: async (scopeNodeId = null) => {
+    const params = scopeNodeId ? { ScopeNodeId: scopeNodeId } : {};
     const [studentsStats, staffStats] = await Promise.all([
       apiClient.get(`${STUDENTS_BASE}/statistics`, { params }),
       apiClient.get(`${STAFF_BASE}/statistics`, { params })
@@ -180,7 +147,6 @@ const userService = {
     return response.data;
   },
   getRoles: async () => {
-    // Mock roles; replace with actual endpoint if exists
     return [
       { id: "Professor", name: "Professor" },
       { id: "AssistantProfessor", name: "Assistant Professor" },
@@ -193,32 +159,8 @@ const userService = {
     ];
   },
 
-  // ---------------------- Bulk Actions ----------------------
-  bulkActivateUsers: async (ids, userType) => {
-    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
-    const results = await Promise.allSettled(
-      ids.map((id) => apiClient.patch(`${base}/${id}/toggle-status`))
-    );
-    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
-  },
-  bulkDeactivateUsers: async (ids, userType) => {
-    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
-    const results = await Promise.allSettled(
-      ids.map((id) => apiClient.patch(`${base}/${id}/toggle-status`))
-    );
-    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
-  },
-  bulkDeleteUsers: async (ids, userType) => {
-    const base = userType === "Student" ? STUDENTS_BASE : STAFF_BASE;
-    const results = await Promise.allSettled(
-      ids.map((id) => apiClient.delete(`${base}/${id}`))
-    );
-    return { success: true, total: ids.length, succeeded: results.filter((r) => r.status === "fulfilled").length };
-  },
-
   // ---------------------- Helpers (for UI) ----------------------
   checkEmailUnique: async (email, userType) => {
-    // Not implemented in backend; return true for now
     return { isUnique: true };
   },
   checkNationalIdUnique: async (nationalId, userType) => {
@@ -243,15 +185,26 @@ const userService = {
     }
     return { success: true };
   },
-  softDeleteUser: async (userId, reason) => {
-    // Not a separate endpoint; use delete
+  softDeleteUser: async (userId, userType, reason) => {
+    if (userType === "Student") {
+      await userService.deleteStudent(userId);
+    } else {
+      await userService.deleteStaff(userId);
+    }
     return { success: true };
   },
-  restoreUser: async (userId) => {
-    return { success: true };
+  restoreUser: async (userId, userType) => {
+    return userService.activateUser(userId, userType);
   },
   resetUserPassword: async (userId, userType, newPassword) => {
-    return { success: true };
+    const updateData = { password: newPassword, confirmPassword: newPassword };
+    if (userType === "Student") {
+      const response = await apiClient.put(`${STUDENTS_BASE}/${userId}`, updateData);
+      return response.data;
+    } else {
+      const response = await apiClient.put(`${STAFF_BASE}/${userId}`, updateData);
+      return response.data;
+    }
   }
 };
 

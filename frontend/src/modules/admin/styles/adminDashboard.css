@@ -539,3 +539,66 @@ body {
     display: none;
   }
 }
+
+/* ========== RTL Support ========== */
+body.rtl .dashboard-header {
+  direction: rtl;
+}
+
+body.rtl .welcome-block {
+  text-align: left;
+}
+
+body.rtl .dashboard-title-box h1 {
+  text-align: right;
+}
+
+body.rtl .search-wrapper .search-icon {
+  left: auto;
+  right: 12px;
+}
+
+body.rtl .search-input {
+  padding: 10px 36px 10px 13px;
+}
+
+body.rtl .stat-card-top span {
+  text-align: right;
+}
+
+body.rtl .card-header {
+  flex-direction: row;
+}
+
+body.rtl .activity-item {
+  flex-direction: row;
+  text-align: right;
+}
+
+body.rtl .activity-item > div {
+  width: 100%;
+  text-align: right;
+}
+
+body.rtl .quick-action-btn {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+body.rtl .quick-action-btn span {
+  text-align: right;
+}
+
+body.rtl .quick-action-btn svg {
+  transform: rotate(180deg);
+}
+
+/* Media Queries RTL */
+@media (max-width: 768px) {
+  body.rtl .dashboard-header {
+    align-items: flex-start;
+  }
+  body.rtl .welcome-block {
+    text-align: right;
+  }
+}

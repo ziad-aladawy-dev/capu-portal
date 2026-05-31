@@ -1,31 +1,26 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-
-const quickActions = [
-  { label: "User Management", path: "/admin/users" },
-  { label: "Add New Student", path: "/admin/users/add-student" },
-  { label: "Add New Staff", path: "/admin/users/add-staff" },
-  { label: "University Structure", path: "/admin/university-structure" },
-  { label: "Roles & Permissions", path: "/admin/roles" },
-];
+import { useTranslation } from "react-i18next";
+import { quickActionsConfig } from "../data/dashboardData";
 
 function QuickActions() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="dashboard-card anim-actions">
       <div className="card-header">
-        <h3>Quick Actions</h3>
+        <h3>{t("quick_actions")}</h3>
       </div>
 
       <div className="quick-actions-list">
-        {quickActions.map((item, index) => (
+        {quickActionsConfig.map((item, index) => (
           <button
             key={index}
             className="quick-action-btn"
             onClick={() => navigate(item.path)}
           >
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
             <ChevronRight size={16} />
           </button>
         ))}

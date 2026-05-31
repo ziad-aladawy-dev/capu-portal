@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   User, Mail, Phone, CheckCircle2, UserCircle2, BookOpen, Building2,
-  Calendar, XCircle, AlertCircle, Award, Lock
+  Calendar, XCircle, AlertCircle, Award, Lock, Globe
 } from "lucide-react";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { useToast } from "../../../core/components/Toast";
 import "../styles/userForms.css";
 
 const EditStudent = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToast } = useToast();
-  const steps = ["Basic Information", "Academic Information"];
+  const steps = [t("basic_information"), t("academic_information")];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -21,7 +21,8 @@ const EditStudent = () => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: "",
+    nameAr: "",
+    nameEn: "",
     nationalId: "",
     birthDate: "",
     phoneNumber: "",
@@ -39,13 +40,29 @@ const EditStudent = () => {
   const [selectedProgramId, setSelectedProgramId] = useState("");
   const [errors, setErrors] = useState({});
 
+  const getLocalizedItemName = (item) => {
+    return item?.localizedName || item?.name || "";
+  };
+
   useEffect(() => {
     const loadStudent = async () => {
       setLoading(true);
       try {
         const student = await userService.getStudentById(id);
+        let nameAr = "", nameEn = "";
+        if (student.name) {
+          try {
+            const parsed = JSON.parse(student.name);
+            nameAr = parsed.ar || "";
+            nameEn = parsed.en || "";
+          } catch {
+            nameAr = student.name;
+            nameEn = student.name;
+          }
+        }
         setFormData({
-          name: student.name || "",
+          nameAr: nameAr,
+          nameEn: nameEn,
           nationalId: student.nationalId || "",
           birthDate: student.birthDate ? student.birthDate.split("T")[0] : "",
           phoneNumber: student.phoneNumber || "",
@@ -55,8 +72,10 @@ const EditStudent = () => {
           password: "",
           confirmPassword: "",
         });
+
         const facultiesData = await userService.getFaculties();
         setFaculties(facultiesData);
+
         if (student.facultyId) {
           setSelectedFacultyId(student.facultyId);
           const progs = await userService.getPrograms(student.facultyId);
@@ -79,6 +98,7 @@ const EditStudent = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const handleFacultyChange = async (e) => {
@@ -115,18 +135,18 @@ const EditStudent = () => {
   const validateStep = () => {
     const newErrors = {};
     if (currentStep === 0) {
-      if (!formData.name) newErrors.name = "Name is required";
-      if (!formData.nationalId) newErrors.nationalId = "National ID is required";
-      if (!formData.email) newErrors.email = "Email is required";
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email";
-      if (!formData.birthDate) newErrors.birthDate = "Date of birth is required";
+      if (!formData.nameAr) newErrors.nameAr = t("full_name_required");
+      if (!formData.nationalId) newErrors.nationalId = t("national_id_required");
+      if (!formData.email) newErrors.email = t("email_required");
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t("invalid_email");
+      if (!formData.birthDate) newErrors.birthDate = t("dob_required");
     }
     if (currentStep === 1) {
-      if (!formData.structureNodeId) newErrors.structureNodeId = "Level is required";
+      if (!formData.structureNodeId) newErrors.structureNodeId = t("level_required");
       if (formData.password && formData.password !== formData.confirmPassword)
-        newErrors.confirmPassword = "Passwords do not match";
+        newErrors.confirmPassword = t("passwords_do_not_match");
       if (formData.password && formData.password.length < 6)
-        newErrors.password = "Min 6 characters";
+        newErrors.password = t("password_min_length");
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -142,7 +162,8 @@ const EditStudent = () => {
     if (!validateStep()) return;
     setSubmitting(true);
     const updateData = {
-      name: formData.name,
+      nameAr: formData.nameAr,
+      nameEn: formData.nameEn || formData.nameAr,
       nationalId: formData.nationalId,
       birthDate: formData.birthDate,
       phoneNumber: formData.phoneNumber || null,
@@ -157,7 +178,7 @@ const EditStudent = () => {
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      addToast(err.response?.data?.message || err.message, "error");
+      alert(err.response?.data?.message || err.message);
     } finally {
       setSubmitting(false);
     }
@@ -178,9 +199,9 @@ const EditStudent = () => {
           <div className="header-content">
             <div className="header-icon"><UserCircle2 size={22} /></div>
             <div className="header-text">
-              <h1>Edit Student</h1>
+              <h1>{t("edit_student")}</h1>
               <div className="gold-line" />
-              <p>Update student information</p>
+              <p>{t("update_student_information")}</p>
             </div>
           </div>
           <label className="account-status-toggle">
@@ -190,7 +211,7 @@ const EditStudent = () => {
                 {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
               </span>
             </span>
-            <span>{formData.isActive ? "Active Account" : "Inactive Account"}</span>
+            <span>{formData.isActive ? t("active_account") : t("inactive_account")}</span>
           </label>
         </div>
 
@@ -198,10 +219,8 @@ const EditStudent = () => {
           {steps.map((step, index) => (
             <button
               type="button"
-              key={step}
-              className={`wizard-step ${index === currentStep ? "active" : ""} ${
-                index < currentStep ? "done" : ""
-              }`}
+              key={index}
+              className={`wizard-step ${index === currentStep ? "active" : ""} ${index < currentStep ? "done" : ""}`}
               onClick={() => setCurrentStep(index)}
             >
               <span>{index + 1}</span>
@@ -211,50 +230,100 @@ const EditStudent = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* Step 0: Basic Information */}
           {currentStep === 0 && (
             <div className="form-card wizard-card">
               <div className="form-header">
                 <div className="form-icon"><User size={18} color="#e0c06a" /></div>
-                <div className="form-title-wrapper"><h3>Basic Information</h3></div>
+                <div className="form-title-wrapper"><h3>{t("basic_information")}</h3></div>
               </div>
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">National ID *</label>
+                    <label className="form-label">{t("national_id")} *</label>
                     <div className="input-wrapper">
-                      <input type="text" name="nationalId" value={formData.nationalId} onChange={handleChange} className="form-input" />
+                      <input
+                        type="text"
+                        name="nationalId"
+                        value={formData.nationalId}
+                        onChange={handleChange}
+                        className={`form-input ${errors.nationalId ? "error" : ""}`}
+                      />
                       <User size={15} className="input-icon" />
                     </div>
                     {errors.nationalId && <span className="error-message">{errors.nationalId}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Full Name *</label>
+                    <label className="form-label">{t("full_name_arabic")} *</label>
                     <div className="input-wrapper">
-                      <input type="text" name="name" value={formData.name} onChange={handleChange} className="form-input" />
+                      <input
+                        type="text"
+                        name="nameAr"
+                        value={formData.nameAr}
+                        onChange={handleChange}
+                        className={`form-input ${errors.nameAr ? "error" : ""}`}
+                      />
                       <User size={15} className="input-icon" />
                     </div>
-                    {errors.name && <span className="error-message">{errors.name}</span>}
+                    {errors.nameAr && <span className="error-message">{errors.nameAr}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Email *</label>
+                    <label className="form-label">{t("full_name_english")}</label>
                     <div className="input-wrapper">
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" />
+                      <input
+                        type="text"
+                        name="nameEn"
+                        value={formData.nameEn}
+                        onChange={handleChange}
+                        className="form-input"
+                      />
+                      <Globe size={15} className="input-icon" />
+                    </div>
+                    <span className="input-hint">{t("english_name_hint")}</span>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("email")} *</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={`form-input ${errors.email ? "error" : ""}`}
+                      />
                       <Mail size={15} className="input-icon" />
                     </div>
                     {errors.email && <span className="error-message">{errors.email}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Date of Birth *</label>
+                    <label className="form-label">{t("date_of_birth")} *</label>
                     <div className="input-wrapper">
-                      <input type="date" name="birthDate" value={formData.birthDate} onChange={handleChange} className="form-input" />
+                      <input
+                        type="date"
+                        name="birthDate"
+                        value={formData.birthDate}
+                        onChange={handleChange}
+                        className={`form-input ${errors.birthDate ? "error" : ""}`}
+                      />
                       <Calendar size={15} className="input-icon" />
                     </div>
                     {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Phone</label>
+                    <label className="form-label">{t("phone")}</label>
                     <div className="input-wrapper">
-                      <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="form-input" />
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        className="form-input"
+                      />
                       <Phone size={15} className="input-icon" />
                     </div>
                   </div>
@@ -263,56 +332,96 @@ const EditStudent = () => {
             </div>
           )}
 
+          {/* Step 1: Academic Information */}
           {currentStep === 1 && (
             <div className="form-card wizard-card">
               <div className="form-header">
                 <div className="form-icon"><BookOpen size={18} color="#e0c06a" /></div>
-                <div className="form-title-wrapper"><h3>Academic Information</h3></div>
+                <div className="form-title-wrapper"><h3>{t("academic_information")}</h3></div>
               </div>
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">Faculty</label>
+                    <label className="form-label">{t("faculty")}</label>
                     <div className="input-wrapper">
-                      <select value={selectedFacultyId} onChange={handleFacultyChange} className="form-select">
-                        <option value="">Select Faculty</option>
-                        {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      <select
+                        value={selectedFacultyId}
+                        onChange={handleFacultyChange}
+                        className="form-select"
+                      >
+                        <option value="">{t("select_faculty")}</option>
+                        {faculties.map(f => (
+                          <option key={f.id} value={f.id}>{getLocalizedItemName(f)}</option>
+                        ))}
                       </select>
                       <Building2 size={15} className="input-icon" />
                     </div>
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Program</label>
+                    <label className="form-label">{t("program")}</label>
                     <div className="input-wrapper">
-                      <select value={selectedProgramId} onChange={handleProgramChange} disabled={!selectedFacultyId} className="form-select">
-                        <option value="">Select Program</option>
-                        {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      <select
+                        value={selectedProgramId}
+                        onChange={handleProgramChange}
+                        disabled={!selectedFacultyId}
+                        className="form-select"
+                      >
+                        <option value="">{t("select_program")}</option>
+                        {programs.map(p => (
+                          <option key={p.id} value={p.id}>{getLocalizedItemName(p)}</option>
+                        ))}
                       </select>
                       <BookOpen size={15} className="input-icon" />
                     </div>
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Level *</label>
+                    <label className="form-label">{t("level")} *</label>
                     <div className="input-wrapper">
-                      <select value={formData.structureNodeId} onChange={handleLevelChange} disabled={!selectedProgramId} className="form-select">
-                        <option value="">Select Level</option>
-                        {levels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      <select
+                        value={formData.structureNodeId}
+                        onChange={handleLevelChange}
+                        disabled={!selectedProgramId}
+                        className={`form-select ${errors.structureNodeId ? "error" : ""}`}
+                      >
+                        <option value="">{t("select_level")}</option>
+                        {levels.map(l => (
+                          <option key={l.id} value={l.id}>{getLocalizedItemName(l)}</option>
+                        ))}
                       </select>
                       <Award size={15} className="input-icon" />
                     </div>
                     {errors.structureNodeId && <span className="error-message">{errors.structureNodeId}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Password (leave blank to keep current)</label>
+                    <label className="form-label">{t("password_optional")}</label>
                     <div className="input-wrapper">
-                      <input type="password" name="password" value={formData.password} onChange={handleChange} className="form-input" />
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className={`form-input ${errors.password ? "error" : ""}`}
+                        placeholder={t("password_placeholder")}
+                      />
                       <Lock size={15} className="input-icon" />
                     </div>
+                    {errors.password && <span className="error-message">{errors.password}</span>}
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Confirm Password</label>
+                    <label className="form-label">{t("confirm_password")}</label>
                     <div className="input-wrapper">
-                      <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className="form-input" />
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        className={`form-input ${errors.confirmPassword ? "error" : ""}`}
+                        placeholder={t("confirm_password_placeholder")}
+                      />
                       <Lock size={15} className="input-icon" />
                     </div>
                     {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
@@ -329,15 +438,15 @@ const EditStudent = () => {
               onClick={prevStep}
               disabled={currentStep === 0}
             >
-              Back
+              {t("back")}
             </button>
             {currentStep < steps.length - 1 ? (
               <button type="button" className="wizard-btn primary" onClick={nextStep}>
-                Next
+                {t("next")}
               </button>
             ) : (
               <button type="submit" className="wizard-btn primary" disabled={submitting}>
-                {submitting ? "Saving..." : "Save Changes"}
+                {submitting ? t("saving") : t("save_changes")}
               </button>
             )}
           </div>
@@ -349,8 +458,8 @@ const EditStudent = () => {
           <div className="success-overlay" />
           <div className="success-message">
             <div className="success-icon"><CheckCircle2 size={38} color="#e0c06a" /></div>
-            <div className="success-text">Updated Successfully!</div>
-            <p>Redirecting to user details...</p>
+            <div className="success-text">{t("updated_successfully")}</div>
+            <p>{t("redirecting_to_user_details")}</p>
           </div>
         </>
       )}

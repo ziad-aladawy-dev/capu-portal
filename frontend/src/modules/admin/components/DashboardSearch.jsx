@@ -1,20 +1,17 @@
-import { useState } from "react";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 function DashboardSearch() {
-  const [query, setQuery] = useState("");
+  const { t } = useTranslation();
 
   return (
     <div className="dashboard-search-box">
       <div className="search-wrapper">
         <Search size={16} className="search-icon" />
-
         <input
           type="text"
-          placeholder="Global search..."
+          placeholder={t("global_search")}
           className="search-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
         />
       </div>
     </div>

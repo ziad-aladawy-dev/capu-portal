@@ -5,7 +5,6 @@ import FacultiesSection from "../components/FacultiesSection";
 import ServicesSection from "../components/ServicesSection";
 import NewsSection from "../components/NewsSection";
 import CTASection from "../components/CTASection";
-import LandingFooter from "../components/LandingFooter";
 import "../styles/landing.css";
 
 function LandingPage() {
@@ -18,7 +17,6 @@ function LandingPage() {
       <ServicesSection />
       <NewsSection />
       <CTASection />
-      <LandingFooter />
     </div>
   );
 }

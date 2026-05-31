@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Network, Search, Plus } from "lucide-react";
 import TreeNode from "../components/TreeNode";
 import { AddEditNodeModal } from "../components/AddEditNodeModal";
@@ -7,12 +8,21 @@ import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { useUniversityStructure } from "../hooks/useUniversityStructure";
 import { universityStructureService } from "../services/universityStructureService";
 import { normalizeType, canMoveToParent } from "../utils/nodeTypeHelpers";
-import { useToast } from "../../../core/components/Toast";
 import "../styles/universityStructure.css";
 import "../styles/scopeModal.css";
 
+const getLocalizedText = (text, lang) => {
+  if (!text) return "";
+  try {
+    const parsed = JSON.parse(text);
+    return parsed[lang] || parsed.ar || parsed.en || text;
+  } catch {
+    return text;
+  }
+};
+
 const UniversityStructurePage = () => {
-  const { addToast } = useToast();
+  const { t, i18n } = useTranslation();
   const {
     treeData,
     loading,
@@ -37,23 +47,72 @@ const UniversityStructurePage = () => {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [editParentType, setEditParentType] = useState(null);
   const [nodeToDelete, setNodeToDelete] = useState(null);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
 
-  const findNodeInTree = (nodes, nodeId) => {
+  const toggleNode = useCallback((nodeId) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const findNodeInTree = useCallback((nodes, nodeId) => {
     for (const node of nodes) {
       if (node.id === nodeId) return node;
-      if (node.children && node.children.length) {
+      if (node.children?.length) {
         const found = findNodeInTree(node.children, nodeId);
         if (found) return found;
       }
     }
     return null;
-  };
+  }, []);
 
-  const getParentTypeForNode = (node) => {
-    if (!node || !node.parentId) return null;
+  const getParentTypeForNode = useCallback((node) => {
+    if (!node?.parentId) return null;
     const parent = findNodeInTree(treeData, node.parentId);
-    return parent ? parent.type : null;
-  };
+    return parent?.type || null;
+  }, [treeData, findNodeInTree]);
+
+  const loadBreadcrumb = useCallback(async (node) => {
+    if (node?.id) {
+      try {
+        const bc = await universityStructureService.getBreadcrumb(node.id);
+        const currentLang = i18n.language === 'ar' ? 'ar' : 'en';
+        const translatedBc = bc.map(item => ({
+          ...item,
+          name: getLocalizedText(item.name, currentLang)
+        }));
+        setBreadcrumb(translatedBc);
+      } catch (err) {
+        console.error("Failed to load breadcrumb", err);
+        setBreadcrumb([]);
+      }
+    } else {
+      setBreadcrumb([]);
+    }
+  }, [i18n.language]);
+
+  const displayNodeName = useMemo(() => {
+    if (selectedNode?.localizedName) return selectedNode.localizedName;
+    if (!selectedNode?.name) return "";
+    return getLocalizedText(selectedNode.name, i18n.language);
+  }, [selectedNode, i18n.language]);
+
+  const displayNodeType = useMemo(() => {
+    if (selectedNode?.typeNameLocalized) return selectedNode.typeNameLocalized;
+    return normalizeType(selectedNode?.type);
+  }, [selectedNode]);
+
+  useEffect(() => {
+    if (selectedNode) {
+      loadBreadcrumb(selectedNode);
+    }
+  }, [selectedNode, i18n.language, loadBreadcrumb]);
 
   const handleAddClick = (parentId, currentChildrenCount, parentType) => {
     setParentIdForAdd(parentId);
@@ -65,7 +124,7 @@ const UniversityStructurePage = () => {
   const handleSaveAdd = async (request) => {
     const result = await createNode(request);
     if (!result.success) {
-      addToast(`Error: ${result.error}`, "error");
+      alert(`${t("error")}: ${result.error}`);
     }
   };
 
@@ -79,7 +138,10 @@ const UniversityStructurePage = () => {
   };
 
   const handleSaveEdit = async (request, nodeId) => {
-    await updateNode(nodeId, request);
+    const result = await updateNode(nodeId, request);
+    if (!result.success) {
+      alert(`${t("error")}: ${result.error}`);
+    }
   };
 
   const handleMoveClick = () => {
@@ -89,41 +151,46 @@ const UniversityStructurePage = () => {
   const handleMove = async (newParentId, order) => {
     if (!selectedNode) return;
     const targetParentNode = newParentId ? findNodeInTree(treeData, newParentId) : null;
-    const targetParentType = targetParentNode ? targetParentNode.type : null;
+    const targetParentType = targetParentNode?.type || null;
     if (!canMoveToParent(selectedNode.type, targetParentType)) {
-      addToast(`Cannot move ${selectedNode.type} under ${targetParentType || "Root"}`, "error");
+      alert(`${t("cannot_move")} ${selectedNode.type} ${t("under")} ${targetParentType || t("root")}`);
       return;
     }
-    await moveNode(selectedNode.id, newParentId, order);
-    setSelectedNode(null);
+    const result = await moveNode(selectedNode.id, newParentId, order);
+    if (!result.success) {
+      alert(`${t("error")}: ${result.error}`);
+    }
   };
 
   const handleDragDropMove = async (draggedNodeId, targetNodeId, newOrder) => {
     const draggedNode = findNodeInTree(treeData, draggedNodeId);
     const targetNode = findNodeInTree(treeData, targetNodeId);
     if (!draggedNode || !targetNode) return;
-
     const targetParentType = targetNode.type;
     if (!canMoveToParent(draggedNode.type, targetParentType)) {
-      addToast(`Cannot move ${draggedNode.type} under ${targetParentType}`, "error");
+      alert(`${t("cannot_move")} ${draggedNode.type} ${t("under")} ${targetParentType}`);
       return;
     }
-
-    await moveNode(draggedNodeId, targetNodeId, newOrder);
+    const result = await moveNode(draggedNodeId, targetNodeId, newOrder);
+    if (!result.success) {
+      alert(`${t("error")}: ${result.error}`);
+    }
   };
 
   const handleDeleteClick = (nodeIdToDelete) => {
-    const nodeToDelete = nodeIdToDelete ? findNodeInTree(treeData, nodeIdToDelete) : selectedNode;
-    if (nodeToDelete && nodeToDelete.parentId !== null) {
-      setNodeToDelete(nodeToDelete);
+    const node = nodeIdToDelete ? findNodeInTree(treeData, nodeIdToDelete) : selectedNode;
+    if (node && node.parentId !== null) {
+      setNodeToDelete(node);
       setShowDeleteConfirm(true);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!nodeToDelete) return;
-    await deleteNode(nodeToDelete.id);
-    setSelectedNode(null);
+    const result = await deleteNode(nodeToDelete.id);
+    if (!result.success) {
+      alert(`${t("error")}: ${result.error}`);
+    }
     setNodeToDelete(null);
     setShowDeleteConfirm(false);
   };
@@ -134,7 +201,7 @@ const UniversityStructurePage = () => {
     let siblings = [];
     if (parentId) {
       const parent = findNodeInTree(treeData, parentId);
-      if (parent && parent.children) siblings = parent.children;
+      if (parent?.children) siblings = parent.children;
     } else {
       siblings = treeData;
     }
@@ -144,46 +211,32 @@ const UniversityStructurePage = () => {
     if (direction === 'up' && currentIndex > 0) newOrder = currentIndex - 1;
     else if (direction === 'down' && currentIndex < siblings.length - 1) newOrder = currentIndex + 1;
     else return;
-    await reorderNode(nodeId, newOrder);
-  };
-
-  const loadBreadcrumb = async (node) => {
-    if (node) {
-      try {
-        const bc = await universityStructureService.getBreadcrumb(node.id);
-        setBreadcrumb(bc);
-      } catch (err) {
-        console.error("Failed to load breadcrumb", err);
-        setBreadcrumb([]);
-      }
-    } else {
-      setBreadcrumb([]);
+    const result = await reorderNode(nodeId, newOrder);
+    if (!result.success) {
+      alert(`${t("error")}: ${result.error}`);
     }
   };
 
   const handleSelectNode = (node) => {
     setSelectedNode(node);
-    loadBreadcrumb(node);
   };
 
-  if (loading) return <div className="structure-page">Loading...</div>;
-  if (error) return <div className="structure-page error">Error: {error}</div>;
+  if (loading) return <div className="structure-page">{t("loading")}</div>;
+  if (error) return <div className="structure-page error">{t("error")}: {error}</div>;
 
   return (
     <div className="structure-page">
       <div className="structure-header">
         <div className="structure-title">
-          <div className="structure-title-icon">
-            <Network size={20} />
-          </div>
+          <div className="structure-title-icon"><Network size={20} /></div>
           <div>
-            <span>University Module</span>
-            <h1>University Structure</h1>
-            <p>Manage faculties, departments, programs and levels.</p>
+            <span>{t("university_module")}</span>
+            <h1>{t("university_structure")}</h1>
+            <p>{t("manage_structure")}</p>
           </div>
         </div>
         <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
-          <Plus size={16} /> Add Root
+          <Plus size={16} /> {t("add_root")}
         </button>
       </div>
 
@@ -202,7 +255,7 @@ const UniversityStructurePage = () => {
         <Search size={15} />
         <input
           type="text"
-          placeholder="Search hierarchy..."
+          placeholder={t("search_hierarchy")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -212,7 +265,7 @@ const UniversityStructurePage = () => {
         <div className="structure-tree-container page-card">
           {treeData.map((root) => (
             <TreeNode
-              key={root.id}
+              key={`${root.id}-${i18n.language}`}
               node={root}
               parentId={null}
               onAdd={handleAddClick}
@@ -222,6 +275,8 @@ const UniversityStructurePage = () => {
               onDropMove={handleDragDropMove}
               selectedNode={selectedNode}
               setSelectedNode={handleSelectNode}
+              expandedNodes={expandedNodes}
+              onToggleNode={toggleNode}
               matchedIds={[]}
               search={searchTerm}
             />
@@ -231,27 +286,22 @@ const UniversityStructurePage = () => {
         <div className="details-panel page-card">
           {selectedNode ? (
             <>
-              <div className="details-title">
-                <h3>Node Details</h3>
-              </div>
+              <div className="details-title"><h3>{t("node_details")}</h3></div>
               <div className="details-grid">
-                <div><span>Name</span><strong>{selectedNode.name}</strong></div>
-                <div><span>Type</span><strong>{normalizeType(selectedNode.type)}</strong></div>
-                <div><span>Depth</span><strong>{selectedNode.depth}</strong></div>
-                <div><span>Children Count</span><strong>{selectedNode.children?.length || 0}</strong></div>
+                <div><span>{t("name")}</span><strong>{displayNodeName}</strong></div>
+                <div><span>{t("type")}</span><strong>{displayNodeType}</strong></div>
+                <div><span>{t("depth")}</span><strong>{selectedNode.depth}</strong></div>
+                <div><span>{t("children_count")}</span><strong>{selectedNode.children?.length || 0}</strong></div>
               </div>
               <div className="details-actions" style={{ marginTop: 16, display: "flex", gap: 8 }}>
-                <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>Edit</button>
+                <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>{t("edit")}</button>
                 {selectedNode.parentId !== null && (
-                  <button className="btn-secondary" onClick={handleMoveClick}>Move</button>
-                )}
-                {selectedNode.parentId !== null && (
-                  <button className="btn-danger" onClick={handleDeleteClick}>Delete</button>
+                  <button className="btn-secondary" onClick={handleMoveClick}>{t("move")}</button>
                 )}
               </div>
             </>
           ) : (
-            <div className="empty-selection">Select a node to view details.</div>
+            <div className="empty-selection">{t("select_node")}</div>
           )}
         </div>
       </div>
@@ -284,7 +334,7 @@ const UniversityStructurePage = () => {
             isOpen={showDeleteConfirm}
             onClose={() => setShowDeleteConfirm(false)}
             onConfirm={handleConfirmDelete}
-            nodeName={nodeToDelete?.name}
+            nodeName={nodeToDelete?.localizedName || nodeToDelete?.name}
           />
         </>
       )}

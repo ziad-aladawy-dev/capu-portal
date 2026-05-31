@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { normalizeType, getAllowedChildTypes, getNodeTypeValue } from "../utils/nodeTypeHelpers";
 
@@ -13,7 +14,9 @@ const ALL_NODE_TYPES = [
 ];
 
 export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, parentType, siblingsCount }) {
-  const [name, setName] = useState("");
+  const { t } = useTranslation();
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [type, setType] = useState("");
   const [order, setOrder] = useState(0);
   const [errors, setErrors] = useState({});
@@ -22,16 +25,29 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
 
   const isEditMode = !!node;
 
+  const parseNameFromJson = (nameJson) => {
+    if (!nameJson) return { ar: "", en: "" };
+    try {
+      const parsed = JSON.parse(nameJson);
+      return { ar: parsed.ar || "", en: parsed.en || "" };
+    } catch {
+      return { ar: nameJson, en: nameJson };
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (isEditMode) {
-        setName(node.name || "");
+        const { ar, en } = parseNameFromJson(node.name);
+        setNameAr(ar);
+        setNameEn(en);
         const currentType = node.type ? normalizeType(node.type) : "Department";
         setType(currentType);
         setOrder(node.order ?? 0);
         setAllowedTypes(ALL_NODE_TYPES.filter(t => t.value === currentType));
       } else {
-        setName("");
+        setNameAr("");
+        setNameEn("");
         const parentTypeStr = parentType ? normalizeType(parentType) : null;
         if (parentTypeStr) {
           const allowed = getAllowedChildTypes(parentTypeStr);
@@ -48,8 +64,8 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
 
   const validate = () => {
     const newErrors = {};
-    if (!name.trim()) newErrors.name = "Name is required";
-    if (!type) newErrors.type = "Type is required";
+    if (!nameAr.trim()) newErrors.nameAr = t("name_required");
+    if (!type) newErrors.type = t("type_required");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -60,9 +76,9 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
     setIsSubmitting(true);
 
     const numericType = getNodeTypeValue(type);
-    
     const request = {
-      name: name.trim(),
+      name: nameAr.trim(),
+      nameEn: nameEn.trim() || nameAr.trim(),
       type: numericType,
       parentId: isEditMode ? node.parentId : (parentId || null),
       order: order,
@@ -84,7 +100,7 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{isEditMode ? "Edit Node" : "Add New Node"}</h3>
+          <h3>{isEditMode ? t("edit_node") : t("add_new_node")}</h3>
           <button className="modal-close" onClick={onClose}>
             <X size={18} />
           </button>
@@ -92,19 +108,33 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
-              <label>Name *</label>
+              <label>{t("name_arabic")} *</label>
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={errors.name ? "error" : ""}
+                value={nameAr}
+                onChange={(e) => setNameAr(e.target.value)}
+                className={errors.nameAr ? "error" : ""}
                 disabled={isSubmitting}
               />
-              {errors.name && <span className="error-message">{errors.name}</span>}
+              {errors.nameAr && <span className="error-message">{errors.nameAr}</span>}
             </div>
             <div className="form-group">
-              <label>Type *</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} disabled={isEditMode ||allowedTypes.length === 1 || isSubmitting}>
+              <label>{t("name_english")}</label>
+              <input
+                type="text"
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                disabled={isSubmitting}
+              />
+              <small className="input-hint">{t("english_name_hint")}</small>
+            </div>
+            <div className="form-group">
+              <label>{t("type")} *</label>
+              <select 
+                value={type} 
+                onChange={(e) => setType(e.target.value)} 
+                disabled={isEditMode || allowedTypes.length === 1 || isSubmitting}
+              >
                 {allowedTypes.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
@@ -113,12 +143,12 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
               </select>
               {isEditMode && (
                 <small className="input-hint" style={{ color: "#c9a84c" }}>
-                  Type cannot be changed during edit.
+                  {t("type_cannot_change")}
                 </small>
               )}
             </div>
             <div className="form-group">
-              <label>Order</label>
+              <label>{t("order")}</label>
               <input
                 type="number"
                 value={order}
@@ -130,10 +160,10 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
-              Cancel
+              {t("cancel")}
             </button>
             <button type="submit" className="btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : (isEditMode ? "Update" : "Create")}
+              {isSubmitting ? t("saving") : (isEditMode ? t("update") : t("create"))}
             </button>
           </div>
         </form>

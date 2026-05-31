@@ -1,11 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import userService from '../services/userService';
-import { useDomain } from '../../../core/contexts/DomainContext';
-import { useAcademic } from '../../../core/contexts/AcademicContext';
+import { useScope } from '../../../core/contexts/ScopeContext';
 
-export const useUsers = ({ initialTab } = {}) => {
-  const { scopeNode } = useDomain();
-  const { selectedYearObj, selectedSemesterObj } = useAcademic();
+export const useUsers = () => {
+  const { selectedScope } = useScope();
 
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -35,8 +33,7 @@ export const useUsers = ({ initialTab } = {}) => {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [levels, setLevels] = useState([]);
-  const isFixedTab = initialTab === 'students' || initialTab === 'staff';
-  const [activeTab, setActiveTab] = useState(isFixedTab ? initialTab : 'students');
+  const [activeTab, setActiveTab] = useState('students');
 
   const resetPagination = useCallback(() => {
     setPagination(prev => ({ ...prev, pageNumber: 1 }));
@@ -46,13 +43,11 @@ export const useUsers = ({ initialTab } = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const scopeNodeId = scopeNode?.id || null;
+      const scopeNodeId = selectedScope?.id || null;
       const baseParams = {
         Page: pagination.pageNumber,
         PageSize: pagination.pageSize,
-        ScopeNodeId: scopeNodeId,
-        AcademicYearId: selectedYearObj?.id || undefined,
-        SemesterId: selectedSemesterObj?.id || undefined,
+        ScopeNodeId: scopeNodeId
       };
 
       if (activeTab === 'students') {
@@ -93,11 +88,9 @@ export const useUsers = ({ initialTab } = {}) => {
         });
       }
 
-      // Reload statistics
-      const stats = await userService.getUserStatistics(scopeNodeId, selectedYearObj?.id, selectedSemesterObj?.id);
+      const stats = await userService.getUserStatistics(scopeNodeId);
       setStatistics(stats);
 
-      // Load lookups once
       if (roles.length === 0) {
         const rolesData = await userService.getRoles();
         setRoles(rolesData);
@@ -111,7 +104,7 @@ export const useUsers = ({ initialTab } = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, scopeNode, selectedYearObj, selectedSemesterObj]);
+  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, selectedScope]);
 
   useEffect(() => {
     loadData();
@@ -131,10 +124,9 @@ export const useUsers = ({ initialTab } = {}) => {
   }, []);
 
   const changeTab = useCallback((tab) => {
-    if (isFixedTab) return;
     setActiveTab(tab);
     resetPagination();
-  }, [isFixedTab, resetPagination]);
+  }, [resetPagination]);
 
   const fetchPrograms = useCallback(async (facultyId) => {
     if (!facultyId) {
@@ -166,20 +158,14 @@ export const useUsers = ({ initialTab } = {}) => {
     }
   }, []);
 
-  // Export function
-  const exportToExcel = useCallback(async (format, selectedIds = null) => {
-    const scopeNodeId = scopeNode?.id || null;
+  const exportToExcel = useCallback(async (format) => {
+    const scopeNodeId = selectedScope?.id || null;
     const baseParams = {
       ScopeNodeId: scopeNodeId,
-      AcademicYearId: selectedYearObj?.id || undefined,
-      SemesterId: selectedSemesterObj?.id || undefined,
       Search: filters.search || undefined,
       IsActive: filters.isActive,
       PasswordExpired: filters.passwordExpired
     };
-    if (selectedIds && selectedIds.length > 0) {
-      baseParams.Ids = selectedIds.join(',');
-    }
     let blob;
     let fileName;
     try {
@@ -225,7 +211,22 @@ export const useUsers = ({ initialTab } = {}) => {
       console.error('Export failed', error);
       return { success: false, error: error.message };
     }
-  }, [activeTab, filters, scopeNode, selectedYearObj, selectedSemesterObj]);
+  }, [activeTab, filters, selectedScope]);
+
+  const importExcel = useCallback(async (file, userType) => {
+    try {
+      if (userType === 'student') {
+        await userService.importStudentsExcel(file);
+      } else {
+        await userService.importStaffExcel(file);
+      }
+      await loadData();
+      return { success: true };
+    } catch (error) {
+      console.error('Import failed', error);
+      return { success: false, error: error.message };
+    }
+  }, [loadData]);
 
   const activateUser = useCallback(async (userId, userType) => {
     try {
@@ -249,11 +250,7 @@ export const useUsers = ({ initialTab } = {}) => {
 
   const softDeleteUser = useCallback(async (userId, userType, reason) => {
     try {
-      if (userType === 'Student') {
-        await userService.deleteStudent(userId);
-      } else {
-        await userService.deleteStaff(userId);
-      }
+      await userService.softDeleteUser(userId, userType, reason);
       await loadData();
       return { success: true };
     } catch (error) {
@@ -266,42 +263,14 @@ export const useUsers = ({ initialTab } = {}) => {
   }, [activateUser]);
 
   const resetUserPassword = useCallback(async (userId, userType, newPassword) => {
-    // Not implemented in backend
-    return { success: true };
-  }, []);
-
-  const bulkActivateUsers = useCallback(async (ids) => {
-    const userType = activeTab === 'students' ? 'Student' : 'Staff';
     try {
-      const result = await userService.bulkActivateUsers(ids, userType);
+      await userService.resetUserPassword(userId, userType, newPassword);
       await loadData();
-      return result;
+      return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
     }
-  }, [activeTab, loadData]);
-
-  const bulkDeactivateUsers = useCallback(async (ids) => {
-    const userType = activeTab === 'students' ? 'Student' : 'Staff';
-    try {
-      const result = await userService.bulkDeactivateUsers(ids, userType);
-      await loadData();
-      return result;
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }, [activeTab, loadData]);
-
-  const bulkDeleteUsers = useCallback(async (ids) => {
-    const userType = activeTab === 'students' ? 'Student' : 'Staff';
-    try {
-      const result = await userService.bulkDeleteUsers(ids, userType);
-      await loadData();
-      return result;
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }, [activeTab, loadData]);
+  }, [loadData]);
 
   const getCurrentUsers = () => activeTab === 'students' ? students : staff;
 
@@ -331,9 +300,7 @@ export const useUsers = ({ initialTab } = {}) => {
     restoreUser,
     resetUserPassword,
     exportToExcel,
-    bulkActivateUsers,
-    bulkDeactivateUsers,
-    bulkDeleteUsers,
+    importExcel,
     reloadData: loadData
   };
 };
