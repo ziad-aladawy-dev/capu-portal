@@ -143,4 +143,4 @@ public class LocalizedStringsTests
         sut.ContainsKey(LocalizedKeys.Courses.NotFound).Should().BeTrue();
         sut.ContainsKey("nope").Should().BeFalse();
     }
-}
+}

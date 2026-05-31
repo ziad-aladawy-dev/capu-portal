@@ -177,4 +177,4 @@ public class ValidationLocalizationApiTests : IClassFixture<WebApplicationFactor
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();
     }
-}
+}

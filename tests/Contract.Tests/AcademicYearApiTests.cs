@@ -254,4 +254,4 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         var getResponse = await _client.GetAsync($"/api/academic-years/{id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-}
+}

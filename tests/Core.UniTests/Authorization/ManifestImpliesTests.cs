@@ -144,4 +144,4 @@ public class ManifestImpliesTests
         public int? OrderNumber => 0;
         public IReadOnlyCollection<ResourceDefinition> Resources { get; }
     }
-}
+}

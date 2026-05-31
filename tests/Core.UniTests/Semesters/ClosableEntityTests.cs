@@ -93,4 +93,4 @@ public class ClosableEntityTests
 
         sem.IsClosed.Should().BeFalse();
     }
-}
+}

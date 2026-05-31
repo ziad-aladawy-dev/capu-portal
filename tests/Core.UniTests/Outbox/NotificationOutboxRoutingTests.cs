@@ -103,4 +103,4 @@ public class NotificationOutboxRoutingTests
         LocalizedJson.Extract(stored.Message, "en").Should().Be("Glad you're here");
         stored.IsRead.Should().BeFalse();
     }
-}
+}

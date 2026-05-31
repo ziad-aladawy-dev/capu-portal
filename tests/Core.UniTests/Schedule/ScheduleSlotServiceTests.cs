@@ -474,4 +474,4 @@ public class ScheduleSlotServiceTests
 
         outbox.Verify(o => o.EnqueueAsync(It.IsAny<string>(), It.IsAny<It.IsAnyType>(), It.IsAny<CancellationToken>()), Times.Never);
     }
-}
+}

@@ -218,4 +218,4 @@ public class ScopeEnforcementTests : IClassFixture<WebApplicationFactory<Modules
         var body = await response.Content.ReadFromJsonAsync<InvoiceResponse[]>();
         body.Should().NotBeNull().And.BeEmpty();
     }
-}
+}

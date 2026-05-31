@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CapitalUniversity.Sync.Host</RootNamespace>
+    <AssemblyName>CapitalUniversity.Sync.Host</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UserSecretsId>capu-sync-host-dev</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Sync.Infrastructure\CapitalUniversity.Sync.Infrastructure.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Sync.Persistence\CapitalUniversity.Sync.Persistence.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Sync.Student\CapitalUniversity.Sync.Student.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Sync.Staff\CapitalUniversity.Sync.Staff.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.14" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

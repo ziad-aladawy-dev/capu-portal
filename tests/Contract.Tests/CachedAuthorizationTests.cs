@@ -157,4 +157,4 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
         System.Console.WriteLine($"100 authorized requests took: {sw.ElapsedMilliseconds}ms");
         sw.ElapsedMilliseconds.Should().BeLessThan(2000); 
     }
-}
+}

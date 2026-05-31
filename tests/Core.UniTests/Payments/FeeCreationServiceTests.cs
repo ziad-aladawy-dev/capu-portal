@@ -109,4 +109,4 @@ public class FeeCreationServiceTests
         Assert.Equal(100m, existing.TotalAmount);
         Assert.Equal(existing.Id, id);
     }
-}
+}

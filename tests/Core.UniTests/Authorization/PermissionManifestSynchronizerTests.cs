@@ -189,4 +189,4 @@ public class PermissionManifestSynchronizerTests
         resource.OrderNumber.Should().Be(0,
             "the synchroniser must refresh OrderNumber on existing rows so re-ordering propagates");
     }
-}
+}

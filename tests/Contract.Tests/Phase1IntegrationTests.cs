@@ -114,4 +114,4 @@ public class Phase1IntegrationTests : IClassFixture<WebApplicationFactory<Module
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body!.Token);
         return client;
     }
-}
+}

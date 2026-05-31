@@ -199,4 +199,4 @@ internal class CountingPermissionService : IPermissionService
         Calls++;
         return _inner.GetResourcePermissionsAsync(userId, resourceKey, scope, cancellationToken);
     }
-}
+}

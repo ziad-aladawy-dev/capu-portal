@@ -173,4 +173,4 @@ public class LocalizationServiceTests
 
         ValueWithoutAttribute
     }
-}
+}

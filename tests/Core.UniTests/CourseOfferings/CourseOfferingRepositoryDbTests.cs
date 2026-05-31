@@ -356,4 +356,4 @@ public class CourseOfferingRepositoryDbTests : IDisposable
         await _context.SaveChangesAsync();
         return offering;
     }
-}
+}

@@ -103,4 +103,4 @@ public class PermissionCacheInvalidatorTests
             It.IsAny<CancellationToken>()),
             Times.Once);
     }
-}
+}

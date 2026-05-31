@@ -231,4 +231,4 @@ private void SetupAuth()
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-}
+}

@@ -130,4 +130,4 @@ public class CourseOfferingEntityTests
         offering.RegisteredCount.Should().Be(2);
     }
 }
-
+

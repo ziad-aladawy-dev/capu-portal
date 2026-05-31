@@ -181,4 +181,4 @@ public class PermissionTreeBenchmarkTests : IClassFixture<WebApplicationFactory<
             _output.WriteLine($"[Benchmark] GetUserPermissionTree: {avgMs:F2} ms/req over {iterations} iterations (Direct Handler Invocation, InMemory)");
         }
     }
-}
+}

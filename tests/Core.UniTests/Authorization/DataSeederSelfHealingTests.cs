@@ -131,4 +131,4 @@ public class DataSeederSelfHealingTests
         Assert.Equal(rolePermsCount1, rolePermsCount2);
         Assert.Equal(staffRolesCount1, staffRolesCount2);
     }
-}
+}

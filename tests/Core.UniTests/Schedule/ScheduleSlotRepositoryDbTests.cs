@@ -254,4 +254,4 @@ public class ScheduleSlotRepositoryDbTests : IDisposable
             new TimeOnly(9, 0), new TimeOnly(10, 0));
         hit.Should().BeFalse();
     }
-}
+}

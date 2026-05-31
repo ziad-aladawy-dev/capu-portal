@@ -105,4 +105,4 @@ public class PermissionNamesManifestCoverageTests
         }
         return values;
     }
-}
+}

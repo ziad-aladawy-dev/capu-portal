@@ -291,4 +291,4 @@ public class GlobalExceptionHandlerTests
         public FakeSqlException(int number) : base("fake sql") { Number = number; }
         public int Number { get; }
     }
-}
+}

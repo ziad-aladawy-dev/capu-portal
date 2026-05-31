@@ -67,4 +67,4 @@ public class SemesterServiceTests
         _semesterRepoMock.Verify(x => x.Update(sem1), Times.Once);
         _semesterRepoMock.Verify(x => x.Update(sem2), Times.Once);
     }
-}
+}

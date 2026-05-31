@@ -193,4 +193,4 @@ public class CourseServiceTests
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
         cache.RemoveCalls.Should().Be(1);
     }
-}
+}

@@ -44,4 +44,4 @@ public class AuthorizationResultTests
         result.AppliedYear.Should().Be("Y1");
         result.AppliedSemester.Should().Be("S1");
     }
-}
+}

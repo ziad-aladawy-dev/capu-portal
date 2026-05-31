@@ -218,4 +218,4 @@ public class OwnedModulesLocalizationTests
         var sut = new SemesterService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService());
         return (sut, years, semesters);
     }
-}
+}

@@ -94,4 +94,4 @@ public class NotificationsControllerTests
         Assert.IsType<NoContentResult>(result);
         svc.Verify();
     }
-}
+}

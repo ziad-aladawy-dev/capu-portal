@@ -242,4 +242,4 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
             new RefreshTokenRequestDto { RefreshToken = "not-a-real-token-value" });
         refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-}
+}

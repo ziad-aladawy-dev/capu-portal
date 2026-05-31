@@ -104,4 +104,4 @@ public class NotificationServiceTests
         var updated = await _context.Notifications.FindAsync(notification.Id);
         updated!.IsRead.Should().BeFalse();
     }
-}
+}

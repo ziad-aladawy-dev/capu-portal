@@ -69,4 +69,4 @@ public class LocalizedKeySafetyTests
             foreach (var inner in EnumerateKeys(nested)) yield return inner;
         }
     }
-}
+}

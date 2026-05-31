@@ -291,4 +291,4 @@ public class SemesterServiceBranchTests
         _semesters.Verify(r => r.Delete(sem), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
-}
+}

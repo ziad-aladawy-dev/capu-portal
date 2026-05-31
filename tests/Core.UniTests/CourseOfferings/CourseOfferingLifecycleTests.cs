@@ -203,4 +203,4 @@ public class CourseOfferingLifecycleTests
         act.Should().Throw<ConflictException>();
         offering.RegisteredCount.Should().Be(0);
     }
-}
+}

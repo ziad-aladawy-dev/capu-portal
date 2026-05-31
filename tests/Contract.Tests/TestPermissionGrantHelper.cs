@@ -34,4 +34,4 @@ internal static class TestPermissionGrantHelper
             set.Add(rp);
         }
     }
-}
+}

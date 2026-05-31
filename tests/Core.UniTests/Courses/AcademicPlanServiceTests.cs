@@ -220,4 +220,4 @@ public class AcademicPlanServiceTests
 
         cache.RemoveCalls.Should().Be(1);
     }
-}
+}

@@ -72,4 +72,4 @@ public class BufferedAppLoggerTests
         }
         throw new InvalidOperationException("queue was empty within the timeout");
     }
-}
+}

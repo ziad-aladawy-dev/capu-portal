@@ -270,4 +270,4 @@ public class AuthAuditLoggerTests
         constants.Should().Contain(expected,
             "log consumers (queries, alerts, dashboards) join on these literal strings — renaming them silently breaks observability");
     }
-}
+}

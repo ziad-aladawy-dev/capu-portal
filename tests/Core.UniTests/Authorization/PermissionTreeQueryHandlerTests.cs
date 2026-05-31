@@ -169,4 +169,4 @@ public class PermissionTreeQueryHandlerTests
         public int? OrderNumber => 0;
         public IReadOnlyCollection<ResourceDefinition> Resources { get; }
     }
-}
+}

@@ -321,4 +321,4 @@ public class CourseOfferingServiceTests
         entity.InitializeCapacity(capacity);
         return entity;
     }
-}
+}

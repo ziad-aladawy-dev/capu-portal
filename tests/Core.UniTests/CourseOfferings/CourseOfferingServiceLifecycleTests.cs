@@ -184,4 +184,4 @@ public class CourseOfferingServiceLifecycleTests
 
         repo.Verify();
     }
-}
+}

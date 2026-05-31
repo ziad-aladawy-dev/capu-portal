@@ -106,4 +106,4 @@ public class ConcurrentStudentCreateTests : IClassFixture<WebApplicationFactory<
             distinctCodes.Should().Be(n, "exactly one row persisted per StudentCode — no duplicates");
         }
     }
-}
+}

@@ -58,4 +58,4 @@ public class AuthenticationApiTests : IClassFixture<WebApplicationFactory<Module
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-}
+}

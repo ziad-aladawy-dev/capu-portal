@@ -43,4 +43,4 @@ public class AuthorizationControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Same(tree, ok.Value);
     }
-}
+}
