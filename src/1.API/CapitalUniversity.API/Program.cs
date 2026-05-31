@@ -3,18 +3,22 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Module.StudentServices;
+using CapitalUniversity.Module.StudentServices.Abstractions.Hubs;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
-using CapitalUniversity.Modules.StudentServices;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +99,10 @@ builder.Services.AddAuthorizationBuilder()
         .Build());
 builder.Services.AddControllers();
 
+builder.Services.AddStudentServicesModule(builder.Configuration);
+builder.Services.AddSignalR();
+builder.Services.AddControllers().AddStudentServicesControllers();
+
 // Runtime Hardening Plan §1.1 — Validation pipeline consolidation.
 // Suppress MVC's automatic 400 short-circuit on invalid ModelState so every
 // request reaches the application service. The service layer owns FluentValidation
@@ -118,7 +126,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173"])
+        policy.WithOrigins(builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173" , "http://localhost:5174"])
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -135,6 +143,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    var studentServicesDbContext = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
 
     // Apply pending EF migrations on startup when running against a relational
     // provider (skipped for InMemory which uses EnsureCreated in tests). Lets the
@@ -150,6 +159,7 @@ using (var scope = app.Services.CreateScope())
     //await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
     await IdentitySeeder.SeedAsync(db, passwordHasher);
+    await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
     // every module owns its permissions through IPermissionManifest, and the
@@ -176,6 +186,8 @@ app.UseAuthorization();
 
 // Health endpoint (anonymous).
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+
+app.MapHub<StudentServicesHub>("/hubs/student-services");
 
 app.MapControllers();
 await app.RunAsync();

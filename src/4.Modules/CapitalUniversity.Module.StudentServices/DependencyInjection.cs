@@ -1,0 +1,49 @@
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
+using CapitalUniversity.Module.StudentServices.Abstractions.Services;
+using CapitalUniversity.Module.StudentServices.Application;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace CapitalUniversity.Module.StudentServices;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddStudentServicesModule(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string connectionStringKey = "DefaultConnection")
+    {
+        // Register DbContext
+        services.AddDbContext<StudentServicesDbContext>(options =>
+            options.UseSqlServer(
+                configuration.GetConnectionString(connectionStringKey),
+                sqlOptions => sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_StudentServices", "StudentServices")));
+
+        // Repositories
+        services.AddScoped<IServiceRepository, ServiceRepository>();
+        services.AddScoped<IStudentRequestRepository, StudentRequestRepository>();
+
+        // Application Services
+        services.AddScoped<IServiceManagementService, ServiceManagementService>();
+        services.AddScoped<IStudentRequestService, StudentRequestService>();
+        services.AddScoped<IWorkflowManagementService, WorkflowManagementService>();
+        services.AddScoped<IFileUploadService, FileUploadService>();
+        services.AddScoped<IDashboardStatisticsService, DashboardStatisticsService>();
+
+        // Register Module Manifest
+        services.AddSingleton<IManifest, StudentServicesManifest>();
+
+        return services;
+    }
+
+    public static IMvcBuilder AddStudentServicesControllers(this IMvcBuilder mvcBuilder)
+    {
+        var assembly = typeof(StudentServicesManifest).Assembly;
+        mvcBuilder.AddApplicationPart(assembly);
+        return mvcBuilder;
+    }
+}
