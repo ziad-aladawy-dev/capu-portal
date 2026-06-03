@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, BarChart3, BookOpen, Calendar, FileText, AlertCircle } from "lucide-react";
+import { Plus, BarChart3, BookOpen, Calendar, FileText, AlertCircle, Receipt } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
 import * as studentService from "../../../core/services/studentService";
 import "../styles/studentDashboard.css";
@@ -131,6 +131,13 @@ function StudentDashboard() {
                 <div>
                   <h3>My Schedule</h3>
                   <p>Class timetable</p>
+                </div>
+              </Link>
+              <Link to="/student/payments" className="action-card">
+                <Receipt size={20} />
+                <div>
+                  <h3>Payments & Fees</h3>
+                  <p>View financial status</p>
                 </div>
               </Link>
             </div>

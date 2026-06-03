@@ -6,6 +6,7 @@ const StudentCourses = lazy(() => import("./pages/StudentCourses"));
 const CourseRegistration = lazy(() => import("./pages/CourseRegistration"));
 const StudentGrades = lazy(() => import("./pages/StudentGrades"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
+const StudentPayments = lazy(() => import("./pages/StudentPaymentsPage"));
 
 export default [
   {
@@ -69,6 +70,18 @@ export default [
       category: "Student",
       label: "My Grades",
       icon: "FileText",
+    },
+  },
+  {
+    path: "/student/payments",
+    component: StudentPayments,
+    permission: "student.dashboard.view",
+    pageType: "management",
+    applicableTo: "student",
+    menuItem: {
+      category: "Student",
+      label: "Payments & Fees",
+      icon: "Receipt",
     },
   },
   {

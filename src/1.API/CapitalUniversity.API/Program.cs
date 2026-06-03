@@ -1,10 +1,11 @@
-﻿using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Payments.Persistence;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
 using CapitalUniversity.Modules.StudentServices;
@@ -149,7 +150,13 @@ using (var scope = app.Services.CreateScope())
 
     await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
+<<<<<<< Updated upstream
     await IdentitySeeder.SeedAsync(db);
+=======
+    await IdentitySeeder.SeedAsync(db, passwordHasher);
+    await PaymentsSeeder.SeedAsync(db);
+    await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
+>>>>>>> Stashed changes
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
     // every module owns its permissions through IPermissionManifest, and the

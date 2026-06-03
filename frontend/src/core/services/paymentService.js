@@ -27,3 +27,8 @@ export async function fetchTransactionsForInvoice(invoiceId) {
   const { data } = await api.get(`/payments/invoices/${invoiceId}/transactions`);
   return data;
 }
+
+export async function searchTransactions(params) {
+  const { data } = await api.get("/payments/transactions", { params });
+  return data;
+}
