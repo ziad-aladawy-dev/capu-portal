@@ -1,0 +1,48 @@
+.dfr-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.dfr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.dfr-field label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1a1f5e;
+}
+.dfr-required {
+  color: #dc2626;
+  margin-left: 0.2rem;
+}
+.dfr-field input,
+.dfr-field textarea,
+.dfr-field select {
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.dfr-field input:focus,
+.dfr-field textarea:focus,
+.dfr-field select:focus {
+  outline: none;
+  border-color: #c9a84c;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+}
+.dfr-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+.dfr-checkbox-label input {
+  width: 1rem;
+  height: 1rem;
+}

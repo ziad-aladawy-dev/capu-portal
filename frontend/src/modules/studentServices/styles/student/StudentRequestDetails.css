@@ -1,0 +1,76 @@
+.srd-container {
+  padding: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+.srd-back {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #1a1f5e;
+}
+.srd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.srd-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+.srd-error {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 1rem;
+  color: #dc2626;
+}
+.srd-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+}
+.srd-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+.srd-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.srd-card pre {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  margin: 0;
+}
+.srd-timeline {
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+}
+@media (max-width: 768px) {
+  .srd-container {
+    padding: 1rem;
+  }
+  .srd-content {
+    grid-template-columns: 1fr;
+  }
+}

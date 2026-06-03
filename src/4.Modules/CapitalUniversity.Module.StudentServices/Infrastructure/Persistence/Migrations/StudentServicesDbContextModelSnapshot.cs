@@ -112,8 +112,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
 
                     b.HasIndex("StudentRequestId");
 
-                    b.HasIndex("StudentRequestId", "StepKey");
-
                     b.ToTable("RequestAttachments", "StudentServices");
                 });
 
@@ -155,10 +153,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PerformedAt");
-
-                    b.HasIndex("PerformedByUserId");
 
                     b.HasIndex("StudentRequestId");
 
@@ -281,8 +275,7 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                         .HasColumnType("int");
 
                     b.Property<string>("PaymentTransactionId")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uniqueidentifier");
@@ -312,8 +305,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.HasIndex("Status");
 
                     b.HasIndex("StudentId");
-
-                    b.HasIndex("SubmittedAt");
 
                     b.ToTable("StudentRequests", "StudentServices");
                 });
@@ -356,9 +347,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<int>("InputType")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -368,10 +356,8 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Property<int>("Order")
                         .HasColumnType("int");
 
-                    b.Property<string>("StepKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("StepType")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -381,19 +367,12 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ValidationRules")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
                     b.Property<Guid>("WorkflowId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("WorkflowId", "Order");
-
-                    b.HasIndex("WorkflowId", "StepKey")
-                        .IsUnique();
 
                     b.ToTable("WorkflowSteps", "StudentServices");
                 });
@@ -545,7 +524,7 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.HasOne("CapitalUniversity.Module.StudentServices.Domain.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Service");
@@ -565,7 +544,7 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStepAction", b =>
                 {
                     b.HasOne("CapitalUniversity.Module.StudentServices.Domain.WorkflowStep", "WorkflowStep")
-                        .WithMany("AvailableActions")
+                        .WithMany()
                         .HasForeignKey("WorkflowStepId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -606,8 +585,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
 
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStep", b =>
                 {
-                    b.Navigation("AvailableActions");
-
                     b.Navigation("Fields");
                 });
 #pragma warning restore 612, 618

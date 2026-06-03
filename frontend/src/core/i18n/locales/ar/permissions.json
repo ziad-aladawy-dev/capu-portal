@@ -1,0 +1,10 @@
+{
+    "permissions": "الصلاحيات",
+    "roles": "الأدوار",
+    "select_structural_scope": "اختر النطاق الهيكلي",
+    "structural_scope": "النطاق الهيكلي",
+    "temporal_scope": "النطاق الزمني",
+    "academic_year_scope": "السنة الأكاديمية",
+    "semester_scope": "الفصل الدراسي",
+    "global_scope": "عام"
+  }

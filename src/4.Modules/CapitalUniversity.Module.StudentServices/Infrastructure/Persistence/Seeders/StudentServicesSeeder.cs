@@ -2,6 +2,7 @@
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Domain;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,7 +26,9 @@ public static class StudentServicesSeeder
 
         logger?.LogInformation("Seeding StudentServices data...");
 
-        var firstStudent = await coreDbContext.Students.OrderBy(s => s.CreatedAt).FirstOrDefaultAsync();
+        var firstStudent = await coreDbContext.Students
+            .OrderBy(s => s.CreatedAt)
+            .FirstOrDefaultAsync();
         if (firstStudent == null)
             logger?.LogWarning("No students found. Skipping request seeding.");
 
@@ -101,13 +104,38 @@ public static class StudentServicesSeeder
         };
 
         var universityNode = await coreDbContext.StructureNodes
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(n => n.Type == StructureNodeType.University);
+
         if (universityNode != null)
         {
+            logger?.LogInformation($"Found university node with Id: {universityNode.Id}");
             service.ScopeNodes.Add(new ServiceStructureNode { StructureNodeId = universityNode.Id });
         }
+        else
+        {
+            logger?.LogWarning("No university node found. Service will be global (no scope restrictions).");
+        }
+
         dbContext.Services.Add(service);
-        await dbContext.SaveChangesAsync();
+
+        try
+        {
+            await dbContext.SaveChangesAsync();
+            logger?.LogInformation("Service and workflow saved successfully.");
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 547)
+        {
+            logger?.LogWarning("FK violation when adding scope node. Removing scope nodes and retrying.");
+            service.ScopeNodes.Clear();
+            await dbContext.SaveChangesAsync();
+            logger?.LogInformation("Service saved without scope restrictions (global).");
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Unexpected error while saving service.");
+            throw;
+        }
 
         if (firstStudent != null)
         {
@@ -121,11 +149,18 @@ public static class StudentServicesSeeder
                 CurrentStepOrder = 0,
                 HistoryEntries = new List<RequestHistoryEntry>
                 {
-                    new RequestHistoryEntry { Action = "Created", PerformedByUserId = firstStudent.Id, PerformedByRole = "Student", PerformedAt = DateTime.UtcNow }
+                    new RequestHistoryEntry
+                    {
+                        Action = "Created",
+                        PerformedByUserId = firstStudent.Id,
+                        PerformedByRole = "Student",
+                        PerformedAt = DateTime.UtcNow
+                    }
                 }
             };
             dbContext.StudentRequests.Add(request);
             await dbContext.SaveChangesAsync();
+            logger?.LogInformation($"Created example request for student {firstStudent.Id}");
         }
 
         logger?.LogInformation("StudentServices seeding completed.");

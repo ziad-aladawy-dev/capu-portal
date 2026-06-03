@@ -186,3 +186,19 @@
     border-right-color: var(--border);
   }
 }
+
+/* RTL Support for App */
+body.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+body.rtl #next-steps {
+  text-align: right;
+}
+
+@media (max-width: 1024px) {
+  body.rtl #next-steps {
+    text-align: center;
+  }
+}

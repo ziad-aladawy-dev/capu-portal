@@ -1,306 +1,191 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Bell, ChevronDown, Menu, Building2, CalendarRange,
-  BookOpen, HelpCircle, User, LogOut, Key, Settings, Search,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bell, ChevronDown, Menu, Building2, CalendarRange, BookOpen, User, Settings, LogOut} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../../../core/contexts/AuthContext";
+import { useScope } from "../../../core/contexts/ScopeContext";
+import { ScopeTreeModal } from "../../../modules/university/components/ScopeTreeModal";
+import "./navbar.css";
 
-import { useDomain } from "../../contexts/DomainContext";
-import { useAcademic } from "../../contexts/AcademicContext";
-import { useAuth } from "../../auth/useAuth";
-import * as notificationService from "../../services/notificationService";
-import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
-import ScopeModal from "../../components/ScopeModal";
-import "../../styles/navbar.css";
+const getLocalizedText = (text, lang) => {
+  if (!text) return "";
+  try {
+    const parsed = JSON.parse(text);
+    return parsed[lang] || parsed.ar || parsed.en || text;
+  } catch {
+    return text;
+  }
+};
 
-function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary }) {
-  const { scopeNode } = useDomain();
-  const { selectedYear, selectedSemester, academicYears = [], semesters = [], selectYear, selectSemester, loading: academicLoading } = useAcademic();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const [openDropdown, setOpenDropdown] = useState(null);
-  const [showChangePassword, setShowChangePassword] = useState(false);
+function Navbar({ onToggleSidebar }) {
+  const { selectedScope, updateScope } = useScope();
   const [showScopeModal, setShowScopeModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Notification state
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState([]);
-  const [notifLoading, setNotifLoading] = useState(false);
-
-  const scopeRef = useRef(null);
-  const yearRef = useRef(null);
-  const semRef = useRef(null);
-  const bellRef = useRef(null);
-  const avatarRef = useRef(null);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const avatarMenuRef = useRef(null);
+  const { t, i18n } = useTranslation();
+  const { user, logout } = useAuth();
+  const currentLanguage = i18n.language;
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        !scopeRef.current?.contains(e.target) &&
-        !yearRef.current?.contains(e.target) &&
-        !semRef.current?.contains(e.target) &&
-        !bellRef.current?.contains(e.target) &&
-        !avatarRef.current?.contains(e.target)
-      ) {
-        setOpenDropdown(null);
+    const handleClickOutside = (event) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target)) {
+        setShowAvatarMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch unread count on mount
   useEffect(() => {
-    notificationService
-      .fetchUnreadNotifications()
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setUnreadCount(list.length);
-      })
-      .catch(() => setUnreadCount(0));
-  }, []);
-
-  const loadNotifications = useCallback(async () => {
-    if (notifications.length > 0) return; // already loaded
-    setNotifLoading(true);
-    try {
-      const data = await notificationService.fetchUnreadNotifications();
-      setNotifications(Array.isArray(data) ? data.slice(0, 5) : []);
-    } catch {
-      setNotifications([]);
-    } finally {
-      setNotifLoading(false);
+    if (i18n.language === 'ar') {
+      document.body.classList.add('rtl');
+      document.body.dir = 'rtl';
+    } else {
+      document.body.classList.remove('rtl');
+      document.body.dir = 'ltr';
     }
-  }, [notifications.length]);
+  }, [i18n.language]);
 
-  const handleMarkRead = async (id) => {
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('i18nextLng', lng);
+  };
+
+  let currentScopeName = t("select_scope");
+  if (selectedScope) {
+    if (selectedScope.localizedName) {
+      currentScopeName = selectedScope.localizedName;
+    } else if (selectedScope.name) {
+      currentScopeName = getLocalizedText(selectedScope.name, i18n.language);
+    } else {
+      currentScopeName = t("select_scope");
+    }
+  }
+  const selectedYear = "2025-2026";
+  const selectedSemester = "Fall Semester";
+
+  const handleScopeSelect = (node) => {
+    updateScope({
+      id: node.id,
+      name: node.name,
+      originalName: node.originalName,
+      localizedName: node.localizedName,
+      type: node.type,
+      path: node.path,
+    });
+  };
+
+  const getUserInitial = () => {
+    if (!user) return "U";
+    let displayName = "";
     try {
-      await notificationService.markNotificationRead(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch { /* ignore */ }
+      if (typeof user.name === 'object' && user.name !== null) {
+        displayName = currentLanguage === 'ar' ? (user.name.ar || user.name.en) : (user.name.en || user.name.ar);
+      } else {
+        const parsed = JSON.parse(user.name);
+        displayName = currentLanguage === 'ar' ? (parsed.ar || parsed.en) : (parsed.en || parsed.ar);
+      }
+    } catch {
+      displayName = user.name || "";
+    }
+    return displayName?.charAt(0)?.toUpperCase() || "U";
   };
 
-  const toggleDropdown = (name) => {
-    setOpenDropdown((prev) => (prev === name ? null : name));
-    if (name === "bell") loadNotifications();
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/admin/login";
   };
 
-  const userInitial = user?.name?.charAt(0)?.toUpperCase() || user?.fullName?.charAt(0)?.toUpperCase() || "U";
-  const userName = user?.name || user?.fullName || "User";
-
-  const formatTime = (iso) => {
-    if (!iso) return "";
-    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+  const handleProfile = () => {
+    window.location.href = "/admin/profile";
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return;
-    navigate(`/admin/users?search=${encodeURIComponent(trimmed)}`);
-    setSearchQuery("");
+  const handleSettings = () => {
+    window.location.href = "/admin/settings";
   };
 
   return (
-    <>
-      <header className="navbar">
-        <div className="navbar-left">
-          <button className="nav-icon-btn" onClick={onToggleSidebar}>
-            <Menu size={16} />
-          </button>
-
-          <button
-            className={`nav-icon-btn ${showSecondary ? "is-active" : ""}`}
-            onClick={onToggleSecondary}
-            title="Toggle directory search"
+    <header className="navbar">
+      <div className="navbar-left">
+        <button className="nav-icon-btn" onClick={onToggleSidebar}>
+          <Menu size={16} />
+        </button>
+        <div className="nav-divider" />
+        <div className="nav-dropdown-trigger scope-trigger" onClick={() => setShowScopeModal(true)}>
+          <Building2 size={15} />
+          <div className="scope-content">
+            <span className="nav-label">{t("current_scope") || "Current Scope"}</span>
+            <strong>{currentScopeName}</strong>
+          </div>
+          <ChevronDown size={13} />
+        </div>
+        <div className="nav-dropdown-trigger small">
+          <CalendarRange size={15} />
+          <div>
+            <span className="nav-label">{t("academic_year") || "Academic Year"}</span>
+            <strong>{selectedYear}</strong>
+          </div>
+          <ChevronDown size={13} />
+        </div>
+        <div className="nav-dropdown-trigger small">
+          <BookOpen size={15} />
+          <div>
+            <span className="nav-label">{t("semester") || "Semester"}</span>
+            <strong>{selectedSemester}</strong>
+          </div>
+          <ChevronDown size={13} />
+        </div>
+      </div>
+      <div className="navbar-right">
+        <div className="language-selector">
+          <select
+            value={currentLanguage}
+            onChange={(e) => changeLanguage(e.target.value)}
+            className="lang-select"
           >
-            <Search size={14} />
-          </button>
-
-          {!showSecondary && <div className="nav-divider" />}
-
-          <div className="nav-dropdown-wrapper" ref={scopeRef}>
-            <button
-              className="nav-dropdown-trigger scope-trigger"
-              onClick={() => setShowScopeModal(true)}
-            >
-              <Building2 size={15} />
-              <div className="scope-content">
-                <span className="nav-label">Current Scope</span>
-                <strong>{scopeNode?.name || "All"}</strong>
-                {scopeNode && <small>{scopeNode.type}</small>}
-              </div>
-              <ChevronDown size={13} />
-            </button>
-          </div>
-
-          <div className="nav-dropdown-wrapper" ref={yearRef}>
-            <button
-              className={`nav-dropdown-trigger small ${openDropdown === "year" ? "is-open" : ""}`}
-              onClick={() => toggleDropdown("year")}
-            >
-              <CalendarRange size={15} />
-              <div>
-                <span className="nav-label">Academic Year</span>
-                <strong>{selectedYear}</strong>
-              </div>
-              <ChevronDown size={13} />
-            </button>
-            {openDropdown === "year" && (
-              <div className="nav-dropdown-menu">
-                {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>Loading years…</div>
-                ) : academicYears.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>No years found</div>
-                ) : academicYears.map((y) => (
-                  <button
-                    key={y.id}
-                    className={`nav-dropdown-item ${selectedYear === y.name ? "is-selected" : ""}`}
-                    onClick={() => { selectYear(y.name); setOpenDropdown(null); }}
-                  >
-                    <CalendarRange size={13} />
-                    <span>{y.name}</span>
-                    {selectedYear === y.name && <span className="nav-dropdown-check">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="nav-dropdown-wrapper" ref={semRef}>
-            <button
-              className={`nav-dropdown-trigger small ${openDropdown === "semester" ? "is-open" : ""}`}
-              onClick={() => toggleDropdown("semester")}
-            >
-              <BookOpen size={15} />
-              <div>
-                <span className="nav-label">Semester</span>
-                <strong>{selectedSemester}</strong>
-              </div>
-              <ChevronDown size={13} />
-            </button>
-            {openDropdown === "semester" && (
-              <div className="nav-dropdown-menu">
-                {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>Loading semesters…</div>
-                ) : semesters.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>No semesters</div>
-                ) : semesters.map((s) => (
-                  <button
-                    key={s.id}
-                    className={`nav-dropdown-item ${selectedSemester === s.name ? "is-selected" : ""}`}
-                    onClick={() => { selectSemester(s.name); setOpenDropdown(null); }}
-                  >
-                    <BookOpen size={13} />
-                    <span>{s.name}</span>
-                    {selectedSemester === s.name && <span className="nav-dropdown-check">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <option value="ar">العربية</option>
+            <option value="en">English</option>
+          </select>
         </div>
 
-        <div className="navbar-right">
-          <div className="nav-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <form onSubmit={handleSearch} style={{ display: 'contents' }}>
-              <input
-                placeholder="Search anything…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </form>
+        <button className="nav-icon-btn">
+          <Bell size={14} />
+          <span className="badge" />
+        </button>
+        
+        <div className="avatar-dropdown" ref={avatarMenuRef}>
+          <div 
+            className="topbar-avatar" 
+            onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+          >
+            {getUserInitial()}
           </div>
-
-          {/* Notification Bell */}
-          <div className="nav-dropdown-wrapper" ref={bellRef}>
-            <button className="nav-icon-btn" onClick={() => toggleDropdown("bell")}>
-              <Bell size={14} />
-              {unreadCount > 0 && <span className="badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
-            </button>
-            {openDropdown === "bell" && (
-              <div className="nav-dropdown-menu notification-dropdown">
-                <div className="notif-dropdown-header">
-                  <strong>Notifications</strong>
-                  <button className="notif-view-all" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
-                    View all
-                  </button>
-                </div>
-                {notifLoading ? (
-                  <div className="notif-dropdown-empty">Loading…</div>
-                ) : notifications.length === 0 ? (
-                  <div className="notif-dropdown-empty">No unread notifications</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div key={n.id} className="notif-dropdown-item" onClick={() => handleMarkRead(n.id)}>
-                      <div className="notif-dropdown-dot" />
-                      <div className="notif-dropdown-body">
-                        <span className="notif-dropdown-title">{n.title}</span>
-                        <span className="notif-dropdown-time">{formatTime(n.createdAt)}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <button className="nav-icon-btn">
-            <HelpCircle size={14} />
-          </button>
-
-          {/* User Avatar + Profile Dropdown */}
-          <div className="nav-dropdown-wrapper" ref={avatarRef}>
-            <div className="topbar-avatar" onClick={() => toggleDropdown("profile")} style={{ cursor: "pointer" }}>
-              {userInitial}
+          {showAvatarMenu && (
+            <div className="avatar-menu">
+              <button onClick={handleProfile} className="avatar-menu-item">
+                <User size={14} />
+                <span>{t("profile")}</span>
+              </button>
+              <button onClick={handleSettings} className="avatar-menu-item">
+                <Settings size={14} />
+                <span>{t("settings")}</span>
+              </button>
+              <hr className="avatar-menu-divider" />
+              <button onClick={handleLogout} className="avatar-menu-item logout">
+                <LogOut size={14} />
+                <span>{t("logout")}</span>
+              </button>
             </div>
-            {openDropdown === "profile" && (
-              <div className="nav-dropdown-menu profile-dropdown">
-                <div className="profile-dropdown-header">
-                  <div className="profile-dropdown-avatar">{userInitial}</div>
-                  <div>
-                    <strong>{userName}</strong>
-                    <span style={{ fontSize: 11, opacity: 0.6, display: "block" }}>{user?.email || ""}</span>
-                  </div>
-                </div>
-                <div className="profile-dropdown-divider" />
-                <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); setShowChangePassword(true); }}>
-                  <Key size={13} />
-                  <span>Change Password</span>
-                </button>
-                <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
-                  <Bell size={13} />
-                  <span>Notifications</span>
-                </button>
-                <div className="profile-dropdown-divider" />
-                <button className="nav-dropdown-item logout-item" onClick={() => { setOpenDropdown(null); logout(); }}>
-                  <LogOut size={13} />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      </header>
+      </div>
 
-      {showScopeModal && (
-        <ScopeModal onClose={() => setShowScopeModal(false)} />
-      )}
-      {showChangePassword && (
-        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
-      )}
-    </>
+      <ScopeTreeModal
+        isOpen={showScopeModal}
+        onClose={() => setShowScopeModal(false)}
+        onSelect={handleScopeSelect}
+        initialScopeId={selectedScope?.id}
+      />
+    </header>
   );
 }
 

@@ -1,55 +1,22 @@
-import { useRef, useEffect } from 'react';
+import React from 'react';
 import { Eye, Edit3 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import '../styles/UserTable.css';
 
-const StaffTable = ({
-  staff,
-  loading,
-  error,
-  pagination,
+const StaffTable = ({ 
+  staff, 
+  loading, 
+  error, 
+  pagination, 
   onPageChange,
   onViewDetails,
-  onEdit,
-  selectedIds,
-  onSelectionChange,
+  onEdit
 }) => {
-  const selectAllRef = useRef(null);
+  const { t } = useTranslation();
 
-  const allVisible = staff.length > 0 && staff.every((s) => selectedIds.has(s.id));
-  const someVisible = staff.some((s) => selectedIds.has(s.id));
-
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = someVisible && !allVisible;
-    }
-  }, [allVisible, someVisible]);
-
-  if (loading) return <div className="table-container loading-state">Loading staff...</div>;
-  if (error) return <div className="table-container error-state">Error: {error}</div>;
-  if (!staff || staff.length === 0) return <div className="table-container"><div className="empty-state">No staff found</div></div>;
-
-  const handleSelectAll = () => {
-    const allVisibleSelected = staff.every((s) => selectedIds.has(s.id));
-    if (allVisibleSelected) {
-      const newSet = new Set(selectedIds);
-      staff.forEach((s) => newSet.delete(s.id));
-      onSelectionChange(newSet);
-    } else {
-      const newSet = new Set(selectedIds);
-      staff.forEach((s) => newSet.add(s.id));
-      onSelectionChange(newSet);
-    }
-  };
-
-  const handleRowSelect = (id) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    onSelectionChange(newSet);
-  };
+  if (loading) return <div className="table-container loading-state">{t("loading")}...</div>;
+  if (error) return <div className="table-container error-state">{t("error")}: {error}</div>;
+  if (!staff || staff.length === 0) return <div className="table-container"><div className="empty-state">{t("no_data")}</div></div>;
 
   const getPageNumbers = () => {
     const delta = 2;
@@ -79,58 +46,41 @@ const StaffTable = ({
       <table className="users-table">
         <thead>
           <tr>
-            <th className="bulk-check-cell">
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                className="bulk-checkbox"
-                checked={allVisible && staff.length > 0}
-                onChange={handleSelectAll}
-              />
-            </th>
             <th>#</th>
-            <th>Staff Code</th>
-            <th>National ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Status</th>
-            <th>Password</th>
-            <th>Actions</th>
+            <th>{t("staff_code")}</th>
+            <th>{t("national_id")}</th>
+            <th>{t("full_name")}</th>
+            <th>{t("email")}</th>
+            <th>{t("status")}</th>
+            <th>{t("password_status")}</th>
+            <th>{t("actions")}</th>
           </tr>
         </thead>
         <tbody>
           {staff.map((member, idx) => (
-            <tr key={member.id} className={selectedIds.has(member.id) ? 'selected-row' : ''}>
-              <td className="bulk-check-cell">
-                <input
-                  type="checkbox"
-                  className="bulk-checkbox"
-                  checked={selectedIds.has(member.id)}
-                  onChange={() => handleRowSelect(member.id)}
-                />
-              </td>
+            <tr key={member.id}>
               <td>{((pagination.pageNumber - 1) * pagination.pageSize) + idx + 1}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.employeeCode}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{member.nationalId}</td>
-              <td>{member.name}</td>
+              <td>{member.localizedName || member.name}</td>
               <td>{member.email}</td>
               <td>
                 <span className={`status-badge ${member.isActive ? 'status-active' : 'status-inactive'}`}>
                   <span className="status-dot"></span>
-                  {member.isActive ? 'Active' : 'Inactive'}
+                  {member.isActive ? t('active') : t('inactive')}
                 </span>
               </td>
               <td>
                 <span className={`password-badge ${member.passwordStatus === 'Expired' ? 'password-expired' : 'password-valid'}`}>
-                  {member.passwordStatus || 'Valid'}
+                  {member.passwordStatus === 'Expired' ? t('expired') : t('valid')}
                 </span>
               </td>
               <td>
                 <div className="action-buttons">
-                  <button className="action-btn info-btn" onClick={() => onViewDetails(member.id)} title="View Details">
+                  <button className="action-btn info-btn" onClick={() => onViewDetails(member.id)} title={t("view_details")}>
                     <Eye size={16} />
                   </button>
-                  <button className="action-btn edit-btn" onClick={() => onEdit(member.id)} title="Edit">
+                  <button className="action-btn edit-btn" onClick={() => onEdit(member.id)} title={t("edit")}>
                     <Edit3 size={16} />
                   </button>
                 </div>

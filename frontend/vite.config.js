@@ -1,26 +1,11 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import federation from '@originjs/vite-plugin-federation'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    federation({
-      name: 'shell',
-      filename: 'remoteEntry.js',
-      remotes: {},
-      shared: ['react', 'react-dom', 'react-router-dom'],
-    }),
+    babel({ presets: [reactCompilerPreset()] })
   ],
-  build: {
-    target: 'esnext',
-    minify: false,
-    cssCodeSplit: false,
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.js',
-    css: true,
-  },
 })

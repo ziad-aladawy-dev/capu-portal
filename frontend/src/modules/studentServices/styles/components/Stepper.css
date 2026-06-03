@@ -1,0 +1,80 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.stepper-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-width: 70px;
+}
+.stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+.stepper-step.active .stepper-circle {
+  background: #1a1f5e;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(26, 31, 94, 0.2);
+}
+.stepper-step.completed .stepper-circle {
+  background: #c9a84c;
+  color: #1a1f5e;
+}
+.stepper-label {
+  font-size: 0.7rem;
+  color: #4b5563;
+  text-align: center;
+}
+.stepper-step.active .stepper-label {
+  color: #1a1f5e;
+  font-weight: 600;
+}
+.stepper-line {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #e5e7eb;
+  z-index: -1;
+}
+.stepper-step:last-child .stepper-line {
+  display: none;
+}
+@media (max-width: 640px) {
+  .stepper-line {
+    display: none;
+  }
+  .stepper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .stepper-step {
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .stepper-circle {
+    margin-bottom: 0;
+  }
+  .stepper-label {
+    text-align: left;
+  }
+}

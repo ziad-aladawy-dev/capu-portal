@@ -1,99 +1,37 @@
-import {
-  GraduationCap,
-  Building2,
-  BookOpen,
-  UserCircle2,
-} from "lucide-react";
+import { GraduationCap, Building2, BookOpen, UserCircle2, Activity, ChevronRight } from "lucide-react";
 
-export const stats = [
-  {
-    label: "Total Students",
-    value: "8,945",
-    icon: GraduationCap,
-    trend: "+12% from last month",
-    trendColor: "#16a34a",
-    iconClass: "students",
-  },
-  {
-    label: "Faculties",
-    value: "12",
-    icon: Building2,
-    trend: "Stable",
-    trendColor: "#c9a84c",
-    iconClass: "faculties",
-  },
-  {
-    label: "Active Courses",
-    value: "342",
-    icon: BookOpen,
-    trend: "+5% from last month",
-    trendColor: "#16a34a",
-    iconClass: "courses",
-  },
-  {
-    label: "Faculty Members",
-    value: "456",
-    icon: UserCircle2,
-    trend: "+2 this month",
-    trendColor: "#16a34a",
-    iconClass: "instructors",
-  },
-];
-
-export const recentActivities = [
-  {
-    id: 1,
-    action: "New student registration",
-    user: "Ahmed Hassan",
-    time: "5 minutes ago",
-    dot: "#16a34a",
-  },
-  {
-    id: 2,
-    action: "Course 'AI' updated",
-    user: "Dr. Ali Ibrahim",
-    time: "12 minutes ago",
-    dot: "#c9a84c",
-  },
-  {
-    id: 3,
-    action: "New faculty added",
-    user: "Faculty of Pharmacy",
-    time: "1 hour ago",
-    dot: "#2e3591",
-  },
-  {
-    id: 4,
-    action: "Instructor profile updated",
-    user: "Dr. Sara Nour",
-    time: "2 hours ago",
-    dot: "#c9a84c",
-  },
-];
-
-export const quickActions = [
-  { label: "Manage Departments", path: "/admin/departments" },
-  { label: "Add New User", path: "/admin/users/add" },
-  { label: "Add New Faculty", path: "/admin/faculties/add" },
-  { label: "Add New Course", path: "/admin/courses/add" },
-  { label: "View Reports", path: "/admin/reports" },
+export const statsConfig = [
+  { key: "total_students", icon: GraduationCap, trendKey: "trend_up", colorClass: "students" },
+  { key: "faculties", icon: Building2, trendKey: "trend_stable", colorClass: "faculties" },
+  { key: "active_courses", icon: BookOpen, trendKey: "trend_up_courses", colorClass: "courses" },
+  { key: "faculty_members", icon: UserCircle2, trendKey: "trend_up_faculty", colorClass: "instructors" },
 ];
 
 export const iconColors = {
-  students: {
-    background: "rgba(26,31,94,0.08)",
-    color: "#1a1f5e",
-  },
-  faculties: {
-    background: "rgba(201,168,76,0.12)",
-    color: "#7a5c10",
-  },
-  courses: {
-    background: "rgba(96,165,250,0.12)",
-    color: "#2563eb",
-  },
-  instructors: {
-    background: "rgba(244,114,182,0.12)",
-    color: "#be185d",
-  },
+  students: { background: "rgba(26,31,94,0.08)", color: "#1a1f5e" },
+  faculties: { background: "rgba(201,168,76,0.12)", color: "#7a5c10" },
+  courses: { background: "rgba(96,165,250,0.12)", color: "#2563eb" },
+  instructors: { background: "rgba(244,114,182,0.12)", color: "#be185d" },
 };
+
+export const statsValues = {
+  total_students: "8,945",
+  faculties: "12",
+  active_courses: "342",
+  faculty_members: "456",
+};
+
+export const recentActivitiesData = [
+  { id: 1, actionKey: "new_student_registration", user: "Ahmed Hassan", timeKey: "minutes_ago", timeValue: 5, dot: "#16a34a" },
+  { id: 2, actionKey: "course_updated", user: "Dr. Ali Ibrahim", timeKey: "minutes_ago", timeValue: 12, dot: "#c9a84c", courseName: "AI" },
+  { id: 3, actionKey: "new_faculty_added", user: "Faculty of Pharmacy", timeKey: "hour_ago", timeValue: 1, dot: "#2e3591" },
+  { id: 4, actionKey: "instructor_profile_updated", user: "Dr. Sara Nour", timeKey: "hours_ago", timeValue: 2, dot: "#c9a84c" },
+];
+
+export const quickActionsConfig = [
+  { labelKey: "manage_departments", path: "/admin/departments" },
+  { labelKey: "add_new_user", path: "/admin/users/add" },
+  { labelKey: "add_new_faculty", path: "/admin/faculties/add" },
+  { labelKey: "add_new_course", path: "/admin/courses/add" },
+  { labelKey: "view_reports", path: "/admin/reports" },
+];

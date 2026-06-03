@@ -1,0 +1,90 @@
+.fu-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.fu-dropzone {
+  border: 2px dashed #c9a84c;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  background: #fefce8;
+  transition: all 0.2s;
+}
+.fu-dropzone:hover {
+  background: #fff7e0;
+  border-color: #b88b2e;
+}
+.fu-dropzone svg {
+  color: #c9a84c;
+  margin-bottom: 0.5rem;
+}
+.fu-dropzone p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+.fu-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  text-align: center;
+}
+.fu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.fu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f9fafb;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+.fu-spinner {
+  animation: spin 1s linear infinite;
+  color: #c9a84c;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.fu-file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.fu-file-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1a1f5e;
+}
+.fu-file-size {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+.fu-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+.fu-remove-btn:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.fu-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

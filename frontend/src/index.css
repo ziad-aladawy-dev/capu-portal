@@ -120,18 +120,13 @@ code {
   background: var(--code-bg);
 }
 
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+/* RTL Support */
+body.rtl {
+  direction: rtl;
+  text-align: right;
 }
 
-@keyframes skeletonPulse {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+body.rtl .landing-page {
+  direction: rtl;
+  text-align: right;
 }

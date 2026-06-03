@@ -1,0 +1,10 @@
+{
+    "permissions": "Permissions",
+    "roles": "Roles",
+    "select_structural_scope": "Select Structural Scope",
+    "structural_scope": "Structural Scope",
+    "temporal_scope": "Temporal Scope",
+    "academic_year_scope": "Academic Year",
+    "semester_scope": "Semester",
+    "global_scope": "Global"
+  }
