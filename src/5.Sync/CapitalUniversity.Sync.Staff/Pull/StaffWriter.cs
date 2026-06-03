@@ -1,92 +1,64 @@
+using CapitalUniversity.Core.Abstractions.Sync;
 using CapitalUniversity.Sync.Abstractions.Contracts;
-using CapitalUniversity.Sync.Staff.Domain;
-using CapitalUniversity.Sync.Staff.Persistence;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
+using CoreStaff = CapitalUniversity.Core.Domain.Identity.Staff;
 
 namespace CapitalUniversity.Sync.Staff.Pull;
 
 /// <summary>
-/// EF upsert keyed by <see cref="StaffEntity.ExternalStaffId"/>. Mirrors the
-/// Students writer's idempotency + race-safety pattern (one retry on unique-index
-/// violation; external-wins on update).
+/// Sync.Staff writer — thin adapter over <see cref="ICoreWriteGateway"/>.
+/// Update-only (StructureNode is out of sync scope, same as Sync.Student).
 /// </summary>
-public sealed class StaffWriter : IRecordWriter<StaffEntity>
+public sealed class StaffWriter : IRecordWriter<CoreStaff>
 {
-    private const int MaxAttempts = 2;
-
-    private readonly StaffSyncDbContext _db;
+    private readonly ICoreWriteGateway _gateway;
     private readonly ILogger<StaffWriter> _logger;
 
-    public StaffWriter(StaffSyncDbContext db, ILogger<StaffWriter> logger)
+    public StaffWriter(ICoreWriteGateway gateway, ILogger<StaffWriter> logger)
     {
-        _db = db;
+        _gateway = gateway;
         _logger = logger;
     }
 
     public async Task<int> UpsertBatchAsync(
-        IReadOnlyList<StaffEntity> batch,
+        IReadOnlyList<CoreStaff> batch,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(batch);
         if (batch.Count == 0) return 0;
 
-        // See StudentWriter for rationale — bound tracker memory to one batch.
-        _db.ChangeTracker.Clear();
+        var result = await _gateway.UpsertAsync<CoreStaff>(
+            batch,
+            applyUpdate: ApplyExternalToExisting,
+            new CoreUpsertOptions { AllowInsert = false, RespectExternalUpdatedAt = true },
+            cancellationToken).ConfigureAwait(false);
 
-        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        if (result.SkippedNotFound > 0)
         {
-            try
-            {
-                return await UpsertOnceAsync(batch, cancellationToken).ConfigureAwait(false);
-            }
-            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex) && attempt < MaxAttempts)
-            {
-                _db.ChangeTracker.Clear();
-                _logger.LogInformation(
-                    "StaffWriter unique-constraint race detected; converging via retry. BatchSize={Size} Attempt={Attempt}.",
-                    batch.Count, attempt);
-            }
+            _logger.LogInformation(
+                "Sync.Staff: {SkippedNotFound} upstream rows had no matching Core staff (update-only mode). Total persisted={Persisted}.",
+                result.SkippedNotFound, result.Persisted);
         }
 
-        return 0;
+        return result.Persisted;
     }
 
-    private async Task<int> UpsertOnceAsync(IReadOnlyList<StaffEntity> batch, CancellationToken cancellationToken)
+    /// <summary>
+    /// Copies only the columns sync owns onto the existing Core row. Untouched:
+    /// <c>PasswordHash</c>, <c>PasswordExpiry</c>, <c>SessionVersion</c>,
+    /// <c>StructureNodeId</c>, <c>StructureNode</c>.
+    /// </summary>
+    private static void ApplyExternalToExisting(CoreStaff existing, CoreStaff incoming)
     {
-        var externalIds = batch.Select(x => x.ExternalStaffId).ToArray();
-
-        var existing = await _db.Staff
-            .Where(s => externalIds.Contains(s.ExternalStaffId))
-            .ToDictionaryAsync(s => s.ExternalStaffId, cancellationToken)
-            .ConfigureAwait(false);
-
-        foreach (var incoming in batch)
-        {
-            if (existing.TryGetValue(incoming.ExternalStaffId, out var current))
-            {
-                current.FirstName = incoming.FirstName;
-                current.LastName = incoming.LastName;
-                current.Email = incoming.Email;
-                current.Department = incoming.Department;
-                current.ExternalUpdatedAt = incoming.ExternalUpdatedAt;
-                current.ExternalVersion = incoming.ExternalVersion;
-                current.LastSyncedAt = incoming.LastSyncedAt;
-                current.OriginSystem = incoming.OriginSystem;
-            }
-            else
-            {
-                _db.Staff.Add(incoming);
-            }
-        }
-
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return batch.Count;
-    }
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
-    {
-        return ex.InnerException is SqlException sql && (sql.Number == 2627 || sql.Number == 2601);
+        existing.EmployeeCode = incoming.EmployeeCode;
+        existing.Name = incoming.Name;
+        existing.JobTitle = incoming.JobTitle;
+        existing.NationalId = incoming.NationalId;
+        existing.BirthDate = incoming.BirthDate;
+        existing.PhoneNumber = incoming.PhoneNumber;
+        existing.Email = incoming.Email;
+        existing.Role = incoming.Role;
+        existing.IsActive = incoming.IsActive;
     }
 }

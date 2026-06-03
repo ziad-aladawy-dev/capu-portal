@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <!-- Sync writes operational rows directly into Core via ICoreWriteGateway.
+         Reference Core.Abstractions for the gateway interface and Core.Domain
+         for the Student entity type. Sync never references Core.Infrastructure. -->
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

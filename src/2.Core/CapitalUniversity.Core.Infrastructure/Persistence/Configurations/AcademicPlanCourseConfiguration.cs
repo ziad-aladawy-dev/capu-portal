@@ -23,5 +23,14 @@ public class AcademicPlanCourseConfiguration : IEntityTypeConfiguration<Academic
 
         // Per-level/semester layout query.
         builder.HasIndex(x => new { x.AcademicPlanId, x.Level, x.Semester });
+
+        // M1 fix — schema-level FK to the catalog Course. No EF navigation per
+        // the catalog read-through rule, but Restrict so a course referenced by
+        // any plan cannot be hard-deleted underneath the composition (the
+        // service adds a matching usage-guard for a clean Conflict response).
+        builder.HasOne<Course>()
+            .WithMany()
+            .HasForeignKey(x => x.CourseId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

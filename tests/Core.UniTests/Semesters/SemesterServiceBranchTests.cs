@@ -30,7 +30,7 @@ public class SemesterServiceBranchTests
         _updateValidator
             .Setup(v => v.ValidateAsync(It.IsAny<(Guid, UpdateSemesterRequest)>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
-        _sut = new SemesterService(_uow.Object, _createValidator.Object, _updateValidator.Object, new TestLocalizationService());
+        _sut = new SemesterService(_uow.Object, _createValidator.Object, _updateValidator.Object, new TestLocalizationService(), new NoOpCacheService());
     }
 
     private static AcademicYear YearWithRange(DateTime start, DateTime end) =>

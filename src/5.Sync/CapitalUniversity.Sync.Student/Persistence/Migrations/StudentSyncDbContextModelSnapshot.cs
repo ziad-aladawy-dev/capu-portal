@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CapitalUniversity.Sync.Student.Migrations
+namespace CapitalUniversity.Sync.Student.Persistence.Migrations
 {
     [DbContext(typeof(StudentSyncDbContext))]
     partial class StudentSyncDbContextModelSnapshot : ModelSnapshot
@@ -22,56 +22,6 @@ namespace CapitalUniversity.Sync.Student.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CapitalUniversity.Sync.Student.Domain.StudentEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("ExternalStudentId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTimeOffset>("ExternalUpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("ExternalVersion")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTimeOffset>("LastSyncedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("OriginSystem")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExternalStudentId")
-                        .IsUnique();
-
-                    b.HasIndex("ExternalUpdatedAt");
-
-                    b.ToTable("students", "sync_student");
-                });
 
             modelBuilder.Entity("CapitalUniversity.Sync.Student.Push.StudentOutboxEntity", b =>
                 {
@@ -120,4 +70,4 @@ namespace CapitalUniversity.Sync.Student.Migrations
 #pragma warning restore 612, 618
         }
     }
-}
+}

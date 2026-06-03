@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
@@ -27,33 +28,61 @@ namespace CapitalUniversity.Modules.CourseOffering.Application;
 /// </summary>
 public class CourseOfferingService : ICourseOfferingService
 {
+    // Shared-object cache key + collection caches (per node-semester / course-
+    // semester list + search pages) keyed by a version stamp; any offering
+    // mutation rotates it. Matches docs/caching-strategy.md and the Courses /
+    // AcademicPlans / Schedule modules. CourseOfferingResponse carries no
+    // localizable fields, so cached payloads need no per-culture handling.
+    internal const string CacheKeyPrefix = "courseoffering:object:";
+    internal const string CollectionVersionKey = "courseoffering:coll:ver";
+    internal const string NodeSemesterKeyPrefix = "courseoffering:node-sem:";
+    internal const string CourseSemesterKeyPrefix = "courseoffering:course-sem:";
+    internal const string SearchKeyPrefix = "courseoffering:search:";
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICourseOfferingRepository _offerings;
     private readonly IValidator<CreateCourseOfferingRequest> _createValidator;
     private readonly IValidator<UpdateCourseOfferingRequest> _updateValidator;
     private readonly IEffectiveScope _scope;
+    private readonly ICacheService _cache;
 
     public CourseOfferingService(
         IUnitOfWork unitOfWork,
         ICourseOfferingRepository offerings,
         IValidator<CreateCourseOfferingRequest> createValidator,
         IValidator<UpdateCourseOfferingRequest> updateValidator,
-        IEffectiveScope scope)
+        IEffectiveScope scope,
+        ICacheService cache)
     {
         _unitOfWork = unitOfWork;
         _offerings = offerings;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _scope = scope;
+        _cache = cache;
     }
+
+    internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";
 
     public async Task<CourseOfferingResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var offering = await _offerings.GetByIdAsync(id, cancellationToken);
-        if (offering is null) return null;
-        if (!await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken)) return null;
-        if (!await _scope.CanAccessSemesterAsync(offering.SemesterId, cancellationToken)) return null;
-        return ToResponse(offering);
+        // Stampede-protected shared-object read-through; scope enforced per read.
+        var dto = await _cache.GetOrSetAsync<CourseOfferingResponse>(
+            CacheKey(id),
+            async ct =>
+            {
+                var offering = await _offerings.GetByIdAsync(id, ct);
+                return offering is null ? null : ToResponse(offering);
+            },
+            CacheTtl,
+            cancellationToken);
+
+        if (dto is null) return null;
+        if (!await _scope.CanAccessStructureNodeAsync(dto.StructureNodeId, cancellationToken)) return null;
+        if (!await _scope.CanAccessSemesterAsync(dto.SemesterId, cancellationToken)) return null;
+        return dto;
     }
 
     public async Task<IReadOnlyList<CourseOfferingResponse>> GetForNodeSemesterAsync(
@@ -72,8 +101,17 @@ public class CourseOfferingService : ICourseOfferingService
             return Array.Empty<CourseOfferingResponse>();
         }
 
-        var offerings = await _offerings.GetForNodeSemesterAsync(structureNodeId, semesterId, status, cancellationToken);
-        return offerings.Select(ToResponse).ToList();
+        // Same offerings for every caller that can see the node+semester, so
+        // cached scope-neutral under the collection version. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var statusKey = status.HasValue ? ((int)status.Value).ToString() : "all";
+        var cached = await _cache.GetOrSetAsync<List<CourseOfferingResponse>>(
+            $"{NodeSemesterKeyPrefix}{structureNodeId:N}:{semesterId:N}:{statusKey}:{version}",
+            async ct => (await _offerings.GetForNodeSemesterAsync(structureNodeId, semesterId, status, ct)).Select(ToResponse).ToList(),
+            CacheTtl,
+            cancellationToken);
+
+        return new List<CourseOfferingResponse>(cached ?? new List<CourseOfferingResponse>());
     }
 
     public async Task<IReadOnlyList<CourseOfferingResponse>> GetForCourseAsync(
@@ -86,18 +124,28 @@ public class CourseOfferingService : ICourseOfferingService
             return Array.Empty<CourseOfferingResponse>();
         }
 
-        var offerings = await _offerings.GetForCourseAsync(courseId, semesterId, cancellationToken);
-        if (offerings.Count == 0) return Array.Empty<CourseOfferingResponse>();
+        // Cache the scope-NEUTRAL list (all offerings for course+semester) under
+        // the collection version; the per-node visibility filter runs on read so
+        // each caller sees only permitted rows while the DB query is shared.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<CourseOfferingResponse>>(
+            $"{CourseSemesterKeyPrefix}{courseId:N}:{semesterId:N}:{version}",
+            async ct => (await _offerings.GetForCourseAsync(courseId, semesterId, ct)).Select(ToResponse).ToList(),
+            CacheTtl,
+            cancellationToken);
+
+        var rows = cached ?? new List<CourseOfferingResponse>();
+        if (rows.Count == 0) return Array.Empty<CourseOfferingResponse>();
 
         // Cross-node query — filter each row by per-node visibility so an admin
         // sees only the offerings their scope grants. Avoids broadcasting that
         // a course is running under a node they cannot otherwise see.
-        var visible = new List<CourseOfferingResponse>(offerings.Count);
-        foreach (var offering in offerings)
+        var visible = new List<CourseOfferingResponse>(rows.Count);
+        foreach (var offering in rows)
         {
             if (await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken))
             {
-                visible.Add(ToResponse(offering));
+                visible.Add(offering);
             }
         }
         return visible;
@@ -131,12 +179,17 @@ public class CourseOfferingService : ICourseOfferingService
             SectionCode = request.SectionCode,
             Status = request.Status,
             RegistrationState = request.RegistrationState,
-            ExternalSystemId = request.ExternalSystemId,
+            // DTO retains the legacy ExternalSystemId name; entity now stores
+            // it on the composed ExternallySourced.ExternalId block (same
+            // physical column).
+            ExternallySourced = new() { ExternalId = request.ExternalSystemId },
         };
         offering.InitializeCapacity(request.Capacity);
 
         await _offerings.AddAsync(offering, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new offering must surface in node-semester / course-semester / search reads.
+        await BumpCollectionVersionAsync(cancellationToken);
         return offering.Id;
     }
 
@@ -160,6 +213,10 @@ public class CourseOfferingService : ICourseOfferingService
         offering.UpdatedAt = DateTime.UtcNow;
         _offerings.Update(offering);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // Drop the shared object payload + rotate the collection version so all
+        // list/search reads reflect the change.
+        await _cache.RemoveAsync(CacheKey(offering.Id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     /// <summary>
@@ -225,9 +282,35 @@ public class CourseOfferingService : ICourseOfferingService
     /// </summary>
     private static void ApplyExternalSyncMetadata(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
     {
-        if (request.ExternalSystemId is not null) offering.ExternalSystemId = request.ExternalSystemId;
-        if (request.ExternalSyncedAt.HasValue) offering.ExternalSyncedAt = request.ExternalSyncedAt;
+        // DTO retains the legacy ExternalSystemId/ExternalSyncedAt names; entity
+        // now stores them on the composed ExternallySourced block
+        // (ExternallySourced.ExternalId + ExternallySourced.LastSyncedAt).
+        if (request.ExternalSystemId is not null) offering.ExternallySourced.ExternalId = request.ExternalSystemId;
+        if (request.ExternalSyncedAt.HasValue) offering.ExternallySourced.LastSyncedAt = request.ExternalSyncedAt;
     }
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCollectionVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
+    private static string BuildSearchSignature(CourseOfferingSearchQuery q) =>
+        string.Join('|',
+            $"sem={q.SemesterId?.ToString("N") ?? string.Empty}",
+            $"node={q.StructureNodeId?.ToString("N") ?? string.Empty}",
+            $"course={q.CourseId?.ToString("N") ?? string.Empty}",
+            $"status={(q.Status.HasValue ? ((int)q.Status.Value).ToString() : string.Empty)}",
+            $"reg={(q.RegistrationState.HasValue ? ((int)q.RegistrationState.Value).ToString() : string.Empty)}",
+            $"q={q.Search ?? string.Empty}",
+            $"sort={q.Sort ?? string.Empty}",
+            $"p={q.NormalizedPage}",
+            $"ps={q.NormalizedPageSize}");
 
     internal static CourseOfferingResponse ToResponse(CourseOfferingEntity o) => new()
     {
@@ -240,8 +323,9 @@ public class CourseOfferingService : ICourseOfferingService
         RegisteredCount = o.RegisteredCount,
         Status = o.Status,
         RegistrationState = o.RegistrationState,
-        ExternalSystemId = o.ExternalSystemId,
-        ExternalSyncedAt = o.ExternalSyncedAt,
+        // Legacy DTO field names; mapped from the composed ExternallySourced block.
+        ExternalSystemId = o.ExternallySourced.ExternalId,
+        ExternalSyncedAt = o.ExternallySourced.LastSyncedAt,
         CreatedAt = o.CreatedAt,
         UpdatedAt = o.UpdatedAt,
     };
@@ -257,6 +341,10 @@ public class CourseOfferingService : ICourseOfferingService
         offering.Close();
         _offerings.Update(offering);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // Drop the shared object payload + rotate the collection version so all
+        // list/search reads reflect the change.
+        await _cache.RemoveAsync(CacheKey(offering.Id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -265,6 +353,10 @@ public class CourseOfferingService : ICourseOfferingService
         offering.Reopen();
         _offerings.Update(offering);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // Drop the shared object payload + rotate the collection version so all
+        // list/search reads reflect the change.
+        await _cache.RemoveAsync(CacheKey(offering.Id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     /// <summary>
@@ -334,7 +426,26 @@ public class CourseOfferingService : ICourseOfferingService
             return EmptyPage(query);
         }
 
-        var page = await _offerings.SearchAsync(query, cancellationToken);
+        // Cache the scope-NEUTRAL page under the collection version + query
+        // signature; per-row visibility filtering runs on read. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var page = await _cache.GetOrSetAsync<PagedResult<CourseOfferingResponse>>(
+            $"{SearchKeyPrefix}{version}:{BuildSearchSignature(query)}",
+            async ct =>
+            {
+                var result = await _offerings.SearchAsync(query, ct);
+                return new PagedResult<CourseOfferingResponse>
+                {
+                    Items = result.Items.Select(ToResponse).ToList(),
+                    Page = result.Page,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount,
+                    TotalPages = result.TotalPages,
+                };
+            },
+            CacheTtl,
+            cancellationToken)
+            ?? EmptyPage(query);
 
         // For un-pinned cross-node queries, filter the materialized page by
         // per-row node visibility. Total stays as the raw count — admins
@@ -345,7 +456,7 @@ public class CourseOfferingService : ICourseOfferingService
         foreach (var o in page.Items)
         {
             if (!await _scope.CanAccessStructureNodeAsync(o.StructureNodeId, cancellationToken)) continue;
-            visible.Add(ToResponse(o));
+            visible.Add(o);
         }
 
         return new PagedResult<CourseOfferingResponse>

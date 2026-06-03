@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CapitalUniversity.Sync.Staff.Migrations
+namespace CapitalUniversity.Sync.Staff.Persistence.Migrations
 {
     [DbContext(typeof(StaffSyncDbContext))]
     partial class StaffSyncDbContextModelSnapshot : ModelSnapshot
@@ -22,61 +22,6 @@ namespace CapitalUniversity.Sync.Staff.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CapitalUniversity.Sync.Staff.Domain.StaffEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Department")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("ExternalStaffId")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTimeOffset>("ExternalUpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("ExternalVersion")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<DateTimeOffset>("LastSyncedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("OriginSystem")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExternalStaffId")
-                        .IsUnique();
-
-                    b.HasIndex("ExternalUpdatedAt");
-
-                    b.ToTable("staff", "sync_staff");
-                });
 
             modelBuilder.Entity("CapitalUniversity.Sync.Staff.Push.StaffOutboxEntity", b =>
                 {
@@ -125,4 +70,4 @@ namespace CapitalUniversity.Sync.Staff.Migrations
 #pragma warning restore 612, 618
         }
     }
-}
+}

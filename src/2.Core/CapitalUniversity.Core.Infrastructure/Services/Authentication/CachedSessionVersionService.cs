@@ -46,20 +46,20 @@ public class CachedSessionVersionService : ISessionVersionService
             return await _inner.GetCurrentVersionAsync(userId, cancellationToken);
         }
 
-        var key = BuildKey(userId);
-        var cached = await _cache.GetAsync<SessionVersionEntry>(key, cancellationToken);
-        if (cached is not null)
-        {
-            return cached.Version;
-        }
+        // Stampede-protected read-through (hot auth-middleware path). The factory
+        // always returns a non-null SessionVersionEntry — even for "user not
+        // found" (Version = null) — so the negative-cache entry is still stored
+        // (GetOrSetAsync only skips caching when the value itself is null).
+        var entry = await _cache.GetOrSetAsync<SessionVersionEntry>(
+            key: BuildKey(userId),
+            factory: async ct => new SessionVersionEntry
+            {
+                Version = await _inner.GetCurrentVersionAsync(userId, ct),
+            },
+            expirationTime: TimeSpan.FromMinutes(Math.Max(1, _options.TtlMinutes)),
+            cancellationToken: cancellationToken);
 
-        var fresh = await _inner.GetCurrentVersionAsync(userId, cancellationToken);
-        await _cache.SetAsync(
-            key,
-            new SessionVersionEntry { Version = fresh },
-            TimeSpan.FromMinutes(Math.Max(1, _options.TtlMinutes)),
-            cancellationToken);
-        return fresh;
+        return entry?.Version;
     }
 
     public async Task<int?> IncrementVersionAsync(Guid userId, CancellationToken cancellationToken = default)

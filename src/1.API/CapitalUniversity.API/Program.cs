@@ -135,19 +135,20 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    var actionExpander = scope.ServiceProvider.GetRequiredService<CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.ManifestActionExpander>();
 
     // Apply pending EF migrations on startup when running against a relational
     // provider (skipped for InMemory which uses EnsureCreated in tests). Lets the
     // app pick up schema changes shipped in the same release without an explicit
     // "dotnet ef database update" step. Disable by setting
     // "Database:AutoMigrate" = false in appsettings if you prefer explicit gating.
-    //var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
-    //if (autoMigrate && db.Database.IsRelational())
-    //{
-    //    await db.Database.MigrateAsync();
-    //}
+    var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
+    if (autoMigrate && db.Database.IsRelational())
+    {
+        await db.Database.MigrateAsync();
+    }
 
-    await DataSeeder.SeedAsync(db, passwordHasher);
+    await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await UniversityStructureSeeder.SeedAsync(db);
     await IdentitySeeder.SeedAsync(db);
 

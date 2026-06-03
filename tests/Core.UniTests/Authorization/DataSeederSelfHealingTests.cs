@@ -1,7 +1,12 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization;
+using CapitalUniversity.Core.Application.Semesters.Authorization;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -9,6 +14,21 @@ namespace CapitalUniversity.Core.UniTests.Authorization;
 
 public class DataSeederSelfHealingTests
 {
+    // Registry with every manifest that declares a seeded/granted resource, so the
+    // seeder expands grants through the manifest graph (no CRUD-ladder fallback).
+    private static ManifestActionExpander Expander() =>
+        new(new PermissionManifestRegistry(new IPermissionManifest[]
+        {
+            new DashboardPermissionManifest(),
+            new UsersPermissionManifest(),
+            new StructurePermissionManifest(),
+            new ProgramsPermissionManifest(),
+            new SyncPermissionManifest(),
+            new AuthorizationPermissionManifest(),
+            new AcademicsPermissionManifest(),
+            new NotificationsPermissionManifest(),
+        }));
+
     private static CoreDbContext NewDb()
     {
         var options = new DbContextOptionsBuilder<CoreDbContext>()
@@ -25,7 +45,7 @@ public class DataSeederSelfHealingTests
         var ctx = NewDb();
         var hasher = new PasswordHasher();
 
-        await DataSeeder.SeedAsync(ctx, hasher);
+        await DataSeeder.SeedAsync(ctx, hasher, Expander());
 
         Assert.Equal(8, await ctx.Staffs.CountAsync());
         Assert.Equal(17, await ctx.Students.CountAsync());
@@ -48,7 +68,7 @@ public class DataSeederSelfHealingTests
         // Pre-seed the prerequisites the upsert needs (structure, years, etc.) via the
         // one-shot seeders first by running SeedAsync once on a clean DB, then artificially
         // mangle Staffs to mimic the broken state and run SeedAsync again.
-        await DataSeeder.SeedAsync(ctx, hasher);
+        await DataSeeder.SeedAsync(ctx, hasher, Expander());
 
         // Wipe everything Staff-dependent and reduce Staffs to 3 unrelated rows.
         ctx.StaffRoles.RemoveRange(ctx.StaffRoles);
@@ -67,7 +87,7 @@ public class DataSeederSelfHealingTests
         Assert.Equal(0, await ctx.StaffRoles.CountAsync());
 
         // Re-run the seeder — this is what should happen on the next API startup.
-        await DataSeeder.SeedAsync(ctx, hasher);
+        await DataSeeder.SeedAsync(ctx, hasher, Expander());
 
         // 8 canonical + 3 stale = 11; Khaled must now exist with the right password.
         Assert.Equal(11, await ctx.Staffs.CountAsync());
@@ -97,7 +117,7 @@ public class DataSeederSelfHealingTests
         using (var ctx1 = new CoreDbContext(options))
         {
             ctx1.Database.EnsureCreated();
-            await DataSeeder.SeedAsync(ctx1, hasher);
+            await DataSeeder.SeedAsync(ctx1, hasher, Expander());
             fullCount = await ctx1.RolePermissions.CountAsync();
             Assert.True(fullCount > 0);
         }
@@ -106,7 +126,7 @@ public class DataSeederSelfHealingTests
         // exactly the production startup scenario after a prior partial seed.
         using (var ctx2 = new CoreDbContext(options))
         {
-            await DataSeeder.SeedAsync(ctx2, hasher);
+            await DataSeeder.SeedAsync(ctx2, hasher, Expander());
             Assert.Equal(fullCount, await ctx2.RolePermissions.CountAsync());
         }
     }
@@ -117,12 +137,12 @@ public class DataSeederSelfHealingTests
         var ctx = NewDb();
         var hasher = new PasswordHasher();
 
-        await DataSeeder.SeedAsync(ctx, hasher);
+        await DataSeeder.SeedAsync(ctx, hasher, Expander());
         var staffCount1 = await ctx.Staffs.CountAsync();
         var rolePermsCount1 = await ctx.RolePermissions.CountAsync();
         var staffRolesCount1 = await ctx.StaffRoles.CountAsync();
 
-        await DataSeeder.SeedAsync(ctx, hasher);
+        await DataSeeder.SeedAsync(ctx, hasher, Expander());
         var staffCount2 = await ctx.Staffs.CountAsync();
         var rolePermsCount2 = await ctx.RolePermissions.CountAsync();
         var staffRolesCount2 = await ctx.StaffRoles.CountAsync();

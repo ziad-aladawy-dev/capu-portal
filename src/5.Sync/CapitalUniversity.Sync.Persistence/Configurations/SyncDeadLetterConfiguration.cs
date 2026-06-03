@@ -19,5 +19,15 @@ internal sealed class SyncDeadLetterConfiguration : IEntityTypeConfiguration<Syn
 
         builder.HasIndex(x => x.CorrelationId);
         builder.HasIndex(x => x.TerminalAt);
+
+        // One dead-letter row per Hangfire job. The SyncDeadLetterFilter can
+        // be re-applied for the same job (Hangfire's documented double-FailedState
+        // artifact, plus normal retry-exhaustion races between workers). The
+        // unique index — not an exists-check inside the filter — is the
+        // authoritative race-stopper: a duplicate insert provokes a constraint
+        // violation that the filter catches as the idempotency signal.
+        builder.HasIndex(x => x.HangfireJobId)
+            .IsUnique()
+            .HasDatabaseName("IX_dead_letters_HangfireJobId");
     }
 }

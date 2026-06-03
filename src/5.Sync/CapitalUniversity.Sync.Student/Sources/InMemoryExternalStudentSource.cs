@@ -5,8 +5,11 @@ namespace CapitalUniversity.Sync.Student.Sources;
 
 /// <summary>
 /// Deterministic in-memory external source used until a real adapter replaces it.
-/// Generates 50 students; two of them (#10 and #20) have empty emails so the
-/// validator drops them and warning aggregation can be observed.
+/// Generates <see cref="TotalStudents"/> rows matching the field set of Core
+/// <c>Identity.Student</c> (StudentCode, Name, NationalId, BirthDate, PhoneNumber,
+/// Email, ExternalStructureNodeKey, IsActive). Two of them (#10 and #20) ship
+/// with empty emails so the validator drops them and warning aggregation can be
+/// observed.
 /// </summary>
 public sealed class InMemoryExternalStudentSource : IExternalStudentSource
 {
@@ -26,9 +29,13 @@ public sealed class InMemoryExternalStudentSource : IExternalStudentSource
             list.Add(new ExternalStudent
             {
                 ExternalStudentId = $"EXT-S-{i:D4}",
-                FirstName = $"First{i}",
-                LastName = $"Last{i}",
+                StudentCode = $"STU-{1000 + i}",
+                Name = $"Student {i}",
+                NationalId = $"NID-{i:D10}",
+                BirthDate = new DateTime(2000 + (i % 8), ((i - 1) % 12) + 1, ((i - 1) % 28) + 1),
+                PhoneNumber = $"+201{(i * 12345 % 1_000_000_000):D9}",
                 Email = hasInvalidEmail ? string.Empty : $"student{i:D4}@university.test",
+                IsActive = true,
                 ExternalUpdatedAt = BaselineUpdatedAt.AddMinutes(i),
                 ExternalVersion = 1
             });

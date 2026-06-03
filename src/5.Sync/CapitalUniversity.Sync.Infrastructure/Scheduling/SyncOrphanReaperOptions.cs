@@ -21,8 +21,14 @@ public sealed class SyncOrphanReaperOptions
     /// otherwise.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Cron expression. Default every 5 minutes.</summary>
-    public string CronExpression { get; set; } = "*/5 * * * *";
+    /// <summary>
+    /// Cron expression. Default every 5 minutes at minute :02, :07, :12, …
+    /// — offset off the :00 boundary so the reaper sweep doesn't collide
+    /// with the 10 module-sync cron triggers (all of which fire at :00 every
+    /// minute). Sub-minute spread of those triggers is handled by
+    /// <c>SyncRecurringTrigger.ComputeStaggerSeconds</c>.
+    /// </summary>
+    public string CronExpression { get; set; } = "2-57/5 * * * *";
 
     /// <summary>Grace window before an Enqueued+null-JobId row is considered orphaned.
     /// Default 10 minutes — comfortably longer than the dispatcher's enqueue

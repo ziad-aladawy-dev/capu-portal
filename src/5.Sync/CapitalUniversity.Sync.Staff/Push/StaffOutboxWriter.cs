@@ -49,7 +49,12 @@ public sealed class StaffOutboxWriter : IRecordWriter<StaffOutboxDispatch>
 
             try
             {
-                await _sink.PushAsync(dispatch.Payload, cancellationToken).ConfigureAwait(false);
+                // Idempotency key is the outbox row's stable Guid — see
+                // IExternalStaffSink for the at-least-once contract.
+                await _sink.PushAsync(
+                    dispatch.Payload,
+                    dispatch.Row.Id.ToString(),
+                    cancellationToken).ConfigureAwait(false);
 
                 dispatch.Row.Status = OutboxStatus.Processed;
                 dispatch.Row.ProcessedAt = DateTimeOffset.UtcNow;

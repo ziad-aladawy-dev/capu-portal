@@ -47,9 +47,18 @@ public interface ISyncRunRepository
 
     /// <summary>
     /// Returns runs that were opened but never linked to a Hangfire job —
-    /// <c>Status == Enqueued AND HangfireJobId IS NULL</c>.
-    /// These are the result of an enqueue failure or a crash mid-dispatch.
-    /// Read-only; no automatic recovery is performed.
+    /// <c>Status == Enqueued AND HangfireJobId IS NULL AND EnqueuedAt &lt; cutoff</c>,
+    /// oldest first, capped at <paramref name="limit"/>. These are the result
+    /// of an enqueue failure or a crash mid-dispatch.
+    /// <para>
+    /// Both <paramref name="olderThan"/> and <paramref name="limit"/> are
+    /// pushed into the SQL query so a stuck backlog never materializes the
+    /// whole orphan set client-side. The reaper service consumes the result
+    /// without further filtering.
+    /// </para>
     /// </summary>
-    Task<IReadOnlyList<SyncRunRecord>> FindOrphanRunsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<SyncRunRecord>> FindOrphanRunsAsync(
+        DateTimeOffset olderThan,
+        int limit,
+        CancellationToken cancellationToken);
 }

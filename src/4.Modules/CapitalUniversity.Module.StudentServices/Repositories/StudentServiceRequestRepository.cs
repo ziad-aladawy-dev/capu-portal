@@ -25,7 +25,10 @@ public class StudentServiceRequestRepository : IStudentServiceRequestRepository
                 .Include(r => r.FieldValues)
                     .ThenInclude(v => v.FieldDefinition)
                 .Include(r => r.Documents)
-                    .ThenInclude(d => d.DocumentDefinition);
+                    .ThenInclude(d => d.DocumentDefinition)
+                // FieldValues and Documents are sibling collections — joining both
+                // in one query multiplies rows (Cartesian explosion). Split them.
+                .AsSplitQuery();
         }
         return query.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }

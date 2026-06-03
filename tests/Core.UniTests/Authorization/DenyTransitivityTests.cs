@@ -1,6 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
-using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using FluentAssertions;
 using Xunit;
@@ -28,7 +27,7 @@ public class DenyTransitivityTests
     {
         var expander = Build();
 
-        var deniedActions = expander.ExpandDenyActions("test", "things", ActionLevel.EditClose);
+        var deniedActions = expander.ExpandDenyActionNames("test", "things", "EditClose");
 
         deniedActions.Should().BeEquivalentTo(new[] { "EditClose", "Open", "Delete" },
             "denying EditClose must transitively block every verb that would otherwise grant it");
@@ -39,7 +38,7 @@ public class DenyTransitivityTests
     {
         var expander = Build();
 
-        var deniedActions = expander.ExpandDenyActions("test", "things", ActionLevel.View);
+        var deniedActions = expander.ExpandDenyActionNames("test", "things", "View");
 
         // Every CRUD verb implies View, so denying View revokes all of them.
         deniedActions.Should().BeEquivalentTo(new[] { "View", "Insert", "EditClose", "Open", "Delete" });
@@ -50,7 +49,7 @@ public class DenyTransitivityTests
     {
         var expander = Build();
 
-        var deniedActions = expander.ExpandDenyActions("test", "things", ActionLevel.Delete);
+        var deniedActions = expander.ExpandDenyActionNames("test", "things", "Delete");
 
         // Nothing implies Delete (top of the ladder) so the closure is just {Delete}.
         deniedActions.Should().BeEquivalentTo(new[] { "Delete" });
@@ -62,7 +61,7 @@ public class DenyTransitivityTests
         // Sanity guard so deny refactor didn't accidentally invert allow too.
         var expander = Build();
 
-        var allowed = expander.ExpandActions("test", "things", ActionLevel.EditClose);
+        var allowed = expander.ExpandActionNames("test", "things", "EditClose");
 
         allowed.Should().BeEquivalentTo(new[] { "View", "Insert", "EditClose" });
     }
@@ -76,8 +75,8 @@ public class DenyTransitivityTests
         // would otherwise re-grant EditClose.
         var expander = Build();
 
-        var allowed = expander.ExpandActions("test", "things", ActionLevel.Delete);
-        var denied = expander.ExpandDenyActions("test", "things", ActionLevel.EditClose);
+        var allowed = expander.ExpandActionNames("test", "things", "Delete");
+        var denied = expander.ExpandDenyActionNames("test", "things", "EditClose");
 
         var effective = new HashSet<string>(allowed);
         effective.ExceptWith(denied);

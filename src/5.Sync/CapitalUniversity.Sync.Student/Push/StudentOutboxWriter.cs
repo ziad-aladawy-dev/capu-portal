@@ -69,7 +69,14 @@ public sealed class StudentOutboxWriter : IRecordWriter<StudentOutboxDispatch>
 
             try
             {
-                await _sink.PushAsync(dispatch.Payload, cancellationToken).ConfigureAwait(false);
+                // Idempotency key is the outbox row's stable Guid — same value
+                // on every re-push of this row, so a SaveChanges-after-push
+                // crash followed by a next-tick replay is dedup'd at the sink.
+                // See IExternalStudentSink for the at-least-once contract.
+                await _sink.PushAsync(
+                    dispatch.Payload,
+                    dispatch.Row.Id.ToString(),
+                    cancellationToken).ConfigureAwait(false);
 
                 dispatch.Row.Status = OutboxStatus.Processed;
                 dispatch.Row.ProcessedAt = DateTimeOffset.UtcNow;

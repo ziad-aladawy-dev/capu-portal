@@ -269,12 +269,27 @@ public sealed class SyncRunRepository : ISyncRunRepository
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<SyncRunRecord>> FindOrphanRunsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SyncRunRecord>> FindOrphanRunsAsync(
+        DateTimeOffset olderThan,
+        int limit,
+        CancellationToken cancellationToken)
     {
+        if (limit <= 0)
+        {
+            return Array.Empty<SyncRunRecord>();
+        }
+
+        // Filter + order + cap pushed into SQL — translates to a
+        // `SELECT TOP (@limit) ... WHERE Status = ... AND HangfireJobId IS NULL
+        // AND EnqueuedAt < @cutoff ORDER BY EnqueuedAt` so a stuck backlog of
+        // tens of thousands of orphan rows never materializes client-side.
         var orphans = await _db.Runs
             .AsNoTracking()
-            .Where(r => r.Status == SyncRunStatus.Enqueued && r.HangfireJobId == null)
+            .Where(r => r.Status == SyncRunStatus.Enqueued
+                     && r.HangfireJobId == null
+                     && r.EnqueuedAt < olderThan)
             .OrderBy(r => r.EnqueuedAt)
+            .Take(limit)
             .Select(r => new
             {
                 r.CorrelationId,

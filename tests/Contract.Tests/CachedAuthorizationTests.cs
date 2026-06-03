@@ -94,7 +94,7 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             // Role with only View permission on the academic-years resource.
             var role = new Role { Id = Guid.NewGuid(), Name = "Viewer" };
             db.Roles.Add(role);
-            db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
+            db.AddCrudGrant(role.Id, resource.Id, "View");
 
             // Assign role to staff with truly-global structural scope so the request
             // (which sends no X-StructureNode-Id) doesn't get filtered out.

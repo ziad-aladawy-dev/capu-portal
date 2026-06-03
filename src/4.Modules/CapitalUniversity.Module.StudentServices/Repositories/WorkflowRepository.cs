@@ -18,7 +18,9 @@ public class WorkflowRepository : IWorkflowRepository
         var query = _context.Set<WorkflowDefinition>().AsQueryable();
         if (includeChildren)
         {
-            query = query.Include(w => w.States).Include(w => w.Transitions);
+            // States and Transitions are sibling collections — split to avoid a
+            // Cartesian explosion from joining both in one query.
+            query = query.Include(w => w.States).Include(w => w.Transitions).AsSplitQuery();
         }
         return query.FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
     }
@@ -27,6 +29,7 @@ public class WorkflowRepository : IWorkflowRepository
         _context.Set<WorkflowDefinition>()
             .Include(w => w.States)
             .Include(w => w.Transitions)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(w => w.Code == code, cancellationToken);
 
     public async Task<IReadOnlyList<WorkflowDefinition>> GetAllAsync(CancellationToken cancellationToken = default) =>
@@ -34,6 +37,7 @@ public class WorkflowRepository : IWorkflowRepository
             .AsNoTracking()
             .Include(w => w.States)
             .Include(w => w.Transitions)
+            .AsSplitQuery()
             .OrderBy(w => w.Code)
             .ToListAsync(cancellationToken);
 

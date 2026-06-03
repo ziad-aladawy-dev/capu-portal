@@ -9,6 +9,7 @@ using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence;
@@ -31,6 +32,17 @@ public class CoreDbContext : DbContext
     public CoreDbContext(DbContextOptions<CoreDbContext> options, IAppLogger? logger = null) : base(options)
     {
         _logger = logger;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        // The model is assembled from module assemblies registered at runtime
+        // (see ModuleConfigurationAssemblies). Key the EF model cache on that
+        // assembly set so a context built before a module registers does not
+        // pin a model that omits the module's entities.
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, ModuleAwareModelCacheKeyFactory>();
     }
 
     public DbSet<StructureNode> StructureNodes => Set<StructureNode>();

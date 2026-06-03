@@ -79,16 +79,37 @@ public class PermissionNamesManifestCoverageTests
         return manifests;
     }
 
+    /// <summary>
+    /// Pin each module's abstractions assembly into the AppDomain so the
+    /// reflection scan above can see it.
+    ///
+    /// <para>
+    /// A bare <c>_ = typeof(SomeType)</c> discard is NOT reliable here:
+    /// the C# discard with no consumer can be elided so the corresponding
+    /// <c>ldtoken</c> never executes, and the assembly is never loaded into
+    /// the AppDomain. That's how this test silently lost coverage of
+    /// <c>student-services.*</c> permissions — only 4 of the 5 force-loads
+    /// happened to also be pulled in transitively by other code paths, so
+    /// the StudentServices assembly stayed absent and its manifest never
+    /// reached the registry.
+    /// </para>
+    ///
+    /// <para>
+    /// Reading <c>.Assembly</c> on the type forces actual metadata resolution
+    /// and so guarantees the assembly is loaded. The local <c>_</c> sinks
+    /// keep the compiler from warning, and the sinks are referenced via the
+    /// returned tuple so they cannot be eliminated as unused.
+    /// </para>
+    /// </summary>
     private static void ForceLoadModuleManifestAssemblies()
     {
-        // Reference one type from each module's abstractions assembly so the
-        // CLR loads it. The actual symbols pulled don't matter — the assembly
-        // load is what enables reflection discovery below.
-        _ = typeof(CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest.CourseOfferingPermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest);
-        _ = typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest);
+        _ = (
+            typeof(CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest.CourseOfferingPermissionManifest).Assembly,
+            typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest).Assembly,
+            typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest).Assembly,
+            typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly,
+            typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest).Assembly
+        );
     }
 
     private static HashSet<string> CollectPermissionNameConstants()
@@ -105,4 +126,4 @@ public class PermissionNamesManifestCoverageTests
         }
         return values;
     }
-}
+}

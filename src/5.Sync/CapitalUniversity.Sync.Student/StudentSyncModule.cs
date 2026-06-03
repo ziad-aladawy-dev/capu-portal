@@ -7,6 +7,9 @@ using CapitalUniversity.Sync.Student.Push;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+// See StudentMapper.cs — Sync.Student namespace collides with Core's Student type.
+using CoreStudent = CapitalUniversity.Core.Domain.Identity.Student;
+
 namespace CapitalUniversity.Sync.Student;
 
 /// <summary>
@@ -43,7 +46,7 @@ public sealed class StudentSyncModule : ISyncModule
     public string ModuleName => Name;
 
     public Task<SyncResult> PullAsync(SyncContext context, CancellationToken cancellationToken)
-        => _pipeline.RunStandardPullAsync<ExternalStudent, StudentEntity>(
+        => _pipeline.RunStandardPullAsync<ExternalStudent, CoreStudent>(
             _scopeFactory, _logger, context, Name, _options.Value.BatchSize,
             externalKeySelector: s => s.ExternalStudentId,
             extractorFactory: sp => sp.GetRequiredService<StudentExtractor>(),

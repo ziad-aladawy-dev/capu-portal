@@ -39,19 +39,6 @@ public class PermissionManifestRegistry : IPermissionManifestRegistry
     public ResourceDefinition? GetResource(string module, string resourceKey) =>
         _resourcesByKey.TryGetValue((module, resourceKey), out var def) ? def : null;
 
-    public IReadOnlySet<string> ExpandToCanonical(string module, string resourceKey, string action)
-    {
-        var result = new HashSet<string>(StringComparer.Ordinal);
-        var resource = GetResource(module, resourceKey);
-        if (resource is null) return result;
-
-        foreach (var actionName in resource.ExpandImplied(action))
-        {
-            result.Add(resource.CanonicalName(module, actionName));
-        }
-        return result;
-    }
-
     private static void ValidateOrThrow(IReadOnlyCollection<IPermissionManifest> manifests)
     {
         var seenModules = new HashSet<string>(StringComparer.Ordinal);

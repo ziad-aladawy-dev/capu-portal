@@ -6,6 +6,7 @@ using CapitalUniversity.Modules.CourseOffering.Abstractions.DTOs;
 using CapitalUniversity.Modules.CourseOffering.Application;
 using CapitalUniversity.Modules.CourseOffering.Application.Validators;
 using CapitalUniversity.Modules.CourseOffering.Repositories;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -33,7 +34,8 @@ public class CourseOfferingServiceTests
             repo.Object,
             new CreateCourseOfferingValidator(),
             new UpdateCourseOfferingValidator(),
-            scope.Object);
+            scope.Object,
+            new NoOpCacheService());
         return (sut, repo, uow, scope);
     }
 
@@ -190,7 +192,8 @@ public class CourseOfferingServiceTests
             uow.Object, repo.Object,
             new CreateCourseOfferingValidator(),
             new UpdateCourseOfferingValidator(),
-            scope.Object);
+            scope.Object,
+            new NoOpCacheService());
 
         var result = await sut.GetByIdAsync(Guid.NewGuid());
 
@@ -245,7 +248,7 @@ public class CourseOfferingServiceTests
         captured.Capacity.Should().Be(42);
         captured.Status.Should().Be(OfferingStatus.Open);
         captured.RegistrationState.Should().Be(RegistrationState.Open);
-        captured.ExternalSystemId.Should().Be("ext-123");
+        captured.ExternallySourced.ExternalId.Should().Be("ext-123", "DTO's ExternalSystemId now maps to ExternallySourced.ExternalId on the composed block");
         uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -272,13 +275,14 @@ public class CourseOfferingServiceTests
     {
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
-        existing.ExternalSyncedAt = null;
+        existing.ExternallySourced.LastSyncedAt = null;
         repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         var syncedAt = new DateTime(2026, 5, 21, 14, 0, 0, DateTimeKind.Utc);
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { ExternalSyncedAt = syncedAt });
 
-        existing.ExternalSyncedAt.Should().Be(syncedAt);
+        // DTO's ExternalSyncedAt now maps to ExternallySourced.LastSyncedAt.
+        existing.ExternallySourced.LastSyncedAt.Should().Be(syncedAt);
     }
 
     [Fact]
@@ -287,12 +291,12 @@ public class CourseOfferingServiceTests
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
         var original = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        existing.ExternalSyncedAt = original;
+        existing.ExternallySourced.LastSyncedAt = original;
         repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { Capacity = 50 });
 
-        existing.ExternalSyncedAt.Should().Be(original);
+        existing.ExternallySourced.LastSyncedAt.Should().Be(original);
     }
 
     [Fact]
@@ -300,12 +304,13 @@ public class CourseOfferingServiceTests
     {
         var (sut, repo, _, _) = Build();
         var existing = NewOffering();
-        existing.ExternalSystemId = null;
+        existing.ExternallySourced.ExternalId = null;
         repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
 
         await sut.UpdateAsync(existing.Id, new UpdateCourseOfferingRequest { ExternalSystemId = "ext-9" });
 
-        existing.ExternalSystemId.Should().Be("ext-9");
+        // DTO's ExternalSystemId now maps to ExternallySourced.ExternalId.
+        existing.ExternallySourced.ExternalId.Should().Be("ext-9");
     }
 
     private static CourseOfferingEntity NewOffering(int capacity = 30, string sectionCode = "A")

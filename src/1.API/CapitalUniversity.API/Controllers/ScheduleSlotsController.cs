@@ -88,10 +88,12 @@ public class ScheduleSlotsController : ControllerBase
     }
 
     /// <summary>
-    /// Atomic bulk-create of slots under one parent offering. Either every slot
-    /// lands or none do — useful for the common "lecture + lab + recitation"
-    /// block. Intra-batch overlap is validated in addition to overlap against
-    /// existing siblings.
+    /// Bulk-create of slots under one parent offering with partial-success
+    /// semantics — non-conflicting slots land while conflicting / duplicate /
+    /// invalid ones come back in the <c>failures</c> array (per-id reason:
+    /// Conflict / Validation). Overlap is checked against existing siblings and,
+    /// implicitly, against earlier slots committed within the same request.
+    /// HTTP stays 200; clients inspect the result body.
     /// </summary>
     [HttpPost("batch")]
     [HasPermission(PermissionNames.Schedule.Insert)]
@@ -99,7 +101,7 @@ public class ScheduleSlotsController : ControllerBase
     {
         BulkRequestGuard.EnsureRecords(request?.Slots, propertyName: "slots");
 
-        var ids = await _service.BatchCreateAsync(request!, cancellationToken);
-        return Ok(new { Ids = ids, Message = "Schedule slots created" });
+        var result = await _service.BatchCreateAsync(request!, cancellationToken);
+        return Ok(result);
     }
 }

@@ -51,10 +51,11 @@ public class UpdateScheduleSlotRequest
 }
 
 /// <summary>
-/// Atomic bulk-create of multiple slots under one parent offering. The whole
-/// batch commits together or is rejected — a partial schedule (e.g. lecture
-/// + lab but no recitation) is rarely useful. Intra-batch overlap is checked
-/// in addition to the per-slot conflict check against existing siblings.
+/// Bulk-create of multiple slots under one parent offering with partial-success
+/// semantics: non-conflicting slots land while conflicting / duplicate / invalid
+/// ones are reported per-row in the returned <c>BulkActionResult</c>. Overlap is
+/// checked against existing siblings and against earlier slots committed within
+/// the same request (first-writer-wins).
 /// </summary>
 public class BatchCreateScheduleSlotsRequest
 {

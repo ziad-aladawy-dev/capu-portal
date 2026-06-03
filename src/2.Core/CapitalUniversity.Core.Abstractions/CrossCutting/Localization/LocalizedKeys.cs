@@ -74,6 +74,7 @@ public static class LocalizedKeys
         public const string PlanCourseAlreadyPresent  = "courses.plan_course_already_present";
         public const string StructureNodeNotFound     = "courses.structure_node_not_found";
         public const string EffectiveToAfterFrom      = "courses.effective_to_after_from";
+        public const string ReferencedByPlan          = "courses.referenced_by_plan";
     }
 
     public static class Semesters

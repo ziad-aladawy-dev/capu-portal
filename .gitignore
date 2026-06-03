@@ -136,3 +136,4 @@ artifacts/*
 tools/*
 
 Migrations/*
+.test*

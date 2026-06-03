@@ -11,6 +11,20 @@ namespace CapitalUniversity.Core.UniTests.CourseOfferings;
 /// lifecycle transitions are accepted; idempotent on the same target state;
 /// registration state cannot be opened when the offering is not active;
 /// cancellation forces registration closed.
+///
+/// <para>
+/// <b>Exception-type contract.</b> The domain throws
+/// <see cref="InvalidOperationException"/> for state-machine and invariant
+/// violations (e.g. "draft offering cannot be closed", "registration
+/// requires an active offering", "registration on cancelled offering").
+/// <see cref="ConflictException"/> is reserved for the closed-record guard
+/// in <c>EnsureMutable</c> — when <c>IsClosed == true</c>, every mutating
+/// method short-circuits there before reaching its own state checks. The
+/// service layer (<c>CourseOfferingService.ApplyStatusChange</c> etc.)
+/// catches <see cref="InvalidOperationException"/> and surfaces it to the
+/// API as <see cref="ConflictException"/> with a localized message key — so
+/// callers above the service still see HTTP 409 with a localized body.
+/// </para>
 /// </summary>
 public class CourseOfferingLifecycleTests
 {
@@ -64,10 +78,14 @@ public class CourseOfferingLifecycleTests
     [Fact]
     public void Activate_FromCancelled_Throws()
     {
+        // Cancel() does not set IsClosed, so EnsureMutable() passes and the
+        // state-machine guard in Activate() fires. Per the exception-type
+        // contract on the class, that's an InvalidOperationException which
+        // the service layer wraps for the API.
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.Activate;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*draft*");
     }
 
     [Fact]
@@ -85,18 +103,25 @@ public class CourseOfferingLifecycleTests
     [Fact]
     public void Close_FromDraft_Throws()
     {
+        // Draft → Closed is not a legal transition. IsClosed is false so
+        // EnsureMutable() doesn't fire; the state-machine guard does. The
+        // service maps this to ConflictException + IllegalStateTransition
+        // for the API.
         var offering = NewDraftOffering();
         var act = offering.Close;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*activated*");
     }
 
     [Fact]
     public void Close_FromCancelled_Throws()
     {
+        // Cancelled → Closed is not a legal transition. Cancel() leaves
+        // IsClosed false, so EnsureMutable() passes; the state-machine guard
+        // in Close() throws.
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.Close;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*cancelled*");
     }
 
     [Fact]
@@ -125,9 +150,13 @@ public class CourseOfferingLifecycleTests
     [Fact]
     public void OpenRegistration_RequiresActiveOffering()
     {
+        // Registration cannot be opened on a Draft offering. EnsureMutable()
+        // passes (IsClosed=false), so the registration-state guard throws
+        // InvalidOperationException — service translates to ConflictException
+        // at the API edge.
         var draft = NewDraftOffering();
         var act = draft.OpenRegistration;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*active*");
     }
 
     [Fact]
@@ -141,9 +170,12 @@ public class CourseOfferingLifecycleTests
     [Fact]
     public void SetWaitlist_RequiresActiveOffering()
     {
+        // Waitlist requires an active offering. Same shape as OpenRegistration
+        // above: InvalidOperationException at the domain, ConflictException at
+        // the API after service translation.
         var draft = NewDraftOffering();
         var act = draft.SetWaitlist;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*active*");
     }
 
     [Fact]
@@ -197,10 +229,14 @@ public class CourseOfferingLifecycleTests
     [Fact]
     public void IncrementRegistration_OnCancelledOffering_Throws()
     {
+        // IncrementRegistration is an invariant-only path (no EnsureMutable —
+        // see the concurrency note on the method). Cancelled offerings reject
+        // registration as InvalidOperationException; the future Registration
+        // module is the caller and will surface this as a 409 itself.
         var offering = NewDraftOffering();
         offering.Cancel();
         var act = offering.IncrementRegistration;
-        act.Should().Throw<ConflictException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*cancelled*");
         offering.RegisteredCount.Should().Be(0);
     }
 }

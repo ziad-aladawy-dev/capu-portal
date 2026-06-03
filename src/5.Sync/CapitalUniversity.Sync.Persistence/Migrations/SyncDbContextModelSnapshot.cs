@@ -89,6 +89,10 @@ namespace CapitalUniversity.Sync.Persistence.Migrations
 
                     b.HasIndex("CorrelationId");
 
+                    b.HasIndex("HangfireJobId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_dead_letters_HangfireJobId");
+
                     b.HasIndex("TerminalAt");
 
                     b.ToTable("dead_letters", "sync");
@@ -137,6 +141,12 @@ namespace CapitalUniversity.Sync.Persistence.Migrations
                     b.ToTable("failures", "sync");
                 });
 
+            // sync.jobs table was created by 20260528151843_InitialCreate and is
+            // intentionally not exposed as a DbSet (see SyncDbContext). The snapshot
+            // entry below preserves the schema reality so that future
+            // `dotnet ef migrations add` runs do not silently re-propose dropping
+            // the table. The table will be removed by its own dedicated migration
+            // when the orphan cleanup task lands.
             modelBuilder.Entity("CapitalUniversity.Sync.Persistence.Entities.SyncJobEntity", b =>
                 {
                     b.Property<string>("HangfireJobId")
@@ -239,4 +249,4 @@ namespace CapitalUniversity.Sync.Persistence.Migrations
 #pragma warning restore 612, 618
         }
     }
-}
+}

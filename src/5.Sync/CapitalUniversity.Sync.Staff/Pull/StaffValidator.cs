@@ -1,27 +1,53 @@
 using System.Text.RegularExpressions;
 using CapitalUniversity.Sync.Abstractions.Contracts;
-using CapitalUniversity.Sync.Staff.Domain;
+using CapitalUniversity.Sync.Abstractions.Localization;
+
+using CoreStaff = CapitalUniversity.Core.Domain.Identity.Staff;
 
 namespace CapitalUniversity.Sync.Staff.Pull;
 
-public sealed partial class StaffValidator : IRecordValidator<StaffEntity>
+public sealed partial class StaffValidator : IRecordValidator<CoreStaff>
 {
     [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled)]
     private static partial Regex EmailPattern();
 
-    public bool IsValid(StaffEntity record, out string? error)
+    public bool IsValid(CoreStaff record, out string? error)
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        if (string.IsNullOrWhiteSpace(record.ExternalStaffId))
+        if (string.IsNullOrWhiteSpace(record.ExternallySourced.ExternalId))
         {
-            error = "ExternalStaffId is required.";
+            error = "ExternalId is required (sync merge key).";
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(record.FirstName) || string.IsNullOrWhiteSpace(record.LastName))
+        if (string.IsNullOrWhiteSpace(record.EmployeeCode))
+        {
+            error = "EmployeeCode is required.";
+            return false;
+        }
+
+        if (LocalizedJson.IsEmpty(record.Name))
         {
             error = "Name is required.";
+            return false;
+        }
+
+        if (LocalizedJson.IsEmpty(record.JobTitle))
+        {
+            error = "JobTitle is required.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(record.NationalId))
+        {
+            error = "NationalId is required.";
+            return false;
+        }
+
+        if (record.BirthDate == default)
+        {
+            error = "BirthDate is required.";
             return false;
         }
 
@@ -37,9 +63,9 @@ public sealed partial class StaffValidator : IRecordValidator<StaffEntity>
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(record.Department))
+        if (string.IsNullOrWhiteSpace(record.Role))
         {
-            error = "Department is required.";
+            error = "Role is required.";
             return false;
         }
 

@@ -113,7 +113,7 @@ public class OwnedModulesLocalizationTests
                .ReturnsAsync(new ValidationResult());
         years.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((AcademicYear?)null);
 
-        var sut = new AcademicYearService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService());
+        var sut = new AcademicYearService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService(), new NoOpCacheService());
 
         var ex = await Assert.ThrowsAsync<NotFoundException>(() => sut.DeleteAsync(Guid.NewGuid()));
 
@@ -215,7 +215,7 @@ public class OwnedModulesLocalizationTests
         updateV.Setup(v => v.ValidateAsync(It.IsAny<(Guid, UpdateSemesterRequest)>(), It.IsAny<CancellationToken>()))
                .ReturnsAsync(new ValidationResult());
 
-        var sut = new SemesterService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService());
+        var sut = new SemesterService(uow.Object, createV.Object, updateV.Object, new TestLocalizationService(), new NoOpCacheService());
         return (sut, years, semesters);
     }
 }

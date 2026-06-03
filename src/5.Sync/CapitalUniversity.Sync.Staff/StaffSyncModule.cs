@@ -7,6 +7,8 @@ using CapitalUniversity.Sync.Staff.Push;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+using CoreStaff = CapitalUniversity.Core.Domain.Identity.Staff;
+
 namespace CapitalUniversity.Sync.Staff;
 
 /// <summary>
@@ -38,7 +40,7 @@ public sealed class StaffSyncModule : ISyncModule
     public string ModuleName => Name;
 
     public Task<SyncResult> PullAsync(SyncContext context, CancellationToken cancellationToken)
-        => _pipeline.RunStandardPullAsync<ExternalStaff, StaffEntity>(
+        => _pipeline.RunStandardPullAsync<ExternalStaff, CoreStaff>(
             _scopeFactory, _logger, context, Name, _options.Value.BatchSize,
             externalKeySelector: s => s.ExternalStaffId,
             extractorFactory: sp => sp.GetRequiredService<StaffExtractor>(),

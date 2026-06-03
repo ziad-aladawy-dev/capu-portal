@@ -62,14 +62,18 @@ public sealed class SyncOrphanReaperService
         await using var scope = _scopeFactory.CreateAsyncScope();
         var repo = scope.ServiceProvider.GetRequiredService<ISyncRunRepository>();
 
-        var orphans = await repo.FindOrphanRunsAsync(cancellationToken).ConfigureAwait(false);
-        var eligible = orphans.Where(o => o.EnqueuedAt < cutoff).Take(opts.MaxReapedPerRun).ToList();
+        // Cutoff + limit pushed into the SQL query (see ISyncRunRepository) —
+        // no in-memory filter, no full-table materialization. The result is
+        // already ordered oldest-first and capped at MaxReapedPerRun.
+        var eligible = await repo
+            .FindOrphanRunsAsync(cutoff, opts.MaxReapedPerRun, cancellationToken)
+            .ConfigureAwait(false);
 
         if (eligible.Count == 0)
         {
             _logger.LogInformation(correlationId,
-                "Orphan reaper: no eligible orphans. TotalOrphansFound={Total} GraceMinutes={Grace} ElapsedMs={Ms}",
-                orphans.Count, opts.GraceMinutes, sw.ElapsedMilliseconds);
+                "Orphan reaper: no eligible orphans older than {Cutoff:o} (grace {Grace}min). ElapsedMs={Ms}",
+                cutoff, opts.GraceMinutes, sw.ElapsedMilliseconds);
             return;
         }
 
@@ -97,7 +101,8 @@ public sealed class SyncOrphanReaperService
 
         sw.Stop();
         _logger.LogWarning(correlationId,
-            "Orphan reaper completed. Reaped={Reaped}/{Eligible} TotalOrphansFound={Total} GraceMinutes={Grace} ElapsedMs={Ms}",
-            reaped, eligible.Count, orphans.Count, opts.GraceMinutes, sw.ElapsedMilliseconds);
+            "Orphan reaper completed. Reaped={Reaped}/{Eligible} GraceMinutes={Grace} ElapsedMs={Ms} " +
+            "(eligible count is page-capped at MaxReapedPerRun; a larger backlog is drained over successive ticks).",
+            reaped, eligible.Count, opts.GraceMinutes, sw.ElapsedMilliseconds);
     }
 }

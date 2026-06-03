@@ -6,6 +6,7 @@ using CapitalUniversity.Modules.CourseOffering.Abstractions.DTOs;
 using CapitalUniversity.Modules.CourseOffering.Application;
 using CapitalUniversity.Modules.CourseOffering.Application.Validators;
 using CapitalUniversity.Modules.CourseOffering.Repositories;
+using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -32,7 +33,8 @@ public class CourseOfferingServiceLifecycleTests
             repo.Object,
             new CreateCourseOfferingValidator(),
             new UpdateCourseOfferingValidator(),
-            scope.Object);
+            scope.Object,
+            new NoOpCacheService());
         return (sut, repo, scope);
     }
 
@@ -162,7 +164,8 @@ public class CourseOfferingServiceLifecycleTests
             repo.Object,
             new CreateCourseOfferingValidator(),
             new UpdateCourseOfferingValidator(),
-            scope.Object);
+            scope.Object,
+            new NoOpCacheService());
 
         var result = await sut.GetForCourseAsync(courseId, semesterId);
 

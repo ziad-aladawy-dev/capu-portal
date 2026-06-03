@@ -1,6 +1,9 @@
 using CapitalUniversity.Sync.Abstractions.Enums;
+using CapitalUniversity.Sync.Courses;
+using CapitalUniversity.Sync.Finance;
 using CapitalUniversity.Sync.Infrastructure.Configuration;
 using CapitalUniversity.Sync.Infrastructure.Scheduling;
+using CapitalUniversity.Sync.Schedules;
 using CapitalUniversity.Sync.Staff;
 using CapitalUniversity.Sync.Student;
 using Hangfire;
@@ -67,6 +70,42 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             methodCall: trigger => trigger.TriggerAsync(StaffSyncModule.Name, SyncDirection.Push),
             cronExpression: Cron.Minutely());
 
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "courses-sync-pull",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(CoursesSyncModule.Name, SyncDirection.Pull),
+            cronExpression: Cron.Minutely());
+
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "courses-sync-push",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(CoursesSyncModule.Name, SyncDirection.Push),
+            cronExpression: Cron.Minutely());
+
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "finance-sync-pull",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(FinanceSyncModule.Name, SyncDirection.Pull),
+            cronExpression: Cron.Minutely());
+
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "finance-sync-push",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(FinanceSyncModule.Name, SyncDirection.Push),
+            cronExpression: Cron.Minutely());
+
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "schedules-sync-pull",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(SchedulesSyncModule.Name, SyncDirection.Pull),
+            cronExpression: Cron.Minutely());
+
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "schedules-sync-push",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(SchedulesSyncModule.Name, SyncDirection.Push),
+            cronExpression: Cron.Minutely());
+
         // Phase 9: retention sweeper. Always registered so its cron is observable in
         // the Hangfire dashboard; the service itself short-circuits if
         // Sync:Retention:Enabled = false (operator opt-in).
@@ -85,7 +124,7 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             cronExpression: _reaperOptions.Value.CronExpression);
 
         _logger.LogInformation(
-            "Recurring jobs registered: 'student-sync-pull', 'student-sync-push', 'staff-sync-pull', 'staff-sync-push', 'sync-retention', 'sync-orphan-reaper' (trigger queue: {Queue}; per-module dispatch queues resolved via Sync:ModuleQueues; retention enabled={RetentionEnabled} cron={RetentionCron}; reaper enabled={ReaperEnabled} cron={ReaperCron} grace={ReaperGrace}min).",
+            "Recurring jobs registered: 'student-sync-pull', 'student-sync-push', 'staff-sync-pull', 'staff-sync-push', 'courses-sync-pull', 'courses-sync-push', 'finance-sync-pull', 'finance-sync-push', 'schedules-sync-pull', 'schedules-sync-push', 'sync-retention', 'sync-orphan-reaper' (trigger queue: {Queue}; per-module dispatch queues resolved via Sync:ModuleQueues; retention enabled={RetentionEnabled} cron={RetentionCron}; reaper enabled={ReaperEnabled} cron={ReaperCron} grace={ReaperGrace}min).",
             triggerQueue,
             _retentionOptions.Value.Enabled,
             _retentionOptions.Value.CronExpression,

@@ -16,8 +16,15 @@ namespace CapitalUniversity.Modules.Payments.Domain;
 /// <c>InvoiceService.Recalculate</c>).
 /// </para>
 /// </summary>
-public class Invoice : BaseEntity, ISoftDeletable
+public class Invoice : BaseEntity, ISoftDeletable, IExternallySourced
 {
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
+
     /// <summary>Cross-module reference to the owning student. No EF navigation per modularity rule.</summary>
     public Guid StudentId { get; set; }
 

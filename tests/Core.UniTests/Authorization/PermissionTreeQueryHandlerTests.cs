@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifes
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries;
@@ -99,7 +100,7 @@ public class PermissionTreeQueryHandlerTests
         var role = new Role { Name = "TestRole" };
         db.Roles.Add(role);
         // Per-action storage: explicit View+Insert+EditClose rows.
-        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.EditClose);
+        db.AddCrudGrant(role.Id, resource.Id, "EditClose");
         await db.SaveChangesAsync();
 
         var sut = NewHandler(db);

@@ -23,6 +23,7 @@ using CapitalUniversity.Core.Infrastructure.Services.Semesters;
 using CapitalUniversity.Core.Infrastructure.Repositories;
 using CapitalUniversity.Core.Infrastructure.Services.Authentication;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization;
+using CapitalUniversity.Core.Infrastructure.Services.Caching;
 using CapitalUniversity.Core.Infrastructure.Logging;
 using CapitalUniversity.Core.Infrastructure.Services.Notifications;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,20 +49,73 @@ public static class DependencyInjection
         services.Configure<CapitalUniversity.Core.Abstractions.CrossCutting.Caching.PermissionCacheOptions>(
             configuration.GetSection(CapitalUniversity.Core.Abstractions.CrossCutting.Caching.PermissionCacheOptions.SectionName));
 
-        // Register Caching
+        // Cache-stampede protection tunables (lock TTL, poll/wait bounds).
+        services.AddOptions<StampedeCacheOptions>()
+            .Bind(configuration.GetSection(StampedeCacheOptions.SectionName));
+
+        // Register Caching.
+        //
+        // The ICacheService surfaced to the app is always the stampede-protection
+        // wrapper. It delegates Get/Set/Remove to the inner transport (Redis or
+        // in-memory) and adds single-flight rebuilds to GetOrSetAsync via an
+        // IDistributedLock:
+        //   • Redis mode  → RedisDistributedLock coordinates across instances.
+        //   • Memory mode → InProcessDistributedLock single-flights in-process.
         if (configuration.GetValue<bool>("Redis:Enabled"))
         {
+            // One multiplexer, shared by the cache and the lock. AbortOnConnectFail
+            // = false so a Redis outage at startup doesn't crash the app — it
+            // reconnects in the background and the cache degrades gracefully.
+            var redisConfig = StackExchange.Redis.ConfigurationOptions.Parse(
+                configuration.GetConnectionString("Redis")
+                    ?? throw new InvalidOperationException("Redis connection string is not configured."));
+            redisConfig.AbortOnConnectFail = false;
+            var multiplexer = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConfig);
+
+            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(multiplexer);
             services.AddStackExchangeRedisCache(options =>
             {
-                options.Configuration = configuration.GetConnectionString("Redis");
+                options.ConnectionMultiplexerFactory =
+                    () => Task.FromResult<StackExchange.Redis.IConnectionMultiplexer>(multiplexer);
             });
-            services.AddScoped<ICacheService, RedisCacheService>();
+
+            services.AddScoped<RedisCacheService>();
+            services.AddScoped<IDistributedLock, RedisDistributedLock>();
+            services.AddScoped<ICacheService>(sp => new StampedeProtectedCacheService(
+                sp.GetRequiredService<RedisCacheService>(),
+                sp.GetRequiredService<IDistributedLock>(),
+                sp.GetRequiredService<IOptions<StampedeCacheOptions>>().Value,
+                sp.GetService<IAppLogger>()));
         }
         else
         {
             services.AddMemoryCache();
-            services.AddScoped<ICacheService, MemoryCacheService>();
+            services.AddSingleton<IDistributedLock, InProcessDistributedLock>();
+            services.AddScoped<MemoryCacheService>();
+            services.AddScoped<ICacheService>(sp => new StampedeProtectedCacheService(
+                sp.GetRequiredService<MemoryCacheService>(),
+                sp.GetRequiredService<IDistributedLock>(),
+                sp.GetRequiredService<IOptions<StampedeCacheOptions>>().Value,
+                sp.GetService<IAppLogger>()));
         }
+        // MongoDB.Driver 3.x removed the global GuidRepresentation. The audit/log metadata
+        // is a Dictionary<string,object> (with nested {Old,New} object pairs), so its values
+        // serialize through ObjectSerializer — whose GuidRepresentation defaults to
+        // Unspecified and throws on a boxed Guid, making AuditLogFlushWorker silently drop
+        // the entry. Register an ObjectSerializer (keeping the default allowed-type safety
+        // list) plus a Guid serializer, both Standard, once before the host serialises.
+        try
+        {
+            MongoDB.Bson.Serialization.BsonSerializer.RegisterSerializer(
+                new MongoDB.Bson.Serialization.Serializers.ObjectSerializer(
+                    MongoDB.Bson.Serialization.BsonSerializer.LookupDiscriminatorConvention(typeof(object)),
+                    MongoDB.Bson.GuidRepresentation.Standard,
+                    MongoDB.Bson.Serialization.Serializers.ObjectSerializer.DefaultAllowedTypes));
+        }
+        catch (MongoDB.Bson.BsonSerializationException) { /* already registered */ }
+        MongoDB.Bson.Serialization.BsonSerializer.TryRegisterSerializer(
+            new MongoDB.Bson.Serialization.Serializers.GuidSerializer(MongoDB.Bson.GuidRepresentation.Standard));
+
         services.Configure<MongoSettings>(configuration.GetSection("MongoSettings"));
 
         // 2. Register IMongoClient using the configured options
@@ -107,6 +161,8 @@ public static class DependencyInjection
         services.AddScoped<ISemesterRepository, SemesterRepository>();
         services.AddScoped<ICourseRepository, CourseRepository>();
         services.AddScoped<IAcademicPlanRepository, AcademicPlanRepository>();
+        // Roles intentionally use the CQRS command/query handlers (registered below),
+        // not a service+repository abstraction. No IRoleRepository by design.
         // IInvoiceRepository moved to Module.Payments — registered by AddPaymentsModule().
         // IStudentProfileRecordRepository moved to Module.Student — registered by AddStudentModule().
 
@@ -198,6 +254,7 @@ public static class DependencyInjection
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.CreateRoleCommandHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.UpdateRoleCommandHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.DeleteRoleCommandHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.SetRolePermissionsCommandHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRoleByIdQueryHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRolesQueryHandler>();
 
@@ -221,6 +278,18 @@ public static class DependencyInjection
                               CapitalUniversity.Core.Application.CrossCutting.Notifications.Authorization.NotificationsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.Courses.Authorization.CoursesPermissionManifest>();
+        // Admin / navigation surfaces — single-resource modules previously seeded
+        // without a manifest (forcing the seeder's CRUD-ladder fallback).
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.DashboardPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.UsersPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.StructurePermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.ProgramsPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SyncPermissionManifest>();
         // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
         // registered by AddPaymentsModule().
         // StudentInformationPermissionManifest moved to
@@ -266,6 +335,12 @@ public static class DependencyInjection
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();
+
+        // Sync write gateway — the single chokepoint sync modules use to write
+        // into Core's operational tables. Scoped so it shares the request-scoped
+        // CoreDbContext lifetime.
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Sync.ICoreWriteGateway,
+            CapitalUniversity.Core.Infrastructure.Sync.CoreWriteGateway>();
 
         return services;
     }

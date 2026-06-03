@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

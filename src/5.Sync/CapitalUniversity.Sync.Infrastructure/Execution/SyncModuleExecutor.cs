@@ -36,11 +36,25 @@ public sealed class SyncModuleExecutor
         _alertingHook = alertingHook;
     }
 
-    // Lock timeout intentionally short. Hangfire re-fetches a job after
-    // SlidingInvisibilityTimeout (5 min) and retry-launches it; if the original
-    // worker still holds the lock, the duplicate worker fails fast here and
-    // hands off to AutomaticRetry instead of blocking a worker thread.
-    [PerModuleDisableConcurrency(timeoutSeconds: 30)]
+    // Lock timeout intentionally tiny. The filter now SKIPS (no-throw, no retry)
+    // when the lock is held — see PerModuleDisableConcurrencyAttribute's class
+    // doc. A 1-second wait handles the racy "two cron-fired workers arrive within
+    // the same poll interval" case; anything longer would just block worker
+    // threads on a doomed-retry storm under sustained load.
+    //
+    // Retry layers stacked here (see SyncPipelineOptions.PerBatchWriterRetryAttempts):
+    //   1. Sink push: no retry inside one call.
+    //   2. Pipeline per-batch writer retry: 0 attempts by default (operator opt-in).
+    //   3. Hangfire AutomaticRetry: 4 attempts with 60/300/900/3600s backoff.
+    //   4. Outbox row AttemptCount → Failed at MaxAttempts (5) across ticks.
+    //   5. Cron tick: every minute (staggered 0–50s per-(module,direction)).
+    //
+    // Worst-case sink-call fanout per row before poison:
+    //   (1 + PerBatchWriterRetryAttempts) × 4 (Hangfire) × ceil(MaxAttempts / 4)
+    //   With defaults: 1 × 4 × 2 = ~8 calls per failing row before Failed state.
+    //   Each call passes the same idempotency key, so the external system sees
+    //   AT MOST one side effect regardless of fanout (see IExternalStudentSink).
+    [PerModuleDisableConcurrency(timeoutSeconds: 1)]
     [AutomaticRetry(
         Attempts = 4,
         DelaysInSeconds = new[] { 60, 300, 900, 3600 },
@@ -89,6 +103,22 @@ public sealed class SyncModuleExecutor
             }, cancellationToken),
             metadata.CorrelationId,
             "OpenRun(self-heal)").ConfigureAwait(false);
+
+        // Race-defence on the dispatcher → executor link. The dispatcher writes
+        // HangfireJobId in step (3) AFTER the Hangfire enqueue returns, but a
+        // worker may already have dequeued and started executing in that
+        // window — and a dispatcher process crash between step (2) and (3)
+        // would leave HangfireJobId NULL forever (the row is no longer in
+        // status Enqueued for the orphan reaper to find). Writing the JobId
+        // defensively here closes that gap. LinkHangfireJobAsync is idempotent
+        // on the same id, so a successful dispatcher step (3) makes this a no-op.
+        if (!string.IsNullOrEmpty(hangfireJobId))
+        {
+            await UpdateRunAsync(
+                r => r.LinkHangfireJobAsync(metadata.CorrelationId, hangfireJobId!, cancellationToken),
+                metadata.CorrelationId,
+                "LinkHangfireJob(self-heal)").ConfigureAwait(false);
+        }
 
         await UpdateRunAsync(
             r => r.MarkStartedAsync(metadata.CorrelationId, attempt, startedAt, cancellationToken),

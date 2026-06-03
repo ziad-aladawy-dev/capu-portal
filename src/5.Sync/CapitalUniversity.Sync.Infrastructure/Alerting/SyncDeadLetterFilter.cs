@@ -21,6 +21,17 @@ namespace CapitalUniversity.Sync.Infrastructure.Alerting;
 /// implement retry or scheduling — it only observes Hangfire's terminal state.
 ///
 /// <para>
+/// <b>Idempotency contract.</b> Exactly one dead-letter row exists per Hangfire job.
+/// The guarantee is anchored to the unique index <c>IX_dead_letters_HangfireJobId</c>
+/// at the database, not to any in-process check: a duplicate INSERT (Hangfire's
+/// double-FailedState artifact, two workers racing to mark the same job
+/// terminal, etc.) is rejected by the database, surfaces as
+/// <see cref="DbUpdateException"/> with a unique-violation inner exception
+/// (SQL Server 2601/2627), and is treated by this filter as the idempotency
+/// signal — the audit row is already there with the winner's metadata.
+/// </para>
+///
+/// <para>
 /// Audit writes use <see cref="SyncDbContext"/> directly with synchronous EF
 /// Core methods (<c>SaveChanges</c>, <c>FirstOrDefault</c>) — Hangfire calls
 /// the filter on a worker thread synchronously, so no async-over-sync bridge
@@ -87,32 +98,45 @@ public sealed class SyncDeadLetterFilter : JobFilterAttribute, IApplyStateFilter
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<SyncDbContext>();
 
-            // 1. Idempotent dead-letter row insert (HangfireJobId unique).
-            var alreadyDeadLettered = db.DeadLetters.AsNoTracking()
-                .Any(d => d.HangfireJobId == hangfireJobId);
-            if (!alreadyDeadLettered)
+            // 1. One dead-letter row per Hangfire job. The unique index
+            //    IX_dead_letters_HangfireJobId (added by migration
+            //    20260601133451_AddUniqueIndexOnDeadLetterHangfireJobId) is the
+            //    authoritative race-stopper: when Hangfire double-applies
+            //    FailedState or two workers race to terminate the same job, the
+            //    DB rejects the second INSERT and we observe a unique-constraint
+            //    DbUpdateException — that is the idempotency signal, not an
+            //    error. We do NOT pre-check with a SELECT: an unindexed exists
+            //    query cannot close the race (both readers see "absent", both
+            //    insert, both succeed without the constraint). Leaning on the
+            //    constraint also saves one round-trip per terminal transition.
+            db.DeadLetters.Add(new SyncDeadLetterEntity
             {
-                db.DeadLetters.Add(new SyncDeadLetterEntity
-                {
-                    CorrelationId = metadata.CorrelationId,
-                    HangfireJobId = hangfireJobId,
-                    ModuleName = moduleName,
-                    Direction = direction,
-                    AttemptedCount = attemptedCount,
-                    TerminalAt = DateTimeOffset.UtcNow,
-                    LastError = TextHelpers.Truncate(lastError, 4000)
-                });
+                CorrelationId = metadata.CorrelationId,
+                HangfireJobId = hangfireJobId,
+                ModuleName = moduleName,
+                Direction = direction,
+                AttemptedCount = attemptedCount,
+                TerminalAt = DateTimeOffset.UtcNow,
+                LastError = TextHelpers.Truncate(lastError, 4000)
+            });
 
-                try
-                {
-                    db.SaveChanges();
-                }
-                catch (DbUpdateException dupEx)
-                {
-                    _logger.LogInformation(metadata.CorrelationId,
-                        "Dead-letter row insert raced (unique-constraint violation). Treating as success. Error={Error}",
-                        dupEx.Message);
-                }
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateException dupEx) when (IsUniqueConstraintViolation(dupEx))
+            {
+                // Lost the race — a peer worker already recorded the
+                // dead-letter for this job. The audit row is already present
+                // with the winner's metadata; nothing more to do here.
+                _logger.LogInformation(metadata.CorrelationId,
+                    "Dead-letter row already recorded by a concurrent worker (unique-constraint enforced). JobId={JobId}",
+                    hangfireJobId);
+
+                // Detach the rejected entity so the same DbContext can still
+                // commit the run-state transition below without re-attempting
+                // the failed insert.
+                db.ChangeTracker.Clear();
             }
 
             // 2. Mark the run DeadLettered (Running → DeadLettered only; guards
@@ -199,4 +223,39 @@ public sealed class SyncDeadLetterFilter : JobFilterAttribute, IApplyStateFilter
         return 1;
     }
 
+    /// <summary>
+    /// Inspects a <see cref="DbUpdateException"/> for the unique-constraint
+    /// violation that signals a peer worker has already recorded the dead-letter.
+    /// SQL Server raises 2601 (duplicate key in a unique index) or 2627 (unique
+    /// constraint violation); both are inspected via reflection because EF Core
+    /// hides the provider type behind <c>DbUpdateException.InnerException</c>
+    /// and we don't want a hard reference to Microsoft.Data.SqlClient here.
+    /// Returns true on either code. Returns true for relational providers that
+    /// surface generic unique-violation strings too, so SQLite-backed tests
+    /// observe the same idempotency path as production SQL Server.
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        for (var inner = ex.InnerException; inner is not null; inner = inner.InnerException)
+        {
+            // SQL Server: SqlException.Number ∈ {2601, 2627}
+            var numberProp = inner.GetType().GetProperty("Number");
+            if (numberProp?.GetValue(inner) is int code && (code == 2601 || code == 2627))
+            {
+                return true;
+            }
+
+            // SQLite / other relational providers expose the violation through
+            // the message text (no portable typed property exists).
+            var message = inner.Message;
+            if (!string.IsNullOrEmpty(message) &&
+                (message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase) ||
+                 message.Contains("IX_dead_letters_HangfireJobId", StringComparison.OrdinalIgnoreCase) ||
+                 message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

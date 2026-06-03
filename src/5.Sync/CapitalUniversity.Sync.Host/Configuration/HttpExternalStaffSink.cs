@@ -8,9 +8,13 @@ namespace CapitalUniversity.Sync.Host.Configuration;
 
 /// <summary>
 /// Phase X.2 fix #3 — Staff sink counterpart to <see cref="HttpExternalStudentSink"/>.
+/// Forwards the outbox row's stable Guid as the standard <c>Idempotency-Key</c>
+/// HTTP header — see <see cref="HttpExternalStudentSink"/> for the rationale.
 /// </summary>
 public sealed class HttpExternalStaffSink : IExternalStaffSink
 {
+    private const string IdempotencyKeyHeader = "Idempotency-Key";
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpExternalStaffSink> _logger;
 
@@ -20,25 +24,30 @@ public sealed class HttpExternalStaffSink : IExternalStaffSink
         _logger = logger;
     }
 
-    public async Task PushAsync(ExternalStaff payload, CancellationToken cancellationToken)
+    public async Task PushAsync(ExternalStaff payload, string idempotencyKey, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(payload);
+        ArgumentException.ThrowIfNullOrWhiteSpace(idempotencyKey);
 
-        var response = await _httpClient.PutAsJsonAsync(
-            $"staff/{Uri.EscapeDataString(payload.ExternalStaffId)}",
-            payload,
-            cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"staff/{Uri.EscapeDataString(payload.ExternalStaffId)}")
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.Add(IdempotencyKeyHeader, idempotencyKey);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogWarning(
-                "HttpExternalStaffSink rejection. ExternalStaffId={Id} Status={Status} Body={Body}",
-                payload.ExternalStaffId, (int)response.StatusCode, TextHelpers.Truncate(body, 500));
+                "HttpExternalStaffSink rejection. ExternalStaffId={Id} IdempotencyKey={Key} Status={Status} Body={Body}",
+                payload.ExternalStaffId, idempotencyKey, (int)response.StatusCode, TextHelpers.Truncate(body, 500));
 
             throw new InvalidOperationException(
                 $"HTTP push rejected for ExternalStaffId={payload.ExternalStaffId}: {(int)response.StatusCode} {response.ReasonPhrase}");
         }
     }
-
 }
