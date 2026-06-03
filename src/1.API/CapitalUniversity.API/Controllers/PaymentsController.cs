@@ -2,6 +2,7 @@ using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
@@ -44,4 +45,55 @@ public class PaymentsController : ControllerBase
         var result = await _service.SearchAsync(query, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Webhook to receive payment updates from the university vault / bank.
+    /// In a real scenario, this would verify a signature (e.g. HMAC) from the bank.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("webhook")]
+    public async Task<IActionResult> PaymentWebhook([FromBody] PaymentWebhookPayload payload, CancellationToken cancellationToken)
+    {
+        // 1. Verify webhook signature (stubbed for demonstration)
+        if (string.IsNullOrEmpty(payload.TransactionId) || payload.InvoiceId == Guid.Empty)
+        {
+            return BadRequest(new { Message = "Invalid webhook payload" });
+        }
+
+        // Map status string to enum (basic mapping)
+        var status = payload.Status.ToLower() == "succeeded" 
+            ? PaymentTransactionStatus.Succeeded 
+            : PaymentTransactionStatus.Pending;
+
+        // 2. Record the payment to update the invoice and transaction history
+        var request = new RecordPaymentRequest
+        {
+            InvoiceId = payload.InvoiceId,
+            Amount = payload.Amount,
+            Provider = payload.Provider ?? "BankVault",
+            ProviderTransactionId = payload.TransactionId,
+            Status = status,
+            IdempotencyKey = payload.TransactionId,
+            RawPayloadJson = "{\"source\": \"webhook\"}"
+        };
+
+        try
+        {
+            await _service.RecordAsync(request, cancellationToken);
+            return Ok(new { Message = "Webhook processed successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+}
+
+public class PaymentWebhookPayload
+{
+    public Guid InvoiceId { get; set; }
+    public string TransactionId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Provider { get; set; } = string.Empty;
 }

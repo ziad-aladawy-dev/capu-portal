@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifes
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Queries;

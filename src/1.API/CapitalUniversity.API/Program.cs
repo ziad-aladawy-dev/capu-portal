@@ -150,13 +150,8 @@ using (var scope = app.Services.CreateScope())
 
     await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
-<<<<<<< Updated upstream
     await IdentitySeeder.SeedAsync(db);
-=======
-    await IdentitySeeder.SeedAsync(db, passwordHasher);
     await PaymentsSeeder.SeedAsync(db);
-    await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
->>>>>>> Stashed changes
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
     // every module owns its permissions through IPermissionManifest, and the

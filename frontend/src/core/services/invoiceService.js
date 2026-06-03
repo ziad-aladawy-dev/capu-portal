@@ -39,3 +39,8 @@ export async function cancelInvoice(id, reason) {
   const { data } = await api.post(`/invoices/${id}/cancel`, { reason });
   return data;
 }
+
+export async function searchInvoices(params = {}) {
+  const { data } = await api.get("/invoices", { params });
+  return data;
+}
