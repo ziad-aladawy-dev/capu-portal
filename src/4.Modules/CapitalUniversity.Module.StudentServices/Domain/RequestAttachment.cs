@@ -6,6 +6,7 @@ public class RequestAttachment : BaseEntity
 {
     public Guid StudentRequestId { get; set; }
     public StudentRequest StudentRequest { get; set; } = null!;
+
     public string StepKey { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;

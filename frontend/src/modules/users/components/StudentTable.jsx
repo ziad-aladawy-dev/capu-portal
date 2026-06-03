@@ -1,22 +1,55 @@
-import React from 'react';
+import { useRef, useEffect } from 'react';
 import { Eye, Edit3 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import '../styles/UserTable.css';
 
-const StudentTable = ({ 
-  students, 
-  loading, 
-  error, 
-  pagination, 
+const StudentTable = ({
+  students,
+  loading,
+  error,
+  pagination,
   onPageChange,
   onViewDetails,
-  onEdit
+  onEdit,
+  selectedIds,
+  onSelectionChange,
 }) => {
-  const { t } = useTranslation();
+  const selectAllRef = useRef(null);
 
-  if (loading) return <div className="table-container loading-state">{t("loading")}...</div>;
-  if (error) return <div className="table-container error-state">{t("error")}: {error}</div>;
-  if (!students || students.length === 0) return <div className="table-container"><div className="empty-state">{t("no_data")}</div></div>;
+  const allVisible = students.length > 0 && students.every((s) => selectedIds.has(s.id));
+  const someVisible = students.some((s) => selectedIds.has(s.id));
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someVisible && !allVisible;
+    }
+  }, [allVisible, someVisible]);
+
+  if (loading) return <div className="table-container loading-state">Loading students...</div>;
+  if (error) return <div className="table-container error-state">Error: {error}</div>;
+  if (!students || students.length === 0) return <div className="table-container"><div className="empty-state">No students found</div></div>;
+
+  const handleSelectAll = () => {
+    const allVisibleSelected = students.every((s) => selectedIds.has(s.id));
+    if (allVisibleSelected) {
+      const newSet = new Set(selectedIds);
+      students.forEach((s) => newSet.delete(s.id));
+      onSelectionChange(newSet);
+    } else {
+      const newSet = new Set(selectedIds);
+      students.forEach((s) => newSet.add(s.id));
+      onSelectionChange(newSet);
+    }
+  };
+
+  const handleRowSelect = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    onSelectionChange(newSet);
+  };
 
   const getPageNumbers = () => {
     const delta = 2;
@@ -46,41 +79,58 @@ const StudentTable = ({
       <table className="users-table">
         <thead>
           <tr>
+            <th className="bulk-check-cell">
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                className="bulk-checkbox"
+                checked={allVisible && students.length > 0}
+                onChange={handleSelectAll}
+              />
+            </th>
             <th>#</th>
-            <th>{t("student_code")}</th>
-            <th>{t("national_id")}</th>
-            <th>{t("full_name")}</th>
-            <th>{t("email")}</th>
-            <th>{t("status")}</th>
-            <th>{t("password_status")}</th>
-            <th>{t("actions")}</th>
+            <th>Student Code</th>
+            <th>National ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Password</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {students.map((student, idx) => (
-            <tr key={student.id}>
+            <tr key={student.id} className={selectedIds.has(student.id) ? 'selected-row' : ''}>
+              <td className="bulk-check-cell">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={selectedIds.has(student.id)}
+                  onChange={() => handleRowSelect(student.id)}
+                />
+              </td>
               <td>{((pagination.pageNumber - 1) * pagination.pageSize) + idx + 1}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{student.studentCode}</td>
               <td style={{ fontFamily: 'Space Mono, monospace' }}>{student.nationalId}</td>
-              <td>{student.localizedName || student.name}</td>
+              <td>{student.name}</td>
               <td>{student.email}</td>
               <td>
                 <span className={`status-badge ${student.isActive ? 'status-active' : 'status-inactive'}`}>
                   <span className="status-dot"></span>
-                  {student.isActive ? t('active') : t('inactive')}
+                  {student.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
               <td>
                 <span className={`password-badge ${student.passwordStatus === 'Expired' ? 'password-expired' : 'password-valid'}`}>
-                  {student.passwordStatus === 'Expired' ? t('expired') : t('valid')}
+                  {student.passwordStatus || 'Valid'}
                 </span>
               </td>
               <td>
                 <div className="action-buttons">
-                  <button className="action-btn info-btn" onClick={() => onViewDetails(student.id)} title={t("view_details")}>
+                  <button className="action-btn info-btn" onClick={() => onViewDetails(student.id)} title="View Details">
                     <Eye size={16} />
                   </button>
-                  <button className="action-btn edit-btn" onClick={() => onEdit(student.id)} title={t("edit")}>
+                  <button className="action-btn edit-btn" onClick={() => onEdit(student.id)} title="Edit">
                     <Edit3 size={16} />
                   </button>
                 </div>

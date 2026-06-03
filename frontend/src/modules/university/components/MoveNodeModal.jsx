@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
-import { canMoveToParent } from "../utils/nodeTypeHelpers";
+import {canMoveToParent } from "../utils/nodeTypeHelpers";
 
 const getNodePath = (node, allNodesMap) => {
   const parts = [];
   let current = node;
   while (current) {
-    const displayName = current.localizedName || current.name;
-    parts.unshift(displayName);
+    parts.unshift(current.name);
     if (current.parentId && allNodesMap.get(current.parentId)) {
       current = allNodesMap.get(current.parentId);
     } else {
@@ -20,7 +18,6 @@ const getNodePath = (node, allNodesMap) => {
 };
 
 export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
-  const { t } = useTranslation();
   const [targetParentId, setTargetParentId] = useState("");
   const [order, setOrder] = useState(0);
   const [parentOptions, setParentOptions] = useState([]);
@@ -60,7 +57,7 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
           if (canMoveToParent(currentNode.type, null)) {
             options.push({ 
               id: "", 
-              label: t("root_no_parent")
+              label: "-- Root (No Parent) --"
             });
           }
 
@@ -84,7 +81,7 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
         })
         .finally(() => setLoading(false));
     }
-  }, [isOpen, currentNode, t]);
+  }, [isOpen, currentNode]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -95,13 +92,11 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
 
   if (!isOpen) return null;
 
-  const currentNodeName = currentNode?.localizedName || currentNode?.name;
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{t("move_node")} {currentNodeName}</h3>
+          <h3>Move Node: {currentNode?.name}</h3>
           <button className="modal-close" onClick={onClose}>
             <X size={18} />
           </button>
@@ -109,9 +104,9 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
-              <label>{t("new_parent_optional")}</label>
+              <label>New Parent (optional)</label>
               {loading ? (
-                <div>{t("loading")}...</div>
+                <div>Loading structure...</div>
               ) : (
                 <select
                   value={targetParentId}
@@ -125,12 +120,12 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
                 </select>
               )}
               {parentOptions.length === 0 && !loading && (
-                <div className="error-message">{t("no_valid_parents")}</div>
+                <div className="error-message">No valid parents available for this node.</div>
               )}
-              <small className="input-hint">{t("only_allowed_parents")}</small>
+              <small className="input-hint">Only allowed parents are shown based on structure rules.</small>
             </div>
             <div className="form-group">
-              <label>{t("order")}</label>
+              <label>Order</label>
               <input
                 type="number"
                 value={order}
@@ -141,10 +136,10 @@ export function MoveNodeModal({ isOpen, onClose, onMove, currentNode }) {
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose}>
-              {t("cancel")}
+              Cancel
             </button>
             <button type="submit" className="btn-primary">
-              {t("move")}
+              Move
             </button>
           </div>
         </form>

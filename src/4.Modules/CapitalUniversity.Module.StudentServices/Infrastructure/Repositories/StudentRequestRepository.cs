@@ -17,98 +17,71 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<StudentRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
-            .Include(x => x.Service)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .Include(r => r.Service)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<StudentRequest?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
-            .Include(x => x.Service)
+            .Include(r => r.Service)
                 .ThenInclude(s => s.Workflow)
                     .ThenInclude(w => w.Steps)
-                        .ThenInclude(ws => ws.AvailableActions)
-            .Include(x => x.HistoryEntries)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+                        .ThenInclude(step => step.Fields)
+            .Include(r => r.HistoryEntries)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<List<StudentRequest>> GetByStudentIdAsync(Guid studentId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
-            .Where(x => x.StudentId == studentId)
-            .Include(x => x.Service)
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-    public async Task<List<StudentRequest>> GetByStatusAsync(RequestStatus status, CancellationToken cancellationToken = default)
-        => await _context.StudentRequests
-            .Where(x => x.Status == status)
-            .Include(x => x.Service)
+            .Where(r => r.StudentId == studentId)
+            .Include(r => r.Service)
+            .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
     public async Task<List<StudentRequest>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
-            .Where(x => x.AssignedToStaffId == staffId)
-            .Include(x => x.Service)
-            .OrderByDescending(x => x.AssignedAt)
+            .Where(r => r.AssignedToStaffId == staffId)
+            .Include(r => r.Service)
+            .OrderByDescending(r => r.AssignedAt)
             .ToListAsync(cancellationToken);
 
-    public async Task<PagedResult<StudentRequest>> GetPagedAsync(StudentRequestFilter filter, CancellationToken cancellationToken = default)
-    {
-        var query = _context.StudentRequests
-            .Include(x => x.Service)
-            .Include(x => x.HistoryEntries)
-            .AsQueryable();
-
-        if (filter.StudentId.HasValue) query = query.Where(x => x.StudentId == filter.StudentId.Value);
-        if (filter.ServiceId.HasValue) query = query.Where(x => x.ServiceId == filter.ServiceId.Value);
-        if (filter.Status.HasValue) query = query.Where(x => x.Status == filter.Status.Value);
-        if (filter.PaymentStatus.HasValue) query = query.Where(x => x.PaymentStatus == filter.PaymentStatus.Value);
-        if (filter.AssignedToStaffId.HasValue) query = query.Where(x => x.AssignedToStaffId == filter.AssignedToStaffId.Value);
-        if (filter.FromDate.HasValue) query = query.Where(x => x.CreatedAt >= filter.FromDate.Value);
-        if (filter.ToDate.HasValue) query = query.Where(x => x.CreatedAt <= filter.ToDate.Value);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(x => x.CreatedAt)
-            .Skip((filter.Page - 1) * filter.PageSize)
-            .Take(filter.PageSize)
+    public async Task<List<StudentRequest>> GetAllForStaffAsync(CancellationToken cancellationToken = default)
+        => await _context.StudentRequests
+            .Include(r => r.Service)
+            .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
-
-        return new PagedResult<StudentRequest>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = filter.Page,
-            PageSize = filter.PageSize
-        };
-    }
 
     public async Task AddAsync(StudentRequest request, CancellationToken cancellationToken = default)
         => await _context.StudentRequests.AddAsync(request, cancellationToken);
 
     public void Update(StudentRequest request) => _context.StudentRequests.Update(request);
     public void Delete(StudentRequest request) => _context.StudentRequests.Remove(request);
-
-    public async Task<int> CountByServiceAndStatusAsync(Guid serviceId, RequestStatus status, CancellationToken cancellationToken = default)
-        => await _context.StudentRequests.CountAsync(x => x.ServiceId == serviceId && x.Status == status, cancellationToken);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        => await _context.SaveChangesAsync(cancellationToken);
 
     public async Task<RequestCountsDto> GetRequestCountsByStatusAsync(CancellationToken cancellationToken = default)
     {
-        var counts = await _context.StudentRequests
+        var groups = await _context.StudentRequests
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(k => k.Status, v => v.Count, cancellationToken);
-
-        return MapCounts(counts);
+            .ToListAsync(cancellationToken);
+        var dict = groups.ToDictionary(x => x.Status, x => x.Count);
+        return MapCounts(dict);
     }
 
     public async Task<RequestCountsDto> GetRequestCountsByStatusForStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
-        var counts = await _context.StudentRequests
+        var groups = await _context.StudentRequests
             .Where(r => r.StudentId == studentId)
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(k => k.Status, v => v.Count, cancellationToken);
-
-        return MapCounts(counts);
+            .ToListAsync(cancellationToken);
+        var dict = groups.ToDictionary(x => x.Status, x => x.Count);
+        return MapCounts(dict);
     }
+
+    public async Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
+        => await _context.StudentRequests
+            .Where(r => r.PaymentStatus == PaymentStatus.Paid && r.AmountPaid.HasValue)
+            .SumAsync(r => r.AmountPaid ?? 0, cancellationToken);
 
     private static RequestCountsDto MapCounts(Dictionary<RequestStatus, int> counts)
     {
@@ -126,14 +99,4 @@ public class StudentRequestRepository : IStudentRequestRepository
             ReadyForPickup = counts.GetValueOrDefault(RequestStatus.ReadyForPickup)
         };
     }
-
-    public async Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.StudentRequests
-            .Where(r => r.PaymentStatus == PaymentStatus.Paid && r.AmountPaid.HasValue)
-            .SumAsync(r => r.AmountPaid ?? 0, cancellationToken);
-    }
-
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        => await _context.SaveChangesAsync(cancellationToken);
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { X, ChevronRight, ChevronDown, Building2, GraduationCap, Layers, BookOpen, Award } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
 import "../styles/scopeModal.css";
@@ -14,23 +13,11 @@ const typeIcons = {
   Specialization: Award,
 };
 
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
-};
-
 function TreeNode({ node, onSelect, selectedId, level = 0 }) {
-  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(level < 1);
   const hasChildren = node.children && node.children.length > 0;
   const Icon = typeIcons[node.type] || Building2;
   const isSelected = selectedId === node.id;
-  const displayName = node.localizedName || getLocalizedText(node.name, i18n.language);
 
   return (
     <div className="scope-tree-node">
@@ -51,8 +38,10 @@ function TreeNode({ node, onSelect, selectedId, level = 0 }) {
           </button>
         )}
         {!hasChildren && <span className="scope-tree-placeholder" />}
-        <div className="scope-tree-icon"><Icon size={14} /></div>
-        <span className="scope-tree-name">{displayName}</span>
+        <div className="scope-tree-icon">
+          <Icon size={14} />
+        </div>
+        <span className="scope-tree-name">{node.name}</span>
         <span className="scope-tree-type">{node.type}</span>
       </div>
       {hasChildren && open && (
@@ -73,40 +62,23 @@ function TreeNode({ node, onSelect, selectedId, level = 0 }) {
 }
 
 export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
-  const { t, i18n } = useTranslation();
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(initialScopeId);
 
-  const fetchTreeData = async () => {
-    setLoading(true);
-    try {
-      const data = await universityStructureService.getTree();
-      setTree(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
-      fetchTreeData();
+      setLoading(true);
+      universityStructureService.getTree()
+        .then(setTree)
+        .catch(console.error)
+        .finally(() => setLoading(false));
     }
-  }, [isOpen, i18n.language]);
+  }, [isOpen]);
 
   const handleSelect = (node) => {
     setSelectedId(node.id);
-    const localizedName = node.localizedName || getLocalizedText(node.name, i18n.language);
-    onSelect({
-      id: node.id,
-      name: node.name,
-      originalName: node.name,
-      localizedName: localizedName,
-      type: node.type,
-      path: node.path,
-    });
+    onSelect(node);
     onClose();
   };
 
@@ -116,18 +88,20 @@ export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
     <div className="scope-modal-overlay" onClick={onClose}>
       <div className="scope-modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="scope-modal-header">
-          <h3>{t("select_scope")}</h3>
-          <button className="scope-modal-close" onClick={onClose}><X size={18} /></button>
+          <h3>Select Scope</h3>
+          <button className="scope-modal-close" onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
         <div className="scope-modal-body">
           {loading ? (
-            <div className="scope-loading">{t("loading")}...</div>
+            <div className="scope-loading">Loading structure...</div>
           ) : tree.length === 0 ? (
-            <div className="scope-empty">{t("no_structure")}</div>
+            <div className="scope-empty">No structure available</div>
           ) : (
             tree.map((root) => (
               <TreeNode
-                key={`${root.id}-${i18n.language}`}
+                key={root.id}
                 node={root}
                 onSelect={handleSelect}
                 selectedId={selectedId}

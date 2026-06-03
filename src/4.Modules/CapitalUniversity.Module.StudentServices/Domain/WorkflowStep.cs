@@ -7,13 +7,13 @@ public class WorkflowStep : BaseEntity
 {
     public Guid WorkflowId { get; set; }
     public Workflow Workflow { get; set; } = null!;
-    public int Order { get; set; }
-    public string StepKey { get; set; } = string.Empty;
+
+    public int Order { get; set; } 
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public StepInputType InputType { get; set; }
-    public bool IsRequired { get; set; }
-    public string? ValidationRules { get; set; }
+    public WorkflowStepType StepType { get; set; } = WorkflowStepType.Form;
 
-    public ICollection<WorkflowStepAction> AvailableActions { get; set; } = new List<WorkflowStepAction>();
+    public bool IsRequired { get; set; } = true;
+
+    public ICollection<WorkflowStepField> Fields { get; set; } = new List<WorkflowStepField>();
 }

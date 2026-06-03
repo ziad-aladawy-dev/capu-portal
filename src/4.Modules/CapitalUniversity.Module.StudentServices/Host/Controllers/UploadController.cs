@@ -1,12 +1,10 @@
-﻿using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Module.StudentServices.Abstractions.Services;
+﻿using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Domain;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.InteropServices;
 
 namespace CapitalUniversity.Module.StudentServices.Host.Controllers;
 

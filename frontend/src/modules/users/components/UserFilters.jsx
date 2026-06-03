@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { Search, Filter, X } from "lucide-react";
 
 const UserFilters = ({ 
   filters, 
   roles, 
-  faculties, 
-  departments, 
+  faculties,
+  programs,
   levels,
   activeTab,
   onFilterChange, 
   onFetchPrograms,
   onFetchLevels
 }) => {
-  const { t } = useTranslation();
   const [localFilters, setLocalFilters] = useState({
     search: "",
     isActive: "",
@@ -86,10 +84,6 @@ const UserFilters = ({
     onFilterChange({ ...filters, search: "" });
   };
 
-  const getLocalizedName = (item) => {
-    return item?.localizedName || item?.name || "";
-  };
-
   return (
     <section className="users-filter-card">
       <div className="users-filter-row">
@@ -101,7 +95,7 @@ const UserFilters = ({
             value={localFilters.search}
             onChange={handleChange}
             onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-            placeholder={t("search_placeholder") || "Search by name, email, or national ID..."}
+            placeholder="Search by name, email, or national ID..."
           />
           {localFilters.search && (
             <button type="button" className="users-clear-search" onClick={clearSearch}>
@@ -110,10 +104,10 @@ const UserFilters = ({
           )}
         </div>
         <button type="button" className="users-filter-btn primary" onClick={applyFilters}>
-          {t("search")}
+          Search
         </button>
         <button type="button" className="users-filter-btn soft" onClick={() => setShowAdvanced(!showAdvanced)}>
-          <Filter size={16} /> {t("advanced")}
+          <Filter size={16} /> Advanced
         </button>
       </div>
 
@@ -121,49 +115,43 @@ const UserFilters = ({
         <div className="users-advanced-panel">
           <div className="users-filter-grid">
             <div className="users-filter-field">
-              <label>{t("status")}</label>
+              <label>Status</label>
               <select name="isActive" value={localFilters.isActive} onChange={handleChange}>
-                <option value="">{t("all")}</option>
-                <option value="true">{t("active")}</option>
-                <option value="false">{t("inactive")}</option>
+                <option value="">All</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
               </select>
             </div>
             <div className="users-filter-field">
-              <label>{t("password_status")}</label>
+              <label>Password Status</label>
               <select name="passwordExpired" value={localFilters.passwordExpired} onChange={handleChange}>
-                <option value="">{t("all")}</option>
-                <option value="false">{t("valid")}</option>
-                <option value="true">{t("expired")}</option>
+                <option value="">All</option>
+                <option value="false">Valid</option>
+                <option value="true">Expired</option>
               </select>
             </div>
 
             {activeTab === 'students' && (
               <>
                 <div className="users-filter-field">
-                  <label>{t("faculty")}</label>
+                  <label>Faculty</label>
                   <select name="facultyId" value={localFilters.facultyId} onChange={handleChange}>
-                    <option value="">{t("all_faculties")}</option>
-                    {faculties.map(f => (
-                      <option key={f.id} value={f.id}>{getLocalizedName(f)}</option>
-                    ))}
+                    <option value="">All Faculties</option>
+                    {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
                 <div className="users-filter-field">
-                  <label>{t("program")}</label>
+                  <label>Program</label>
                   <select name="programId" value={localFilters.programId} onChange={handleChange} disabled={!localFilters.facultyId}>
-                    <option value="">{t("all_programs")}</option>
-                    {departments.map(p => (
-                      <option key={p.id} value={p.id}>{getLocalizedName(p)}</option>
-                    ))}
+                    <option value="">All Programs</option>
+                    {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="users-filter-field">
-                  <label>{t("level")}</label>
+                  <label>Level</label>
                   <select name="levelId" value={localFilters.levelId} onChange={handleChange} disabled={!localFilters.programId}>
-                    <option value="">{t("all_levels")}</option>
-                    {levels.map(l => (
-                      <option key={l.id} value={l.id}>{getLocalizedName(l)}</option>
-                    ))}
+                    <option value="">All Levels</option>
+                    {levels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
               </>
@@ -172,34 +160,28 @@ const UserFilters = ({
             {activeTab === 'staff' && (
               <>
                 <div className="users-filter-field">
-                  <label>{t("role")}</label>
+                  <label>Role</label>
                   <select name="role" value={localFilters.role} onChange={handleChange}>
-                    <option value="">{t("all_roles")}</option>
-                    {roles.map(r => (
-                      <option key={r.id} value={r.id}>{getLocalizedName(r)}</option>
-                    ))}
+                    <option value="">All Roles</option>
+                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </div>
                 <div className="users-filter-field">
-                  <label>{t("job_title")}</label>
+                  <label>Job Title</label>
                   <input
                     type="text"
                     name="jobTitle"
                     value={localFilters.jobTitle}
                     onChange={handleChange}
-                    placeholder={t("job_title_placeholder") || "e.g., Head of Department"}
+                    placeholder="e.g., Head of Department"
                   />
                 </div>
               </>
             )}
           </div>
           <div className="users-filter-actions">
-            <button type="button" className="users-filter-btn soft" onClick={resetFilters}>
-              {t("reset")}
-            </button>
-            <button type="button" className="users-filter-btn gold" onClick={applyFilters}>
-              {t("apply_filters")}
-            </button>
+            <button type="button" className="users-filter-btn soft" onClick={resetFilters}>Reset</button>
+            <button type="button" className="users-filter-btn gold" onClick={applyFilters}>Apply Filters</button>
           </div>
         </div>
       )}

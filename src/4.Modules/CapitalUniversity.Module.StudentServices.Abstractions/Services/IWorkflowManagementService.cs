@@ -1,12 +1,11 @@
 ﻿using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
-using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 
 namespace CapitalUniversity.Module.StudentServices.Abstractions.Services;
 
 public interface IWorkflowManagementService
 {
-    Task<IWorkflowDefinition> GetWorkflowAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<IWorkflowDefinition>> GetAllWorkflowsAsync(CancellationToken cancellationToken = default);
+    Task<WorkflowDto> GetWorkflowAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<List<WorkflowDto>> GetAllWorkflowsAsync(CancellationToken cancellationToken = default);
     Task<Guid> CreateWorkflowAsync(CreateWorkflowDto dto, CancellationToken cancellationToken = default);
     Task UpdateWorkflowAsync(Guid id, UpdateWorkflowDto dto, CancellationToken cancellationToken = default);
     Task DeleteWorkflowAsync(Guid id, CancellationToken cancellationToken = default);

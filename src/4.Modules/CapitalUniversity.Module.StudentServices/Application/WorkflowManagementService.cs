@@ -1,143 +1,166 @@
 ﻿using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
-using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Domain;
-using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Repositories;
+using System.Text.Json;
 
 namespace CapitalUniversity.Module.StudentServices.Application;
 
 public class WorkflowManagementService : IWorkflowManagementService
 {
-    private readonly StudentServicesDbContext _context;
+    private readonly IWorkflowRepository _workflowRepository;
+    private readonly IServiceRepository _serviceRepository;
 
-    public WorkflowManagementService(StudentServicesDbContext context)
+    public WorkflowManagementService(
+        IWorkflowRepository workflowRepository,
+        IServiceRepository serviceRepository)
     {
-        _context = context;
+        _workflowRepository = workflowRepository;
+        _serviceRepository = serviceRepository;
     }
 
-    public async Task<IWorkflowDefinition> GetWorkflowAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<WorkflowDto> GetWorkflowAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var workflow = await _context.Workflows
-            .Include(x => x.Steps)
-                .ThenInclude(s => s.AvailableActions)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var workflow = await _workflowRepository.GetByIdWithStepsAsync(id, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
-        return new WorkflowDefinitionAdapter(workflow);
+        return MapToDto(workflow);
     }
 
-    public async Task<IEnumerable<IWorkflowDefinition>> GetAllWorkflowsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<WorkflowDto>> GetAllWorkflowsAsync(CancellationToken cancellationToken = default)
     {
-        var workflows = await _context.Workflows
-            .Include(x => x.Steps)
-                .ThenInclude(s => s.AvailableActions)
-            .ToListAsync(cancellationToken);
-        return workflows.Select(w => new WorkflowDefinitionAdapter(w)).ToList();
+        var workflows = await _workflowRepository.GetAllAsync(cancellationToken);
+        return workflows.Select(MapToDto).ToList();
     }
 
     public async Task<Guid> CreateWorkflowAsync(CreateWorkflowDto dto, CancellationToken cancellationToken = default)
     {
-        var workflow = new Workflow { Name = dto.Name };
-        _context.Workflows.Add(workflow);
-        await _context.SaveChangesAsync(cancellationToken);
+        var workflow = new Workflow
+        {
+            Name = dto.Name,
+            Steps = dto.Steps.Select(stepDto => new WorkflowStep
+            {
+                Order = stepDto.Order,
+                Title = stepDto.Title,
+                Description = stepDto.Description,
+                StepType = stepDto.StepType,
+                IsRequired = stepDto.IsRequired,
+                Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
+                {
+                    Order = fieldDto.Order,
+                    Label = fieldDto.Label,
+                    FieldType = fieldDto.FieldType,
+                    IsRequired = fieldDto.IsRequired,
+                    OptionsJson = fieldDto.Options != null ? JsonSerializer.Serialize(fieldDto.Options) : null
+                }).ToList()
+            }).ToList()
+        };
+
+        await _workflowRepository.AddAsync(workflow, cancellationToken);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
         return workflow.Id;
     }
 
     public async Task UpdateWorkflowAsync(Guid id, UpdateWorkflowDto dto, CancellationToken cancellationToken = default)
     {
-        var workflow = await _context.Workflows.FindAsync(new object[] { id }, cancellationToken);
+        var workflow = await _workflowRepository.GetByIdAsync(id, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
         if (dto.Name != null) workflow.Name = dto.Name;
-        await _context.SaveChangesAsync(cancellationToken);
+        _workflowRepository.Update(workflow);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteWorkflowAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var workflow = await _context.Workflows.FindAsync(new object[] { id }, cancellationToken);
+        var workflow = await _workflowRepository.GetByIdAsync(id, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
 
-        var isUsed = await _context.Services.AnyAsync(s => s.WorkflowId == id, cancellationToken);
+        var isUsed = await _serviceRepository.IsServiceInUseByWorkflowAsync(id, cancellationToken);
         if (isUsed) throw new ConflictException("Cannot delete workflow because it is used by one or more services");
 
-        _context.Workflows.Remove(workflow);
-        await _context.SaveChangesAsync(cancellationToken);
+        _workflowRepository.Delete(workflow);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Guid> AddStepAsync(Guid workflowId, CreateWorkflowStepDto dto, CancellationToken cancellationToken = default)
     {
-        var workflow = await _context.Workflows.FindAsync(new object[] { workflowId }, cancellationToken);
+        var workflow = await _workflowRepository.GetByIdAsync(workflowId, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
 
         var step = new WorkflowStep
         {
             WorkflowId = workflowId,
             Order = dto.Order,
-            StepKey = dto.StepKey,
             Title = dto.Title,
             Description = dto.Description,
-            InputType = dto.InputType,
+            StepType = dto.StepType,
             IsRequired = dto.IsRequired,
-            ValidationRules = dto.ValidationRules,
-            AvailableActions = dto.AvailableActions.Select(a => new WorkflowStepAction
+            Fields = dto.Fields.Select(fieldDto => new WorkflowStepField
             {
-                ActionKey = a.ActionKey,
-                Label = a.Label,
-                TriggersSubmission = a.TriggersSubmission
+                Order = fieldDto.Order,
+                Label = fieldDto.Label,
+                FieldType = fieldDto.FieldType,
+                IsRequired = fieldDto.IsRequired,
+                OptionsJson = fieldDto.Options != null ? JsonSerializer.Serialize(fieldDto.Options) : null
             }).ToList()
         };
 
-        _context.WorkflowSteps.Add(step);
-        await _context.SaveChangesAsync(cancellationToken);
+        workflow.Steps.Add(step);
+        _workflowRepository.Update(workflow);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
         return step.Id;
     }
 
     public async Task UpdateStepAsync(Guid stepId, UpdateWorkflowStepDto dto, CancellationToken cancellationToken = default)
     {
-        var step = await _context.WorkflowSteps.FindAsync(new object[] { stepId }, cancellationToken);
+        var step = await _workflowRepository.GetStepByIdAsync(stepId, cancellationToken);
         if (step == null) throw new NotFoundException("Workflow step not found");
 
         if (dto.Order.HasValue) step.Order = dto.Order.Value;
-        if (dto.StepKey != null) step.StepKey = dto.StepKey;
         if (dto.Title != null) step.Title = dto.Title;
         if (dto.Description != null) step.Description = dto.Description;
-        if (dto.InputType.HasValue) step.InputType = dto.InputType.Value;
+        if (dto.StepType.HasValue) step.StepType = dto.StepType.Value;
         if (dto.IsRequired.HasValue) step.IsRequired = dto.IsRequired.Value;
-        if (dto.ValidationRules != null) step.ValidationRules = dto.ValidationRules;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        _workflowRepository.UpdateStep(step);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteStepAsync(Guid stepId, CancellationToken cancellationToken = default)
     {
-        var step = await _context.WorkflowSteps.FindAsync(new object[] { stepId }, cancellationToken);
+        var step = await _workflowRepository.GetStepByIdAsync(stepId, cancellationToken);
         if (step == null) throw new NotFoundException("Workflow step not found");
 
-        _context.WorkflowSteps.Remove(step);
-        await _context.SaveChangesAsync(cancellationToken);
+        _workflowRepository.DeleteStep(step);
+        await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
 
-    private class WorkflowDefinitionAdapter : IWorkflowDefinition
+    #region Private Mappers
+
+    private WorkflowDto MapToDto(Workflow workflow)
     {
-        private readonly Workflow _workflow;
-        public WorkflowDefinitionAdapter(Workflow workflow) => _workflow = workflow;
-        public Guid Id => _workflow.Id;
-        public string Name => _workflow.Name;
-        public List<WorkflowStepDefinition> Steps => _workflow.Steps.OrderBy(s => s.Order).Select(s => new WorkflowStepDefinition
+        return new WorkflowDto
         {
-            Order = s.Order,
-            StepKey = s.StepKey,
-            Title = s.Title,
-            Description = s.Description,
-            InputType = s.InputType,
-            IsRequired = s.IsRequired,
-            ValidationRules = s.ValidationRules,
-            AvailableActions = s.AvailableActions.Select(a => new StepAction
+            Id = workflow.Id,
+            Name = workflow.Name,
+            Steps = workflow.Steps.OrderBy(s => s.Order).Select(s => new WorkflowStepDto
             {
-                ActionKey = a.ActionKey,
-                Label = a.Label,
-                TriggersSubmission = a.TriggersSubmission
+                Order = s.Order,
+                Title = s.Title,
+                Description = s.Description,
+                StepType = s.StepType,
+                IsRequired = s.IsRequired,
+                Fields = s.Fields.OrderBy(f => f.Order).Select(f => new WorkflowStepFieldDto
+                {
+                    Order = f.Order,
+                    Label = f.Label,
+                    FieldType = f.FieldType,
+                    IsRequired = f.IsRequired,
+                    Options = f.OptionsJson != null ? JsonSerializer.Deserialize<List<string>>(f.OptionsJson) : null
+                }).ToList()
             }).ToList()
-        }).ToList();
+        };
     }
+
+    #endregion
 }

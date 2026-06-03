@@ -1,6 +1,4 @@
-﻿//using CapitalUniversity.API.Infrastructure;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +20,6 @@ public class StatisticsController : ControllerBase
     }
 
     [HttpGet("staff")]
-    //[HasPermission("student-services.services.View")]
     public async Task<IActionResult> GetStaffStatistics(CancellationToken cancellationToken)
     {
         var result = await _statisticsService.GetStaffStatisticsAsync(cancellationToken);
@@ -37,7 +34,6 @@ public class StatisticsController : ControllerBase
     }
 
     [HttpGet("student/{studentId:guid}")]
-    //[HasPermission("student-services.statistics.ViewAny")]
     public async Task<IActionResult> GetStudentStatisticsById(Guid studentId, CancellationToken cancellationToken)
     {
         var result = await _statisticsService.GetStudentStatisticsAsync(studentId, cancellationToken);

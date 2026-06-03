@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronRight,
@@ -13,7 +12,7 @@ import {
   Layers,
   BookOpen,
 } from "lucide-react";
-import { getAllowedChildTypes, normalizeType } from "../utils/nodeTypeHelpers";
+import { getAllowedChildTypes } from "../utils/nodeTypeHelpers";
 
 const typeIcons = {
   University: Building2,
@@ -23,16 +22,6 @@ const typeIcons = {
   Level: BookOpen,
   System: Layers,
   Specialization: BookOpen,
-};
-
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
 };
 
 function TreeNode({
@@ -45,29 +34,17 @@ function TreeNode({
   onDropMove,
   selectedNode,
   setSelectedNode,
-  expandedNodes = new Set(),
-  onToggleNode = () => {},
   matchedIds = [],
   search = "",
 }) {
-  const { t, i18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const hasChildren = node.children?.length > 0;
   const Icon = typeIcons[node.type] || Layers;
   const canAddChildren = getAllowedChildTypes(node.type).length > 0;
 
-  const isOpen = expandedNodes.has(node.id);
-  const [dragOver, setDragOver] = useState(false);
-
   const isSelected = selectedNode?.id === node.id;
   const isMatched = search && matchedIds.includes(node.id);
-
-  const displayName = node.localizedName || getLocalizedText(node.name, i18n.language);
-  const displayType = node.typeNameLocalized || normalizeType(node.type);
-
-  const handleToggle = (e) => {
-    e.stopPropagation();
-    onToggleNode(node.id);
-  };
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData("text/plain", JSON.stringify({
@@ -93,7 +70,7 @@ function TreeNode({
     setDragOver(false);
     try {
       const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-      const { draggedNodeId } = data;
+      const { draggedNodeId, draggedNodeType } = data;
       if (draggedNodeId === node.id) return;
       if (onDropMove) {
         onDropMove(draggedNodeId, node.id, node.children?.length || 0);
@@ -106,7 +83,9 @@ function TreeNode({
   return (
     <div className="tree-node">
       <div
-        className={`tree-node-card ${isSelected ? "selected" : ""} ${isMatched ? "matched" : ""} ${dragOver ? "drag-over" : ""}`}
+        className={`tree-node-card ${isSelected ? "selected" : ""} ${
+          isMatched ? "matched" : ""
+        } ${dragOver ? "drag-over" : ""}`}
         onClick={() => setSelectedNode(node)}
         draggable
         onDragStart={handleDragStart}
@@ -118,11 +97,14 @@ function TreeNode({
           <button
             type="button"
             className="tree-toggle"
-            onClick={handleToggle}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((prev) => !prev);
+            }}
             disabled={!hasChildren}
           >
             {hasChildren ? (
-              isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />
+              open ? <ChevronDown size={15} /> : <ChevronRight size={15} />
             ) : (
               <span className="tree-toggle-dot" />
             )}
@@ -133,33 +115,36 @@ function TreeNode({
           </div>
 
           <div className="tree-node-text">
-            <strong>{displayName}</strong>
-            <span>{displayType} • {t("depth")} {node.depth}</span>
+            <strong>{node.name}</strong>
+            <span>{node.type} • Depth {node.depth}</span>
           </div>
         </div>
 
         <div className="tree-node-actions" onClick={(e) => e.stopPropagation()}>
-          <button type="button" title={t("move_up")} onClick={() => onMove(node.id, "up", parentId)}>
+          <button type="button" title="Move up" onClick={() => onMove(node.id, "up", parentId)}>
             <ArrowUp size={13} />
           </button>
-          <button type="button" title={t("move_down")} onClick={() => onMove(node.id, "down", parentId)}>
+          <button type="button" title="Move down" onClick={() => onMove(node.id, "down", parentId)}>
             <ArrowDown size={13} />
           </button>
+
           {canAddChildren && (
             <button
               type="button"
-              title={t("add_child")}
+              title="Add child"
               onClick={() => onAdd(node.id, node.children?.length || 0, node.type)}
             >
               <Plus size={13} />
             </button>
           )}
-          <button type="button" title={t("rename")} onClick={() => onRename(node)}>
+
+          <button type="button" title="Rename" onClick={() => onRename(node)}>
             <Pencil size={13} />
           </button>
+
           <button
             type="button"
-            title={t("delete")}
+            title="Delete"
             className="danger"
             disabled={node.parentId === null}
             onClick={() => onDelete(node.id)}
@@ -169,7 +154,7 @@ function TreeNode({
         </div>
       </div>
 
-      {hasChildren && isOpen && (
+      {hasChildren && open && (
         <div className="tree-children">
           {node.children.map((child) => (
             <TreeNode
@@ -183,8 +168,6 @@ function TreeNode({
               onDropMove={onDropMove}
               selectedNode={selectedNode}
               setSelectedNode={setSelectedNode}
-              expandedNodes={expandedNodes}
-              onToggleNode={onToggleNode}
               matchedIds={matchedIds}
               search={search}
             />

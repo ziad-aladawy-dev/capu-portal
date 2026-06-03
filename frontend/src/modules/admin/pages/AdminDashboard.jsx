@@ -11,6 +11,7 @@ function AdminDashboard() {
       <DashboardHeader />
       <DashboardSearch />
       <StatsCards />
+
       <div className="content-grid">
         <RecentActivities />
         <QuickActions />

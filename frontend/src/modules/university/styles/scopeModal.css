@@ -122,32 +122,3 @@
     padding: 40px;
     color: #6b7280;
   }
-
-  /* ========== RTL Support for ScopeModal ========== */
-body.rtl .scope-modal-header {
-  flex-direction: row;
-}
-
-body.rtl .scope-tree-item {
-  flex-direction: row;
-  text-align: right;
-}
-
-body.rtl .scope-tree-toggle {
-  margin-left: 4px;
-  margin-right: 0;
-}
-
-body.rtl .scope-tree-children {
-  margin-left: 0;
-  margin-right: 8px;
-}
-
-body.rtl .scope-tree-name {
-  text-align: right;
-}
-
-body.rtl .scope-tree-type {
-  margin-left: 0;
-  margin-right: 4px;
-}

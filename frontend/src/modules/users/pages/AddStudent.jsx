@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import {
-  User, Mail, Lock, Phone, CheckCircle2, UserPlus, KeyRound, BookOpen,
-  Building2, Calendar, Award, Hash, Globe
+  User, Mail, Lock, Phone, CheckCircle2, UserPlus, KeyRound, BookOpen, Building2, Calendar, Award, Hash
 } from "lucide-react";
 import userService from "../services/userService";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/userForms.css";
 
 const AddStudent = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const steps = [t("basic_information"), t("account_security"), t("academic_information")];
+  const { addToast } = useToast();
+  const steps = ["Basic Information", "Account Security", "Academic Information"];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -24,8 +23,7 @@ const AddStudent = () => {
   const [formData, setFormData] = useState({
     studentCode: "",
     nationalId: "",
-    nameAr: "",
-    nameEn: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -39,10 +37,6 @@ const AddStudent = () => {
   const [errors, setErrors] = useState({});
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [checkingNationalId, setCheckingNationalId] = useState(false);
-
-  const getLocalizedItemName = (item) => {
-    return item?.localizedName || item?.name || "";
-  };
 
   useEffect(() => {
     const loadFaculties = async () => {
@@ -130,31 +124,31 @@ const AddStudent = () => {
   const validateStep = async () => {
     const newErrors = {};
     if (currentStep === 0) {
-      if (!formData.nationalId) newErrors.nationalId = t("national_id_required");
-      else if (formData.nationalId.length !== 14) newErrors.nationalId = t("national_id_length");
-      else if (!/^\d+$/.test(formData.nationalId)) newErrors.nationalId = t("national_id_numbers_only");
+      if (!formData.nationalId) newErrors.nationalId = "National ID is required";
+      else if (formData.nationalId.length !== 14) newErrors.nationalId = "Must be 14 digits";
+      else if (!/^\d+$/.test(formData.nationalId)) newErrors.nationalId = "Only numbers";
       else {
         const isUnique = await checkNationalIdUnique(formData.nationalId);
-        if (!isUnique) newErrors.nationalId = t("national_id_exists");
+        if (!isUnique) newErrors.nationalId = "National ID already exists";
       }
-      if (!formData.nameAr) newErrors.nameAr = t("full_name_required");
-      if (!formData.email) newErrors.email = t("email_required");
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t("invalid_email");
+      if (!formData.name) newErrors.name = "Full name is required";
+      if (!formData.email) newErrors.email = "Email is required";
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email format";
       else {
         const isUnique = await checkEmailUnique(formData.email);
-        if (!isUnique) newErrors.email = t("email_exists");
+        if (!isUnique) newErrors.email = "Email already exists";
       }
-      if (!formData.dateOfBirth) newErrors.dateOfBirth = t("dob_required");
+      if (!formData.dateOfBirth) newErrors.dateOfBirth = "Date of birth is required";
     }
     if (currentStep === 1) {
-      if (!formData.password) newErrors.password = t("password_required");
-      else if (formData.password.length < 6) newErrors.password = t("password_min_length");
-      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t("passwords_do_not_match");
+      if (!formData.password) newErrors.password = "Password is required";
+      else if (formData.password.length < 6) newErrors.password = "At least 6 characters";
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
     }
     if (currentStep === 2) {
-      if (!formData.facultyId) newErrors.facultyId = t("faculty_required");
-      if (!formData.programId) newErrors.programId = t("program_required");
-      if (!formData.levelId) newErrors.levelId = t("level_required");
+      if (!formData.facultyId) newErrors.facultyId = "Faculty is required";
+      if (!formData.programId) newErrors.programId = "Program is required";
+      if (!formData.levelId) newErrors.levelId = "Level is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -172,8 +166,7 @@ const AddStudent = () => {
     const payload = {
       studentCode: formData.studentCode || undefined,
       nationalId: formData.nationalId,
-      nameAr: formData.nameAr,
-      nameEn: formData.nameEn || formData.nameAr,
+      name: formData.name,
       birthDate: formData.dateOfBirth,
       phoneNumber: formData.phone || null,
       email: formData.email,
@@ -186,13 +179,27 @@ const AddStudent = () => {
       setShowSuccess(true);
       setTimeout(() => navigate("/admin/users"), 1600);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      addToast(err.response?.data?.message || err.message, "error");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="form-loading">{t("loading")}...</div>;
+  if (loading) return (
+    <div className="form-loading">
+      <div style={{ width: "100%", maxWidth: 600, margin: "0 auto", padding: 20 }}>
+        <div style={{ height: 24, width: "40%", background: "#e5e7eb", borderRadius: 6, marginBottom: 24, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <div style={{ height: 12, width: "30%", background: "#e5e7eb", borderRadius: 4, marginBottom: 8, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+              <div style={{ height: 40, background: "#e5e7eb", borderRadius: 8, animation: "skeletonPulse 1.5s ease-in-out infinite" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="add-user-page">
@@ -201,145 +208,76 @@ const AddStudent = () => {
           <div className="header-content">
             <div className="header-icon"><UserPlus size={22} /></div>
             <div className="header-text">
-              <h1>{t("add_new_student")}</h1>
+              <h1>Add New Student</h1>
               <div className="gold-line" />
-              <p>{t("create_student_step_by_step")}</p>
+              <p>Create a new student account step by step</p>
             </div>
           </div>
         </div>
 
         <div className="wizard-steps">
           {steps.map((step, idx) => (
-            <button
-              key={idx}
-              type="button"
-              className={`wizard-step ${idx === currentStep ? "active" : ""} ${idx < currentStep ? "done" : ""}`}
-              onClick={() => setCurrentStep(idx)}
-            >
+            <button key={step} type="button" className={`wizard-step ${idx === currentStep ? "active" : ""} ${idx < currentStep ? "done" : ""}`} onClick={() => setCurrentStep(idx)}>
               <span>{idx + 1}</span>{step}
             </button>
           ))}
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Step 0: Basic Information */}
           {currentStep === 0 && (
             <div className="form-card wizard-card">
               <div className="form-header">
                 <div className="form-icon"><User size={18} color="#e0c06a" /></div>
-                <div className="form-title-wrapper"><h3>{t("basic_information")}</h3><p>{t("personal_details")}</p></div>
+                <div className="form-title-wrapper"><h3>Basic Information</h3><p>Personal details</p></div>
               </div>
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">{t("student_code")}</label>
+                    <label className="form-label">Student Code</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="studentCode"
-                        value={formData.studentCode}
-                        onChange={handleChange}
-                        className="form-input"
-                        placeholder={t("leave_empty_auto_generate")}
-                      />
+                      <input type="text" name="studentCode" value={formData.studentCode} onChange={handleChange} className="form-input" placeholder="Leave empty to auto-generate" />
                       <Hash size={15} className="input-icon" />
                     </div>
-                    <span className="input-hint">{t("optional_auto_generate")}</span>
+                    <span className="input-hint">Optional; will be auto-generated if left empty</span>
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("national_id")} *</label>
+                    <label className="form-label">National ID *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="nationalId"
-                        value={formData.nationalId}
-                        onChange={handleChange}
-                        className={`form-input ${errors.nationalId ? "error" : ""}`}
-                        placeholder={t("national_id_placeholder")}
-                        maxLength="14"
-                      />
+                      <input type="text" name="nationalId" value={formData.nationalId} onChange={handleChange} className={`form-input ${errors.nationalId ? "error" : ""}`} placeholder="14-digit national ID" maxLength="14" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {checkingNationalId && <span className="input-hint">{t("checking")}</span>}
+                    {checkingNationalId && <span className="input-hint">Checking...</span>}
                     {errors.nationalId && <span className="error-message">{errors.nationalId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("full_name_arabic")} *</label>
+                    <label className="form-label">Full Name *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="nameAr"
-                        value={formData.nameAr}
-                        onChange={handleChange}
-                        className={`form-input ${errors.nameAr ? "error" : ""}`}
-                        placeholder={t("full_name_placeholder")}
-                      />
+                      <input type="text" name="name" value={formData.name} onChange={handleChange} className={`form-input ${errors.name ? "error" : ""}`} placeholder="Full name" />
                       <User size={15} className="input-icon" />
                     </div>
-                    {errors.nameAr && <span className="error-message">{errors.nameAr}</span>}
+                    {errors.name && <span className="error-message">{errors.name}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("full_name_english")}</label>
+                    <label className="form-label">Email *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="nameEn"
-                        value={formData.nameEn}
-                        onChange={handleChange}
-                        className="form-input"
-                        placeholder={t("english_name_placeholder")}
-                      />
-                      <Globe size={15} className="input-icon" />
-                    </div>
-                    <span className="input-hint">{t("english_name_hint")}</span>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">{t("email")} *</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className={`form-input ${errors.email ? "error" : ""}`}
-                        placeholder={t("email_placeholder")}
-                      />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} className={`form-input ${errors.email ? "error" : ""}`} placeholder="student@university.edu" />
                       <Mail size={15} className="input-icon" />
                     </div>
-                    {checkingEmail && <span className="input-hint">{t("checking")}</span>}
+                    {checkingEmail && <span className="input-hint">Checking...</span>}
                     {errors.email && <span className="error-message">{errors.email}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("date_of_birth")} *</label>
+                    <label className="form-label">Date of Birth *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleChange}
-                        className={`form-input ${errors.dateOfBirth ? "error" : ""}`}
-                      />
+                      <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} className={`form-input ${errors.dateOfBirth ? "error" : ""}`} />
                       <Calendar size={15} className="input-icon" />
                     </div>
                     {errors.dateOfBirth && <span className="error-message">{errors.dateOfBirth}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("phone")}</label>
+                    <label className="form-label">Phone</label>
                     <div className="input-wrapper">
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="form-input"
-                        placeholder={t("phone_placeholder")}
-                      />
+                      <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" placeholder="Phone number" />
                       <Phone size={15} className="input-icon" />
                     </div>
                   </div>
@@ -348,41 +286,26 @@ const AddStudent = () => {
             </div>
           )}
 
-          {/* Step 1: Account Security */}
           {currentStep === 1 && (
             <div className="form-card wizard-card">
               <div className="form-header">
                 <div className="form-icon"><KeyRound size={18} color="#e0c06a" /></div>
-                <div className="form-title-wrapper"><h3>{t("account_security")}</h3><p>{t("set_password")}</p></div>
+                <div className="form-title-wrapper"><h3>Account Security</h3><p>Set password</p></div>
               </div>
               <div className="form-body">
                 <div className="form-grid compact-grid two-cols">
                   <div className="form-group">
-                    <label className="form-label">{t("password")} *</label>
+                    <label className="form-label">Password *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        className={`form-input ${errors.password ? "error" : ""}`}
-                        placeholder={t("password_placeholder")}
-                      />
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} className={`form-input ${errors.password ? "error" : ""}`} placeholder="Minimum 6 characters" />
                       <Lock size={15} className="input-icon" />
                     </div>
                     {errors.password && <span className="error-message">{errors.password}</span>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">{t("confirm_password")} *</label>
+                    <label className="form-label">Confirm Password *</label>
                     <div className="input-wrapper">
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className={`form-input ${errors.confirmPassword ? "error" : ""}`}
-                        placeholder={t("confirm_password_placeholder")}
-                      />
+                      <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} className={`form-input ${errors.confirmPassword ? "error" : ""}`} placeholder="Re-enter password" />
                       <Lock size={15} className="input-icon" />
                     </div>
                     {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
@@ -392,68 +315,42 @@ const AddStudent = () => {
             </div>
           )}
 
-          {/* Step 2: Academic Information */}
           {currentStep === 2 && (
             <div className="form-card wizard-card">
               <div className="form-header">
                 <div className="form-icon"><BookOpen size={18} color="#e0c06a" /></div>
-                <div className="form-title-wrapper"><h3>{t("academic_information")}</h3><p>{t("select_faculty_program_level")}</p></div>
+                <div className="form-title-wrapper"><h3>Academic Information</h3><p>Select Faculty → Program → Level</p></div>
               </div>
               <div className="form-body">
                 <div className="form-grid compact-grid">
                   <div className="form-group">
-                    <label className="form-label">{t("faculty")} *</label>
+                    <label className="form-label">Faculty *</label>
                     <div className="input-wrapper">
-                      <select
-                        name="facultyId"
-                        value={formData.facultyId}
-                        onChange={handleChange}
-                        className={`form-select ${errors.facultyId ? "error" : ""}`}
-                      >
-                        <option value="">{t("select_faculty")}</option>
-                        {faculties.map(f => (
-                          <option key={f.id} value={f.id}>{getLocalizedItemName(f)}</option>
-                        ))}
+                      <select name="facultyId" value={formData.facultyId} onChange={handleChange} className={`form-select ${errors.facultyId ? "error" : ""}`}>
+                        <option value="">Select Faculty</option>
+                        {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
                       <Building2 size={15} className="input-icon" />
                     </div>
                     {errors.facultyId && <span className="error-message">{errors.facultyId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("program")} *</label>
+                    <label className="form-label">Program *</label>
                     <div className="input-wrapper">
-                      <select
-                        name="programId"
-                        value={formData.programId}
-                        onChange={handleChange}
-                        disabled={!formData.facultyId}
-                        className={`form-select ${errors.programId ? "error" : ""}`}
-                      >
-                        <option value="">{t("select_program")}</option>
-                        {filteredPrograms.map(p => (
-                          <option key={p.id} value={p.id}>{getLocalizedItemName(p)}</option>
-                        ))}
+                      <select name="programId" value={formData.programId} onChange={handleChange} disabled={!formData.facultyId} className={`form-select ${errors.programId ? "error" : ""}`}>
+                        <option value="">Select Program</option>
+                        {filteredPrograms.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <BookOpen size={15} className="input-icon" />
                     </div>
                     {errors.programId && <span className="error-message">{errors.programId}</span>}
                   </div>
-
                   <div className="form-group">
-                    <label className="form-label">{t("level")} *</label>
+                    <label className="form-label">Level *</label>
                     <div className="input-wrapper">
-                      <select
-                        name="levelId"
-                        value={formData.levelId}
-                        onChange={handleChange}
-                        disabled={!formData.programId}
-                        className={`form-select ${errors.levelId ? "error" : ""}`}
-                      >
-                        <option value="">{t("select_level")}</option>
-                        {filteredLevels.map(l => (
-                          <option key={l.id} value={l.id}>{getLocalizedItemName(l)}</option>
-                        ))}
+                      <select name="levelId" value={formData.levelId} onChange={handleChange} disabled={!formData.programId} className={`form-select ${errors.levelId ? "error" : ""}`}>
+                        <option value="">Select Level</option>
+                        {filteredLevels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                       <Award size={15} className="input-icon" />
                     </div>
@@ -465,22 +362,11 @@ const AddStudent = () => {
           )}
 
           <div className="wizard-actions">
-            <button
-              type="button"
-              className="wizard-btn secondary"
-              onClick={prevStep}
-              disabled={currentStep === 0}
-            >
-              {t("back")}
-            </button>
+            <button type="button" className="wizard-btn secondary" onClick={prevStep} disabled={currentStep === 0}>Back</button>
             {currentStep < steps.length - 1 ? (
-              <button type="button" className="wizard-btn primary" onClick={nextStep}>
-                {t("next")}
-              </button>
+              <button type="button" className="wizard-btn primary" onClick={nextStep}>Next</button>
             ) : (
-              <button type="submit" className="wizard-btn primary" disabled={submitting}>
-                {submitting ? t("creating") : t("create_student")}
-              </button>
+              <button type="submit" className="wizard-btn primary" disabled={submitting}>{submitting ? "Creating..." : "Create Student"}</button>
             )}
           </div>
         </form>
@@ -491,8 +377,8 @@ const AddStudent = () => {
           <div className="success-overlay" />
           <div className="success-message">
             <div className="success-icon"><CheckCircle2 size={38} color="#e0c06a" /></div>
-            <div className="success-text">{t("student_created_successfully")}</div>
-            <p>{t("redirecting_to_users_list")}</p>
+            <div className="success-text">Student Created Successfully!</div>
+            <p>Redirecting to users list...</p>
           </div>
         </>
       )}

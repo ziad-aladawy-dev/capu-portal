@@ -1,16 +1,5 @@
 ﻿namespace CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 
-public enum StepInputType
-{
-    Text = 1,
-    TextArea = 2,
-    Number = 3,
-    Date = 4,
-    FileUpload = 5,
-    MultipleChoice = 6,
-    Checkbox = 7
-}
-
 public enum RequestStatus
 {
     Draft = 1,
@@ -32,4 +21,33 @@ public enum PaymentStatus
     Paid = 3,
     Failed = 4,
     Refunded = 5
+}
+
+public enum ServiceType
+{
+    General = 1,
+    Specialized = 2,
+    Administrative = 3
+}
+
+public enum StepFieldType
+{
+    Text = 1,
+    TextArea = 2,
+    Number = 3,
+    Date = 4,
+    Select = 5,
+    MultiSelect = 6,
+    File = 7,
+    Checkbox = 8,
+    Radio = 9
+}
+
+public enum WorkflowStepType
+{
+    Form = 1,
+    FileUpload = 2,
+    Review = 3,
+    Payment = 4,
+    Submit = 5
 }

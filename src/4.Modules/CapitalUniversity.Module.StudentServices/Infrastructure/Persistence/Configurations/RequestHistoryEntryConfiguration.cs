@@ -10,14 +10,10 @@ public class RequestHistoryEntryConfiguration : IEntityTypeConfiguration<Request
     {
         builder.ToTable("RequestHistoryEntries", "StudentServices");
         builder.HasKey(x => x.Id);
-
         builder.Property(x => x.Action).IsRequired().HasMaxLength(100);
         builder.Property(x => x.Comment).HasMaxLength(2000);
         builder.Property(x => x.PerformedByRole).HasMaxLength(50);
         builder.Property(x => x.PerformedAt).IsRequired();
-
         builder.HasIndex(x => x.StudentRequestId);
-        builder.HasIndex(x => x.PerformedByUserId);
-        builder.HasIndex(x => x.PerformedAt);
     }
 }

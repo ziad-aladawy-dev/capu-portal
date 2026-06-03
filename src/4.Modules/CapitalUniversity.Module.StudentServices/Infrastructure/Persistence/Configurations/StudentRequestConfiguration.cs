@@ -10,20 +10,10 @@ public class StudentRequestConfiguration : IEntityTypeConfiguration<StudentReque
     {
         builder.ToTable("StudentRequests", "StudentServices");
         builder.HasKey(x => x.Id);
-
-        builder.Property(x => x.StudentId).IsRequired();
-        builder.Property(x => x.ServiceId).IsRequired();
-        builder.Property(x => x.Status).IsRequired();
-        builder.Property(x => x.PaymentStatus).IsRequired();
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.PaymentStatus).HasConversion<int>().IsRequired();
         builder.Property(x => x.AmountPaid).HasPrecision(18, 2);
-        builder.Property(x => x.PaymentTransactionId).HasMaxLength(200);
-        builder.Property(x => x.SubmittedData).IsRequired().HasColumnType("nvarchar(max)");
-        builder.Property(x => x.CurrentStepOrder).IsRequired();
-
-        builder.HasOne(x => x.Service)
-            .WithMany()
-            .HasForeignKey(x => x.ServiceId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.SubmittedData).HasColumnType("nvarchar(max)").IsRequired();
 
         builder.HasMany(x => x.HistoryEntries)
             .WithOne(x => x.StudentRequest)
@@ -34,6 +24,5 @@ public class StudentRequestConfiguration : IEntityTypeConfiguration<StudentReque
         builder.HasIndex(x => x.ServiceId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.AssignedToStaffId);
-        builder.HasIndex(x => x.SubmittedAt);
     }
 }

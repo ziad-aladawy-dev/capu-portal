@@ -1,4 +1,6 @@
-﻿using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
+﻿using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,76 +13,119 @@ public static class StudentServicesSeeder
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
+        var coreDbContext = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
         var logger = scope.ServiceProvider.GetService<ILogger<StudentServicesDbContext>>();
 
-        if (!await context.Workflows.AnyAsync())
+        if (await dbContext.Services.AnyAsync())
         {
-            logger?.LogInformation("Seeding default workflow...");
-
-            var workflow = new Workflow
-            {
-                Name = "Default Service Workflow",
-                Steps = new List<WorkflowStep>
-                {
-                    new WorkflowStep
-                    {
-                        Order = 1,
-                        StepKey = "personal_info",
-                        Title = "Personal Information",
-                        Description = "Please provide your personal details",
-                        InputType = StepInputType.TextArea,
-                        IsRequired = true,
-                        ValidationRules = "{\"maxLength\":500}",
-                        AvailableActions = new List<WorkflowStepAction>
-                        {
-                            new WorkflowStepAction { ActionKey = "next", Label = "Next", TriggersSubmission = false }
-                        }
-                    },
-                    new WorkflowStep
-                    {
-                        Order = 2,
-                        StepKey = "documents",
-                        Title = "Upload Documents",
-                        Description = "Upload required documents (PDF, JPG, PNG)",
-                        InputType = StepInputType.FileUpload,
-                        IsRequired = true,
-                        ValidationRules = "{\"allowedExtensions\":[\".pdf\",\".jpg\",\".png\"],\"maxSizeMB\":5}",
-                        AvailableActions = new List<WorkflowStepAction>
-                        {
-                            new WorkflowStepAction { ActionKey = "previous", Label = "Previous", TriggersSubmission = false },
-                            new WorkflowStepAction { ActionKey = "submit", Label = "Submit Request", TriggersSubmission = true }
-                        }
-                    }
-                }
-            };
-
-            context.Workflows.Add(workflow);
-            await context.SaveChangesAsync();
+            logger?.LogInformation("StudentServices data already seeded. Skipping.");
+            return;
         }
 
-        if (!await context.Services.AnyAsync())
+        logger?.LogInformation("Seeding StudentServices data...");
+
+        var firstStudent = await coreDbContext.Students.OrderBy(s => s.CreatedAt).FirstOrDefaultAsync();
+        if (firstStudent == null)
+            logger?.LogWarning("No students found. Skipping request seeding.");
+
+        var workflow = new Workflow
         {
-            var defaultWorkflow = await context.Workflows.FirstOrDefaultAsync();
-            if (defaultWorkflow != null)
+            Name = "Standard Service Workflow",
+            Steps = new List<WorkflowStep>
             {
-                var service = new Service
+                new WorkflowStep
                 {
-                    Name = "Example Student Service",
-                    Description = "This is an example service for demonstration.",
-                    IsActive = true,
-                    IsPaid = false,
-                    Price = null,
-                    Scope = new ServiceScope
+                    Order = 1,
+                    Title = "Personal Information",
+                    Description = "Please fill your personal details",
+                    StepType = WorkflowStepType.Form,
+                    IsRequired = true,
+                    Fields = new List<WorkflowStepField>
                     {
-                        IsGlobalStructural = true,
-                        IsGlobalTemporal = true
-                    },
-                    WorkflowId = defaultWorkflow.Id
-                };
-                context.Services.Add(service);
-                await context.SaveChangesAsync();
+                        new WorkflowStepField { Order = 1, Label = "Full Name", FieldType = StepFieldType.Text, IsRequired = true },
+                        new WorkflowStepField { Order = 2, Label = "National ID", FieldType = StepFieldType.Text, IsRequired = true }
+                    }
+                },
+                new WorkflowStep
+                {
+                    Order = 2,
+                    Title = "Upload Documents",
+                    Description = "Upload required documents",
+                    StepType = WorkflowStepType.FileUpload,
+                    IsRequired = true,
+                    Fields = new List<WorkflowStepField>
+                    {
+                        new WorkflowStepField { Order = 1, Label = "ID Copy", FieldType = StepFieldType.File, IsRequired = true }
+                    }
+                },
+                new WorkflowStep
+                {
+                    Order = 3,
+                    Title = "Review",
+                    Description = "Review your information",
+                    StepType = WorkflowStepType.Review,
+                    IsRequired = true
+                },
+                new WorkflowStep
+                {
+                    Order = 4,
+                    Title = "Payment",
+                    Description = "Complete payment",
+                    StepType = WorkflowStepType.Payment,
+                    IsRequired = true
+                },
+                new WorkflowStep
+                {
+                    Order = 5,
+                    Title = "Submit",
+                    Description = "Final submission",
+                    StepType = WorkflowStepType.Submit,
+                    IsRequired = true
+                }
             }
+        };
+        dbContext.Workflows.Add(workflow);
+
+        var service = new Service
+        {
+            Name = "Example Student Service",
+            Type = ServiceType.General,
+            Description = "This is an example service for demonstration.",
+            IsActive = true,
+            IsPaid = true,
+            Price = 50,
+            IncludeDescendants = true,
+            AcademicYearId = null,
+            Workflow = workflow
+        };
+
+        var universityNode = await coreDbContext.StructureNodes
+            .FirstOrDefaultAsync(n => n.Type == StructureNodeType.University);
+        if (universityNode != null)
+        {
+            service.ScopeNodes.Add(new ServiceStructureNode { StructureNodeId = universityNode.Id });
+        }
+        dbContext.Services.Add(service);
+        await dbContext.SaveChangesAsync();
+
+        if (firstStudent != null)
+        {
+            var request = new StudentRequest
+            {
+                StudentId = firstStudent.Id,
+                ServiceId = service.Id,
+                Status = RequestStatus.Draft,
+                PaymentStatus = PaymentStatus.Pending,
+                SubmittedData = "{}",
+                CurrentStepOrder = 0,
+                HistoryEntries = new List<RequestHistoryEntry>
+                {
+                    new RequestHistoryEntry { Action = "Created", PerformedByUserId = firstStudent.Id, PerformedByRole = "Student", PerformedAt = DateTime.UtcNow }
+                }
+            };
+            dbContext.StudentRequests.Add(request);
+            await dbContext.SaveChangesAsync();
         }
 
         logger?.LogInformation("StudentServices seeding completed.");

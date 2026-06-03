@@ -31,7 +31,7 @@ public class StudentRequestService : IStudentRequestService
         _hubContext = hubContext;
     }
 
-    public async Task<StudentRequestDto> GetRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
+    public async Task<StudentRequestDto> GetStudentRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
         var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
@@ -41,6 +41,12 @@ public class StudentRequestService : IStudentRequestService
     public async Task<List<StudentRequestDto>> GetStudentRequestsAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
         var requests = await _requestRepository.GetByStudentIdAsync(studentId, cancellationToken);
+        return requests.Select(MapToDto).ToList();
+    }
+
+    public async Task<List<StudentRequestDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default)
+    {
+        var requests = await _requestRepository.GetAllForStaffAsync(cancellationToken);
         return requests.Select(MapToDto).ToList();
     }
 
@@ -95,16 +101,16 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
-        if (request.Status != RequestStatus.Draft && request.Status != RequestStatus.MoreInfoRequired)
-            throw new InvalidOperationException("Only draft or more-info-required requests can be submitted");
+        if (request.Status != RequestStatus.Draft && request.Status != RequestStatus.MoreInfoRequired && request.Status != RequestStatus.PaymentPending)
+            throw new InvalidOperationException("Request cannot be submitted from current status");
 
         if (request.Service.IsPaid && request.PaymentStatus != PaymentStatus.Paid)
         {
             request.Status = RequestStatus.PaymentPending;
             request.HistoryEntries.Add(new RequestHistoryEntry
             {
-                Action = "PaymentPending",
-                Comment = "Awaiting payment confirmation",
+                Action = "PaymentRequired",
+                Comment = "Payment is required to submit",
                 PerformedByUserId = request.StudentId,
                 PerformedByRole = "Student",
                 PerformedAt = DateTime.UtcNow
@@ -115,15 +121,20 @@ public class StudentRequestService : IStudentRequestService
         }
 
         var workflow = request.Service.Workflow;
-        var requiredSteps = workflow.Steps.Where(s => s.IsRequired).Select(s => s.StepKey).ToList();
+        if (workflow == null) throw new InvalidOperationException("Service has no workflow defined");
+
+        var requiredStepOrders = workflow.Steps
+            .Where(s => s.IsRequired && s.StepType == WorkflowStepType.Form)
+            .Select(s => s.Order.ToString())
+            .ToList();
+
         var submittedDict = JsonSerializer.Deserialize<Dictionary<string, object>>(request.SubmittedData) ?? new Dictionary<string, object>();
-        var missingSteps = requiredSteps.Except(submittedDict.Keys).ToList();
+        var missingSteps = requiredStepOrders.Except(submittedDict.Keys).ToList();
         if (missingSteps.Any())
             throw new ValidationException($"Missing required steps: {string.Join(", ", missingSteps)}");
 
         request.Status = RequestStatus.Pending;
         request.SubmittedAt = DateTime.UtcNow;
-
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
             Action = "Submitted",
@@ -141,9 +152,34 @@ public class StudentRequestService : IStudentRequestService
             "New Student Request",
             $"Student {request.StudentId} submitted a request for service '{request.Service.Name}'",
             NotificationType.Info);
-
         await _hubContext.Clients.Group("staff-notifications").SendAsync("NewRequestReceived", new { requestId, serviceName = request.Service.Name });
 
+        return MapToDto(request);
+    }
+
+    public async Task<StudentRequestDto> ProcessPaymentAsync(Guid requestId, string paymentMethod, CancellationToken cancellationToken = default)
+    {
+        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        if (request == null) throw new NotFoundException("Request not found");
+        if (request.Status != RequestStatus.PaymentPending)
+            throw new InvalidOperationException("Request is not in payment pending state");
+
+        request.PaymentStatus = PaymentStatus.Paid;
+        request.AmountPaid = request.Service?.Price ?? 0;
+        request.PaymentTransactionId = Guid.NewGuid().ToString();
+        request.Status = RequestStatus.Draft;
+
+        request.HistoryEntries.Add(new RequestHistoryEntry
+        {
+            Action = "PaymentCompleted",
+            Comment = $"Payment of {request.AmountPaid} completed via {paymentMethod}",
+            PerformedByUserId = request.StudentId,
+            PerformedByRole = "Student",
+            PerformedAt = DateTime.UtcNow
+        });
+
+        _requestRepository.Update(request);
+        await _requestRepository.SaveChangesAsync(cancellationToken);
         return MapToDto(request);
     }
 
@@ -186,7 +222,6 @@ public class StudentRequestService : IStudentRequestService
 
         var oldStatus = request.Status;
         request.Status = newStatus;
-
         if (newStatus == RequestStatus.Completed)
             request.CompletedAt = DateTime.UtcNow;
 
@@ -242,28 +277,19 @@ public class StudentRequestService : IStudentRequestService
         {
             (RequestStatus.Draft, RequestStatus.Pending) => true,
             (RequestStatus.Draft, RequestStatus.Cancelled) => true,
-
             (RequestStatus.Pending, RequestStatus.UnderReview) => true,
             (RequestStatus.Pending, RequestStatus.Rejected) => true,
-
             (RequestStatus.UnderReview, RequestStatus.Approved) => true,
             (RequestStatus.UnderReview, RequestStatus.MoreInfoRequired) => true,
             (RequestStatus.UnderReview, RequestStatus.Rejected) => true,
-
             (RequestStatus.MoreInfoRequired, RequestStatus.Pending) => true,
             (RequestStatus.MoreInfoRequired, RequestStatus.Cancelled) => true,
-
             (RequestStatus.Approved, RequestStatus.ReadyForPickup) => true,
-
             (RequestStatus.ReadyForPickup, RequestStatus.Completed) => true,
-
             (RequestStatus.Approved, RequestStatus.Completed) => true,
-
             (RequestStatus.PaymentPending, RequestStatus.Approved) => true,
             (RequestStatus.PaymentPending, RequestStatus.Completed) => true,
-
             (_, RequestStatus.Cancelled) => true,
-
             _ => false
         };
     }
@@ -273,17 +299,14 @@ public class StudentRequestService : IStudentRequestService
         return new StudentRequestDto
         {
             Id = request.Id,
-            StudentId = request.StudentId,
             ServiceId = request.ServiceId,
             ServiceName = request.Service?.Name ?? string.Empty,
             Status = request.Status,
             PaymentStatus = request.PaymentStatus,
             AmountPaid = request.AmountPaid,
             CurrentStepOrder = request.CurrentStepOrder,
-            AssignedToStaffId = request.AssignedToStaffId,
             SubmittedAt = request.SubmittedAt,
             CompletedAt = request.CompletedAt,
-            CreatedAt = request.CreatedAt,
             History = request.HistoryEntries.Select(h => new HistoryEntryDto
             {
                 Action = h.Action,

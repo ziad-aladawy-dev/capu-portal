@@ -15,13 +15,14 @@ public class StudentRequest : BaseEntity
     public string? PaymentTransactionId { get; set; }
 
     public string SubmittedData { get; set; } = "{}";
-    public int CurrentStepOrder { get; set; } = 0;
 
-    public Guid? AssignedToStaffId { get; set; }
-    public DateTime? AssignedAt { get; set; }
+    public int CurrentStepOrder { get; set; } = 0;
 
     public DateTime? SubmittedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    public Guid? AssignedToStaffId { get; set; }
+    public DateTime? AssignedAt { get; set; }
 
     public ICollection<RequestHistoryEntry> HistoryEntries { get; set; } = new List<RequestHistoryEntry>();
 }

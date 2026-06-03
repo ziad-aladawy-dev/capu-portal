@@ -8,7 +8,9 @@ public interface IServiceDefinition
     bool IsActive { get; }
     bool IsPaid { get; }
     decimal? Price { get; }
-    ServiceScope Scope { get; }
+    ServiceType Type { get; }
+    IReadOnlyList<Guid> ScopeNodeIds { get; }
+    bool IncludeDescendants { get; }
+    Guid? AcademicYearId { get; }
     IWorkflowDefinition Workflow { get; }
-    string FormFieldsJson { get; }
 }

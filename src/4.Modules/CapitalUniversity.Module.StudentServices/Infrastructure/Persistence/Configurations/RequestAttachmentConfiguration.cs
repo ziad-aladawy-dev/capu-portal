@@ -10,18 +10,10 @@ public class RequestAttachmentConfiguration : IEntityTypeConfiguration<RequestAt
     {
         builder.ToTable("RequestAttachments", "StudentServices");
         builder.HasKey(x => x.Id);
-
         builder.Property(x => x.StepKey).IsRequired().HasMaxLength(100);
         builder.Property(x => x.FileName).IsRequired().HasMaxLength(500);
         builder.Property(x => x.FilePath).IsRequired().HasMaxLength(1000);
         builder.Property(x => x.MimeType).IsRequired().HasMaxLength(200);
-
-        builder.HasOne(x => x.StudentRequest)
-            .WithMany()
-            .HasForeignKey(x => x.StudentRequestId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.HasIndex(x => x.StudentRequestId);
-        builder.HasIndex(x => new { x.StudentRequestId, x.StepKey });
     }
 }

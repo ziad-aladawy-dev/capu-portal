@@ -3,4 +3,5 @@
 public class CreateWorkflowDto
 {
     public string Name { get; set; } = string.Empty;
+    public List<CreateWorkflowStepDto> Steps { get; set; } = new();
 }

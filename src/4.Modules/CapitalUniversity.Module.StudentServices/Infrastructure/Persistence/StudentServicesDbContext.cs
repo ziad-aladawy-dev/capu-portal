@@ -8,9 +8,10 @@ public class StudentServicesDbContext : DbContext
     public StudentServicesDbContext(DbContextOptions<StudentServicesDbContext> options) : base(options) { }
 
     public DbSet<Service> Services { get; set; }
+    public DbSet<ServiceStructureNode> ServiceStructureNodes { get; set; }
     public DbSet<Workflow> Workflows { get; set; }
     public DbSet<WorkflowStep> WorkflowSteps { get; set; }
-    public DbSet<WorkflowStepAction> WorkflowStepActions { get; set; }
+    public DbSet<WorkflowStepField> WorkflowStepFields { get; set; }
     public DbSet<StudentRequest> StudentRequests { get; set; }
     public DbSet<RequestHistoryEntry> RequestHistoryEntries { get; set; }
     public DbSet<RequestAttachment> RequestAttachments { get; set; }
