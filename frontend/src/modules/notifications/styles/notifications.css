@@ -132,11 +132,6 @@
   color: #b45309;
 }
 
-.notification-icon.type-3 {
-  background: rgba(220, 38, 38, 0.15);
-  color: #b91c1c;
-}
-
 .notification-body {
   flex: 1;
   min-width: 0;

@@ -49,9 +49,7 @@ public enum NotificationType
     [Localized("معلومات", "Info")]
     Info = 1,
     [Localized("تحذير", "Warning")]
-    Warning = 2,
-    [Localized("خطأ", "Error")]
-    Error = 3
+    Warning = 2
 }
 public enum OverrideType
 {

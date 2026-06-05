@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Bell, Info, AlertTriangle, AlertCircle, CheckCheck, RefreshCw, X,
+  Bell, Info, AlertTriangle, CheckCheck, RefreshCw, X,
 } from "lucide-react";
 import * as notificationService from "../../../core/services/notificationService";
 import "../styles/notifications.css";
@@ -8,7 +8,6 @@ import "../styles/notifications.css";
 const TYPE_ICON = {
   1: Info,
   2: AlertTriangle,
-  3: AlertCircle,
 };
 
 function NotificationsPage() {
@@ -172,14 +171,6 @@ function NotificationsPage() {
                     <span>{notificationService.getNotificationTypeLabel(n.type)}</span>
                     <span>·</span>
                     <span>{formatTime(n.createdAt)}</span>
-                    {n.referenceType && (
-                      <>
-                        <span>·</span>
-                        <span style={{ fontFamily: "Space Mono, monospace" }}>
-                          {n.referenceType}
-                        </span>
-                      </>
-                    )}
                   </div>
                 </div>
                 {!n.isRead && (
