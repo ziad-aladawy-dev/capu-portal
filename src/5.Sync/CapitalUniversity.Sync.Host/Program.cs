@@ -106,6 +106,14 @@ CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CourseOffering).Assembly)
 builder.Services.AddDbContext<CoreDbContext>(opts => opts.UseSqlServer(coreConnectionString));
 builder.Services.AddScoped<ICoreWriteGateway, CoreWriteGateway>();
 
+// Notifies everyone who can access the sync layer (holders of the "sync"
+// permission) when a run completes or terminally fails. Scoped — shares the
+// request/job-scoped CoreDbContext. The executor and dead-letter filter resolve
+// it through a fresh scope; this is the only place it is wired to Core.
+builder.Services.AddScoped<
+    CapitalUniversity.Sync.Abstractions.Contracts.ISyncOutcomeNotifier,
+    CapitalUniversity.Sync.Host.Notifications.CoreSyncOutcomeNotifier>();
+
 builder.Services.AddStudentSync(builder.Configuration);
 builder.Services.AddStaffSync(builder.Configuration);
 builder.Services.AddCoursesSync(builder.Configuration);

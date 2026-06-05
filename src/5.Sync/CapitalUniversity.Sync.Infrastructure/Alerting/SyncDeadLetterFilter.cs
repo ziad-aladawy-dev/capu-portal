@@ -148,6 +148,19 @@ public sealed class SyncDeadLetterFilter : JobFilterAttribute, IApplyStateFilter
                 run.LastError = TextHelpers.Truncate(lastError, 4000);
                 run.CompletedAt = DateTimeOffset.UtcNow;
                 db.SaveChanges();
+
+                // Run just transitioned to terminal-failed. Tell everyone who can
+                // access the sync layer. Inside this guard so it fires exactly once
+                // per dead-letter (the Running→DeadLettered flip is the idempotency
+                // anchor), fire-and-forget so the Hangfire worker thread isn't held.
+                FireAndForgetOutcomeNotification(metadata.CorrelationId, new SyncOutcomeNotice(
+                    metadata.CorrelationId,
+                    moduleName,
+                    direction,
+                    Success: false,
+                    RecordsProcessed: 0,
+                    RecordsFailed: 0,
+                    Error: lastError));
             }
 
             _logger.LogWarning(metadata.CorrelationId,
@@ -204,6 +217,34 @@ public sealed class SyncDeadLetterFilter : JobFilterAttribute, IApplyStateFilter
                 _logger.LogWarning(correlationId,
                     "Dead-letter alerting hook failed (audit row was still written). JobId={JobId} Error={Error}",
                     hangfireJobId, alertEx.Message);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Resolves a fresh DI scope on a thread-pool thread and fans out the
+    /// terminal-failure notification to every sync-permission holder, swallowing +
+    /// logging any failure. Mirrors <see cref="FireAndForgetAlert"/>: the dead-letter
+    /// audit row is already committed synchronously above, so notification dispatch
+    /// must never block or fail the worker thread. No-op when no notifier is
+    /// registered.
+    /// </summary>
+    private void FireAndForgetOutcomeNotification(Guid correlationId, SyncOutcomeNotice notice)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var notifier = scope.ServiceProvider.GetService<ISyncOutcomeNotifier>();
+                if (notifier is null) return;
+                await notifier.NotifyAsync(notice, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(correlationId,
+                    "Dead-letter notification failed (audit row was still written). Error={Error}",
+                    ex.Message);
             }
         });
     }

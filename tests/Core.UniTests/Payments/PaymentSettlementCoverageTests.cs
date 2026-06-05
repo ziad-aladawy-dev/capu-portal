@@ -65,6 +65,38 @@ public class PaymentSettlementCoverageTests
             repo, uow, cache, outbox);
     }
 
+    private sealed class RecordingNotifications : CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.INotificationService
+    {
+        public List<(Guid Recipient, string Title, string Message, CapitalUniversity.Core.Domain.Common.NotificationType Type)> Enqueued { get; } = new();
+
+        public Task EnqueueNotificationAsync(Guid recipientUserId, string title, string message, CapitalUniversity.Core.Domain.Common.NotificationType type, CancellationToken cancellationToken = default)
+        {
+            Enqueued.Add((recipientUserId, title, message, type));
+            return Task.CompletedTask;
+        }
+
+        // Unused by these tests — the service only ever calls EnqueueNotificationAsync.
+        public Task CreateNotificationAsync(Guid recipientUserId, string title, string message, CapitalUniversity.Core.Domain.Common.NotificationType type, Guid? idempotencyKey = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IEnumerable<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>> GetUserNotificationsAsync(Guid userId) => Task.FromResult(Enumerable.Empty<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>());
+        public Task<IEnumerable<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>> GetUnreadNotificationsAsync(Guid userId) => Task.FromResult(Enumerable.Empty<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>());
+        public Task MarkAsReadAsync(Guid notificationId, Guid userId) => Task.CompletedTask;
+        public Task<int> MarkManyAsReadAsync(IReadOnlyList<Guid> notificationIds, Guid userId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+        public Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+        public Task<CapitalUniversity.Core.Abstractions.Shared.PagedResult<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>> SearchAsync(Guid userId, CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationSearchQuery query, CancellationToken cancellationToken = default) => Task.FromResult(new CapitalUniversity.Core.Abstractions.Shared.PagedResult<CapitalUniversity.Core.Abstractions.CrossCutting.Notifications.DTOs.NotificationDto>());
+    }
+
+    private static (PaymentVerificationService Service, Mock<IInvoiceRepository> Repo, RecordingNotifications Notifications) BuildWithNotifications()
+    {
+        var repo = new Mock<IInvoiceRepository>();
+        var uow = new Mock<IUnitOfWork>();
+        var cache = new StubCache();
+        var outbox = new RecordingOutbox();
+        var notifications = new RecordingNotifications();
+        return (
+            new PaymentVerificationService(repo.Object, new RecordPaymentValidator(), cache, uow.Object, outbox, notifications),
+            repo, notifications);
+    }
+
     private static RecordPaymentRequest ValidRequest(
         Guid invoiceId,
         decimal amount,
@@ -294,6 +326,54 @@ public class PaymentSettlementCoverageTests
 
         invoice.Status.Should().Be(InvoiceStatus.PartiallyPaid);
         outbox.Messages.Should().BeEmpty();
+    }
+
+    // ── Student payment-success notification ─────────────────────────────────
+
+    [Fact]
+    public async Task Record_TransitionsPendingToPaid_NotifiesStudentOnce_WithAmountAndCurrency()
+    {
+        // On the Pending→Paid edge the student is told their payment landed.
+        // Staged on the same outbox/DbContext as the InvoicePaidFact, so it
+        // commits atomically with settlement. The message is bilingual JSON;
+        // it must carry the amount and currency the student actually paid.
+        var (sut, repo, notifications) = BuildWithNotifications();
+        var invoice = PendingInvoice(total: 100m);
+        WireRepo(repo, invoice);
+
+        await sut.RecordAsync(ValidRequest(invoice.Id, 100m));
+
+        notifications.Enqueued.Should().HaveCount(1, "exactly one notification fires on the settlement edge");
+        var sent = notifications.Enqueued.Single();
+        sent.Recipient.Should().Be(invoice.StudentId, "the owning student is the recipient");
+        sent.Type.Should().Be(CapitalUniversity.Core.Domain.Common.NotificationType.Info);
+        sent.Message.Should().Contain("100").And.Contain("EGP",
+            "the localized payload tells the student how much settled and in which currency");
+        sent.Title.Should().Contain("\"ar\"").And.Contain("\"en\"",
+            "title is a bilingual LocalizedJson payload, not a bare string");
+    }
+
+    [Fact]
+    public async Task Record_AlreadyPaidInvoice_DoesNotNotifyStudentAgain()
+    {
+        // Same edge-trigger guard as the outbox event: a duplicate Succeeded
+        // webhook landing on an already-Paid invoice must not re-notify the
+        // student.
+        var (sut, repo, notifications) = BuildWithNotifications();
+        var existingPayment = new PaymentTransaction
+        {
+            Status = PaymentTransactionStatus.Succeeded,
+            Amount = 100m,
+            IdempotencyKey = "first",
+        };
+        var invoice = PendingInvoice(total: 100m, existingPayment);
+        invoice.Status = InvoiceStatus.Paid; // already settled before this call
+        WireRepo(repo, invoice);
+
+        await sut.RecordAsync(ValidRequest(invoice.Id, 50m, idem: "second"));
+
+        notifications.Enqueued.Should().BeEmpty(
+            "edge-triggered: the student is notified on the Pending→Paid transition, not on every successful tx");
     }
 
     // ── Cache invalidation ───────────────────────────────────────────────────

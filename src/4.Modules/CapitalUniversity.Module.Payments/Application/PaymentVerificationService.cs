@@ -1,7 +1,9 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
@@ -39,6 +41,7 @@ public class PaymentVerificationService : IPaymentVerificationService
     private readonly IValidator<RecordPaymentRequest> _validator;
     private readonly ICacheService _cache;
     private readonly IOutbox? _outbox;
+    private readonly INotificationService? _notifications;
     private readonly IUnitOfWork _unitOfWork;
 
     public PaymentVerificationService(
@@ -46,13 +49,15 @@ public class PaymentVerificationService : IPaymentVerificationService
         IValidator<RecordPaymentRequest> validator,
         ICacheService cache,
         IUnitOfWork unitOfWork,
-        IOutbox? outbox = null)
+        IOutbox? outbox = null,
+        INotificationService? notifications = null)
     {
         _invoices = invoices;
         _validator = validator;
         _cache = cache;
         _unitOfWork = unitOfWork;
         _outbox = outbox;
+        _notifications = notifications;
     }
 
     public async Task<PaymentTransactionResponse> RecordAsync(RecordPaymentRequest request, CancellationToken cancellationToken = default)
@@ -149,6 +154,24 @@ public class PaymentVerificationService : IPaymentVerificationService
                         invoice.Currency,
                         DateTime.UtcNow),
                     ct);
+
+                // Tell the student their payment landed. Staged on the same
+                // outbox/DbContext as the InvoicePaidFact above, so it commits
+                // atomically with the settlement in the SaveChangesAsync below —
+                // and is dropped on the next ConcurrencyRetry attempt if this one
+                // fails (exactly-on-edge, mirroring the fact enqueue). Bilingual
+                // payload; the recipient sees it in their own culture.
+                if (_notifications is not null)
+                {
+                    await _notifications.EnqueueNotificationAsync(
+                        invoice.StudentId,
+                        LocalizedJson.Of("تم استلام الدفعة", "Payment received"),
+                        LocalizedJson.Of(
+                            $"تم سداد فاتورتك بمبلغ {invoice.TotalAmount} {invoice.Currency} بنجاح.",
+                            $"Your invoice of {invoice.TotalAmount} {invoice.Currency} has been paid successfully."),
+                        NotificationType.Info,
+                        ct);
+                }
             }
 
             // P1.3 — narrow idempotency handling: we catch unique-index collision 

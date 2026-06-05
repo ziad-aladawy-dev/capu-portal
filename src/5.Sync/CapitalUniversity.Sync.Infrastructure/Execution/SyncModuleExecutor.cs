@@ -240,6 +240,16 @@ public sealed class SyncModuleExecutor
             _logger.LogInformation(metadata.CorrelationId,
                 "Sync execution succeeded. Module={ModuleName} Direction={Direction} Processed={Processed} Failed={Failed} Duration={Duration}",
                 moduleName, direction, result.RecordsProcessed, result.RecordsFailed, result.Duration);
+
+            await NotifyOutcomeAsync(new SyncOutcomeNotice(
+                metadata.CorrelationId,
+                moduleName,
+                direction,
+                Success: true,
+                result.RecordsProcessed,
+                result.RecordsFailed,
+                Error: null),
+                cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -311,6 +321,35 @@ public sealed class SyncModuleExecutor
                     "Audit-failure alerting hook also threw. CorrelationId={CorrelationId} Error={Error}",
                     correlationId, alertEx.Message);
             }
+        }
+    }
+
+    /// <summary>
+    /// Best-effort fan-out of a terminal-outcome notification to everyone who can
+    /// access the sync layer. Resolved from a fresh scope (the notifier depends on
+    /// a scoped Core DbContext) exactly like <see cref="UpdateRunAsync"/> resolves
+    /// the audit repository. The run's audit state is already recorded by the time
+    /// this runs, so any failure here is swallowed and logged — it never fails the
+    /// job. No-op when no notifier is registered (e.g. a host wired without Core).
+    /// </summary>
+    private async Task NotifyOutcomeAsync(SyncOutcomeNotice notice, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var notifier = scope.ServiceProvider.GetService<ISyncOutcomeNotifier>();
+            if (notifier is null)
+            {
+                return;
+            }
+
+            await notifier.NotifyAsync(notice, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(notice.CorrelationId,
+                "Sync outcome notification failed (run state was already recorded). Module={ModuleName} Success={Success} Error={Error}",
+                notice.ModuleName, notice.Success, ex.Message);
         }
     }
 
