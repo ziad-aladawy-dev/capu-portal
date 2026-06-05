@@ -214,6 +214,7 @@ public static class DataSeeder
             ("sync",         LocalizedJson.Of("تكامل النظام",       "SIS Integration"),      "RefreshCw",       5),
             ("academics",    LocalizedJson.Of("الجدول الأكاديمي",   "Academic Timeline"),    "Calendar",        6),
             ("notifications",LocalizedJson.Of("الإشعارات",          "Notifications"),        "Bell",            7),
+            ("system",       LocalizedJson.Of("النظام",             "System"),               "ShieldCheck",     9),
         };
         foreach (var (key, display, icon, order) in modules)
             context.Modules.Add(new Module { Id = Guid.NewGuid(), ModuleKey = key, DisplayName = display, Icon = icon, OrderNumber = order });
@@ -257,6 +258,7 @@ public static class DataSeeder
         AddRes("sync",         "sync",           LocalizedJson.Of("مزامنة النظام",     "SIS Sync"),          0);
         AddRes("academics",    "academic-years", LocalizedJson.Of("الجدول الأكاديمي",  "Academic Timeline"), 0);
         AddRes("notifications","notifications",  LocalizedJson.Of("الإشعارات",         "Notifications"),     0);
+        AddRes("system",       "audit-logs",     LocalizedJson.Of("سجل التدقيق",       "Audit Log"),         0);
 
         await context.SaveChangesAsync();
     }

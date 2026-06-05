@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.Hosting;
@@ -40,7 +39,6 @@ public class AuthenticationApiTests : IClassFixture<WebApplicationFactory<Module
                 });
 
                 services.AddScoped(_ => new Mock<IAppLogger>().Object);
-                services.AddScoped(_ => new Mock<ILoggerService>().Object);
                 services.AddSingleton(_ => new Mock<IMongoClient>().Object);
             });
         });

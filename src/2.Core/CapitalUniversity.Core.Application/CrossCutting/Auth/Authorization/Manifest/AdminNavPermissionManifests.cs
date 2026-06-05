@@ -79,3 +79,21 @@ public sealed class SyncPermissionManifest : IPermissionManifest
         ResourceDefinition.WithCrudActions("sync", LocalizedJson.Of("مزامنة النظام", "SIS Sync"), 0),
     };
 }
+
+/// <summary>System administration surface — currently the audit-log viewer.
+/// Module = <c>system</c>, Resource = <c>audit-logs</c>. Only <c>View</c> maps to
+/// an endpoint, but the resource declares the full CRUD action graph (matching
+/// the other admin-nav resources) so the seeder's "grant every resource at
+/// Delete" loop expands down to View for Super Admin.</summary>
+public sealed class SystemPermissionManifest : IPermissionManifest
+{
+    public string Module => "system";
+    public string DisplayName => LocalizedJson.Of("النظام", "System");
+    public string? Icon => "ShieldCheck";
+    public int? OrderNumber => 9;
+
+    public IReadOnlyCollection<ResourceDefinition> Resources { get; } = new[]
+    {
+        ResourceDefinition.WithCrudActions("audit-logs", LocalizedJson.Of("سجل التدقيق", "Audit Log"), 0),
+    };
+}

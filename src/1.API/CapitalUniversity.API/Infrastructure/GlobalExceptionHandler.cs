@@ -1,4 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -55,7 +57,8 @@ public class GlobalExceptionHandler : IExceptionHandler
         // P4.1 — Severity downgrade. Client-originated (4xx) exceptions log at
         // Warning so they no longer flood Error telemetry / alerts. Server
         // exceptions (the fall-through 5xx branch) still log at Error.
-        if (IsClientOriginated(exception))
+        var clientOriginated = IsClientOriginated(exception);
+        if (clientOriginated)
         {
             _logger.LogWarning(
                 exception,
@@ -85,6 +88,13 @@ public class GlobalExceptionHandler : IExceptionHandler
             DbUpdateException dbEx when IsForeignKeyViolation(dbEx) => ((int)HttpStatusCode.BadRequest, LocalizedKeys.Infrastructure.ValidationError, "https://tools.ietf.org/html/rfc7231#section-6.5.1", LocalizedKeys.Infrastructure.ForeignKeyViolation),
             _                     => ((int)HttpStatusCode.InternalServerError, LocalizedKeys.Infrastructure.ServerError,        "https://tools.ietf.org/html/rfc7231#section-6.6.1", LocalizedKeys.Infrastructure.ServerError)
         };
+
+        // Persist the failure to the Mongo audit trail (Category = Error) so errors
+        // and warnings are auditable alongside data changes. Server (5xx) failures
+        // record at Error with the stack trace; client (4xx) failures at Warning.
+        // Best-effort and resolved from the request scope (this handler is a
+        // singleton, IAppLogger is scoped) — never lets logging break the response.
+        await AuditAsync(httpContext, exception, statusCode, clientOriginated);
 
         // Resolve the localization service from the request's scope — the handler
         // itself is registered as a singleton (AddExceptionHandler default), so
@@ -118,6 +128,44 @@ public class GlobalExceptionHandler : IExceptionHandler
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
+    }
+
+    private const string AuditSource = "Api";
+
+    /// <summary>
+    /// Best-effort write of the failure to the Mongo audit trail. IAppLogger is
+    /// scoped, so it is resolved from the request's service provider (the handler
+    /// is a singleton). Passing <paramref name="httpContext"/> captures the actor
+    /// (id / name / role), IP and request path. Any failure here is swallowed —
+    /// audit logging must never replace a real error response with a 500.
+    /// </summary>
+    private static async Task AuditAsync(HttpContext httpContext, Exception exception, int statusCode, bool clientOriginated)
+    {
+        var appLogger = httpContext.RequestServices.GetService<IAppLogger>();
+        if (appLogger is null) return;
+
+        var metadata = new Dictionary<string, object>
+        {
+            [AuditMetadataKeys.Category] = LogCategory.Error,
+            ["ExceptionType"] = exception.GetType().Name,
+            ["StatusCode"] = statusCode,
+        };
+
+        try
+        {
+            if (clientOriginated)
+            {
+                await appLogger.LogWarningAsync(exception.Message, AuditSource, httpContext, metadata);
+            }
+            else
+            {
+                await appLogger.LogErrorAsync(exception.Message, exception, AuditSource, httpContext, metadata);
+            }
+        }
+        catch
+        {
+            // Never let audit logging break the error response.
+        }
     }
 
     private static bool IsClientOriginated(Exception exception) => exception is

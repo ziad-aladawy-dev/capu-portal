@@ -36,6 +36,7 @@ using CapitalUniversity.Sync.Schedules.Sources;
 // (Core / module abstractions) since the sync layer no longer duplicates them.
 using CapitalUniversity.Core.Abstractions.Sync;
 using CapitalUniversity.Core.Domain.Courses;
+using CapitalUniversity.Core.Infrastructure.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Sync;
 using CapitalUniversity.Modules.CourseOffering.Domain;
@@ -105,6 +106,19 @@ CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CourseOffering).Assembly)
 
 builder.Services.AddDbContext<CoreDbContext>(opts => opts.UseSqlServer(coreConnectionString));
 builder.Services.AddScoped<ICoreWriteGateway, CoreWriteGateway>();
+
+// ── Mongo audit trail ─────────────────────────────────────────────────────────
+// Wire the Mongo audit pipeline so CoreDbContext's EF auto-trail records every
+// write the sync platform makes into Core tables (courses, schedules, finance,
+// staff, student). Sync jobs run without an HttpContext, so these entries are
+// recorded as system actions (no user/IP) — which is correct for the platform.
+// The ISyncLogger decorator additionally mirrors sync warnings/errors into Mongo.
+builder.Services.AddMongoAuditLogging(builder.Configuration);
+builder.Services.AddSingleton<CapitalUniversity.Sync.Infrastructure.Observability.SyncLogger>();
+builder.Services.AddSingleton<ISyncLogger>(sp =>
+    new CapitalUniversity.Sync.Host.Observability.MongoAuditingSyncLogger(
+        sp.GetRequiredService<CapitalUniversity.Sync.Infrastructure.Observability.SyncLogger>(),
+        sp.GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>()));
 
 // Notifies everyone who can access the sync layer (holders of the "sync"
 // permission) when a run completes or terminally fails. Scoped — shares the

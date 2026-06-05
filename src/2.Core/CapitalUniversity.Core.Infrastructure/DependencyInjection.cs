@@ -1,6 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Execution;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
@@ -8,7 +7,6 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
-using CapitalUniversity.Core.Application.CrossCutting.Audit;
 using CapitalUniversity.Core.Application.Auth.Authentication;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Application.CrossCutting.Localization;
@@ -129,17 +127,6 @@ public static class DependencyInjection
             return new MongoClient(settings.ConnectionString);
         });
 
-        // 3. Register IMongoDatabase
-        services.AddScoped(sp =>
-        {
-            var settings = sp.GetRequiredService<IOptions<MongoSettings>>().Value;
-
-            if (string.IsNullOrWhiteSpace(settings.DatabaseName))
-                throw new InvalidOperationException("MongoDB DatabaseName is not configured in MongoSettings.");
-
-            var client = sp.GetRequiredService<IMongoClient>();
-            return client.GetDatabase(settings.DatabaseName);
-        });
         // Register Validators
         services.AddValidatorsFromAssembly(typeof(IStudentService).Assembly);
 
@@ -290,6 +277,8 @@ public static class DependencyInjection
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.ProgramsPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SyncPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SystemPermissionManifest>();
         // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
         // registered by AddPaymentsModule().
         // StudentInformationPermissionManifest moved to
@@ -322,16 +311,18 @@ public static class DependencyInjection
 
         // Logging & Audit
 
-        services.AddScoped<ILoggerService, SerilogLoggerService>();
-
         // Async audit pipeline (PR-D1): BufferedAppLogger captures HttpContext fields
         // synchronously and stages a LogEntry on a bounded Channel; AuditLogFlushWorker
-        // drains the channel and writes to Mongo out of band. MongoLoggerService is
-        // still available for callers that need a synchronous write.
+        // drains the channel and writes to Mongo out of band.
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAuditLogQueue>(
             _ => new CapitalUniversity.Core.Infrastructure.Logging.ChannelAuditLogQueue());
         services.AddScoped<IAppLogger, CapitalUniversity.Core.Infrastructure.Logging.BufferedAppLogger>();
         services.AddHostedService<CapitalUniversity.Core.Infrastructure.Logging.AuditLogFlushWorker>();
+
+        // Read side over the Mongo audit trail (filterable + paged), backing the
+        // admin audit-logs endpoint.
+        services.AddScoped<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAuditLogReader,
+                           CapitalUniversity.Core.Infrastructure.Logging.MongoAuditLogReader>();
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();

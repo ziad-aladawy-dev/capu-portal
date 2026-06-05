@@ -24,6 +24,7 @@ public class DataSeederSelfHealingTests
             new StructurePermissionManifest(),
             new ProgramsPermissionManifest(),
             new SyncPermissionManifest(),
+            new SystemPermissionManifest(),
             new AuthorizationPermissionManifest(),
             new AcademicsPermissionManifest(),
             new NotificationsPermissionManifest(),

@@ -17,6 +17,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence;
 public class CoreDbContext : DbContext
 {
     private readonly IAppLogger? _logger;
+    private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor? _httpContextAccessor;
 
     /// <summary>
     /// Modules register their EF configuration assemblies here from their
@@ -29,9 +30,13 @@ public class CoreDbContext : DbContext
     /// </summary>
     public static List<System.Reflection.Assembly> ModuleConfigurationAssemblies { get; } = new();
 
-    public CoreDbContext(DbContextOptions<CoreDbContext> options, IAppLogger? logger = null) : base(options)
+    public CoreDbContext(
+        DbContextOptions<CoreDbContext> options,
+        IAppLogger? logger = null,
+        Microsoft.AspNetCore.Http.IHttpContextAccessor? httpContextAccessor = null) : base(options)
     {
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -128,12 +133,29 @@ public class CoreDbContext : DbContext
             .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToList();
 
+        // Snapshot the request context once so every entry in this SaveChanges
+        // carries the same actor (user id / full name / role / IP). Null for
+        // background work (e.g. the Sync host), where there is no HttpContext —
+        // those entries are correctly recorded as system actions.
+        var httpContext = _httpContextAccessor?.HttpContext;
+
         foreach (var entry in entries)
         {
+            var entityName = entry.Entity.GetType().Name;
+            var action = entry.State switch
+            {
+                EntityState.Added => "Created",
+                EntityState.Modified => "Updated",
+                EntityState.Deleted => "Deleted",
+                _ => entry.State.ToString()
+            };
+
             var metadata = new Dictionary<string, object>
             {
-                { "Entity", entry.Entity.GetType().Name },
-                { "State", entry.State.ToString() }
+                // Reserved keys — lifted onto LogEntry columns by the logger.
+                { AuditMetadataKeys.Category, LogCategory.Data },
+                { AuditMetadataKeys.Action, action },
+                { AuditMetadataKeys.Entity, entityName },
             };
 
             if (entry.State == EntityState.Modified)
@@ -144,7 +166,7 @@ public class CoreDbContext : DbContext
                 metadata.Add("Changes", changes);
             }
 
-            await _logger!.LogInfoAsync($"Entity {entry.State}: {entry.Entity.GetType().Name}", "AuditTrail", null, metadata);
+            await _logger!.LogInfoAsync($"{action} {entityName}", "AuditTrail", httpContext, metadata);
         }
     }
 

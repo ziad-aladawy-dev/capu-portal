@@ -58,6 +58,15 @@ public class AuditLogFlushWorker : BackgroundService
             collection ??= TryResolveCollection();
             if (collection is null) continue;
 
+            // Ensure the read-side indexes exist (idempotent). Done lazily off the
+            // first reachable collection so a Mongo outage at startup doesn't block
+            // the worker — when Mongo recovers and the first entry resolves the
+            // collection, the indexes are created then.
+            if (!_indexesEnsured)
+            {
+                await EnsureIndexesAsync(collection, stoppingToken);
+            }
+
             try
             {
                 await collection.InsertOneAsync(entry, cancellationToken: stoppingToken);
@@ -78,6 +87,52 @@ public class AuditLogFlushWorker : BackgroundService
     }
 
     private bool _resolveFailureLogged;
+    private bool _indexesEnsured;
+
+    /// <summary>
+    /// Creates the indexes backing the audit read API (filter + sort). Idempotent:
+    /// Mongo's createIndexes is a no-op when an identical index already exists, so
+    /// this is safe to call on every startup and across both hosts (API + Sync).
+    /// A failure is logged and left for the next entry to retry — it never stops
+    /// the worker.
+    /// </summary>
+    private async Task EnsureIndexesAsync(IMongoCollection<LogEntry> collection, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var keys = Builders<LogEntry>.IndexKeys;
+            var models = new[]
+            {
+                // Primary sort + a compound (Category, time) for the common
+                // "filter by type, newest first" query shape.
+                new CreateIndexModel<LogEntry>(keys.Descending(x => x.CreatedAtUtc),
+                    new CreateIndexOptions { Name = "ix_createdAtUtc_desc" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.Category).Descending(x => x.CreatedAtUtc),
+                    new CreateIndexOptions { Name = "ix_category_createdAtUtc" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.Level),
+                    new CreateIndexOptions { Name = "ix_level" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.Action),
+                    new CreateIndexOptions { Name = "ix_action" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.EntityName),
+                    new CreateIndexOptions { Name = "ix_entityName" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.Role),
+                    new CreateIndexOptions { Name = "ix_role" }),
+                new CreateIndexModel<LogEntry>(keys.Ascending(x => x.UserName),
+                    new CreateIndexOptions { Name = "ix_userName" }),
+            };
+
+            await collection.Indexes.CreateManyAsync(models, cancellationToken);
+            _indexesEnsured = true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AuditLogFlushWorker: failed to ensure audit-log indexes; will retry.");
+        }
+    }
 
     private IMongoCollection<LogEntry>? TryResolveCollection()
     {
