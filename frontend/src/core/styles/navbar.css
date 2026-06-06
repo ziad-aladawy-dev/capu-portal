@@ -11,7 +11,7 @@
   gap: 10px;
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   width: 100%;
   z-index: 250;
   font-family: "Outfit", sans-serif;
@@ -62,18 +62,6 @@
   background: rgba(224, 192, 106, 0.15);
   color: #e0c06a;
   border-color: rgba(224, 192, 106, 0.3);
-}
-
-.nav-icon-btn .badge {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 6px;
-  height: 6px;
-  background: #e0c06a;
-  border-radius: 50%;
-  border: 1.5px solid #07091e;
-  animation: pulseBadge 1.8s ease-in-out infinite;
 }
 
 .nav-divider {
@@ -195,7 +183,7 @@
 .dashboard-content {
   min-height: 100vh;
   padding-top: 54px;
-  transition: margin-left 0.3s ease;
+  transition: margin-inline-start 0.3s ease;
   background: #f5f6fa;
 }
 
@@ -300,7 +288,7 @@
 .nav-dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
+  inset-inline-start: 0;
   min-width: 220px;
   background: #ffffff;
   border: 1px solid rgba(26, 31, 94, 0.1);
@@ -323,7 +311,7 @@
   border-radius: 7px;
   background: transparent;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   width: 100%;
   font-family: "Outfit", sans-serif;
   transition: all 0.15s ease;
@@ -351,7 +339,7 @@
 }
 
 .nav-dropdown-check {
-  margin-left: auto;
+  margin-inline-start: auto;
   color: #c9a84c;
   font-size: 12px;
 }
@@ -372,7 +360,7 @@
 .nav-icon-btn .badge {
   position: absolute;
   top: 2px;
-  right: 2px;
+  inset-inline-end: 2px;
   min-width: 14px;
   height: 14px;
   background: #e0c06a;
@@ -392,8 +380,8 @@
 /* ── Notification Dropdown ── */
 
 .notification-dropdown {
-  right: 0;
-  left: auto;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
   width: 320px;
   max-height: 380px;
   overflow-y: auto;
@@ -481,8 +469,8 @@
 /* ── Profile Dropdown ── */
 
 .profile-dropdown {
-  right: 0;
-  left: auto;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
   width: 240px;
   padding: 0;
 }
@@ -563,7 +551,7 @@
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   flex: 1;
-  text-align: left;
+  text-align: start;
   font-family: "Outfit", sans-serif;
 }
 
@@ -608,6 +596,43 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: "Outfit", sans-serif;
+}
+
+/* ── Language Selector ── */
+
+.language-selector {
+  margin-inline: 8px;
+}
+
+.lang-select {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 5px 10px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+}
+
+.lang-select option {
+  background: #1a1f5e;
+  color: white;
+}
+
+/* ── RTL Navbar Overrides ── */
+
+[dir="rtl"] .nav-icon-btn .badge {
+  inset-inline-end: auto;
+  inset-inline-start: 5px;
+}
+
+[dir="rtl"] .nav-search input {
+  text-align: end;
+}
+
+[dir="rtl"] .scope-content {
+  text-align: end;
 }
 
 @media (max-width: 1100px) {

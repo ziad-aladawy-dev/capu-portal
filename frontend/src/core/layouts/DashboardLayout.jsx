@@ -90,7 +90,12 @@ function DashboardLayout() {
   const getContentMargin = () => {
     if (isMobile) return "0px";
 
-    if (windowWidth <= 1024) return secondaryOpen ? `${64 + SECONDARY_SIDEBAR_WIDTH}px` : "64px";
+    if (windowWidth <= 1024) {
+      const tabletPrimary = sidebarOpen ? 64 : 0;
+      return secondaryOpen
+        ? `${tabletPrimary + SECONDARY_SIDEBAR_WIDTH}px`
+        : `${tabletPrimary}px`;
+    }
 
     const primaryMargin = sidebarOpen ? SIDEBAR_WIDTH : 0;
     const secondaryMargin = secondaryOpen ? SECONDARY_SIDEBAR_WIDTH : 0;
@@ -142,8 +147,8 @@ function DashboardLayout() {
       <div
         className="dashboard-content"
         style={{
-          marginLeft: getContentMargin(),
-          transition: "margin-left 0.35s cubic-bezier(0.4,0,0.2,1)",
+          marginInlineStart: getContentMargin(),
+          transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
         }}
       >
         <Navbar

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Save } from "lucide-react";
 import { SLOT_KINDS, SLOT_KIND_LABELS, DAY_LABELS } from "../../../core/services/scheduleService";
 
 function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClose }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     courseOfferingId: courseOfferingId || "",
     dayOfWeek: 0,
@@ -55,13 +57,13 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content sch-form-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editSlot ? "Edit Slot" : "New Schedule Slot"}</h3>
+          <h3>{editSlot ? t("edit_slot") : t("new_schedule_slot")}</h3>
           <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="sch-form">
           <div className="sch-form-grid">
             <div className="sch-form-group">
-              <label>Day *</label>
+              <label>{t("day")} *</label>
               <select value={form.dayOfWeek} onChange={(e) => handleChange("dayOfWeek", e.target.value)}>
                 {Object.entries(DAY_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -70,7 +72,7 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
             </div>
 
             <div className="sch-form-group">
-              <label>Kind</label>
+              <label>{t("kind")}</label>
               <select value={form.kind} onChange={(e) => handleChange("kind", e.target.value)}>
                 {Object.entries(SLOT_KIND_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -79,7 +81,7 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
             </div>
 
             <div className="sch-form-group">
-              <label>Start Time *</label>
+              <label>{t("start_time")} *</label>
               <input
                 type="time"
                 value={form.startTime}
@@ -89,7 +91,7 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
             </div>
 
             <div className="sch-form-group">
-              <label>End Time *</label>
+              <label>{t("end_time")} *</label>
               <input
                 type="time"
                 value={form.endTime}
@@ -99,21 +101,21 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
             </div>
 
             <div className="sch-form-group">
-              <label>Location</label>
+              <label>{t("location")}</label>
               <input
                 type="text"
                 value={form.location}
                 onChange={(e) => handleChange("location", e.target.value)}
-                placeholder="e.g. Room 201, Hall B"
+                placeholder={t("location_placeholder")}
               />
             </div>
 
             <div className="sch-form-group full-width">
-              <label>Notes</label>
+              <label>{t("notes")}</label>
               <textarea
                 value={form.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
-                placeholder="Optional notes..."
+                placeholder={t("notes_placeholder")}
               />
             </div>
           </div>
@@ -121,13 +123,13 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
           {formError && <div className="sch-form-error">{formError}</div>}
 
           <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+            <button type="button" className="btn-cancel" onClick={onClose} disabled={saving}>{t("cancel")}</button>
             <button
               type="submit"
               className="btn-primary"
               disabled={saving || !form.startTime || !form.endTime || form.endTime <= form.startTime}
             >
-              <Save size={14} /> {saving ? "Saving..." : editSlot ? "Update" : "Create"}
+              <Save size={14} /> {saving ? t("saving") : editSlot ? t("update") : t("create")}
             </button>
           </div>
         </form>

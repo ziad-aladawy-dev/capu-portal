@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ClipboardList, Plus, Trash2, X, AlertTriangle, RefreshCw, BookOpen,
   Edit2, Calendar,
@@ -24,6 +25,7 @@ const EMPTY_COURSE_FORM = {
 };
 
 function AcademicPlansPage() {
+  const { t } = useTranslation();
   const [structureNodes, setStructureNodes] = useState([]);
   const [structureLoading, setStructureLoading] = useState(false);
   const [selectedStructureId, setSelectedStructureId] = useState("");
@@ -127,7 +129,7 @@ function AcademicPlansPage() {
 
   const openCreatePlan = () => {
     if (!selectedStructureId) {
-      setError("Select a structure node first.");
+      setError(t("select_node_first"));
       return;
     }
     setPlanModal("create");
@@ -156,11 +158,11 @@ function AcademicPlansPage() {
   const handlePlanSubmit = async (e) => {
     e.preventDefault();
     if (!planForm.name.trim()) {
-      setPlanFormError("Plan name is required.");
+      setPlanFormError(t("plan_name_required"));
       return;
     }
     if (!planForm.effectiveFrom) {
-      setPlanFormError("Effective from date is required.");
+      setPlanFormError(t("effective_from_required"));
       return;
     }
     setPlanSaving(true);
@@ -212,7 +214,7 @@ function AcademicPlansPage() {
   const handleAddCourse = async (e) => {
     e.preventDefault();
     if (!courseForm.courseId) {
-      setCourseFormError("Pick a course.");
+      setCourseFormError(t("pick_course"));
       return;
     }
     setCourseSaving(true);
@@ -255,8 +257,8 @@ function AcademicPlansPage() {
         <div className="aplans-header-left">
           <ClipboardList size={22} />
           <div>
-            <h1>Academic Plans</h1>
-            <p>Compose curricula by mapping catalog courses to a structure node.</p>
+            <h1>{t("academic_plans")}</h1>
+            <p>{t("compose_curricula")}</p>
           </div>
         </div>
         <div>
@@ -266,7 +268,7 @@ function AcademicPlansPage() {
             disabled={!selectedStructureId}
           >
             <Plus size={14} />
-            New Plan
+            {t("new_plan")}
           </button>
         </div>
       </div>
@@ -285,13 +287,13 @@ function AcademicPlansPage() {
       )}
 
       <div className="aplans-toolbar">
-        <span className="label">Structure Node:</span>
+        <span className="label">{t("structure_node")}</span>
         <select
           value={selectedStructureId}
           onChange={(e) => setSelectedStructureId(e.target.value)}
           disabled={structureLoading}
         >
-          <option value="">— Select a structure node —</option>
+          <option value="">{t("select_structure_node")}</option>
           {structureNodes.map((n) => (
             <option key={n.id} value={n.id}>
               [{n._type}] {n.name}
@@ -301,28 +303,28 @@ function AcademicPlansPage() {
         {selectedStructureId && (
           <button className="aplans-btn aplans-btn-outline" onClick={() => loadPlans(selectedStructureId)}>
             <RefreshCw size={12} />
-            Refresh
+            {t("refresh")}
           </button>
         )}
       </div>
 
       <div className="aplans-grid">
         <div className="aplans-list-card">
-          <h3><ClipboardList size={15} /> Plans</h3>
+          <h3><ClipboardList size={15} /> {t("plans")}</h3>
           {plansLoading ? (
             <div className="aplans-loading">
               <div className="aplans-spinner" />
-              <p>Loading plans…</p>
+              <p>{t("loading_plans")}</p>
             </div>
           ) : !selectedStructureId ? (
             <p style={{ color: "#6b7280", fontSize: 12 }}>
-              Pick a structure node above to list its academic plans.
+              {t("pick_structure_node")}
             </p>
           ) : plans.length === 0 ? (
             <div className="aplans-empty">
               <ClipboardList size={32} />
-              <h3>No plans yet</h3>
-              <p>Create a plan for this structure node.</p>
+              <h3>{t("no_plans_yet")}</h3>
+              <p>{t("create_plan_for_node")}</p>
             </div>
           ) : (
             plans.map((plan) => (
@@ -342,13 +344,13 @@ function AcademicPlansPage() {
               >
                 <span className="plan-name">{plan.name}</span>
                 <span className="plan-meta">
-                  {formatDate(plan.effectiveFrom)} → {plan.effectiveTo ? formatDate(plan.effectiveTo) : "open"}
+                  {formatDate(plan.effectiveFrom)} → {plan.effectiveTo ? formatDate(plan.effectiveTo) : t("open")}
                 </span>
                 <span
                   className={`aplans-badge ${plan.isActive ? "aplans-badge-active" : "aplans-badge-inactive"}`}
                   style={{ marginTop: 4, alignSelf: "flex-start" }}
                 >
-                  {plan.isActive ? "Active" : "Inactive"}
+                  {plan.isActive ? t("active") : t("inactive")}
                 </span>
               </button>
             ))
@@ -359,13 +361,13 @@ function AcademicPlansPage() {
           {!selectedPlan ? (
             <div className="aplans-empty">
               <ClipboardList size={40} />
-              <h3>No plan selected</h3>
-              <p>Pick a plan on the left to view and edit its course list.</p>
+              <h3>{t("no_plan_selected")}</h3>
+              <p>{t("pick_plan_left")}</p>
             </div>
           ) : planLoading ? (
             <div className="aplans-loading">
               <div className="aplans-spinner" />
-              <p>Loading plan…</p>
+              <p>{t("loading_plan")}</p>
             </div>
           ) : (
             <>
@@ -378,29 +380,29 @@ function AcademicPlansPage() {
                 </div>
                 <div className="aplans-detail-actions">
                   <button className="aplans-btn aplans-btn-outline" onClick={() => openEditPlan(selectedPlan)}>
-                    <Edit2 size={13} /> Edit
+                    <Edit2 size={13} /> {t("edit")}
                   </button>
                   <button className="aplans-btn aplans-btn-danger" onClick={() => setDeletePlan(selectedPlan)}>
-                    <Trash2 size={13} /> Delete
+                    <Trash2 size={13} /> {t("delete")}
                   </button>
                 </div>
               </div>
 
               <div className="aplans-detail-meta">
                 <div>
-                  <span>Effective From</span>
+                  <span>{t("effective_from")}</span>
                   <strong>{formatDate(selectedPlan.effectiveFrom)}</strong>
                 </div>
                 <div>
-                  <span>Effective To</span>
-                  <strong>{selectedPlan.effectiveTo ? formatDate(selectedPlan.effectiveTo) : "Open"}</strong>
+                  <span>{t("effective_to")}</span>
+                  <strong>{selectedPlan.effectiveTo ? formatDate(selectedPlan.effectiveTo) : t("open")}</strong>
                 </div>
                 <div>
-                  <span>Status</span>
-                  <strong>{selectedPlan.isActive ? "Active" : "Inactive"}</strong>
+                  <span>{t("status")}</span>
+                  <strong>{selectedPlan.isActive ? t("active") : t("inactive")}</strong>
                 </div>
                 <div>
-                  <span>Structure Node</span>
+                  <span>{t("structure_node")}</span>
                   <strong style={{ fontFamily: "Space Mono, monospace", fontSize: 11 }}>
                     {selectedPlan.structureNodeId}
                   </strong>
@@ -408,26 +410,26 @@ function AcademicPlansPage() {
               </div>
 
               <div className="aplans-section-title" style={{ justifyContent: "space-between" }}>
-                <span><BookOpen size={13} /> Plan Courses</span>
+                <span><BookOpen size={13} /> {t("plan_courses")}</span>
                 <button className="aplans-btn aplans-btn-primary" onClick={openAddCourse}>
-                  <Plus size={13} /> Add Course
+                  <Plus size={13} /> {t("add_course")}
                 </button>
               </div>
 
               {!selectedPlan.planCourses || selectedPlan.planCourses.length === 0 ? (
                 <div className="aplans-empty" style={{ marginTop: 0 }}>
                   <BookOpen size={32} />
-                  <p>No courses on this plan yet.</p>
+                  <p>{t("no_courses_plan")}</p>
                 </div>
               ) : (
                 <table className="aplans-table">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Title</th>
-                      <th>Level</th>
-                      <th>Semester</th>
-                      <th>Type</th>
+                      <th>{t("code")}</th>
+                      <th>{t("title")}</th>
+                      <th>{t("level")}</th>
+                      <th>{t("semester")}</th>
+                      <th>{t("type")}</th>
                       <th className="col-actions" />
                     </tr>
                   </thead>
@@ -446,14 +448,14 @@ function AcademicPlansPage() {
                           <td>{pc.semester}</td>
                           <td>
                             <span className="aplans-badge aplans-badge-active">
-                              {pc.isMandatory ? "Mandatory" : "Elective"}
+                              {pc.isMandatory ? t("mandatory") : t("elective")}
                             </span>
                           </td>
                           <td className="col-actions">
                             <button
                               className="aplans-action-btn delete"
                               onClick={() => setDeletePlanCourse(pc)}
-                              title="Remove"
+                              title={t("remove")}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -473,7 +475,7 @@ function AcademicPlansPage() {
         <div className="aplans-modal-overlay" onClick={closePlanModal}>
           <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
             <div className="aplans-modal-header">
-              <h2>{planModal === "create" ? "New Academic Plan" : "Edit Academic Plan"}</h2>
+              <h2>{planModal === "create" ? t("new_academic_plan") : t("edit_academic_plan")}</h2>
               <button className="aplans-modal-close" onClick={closePlanModal}>
                 <X size={16} />
               </button>
@@ -481,19 +483,19 @@ function AcademicPlansPage() {
             <form onSubmit={handlePlanSubmit}>
               <div className="aplans-modal-body">
                 <div className="aplans-form-group">
-                  <label>Plan Name</label>
+                  <label>{t("plan_name")}</label>
                   <input
                     type="text"
                     className="aplans-form-input"
                     value={planForm.name}
                     onChange={(e) => setPlanForm((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="e.g. CS 2026 Curriculum"
+                    placeholder={t("plan_name_placeholder")}
                     autoFocus
                   />
                 </div>
                 <div className="aplans-form-row">
                   <div className="aplans-form-group">
-                    <label>Effective From</label>
+                    <label>{t("effective_from")}</label>
                     <input
                       type="date"
                       className="aplans-form-input"
@@ -502,7 +504,7 @@ function AcademicPlansPage() {
                     />
                   </div>
                   <div className="aplans-form-group">
-                    <label>Effective To (optional)</label>
+                    <label>{t("effective_to_optional")}</label>
                     <input
                       type="date"
                       className="aplans-form-input"
@@ -518,17 +520,17 @@ function AcademicPlansPage() {
                       checked={planForm.isActive}
                       onChange={(e) => setPlanForm((p) => ({ ...p, isActive: e.target.checked }))}
                     />
-                    Active
+                    {t("active")}
                   </label>
                 )}
                 {planFormError && <span className="aplans-form-error">{planFormError}</span>}
               </div>
               <div className="aplans-modal-footer">
                 <button type="button" className="aplans-btn aplans-btn-outline" onClick={closePlanModal}>
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button type="submit" className="aplans-btn aplans-btn-primary" disabled={planSaving}>
-                  {planSaving ? "Saving…" : planModal === "create" ? "Create" : "Save"}
+                  {planSaving ? t("saving") : planModal === "create" ? t("create") : t("save")}
                 </button>
               </div>
             </form>
@@ -540,7 +542,7 @@ function AcademicPlansPage() {
         <div className="aplans-modal-overlay" onClick={() => setCourseModal(false)}>
           <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
             <div className="aplans-modal-header">
-              <h2>Add Course to Plan</h2>
+              <h2>{t("add_course_to_plan")}</h2>
               <button className="aplans-modal-close" onClick={() => setCourseModal(false)}>
                 <X size={16} />
               </button>
@@ -548,13 +550,13 @@ function AcademicPlansPage() {
             <form onSubmit={handleAddCourse}>
               <div className="aplans-modal-body">
                 <div className="aplans-form-group">
-                  <label>Course</label>
+                  <label>{t("course")}</label>
                   <select
                     className="aplans-form-select"
                     value={courseForm.courseId}
                     onChange={(e) => setCourseForm((p) => ({ ...p, courseId: e.target.value }))}
                   >
-                    <option value="">— Select a course —</option>
+                    <option value="">{t("select_course")}</option>
                     {courses.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.code} — {c.title}
@@ -564,7 +566,7 @@ function AcademicPlansPage() {
                 </div>
                 <div className="aplans-form-row">
                   <div className="aplans-form-group">
-                    <label>Level</label>
+                    <label>{t("level")}</label>
                     <input
                       type="number"
                       className="aplans-form-input"
@@ -575,7 +577,7 @@ function AcademicPlansPage() {
                     />
                   </div>
                   <div className="aplans-form-group">
-                    <label>Semester</label>
+                    <label>{t("semester")}</label>
                     <input
                       type="number"
                       className="aplans-form-input"
@@ -592,16 +594,16 @@ function AcademicPlansPage() {
                     checked={courseForm.isMandatory}
                     onChange={(e) => setCourseForm((p) => ({ ...p, isMandatory: e.target.checked }))}
                   />
-                  Mandatory
+                  {t("mandatory")}
                 </label>
                 {courseFormError && <span className="aplans-form-error">{courseFormError}</span>}
               </div>
               <div className="aplans-modal-footer">
                 <button type="button" className="aplans-btn aplans-btn-outline" onClick={() => setCourseModal(false)}>
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button type="submit" className="aplans-btn aplans-btn-primary" disabled={courseSaving}>
-                  {courseSaving ? "Adding…" : "Add Course"}
+                  {courseSaving ? t("adding") : t("add_course")}
                 </button>
               </div>
             </form>
@@ -619,7 +621,7 @@ function AcademicPlansPage() {
         >
           <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
             <div className="aplans-modal-header">
-              <h2>{deletePlan ? "Delete Plan" : "Remove Course from Plan"}</h2>
+              <h2>{deletePlan ? t("delete_plan_title") : t("remove_course_plan")}</h2>
               <button
                 className="aplans-modal-close"
                 onClick={() => {
@@ -634,11 +636,11 @@ function AcademicPlansPage() {
               <AlertTriangle size={32} color="#dc2626" />
               <p style={{ margin: 0 }}>
                 {deletePlan
-                  ? `Delete plan "${deletePlan.name}"?`
-                  : "Remove this course from the plan?"}
+                  ? t("delete_plan_confirm", { name: deletePlan.name })
+                  : t("remove_course_confirm")}
               </p>
               <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
-                This action cannot be undone.
+                {t("cannot_undo")}
               </p>
             </div>
             <div className="aplans-modal-footer">
@@ -649,13 +651,13 @@ function AcademicPlansPage() {
                   setDeletePlanCourse(null);
                 }}
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 className="aplans-btn aplans-btn-danger"
                 onClick={deletePlan ? handleDeletePlan : handleRemoveCourse}
               >
-                Confirm
+                {t("confirm")}
               </button>
             </div>
           </div>

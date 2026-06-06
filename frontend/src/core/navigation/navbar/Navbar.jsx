@@ -4,6 +4,7 @@ import {
   Bell, ChevronDown, Menu, Building2, CalendarRange,
   BookOpen, HelpCircle, User, LogOut, Key, Settings, Search,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
@@ -13,18 +14,50 @@ import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
 import ScopeModal from "../../components/ScopeModal";
 import "../../styles/navbar.css";
 
+const getLocalizedText = (text, lang) => {
+  if (!text) return "";
+  try {
+    const parsed = JSON.parse(text);
+    return parsed[lang] || parsed.ar || parsed.en || text;
+  } catch {
+    return text;
+  }
+};
+
+function getUserInitial(user, language) {
+  if (!user) return "U";
+  let displayName = "";
+  const raw = user.name || user.fullName || "";
+  if (typeof raw === "object" && raw !== null) {
+    displayName = language === "ar"
+      ? (raw.ar || raw.en || "")
+      : (raw.en || raw.ar || "");
+  } else if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      displayName = language === "ar"
+        ? (parsed.ar || parsed.en || raw)
+        : (parsed.en || parsed.ar || raw);
+    } catch {
+      displayName = raw;
+    }
+  }
+  return displayName?.charAt(0)?.toUpperCase() || "U";
+}
+
 function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenCommandPalette }) {
+  const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
   const { selectedYear, selectedSemester, academicYears = [], semesters = [], selectYear, selectSemester, loading: academicLoading } = useAcademic();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const language = i18n.language;
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showScopeModal, setShowScopeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Notification state
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
@@ -51,7 +84,6 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch unread count on mount
   useEffect(() => {
     notificationService
       .fetchUnreadNotifications()
@@ -63,7 +95,7 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
   }, []);
 
   const loadNotifications = useCallback(async () => {
-    if (notifications.length > 0) return; // already loaded
+    if (notifications.length > 0) return;
     setNotifLoading(true);
     try {
       const data = await notificationService.fetchUnreadNotifications();
@@ -88,16 +120,20 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
     if (name === "bell") loadNotifications();
   };
 
-  const userInitial = user?.name?.charAt(0)?.toUpperCase() || user?.fullName?.charAt(0)?.toUpperCase() || "U";
+  const userInitial = getUserInitial(user, language);
   const userName = user?.name || user?.fullName || "User";
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+  };
 
   const formatTime = (iso) => {
     if (!iso) return "";
     const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+    if (diff < 60) return t("just_now");
+    if (diff < 3600) return `${Math.floor(diff / 60)}${t("m_ago")}`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}${t("h_ago")}`;
+    return `${Math.floor(diff / 86400)}${t("d_ago")}`;
   };
 
   const handleSearch = (e) => {
@@ -108,11 +144,15 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
     setSearchQuery("");
   };
 
+  const scopeDisplayName = scopeNode
+    ? (scopeNode.localizedName || getLocalizedText(scopeNode.name, language) || scopeNode.name)
+    : t("all_scopes");
+
   const scopeBadgeText = [
-    scopeNode?.name,
+    scopeDisplayName,
     selectedYear !== "—" ? selectedYear : null,
     selectedSemester !== "—" ? selectedSemester : null,
-  ].filter(Boolean).join(" | ") || "All Scopes";
+  ].filter(Boolean).join(" | ") || t("all_scopes");
 
   return (
     <>
@@ -125,7 +165,7 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
           <button
             className={`nav-icon-btn ${showSecondary ? "is-active" : ""}`}
             onClick={onToggleSecondary}
-            title="Toggle directory search"
+            title={t("toggle_directory_search")}
           >
             <Search size={14} />
           </button>
@@ -139,8 +179,8 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             >
               <Building2 size={15} />
               <div className="scope-content">
-                <span className="nav-label">Current Scope</span>
-                <strong>{scopeNode?.name || "All"}</strong>
+                <span className="nav-label">{t("current_scope")}</span>
+                <strong>{scopeDisplayName}</strong>
                 {scopeNode && <small>{scopeNode.type}</small>}
               </div>
               <ChevronDown size={13} />
@@ -154,7 +194,7 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             >
               <CalendarRange size={15} />
               <div>
-                <span className="nav-label">Academic Year</span>
+                <span className="nav-label">{t("academic_year")}</span>
                 <strong>{selectedYear}</strong>
               </div>
               <ChevronDown size={13} />
@@ -162,9 +202,9 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             {openDropdown === "year" && (
               <div className="nav-dropdown-menu">
                 {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>Loading years…</div>
+                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
                 ) : academicYears.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>No years found</div>
+                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_years_found")}</div>
                 ) : academicYears.map((y) => (
                   <button
                     key={y.id}
@@ -187,7 +227,7 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             >
               <BookOpen size={15} />
               <div>
-                <span className="nav-label">Semester</span>
+                <span className="nav-label">{t("semester")}</span>
                 <strong>{selectedSemester}</strong>
               </div>
               <ChevronDown size={13} />
@@ -195,9 +235,9 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             {openDropdown === "semester" && (
               <div className="nav-dropdown-menu">
                 {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>Loading semesters…</div>
+                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
                 ) : semesters.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>No semesters</div>
+                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_semesters")}</div>
                 ) : semesters.map((s) => (
                   <button
                     key={s.id}
@@ -215,24 +255,21 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
         </div>
 
         <div className="navbar-right">
-          {/* Scope badge summary */}
-          <div className="nav-scope-badge" title={`Viewing: ${scopeBadgeText}`}>
+          <div className="nav-scope-badge" title={`${t("viewing")}: ${scopeBadgeText}`}>
             <span className="nav-scope-badge-dot" />
             <span className="nav-scope-badge-text">{scopeBadgeText}</span>
           </div>
 
-          {/* Cmd+K trigger */}
           <button
             className="nav-search nav-cmdk-trigger"
             onClick={onOpenCommandPalette}
-            title="Search (Ctrl+K)"
+            title={`${t("search")} (Ctrl+K)`}
           >
             <Search size={13} />
-            <span className="nav-cmdk-label">Search…</span>
+            <span className="nav-cmdk-label">{t("search")}…</span>
             <kbd className="nav-cmdk-kbd">⌘K</kbd>
           </button>
 
-          {/* Notification Bell */}
           <div className="nav-dropdown-wrapper" ref={bellRef}>
             <button className="nav-icon-btn" onClick={() => toggleDropdown("bell")}>
               <Bell size={14} />
@@ -241,15 +278,15 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             {openDropdown === "bell" && (
               <div className="nav-dropdown-menu notification-dropdown">
                 <div className="notif-dropdown-header">
-                  <strong>Notifications</strong>
+                  <strong>{t("notifications")}</strong>
                   <button className="notif-view-all" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
-                    View all
+                    {t("view_all")}
                   </button>
                 </div>
                 {notifLoading ? (
-                  <div className="notif-dropdown-empty">Loading…</div>
+                  <div className="notif-dropdown-empty">{t("loading")}…</div>
                 ) : notifications.length === 0 ? (
-                  <div className="notif-dropdown-empty">No unread notifications</div>
+                  <div className="notif-dropdown-empty">{t("no_unread_notifications")}</div>
                 ) : (
                   notifications.map((n) => (
                     <div key={n.id} className="notif-dropdown-item" onClick={() => handleMarkRead(n.id)}>
@@ -269,7 +306,17 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             <HelpCircle size={14} />
           </button>
 
-          {/* User Avatar + Profile Dropdown */}
+          <div className="language-selector">
+            <select
+              value={language.startsWith("ar") ? "ar" : "en"}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="lang-select"
+            >
+              <option value="ar">العربية</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
           <div className="nav-dropdown-wrapper" ref={avatarRef}>
             <div className="topbar-avatar" onClick={() => toggleDropdown("profile")} style={{ cursor: "pointer" }}>
               {userInitial}
@@ -286,16 +333,16 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
                 <div className="profile-dropdown-divider" />
                 <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); setShowChangePassword(true); }}>
                   <Key size={13} />
-                  <span>Change Password</span>
+                  <span>{t("change_password")}</span>
                 </button>
                 <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
                   <Bell size={13} />
-                  <span>Notifications</span>
+                  <span>{t("notifications")}</span>
                 </button>
                 <div className="profile-dropdown-divider" />
                 <button className="nav-dropdown-item logout-item" onClick={() => { setOpenDropdown(null); logout(); }}>
                   <LogOut size={13} />
-                  <span>Sign Out</span>
+                  <span>{t("logout")}</span>
                 </button>
               </div>
             )}

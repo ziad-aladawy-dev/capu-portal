@@ -6,6 +6,7 @@ const AddStaff = lazy(() => import("./pages/AddStaff"));
 const EditStaff = lazy(() => import("./pages/EditStaff"));
 const AddStudent = lazy(() => import("./pages/AddStudent"));
 const EditStudent = lazy(() => import("./pages/EditStudent"));
+const UserDetails = lazy(() => import("./pages/UserDetails"));
 
 export default [
   {
@@ -18,6 +19,12 @@ export default [
       label: "User Management",
       icon: "Users",
     },
+  },
+  {
+    path: "/admin/users/:id",
+    component: UserDetails,
+    permission: "users.users.view",
+    pageType: "entity",
   },
 
   {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Bell, Info, AlertTriangle, AlertCircle, CheckCheck, RefreshCw, X,
 } from "lucide-react";
@@ -12,6 +13,7 @@ const TYPE_ICON = {
 };
 
 function NotificationsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("all"); // 'all' | 'unread'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,10 +73,10 @@ function NotificationsPage() {
     if (!iso) return "—";
     const d = new Date(iso);
     const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)} d ago`;
+    if (diff < 60) return t("just_now");
+    if (diff < 3600) return t("min_ago", { count: Math.floor(diff / 60) });
+    if (diff < 86400) return t("hours_ago", { count: Math.floor(diff / 3600) });
+    if (diff < 604800) return t("days_ago", { count: Math.floor(diff / 86400) });
     return d.toLocaleDateString();
   };
 
@@ -89,22 +91,20 @@ function NotificationsPage() {
         <div className="notifications-header-left">
           <Bell size={22} />
           <div>
-            <h1>Notifications</h1>
-            <p>System notifications, alerts and warnings.</p>
+            <h1>{t("notifications")}</h1>
+            <p>{t("notifications_desc")}</p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="notifications-btn notifications-btn-outline" onClick={load}>
-            <RefreshCw size={13} />
-            Refresh
+            <><RefreshCw size={13} /> {t("refresh")}</>
           </button>
           {unreadCount > 0 && (
             <button
               className="notifications-btn notifications-btn-outline"
               onClick={handleMarkAllRead}
             >
-              <CheckCheck size={13} />
-              Mark all read
+              <><CheckCheck size={13} /> {t("mark_all_read")}</>
             </button>
           )}
         </div>
@@ -115,13 +115,13 @@ function NotificationsPage() {
           className={`notifications-tab ${tab === "all" ? "active" : ""}`}
           onClick={() => setTab("all")}
         >
-          All
+          {t("all")}
         </button>
         <button
           className={`notifications-tab ${tab === "unread" ? "active" : ""}`}
           onClick={() => setTab("unread")}
         >
-          Unread {unreadCount > 0 && tab !== "unread" && `(${unreadCount})`}
+          {t("unread")} {unreadCount > 0 && tab !== "unread" && `(${unreadCount})`}
         </button>
       </div>
 
@@ -141,16 +141,16 @@ function NotificationsPage() {
       {loading ? (
         <div className="notifications-loading">
           <div className="notifications-spinner" />
-          <p>Loading notifications…</p>
+          <p>{t("loading_notifications")}</p>
         </div>
       ) : items.length === 0 ? (
         <div className="notifications-empty">
           <Bell size={40} />
-          <h3>{tab === "unread" ? "No unread notifications" : "No notifications"}</h3>
+          <h3>{tab === "unread" ? t("no_unread_notifications") : t("no_notifications")}</h3>
           <p>
             {tab === "unread"
-              ? "You're all caught up."
-              : "When the system has something for you, it will appear here."}
+              ? t("all_caught_up")
+              : t("no_notifications_message")}
           </p>
         </div>
       ) : (
@@ -189,7 +189,7 @@ function NotificationsPage() {
                       disabled={marking === n.id}
                       onClick={() => handleMarkRead(n.id)}
                     >
-                      {marking === n.id ? "…" : "Mark read"}
+                      {marking === n.id ? "…" : t("mark_read")}
                     </button>
                   </div>
                 )}

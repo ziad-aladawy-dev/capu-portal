@@ -12,6 +12,7 @@ import coursesRoutes from "../../modules/courses/routes";
 import academicPlansRoutes from "../../modules/academicPlans/routes";
 import academicYearsRoutes from "../../modules/academicYears/routes";
 import studentPortalRoutes from "../../modules/studentPortal/routes";
+import studentServicesRoutes from "../../modules/studentServices/routes";
 
 import notificationsRoutes from "../../modules/notifications/routes";
 import studentProfileRecordsRoutes from "../../modules/studentProfileRecords/routes";
@@ -30,6 +31,7 @@ const ALL_ROUTES = [
   ...academicPlansRoutes,
   ...academicYearsRoutes,
   ...studentPortalRoutes,
+  ...studentServicesRoutes,
 
   ...notificationsRoutes,
   ...studentProfileRecordsRoutes,

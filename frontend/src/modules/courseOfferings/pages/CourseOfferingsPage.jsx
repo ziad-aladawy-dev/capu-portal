@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CalendarCheck, Plus, Edit2, AlertTriangle, Search, X,
 } from "lucide-react";
@@ -10,6 +11,7 @@ import OfferingForm from "../components/OfferingForm";
 import "../styles/courseOfferings.css";
 
 function CourseOfferingsPage() {
+  const { t } = useTranslation();
   const { scopeNode } = useDomain();
   const { selectedSemesterObj } = useAcademic();
 
@@ -106,12 +108,12 @@ function CourseOfferingsPage() {
         <div className="co-header-left">
           <CalendarCheck size={20} />
           <div>
-            <h1>Course Offerings</h1>
-            <p>Manage course sections per term and structure node</p>
+            <h1>{t("course_offerings")}</h1>
+            <p>{t("manage_course_offerings")}</p>
           </div>
         </div>
         <button className="co-btn co-btn-primary" onClick={openCreate}>
-          <Plus size={16} /> New Offering
+          <Plus size={16} /> {t("new_offering")}
         </button>
       </div>
 
@@ -120,7 +122,7 @@ function CourseOfferingsPage() {
           <Search size={14} />
           <input
             type="text"
-            placeholder="Search by course code, title or section..."
+            placeholder={t("search_course_offerings")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -135,7 +137,7 @@ function CourseOfferingsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">All Statuses</option>
+          <option value="">{t("all_statuses")}</option>
           {Object.entries(OFFERING_STATUS_LABELS).map(([val, label]) => (
             <option key={val} value={val}>{label}</option>
           ))}
@@ -152,25 +154,25 @@ function CourseOfferingsPage() {
         <table className="co-table">
           <thead>
             <tr>
-              <th>Course</th>
-              <th>Section</th>
-              <th>Capacity</th>
-              <th>Enrolled</th>
-              <th>Status</th>
-              <th>Registration</th>
-              <th>Actions</th>
+              <th>{t("course")}</th>
+              <th>{t("section")}</th>
+              <th>{t("capacity")}</th>
+              <th>{t("enrolled")}</th>
+              <th>{t("status")}</th>
+              <th>{t("registration")}</th>
+              <th>{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="co-table-empty">Loading...</td></tr>
+              <tr><td colSpan={7} className="co-table-empty">{t("loading")}</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="co-table-empty">No course offerings found</td></tr>
+              <tr><td colSpan={7} className="co-table-empty">{t("no_course_offerings")}</td></tr>
             ) : (
               filtered.map((offering) => {
                 const course = getCourseInfo(offering.courseId);
-                const statusLabel = OFFERING_STATUS_LABELS[offering.status] || "Unknown";
-                const regLabel = REGISTRATION_STATE_LABELS[offering.registrationState] || "Unknown";
+                const statusLabel = OFFERING_STATUS_LABELS[offering.status] || t("unknown");
+                const regLabel = REGISTRATION_STATE_LABELS[offering.registrationState] || t("unknown");
                 const filled = offering.capacity > 0 ? Math.round((offering.registeredCount / offering.capacity) * 100) : 0;
 
                 return (
@@ -178,7 +180,7 @@ function CourseOfferingsPage() {
                     <td>
                       <div className="co-course-info">
                         <span className="co-course-code">{course?.code || "—"}</span>
-                        <span className="co-course-title">{course?.title || "Unknown Course"}</span>
+                        <span className="co-course-title">{course?.title || t("unknown_course")}</span>
                       </div>
                     </td>
                     <td><span className="co-section-badge">{offering.sectionCode}</span></td>
@@ -205,7 +207,7 @@ function CourseOfferingsPage() {
                       </span>
                     </td>
                     <td>
-                      <button className="co-action-btn" onClick={() => openEdit(offering)} title="Edit">
+                      <button className="co-action-btn" onClick={() => openEdit(offering)} title={t("edit")}>
                         <Edit2 size={14} />
                       </button>
                     </td>

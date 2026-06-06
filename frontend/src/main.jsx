@@ -14,6 +14,7 @@ import { AuthProvider } from "./core/auth/AuthContext";
 import { PermissionProvider } from "./core/auth/PermissionContext";
 import { ToastProvider } from "./core/components/Toast";
 import ErrorBoundary from "./core/components/ErrorBoundary";
+import "./core/i18n/i18n";
 
 ReactDOM.createRoot(
   document.getElementById("root")

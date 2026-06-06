@@ -53,6 +53,9 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Attach language header for i18n
+  const lang = localStorage.getItem("i18nextLng") || "ar";
+  config.headers["Accept-Language"] = lang;
   // Auto-attach scope context from localStorage to every request
   try {
     const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));

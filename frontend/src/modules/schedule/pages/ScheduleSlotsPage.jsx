@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock, Plus, Edit2, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useDomain } from "../../../core/contexts/DomainContext";
 import { useAcademic } from "../../../core/contexts/AcademicContext";
@@ -25,6 +26,7 @@ function minToRowSpan(totalMin) {
 }
 
 function ScheduleSlotsPage() {
+  const { t } = useTranslation();
   const { scopeNode } = useDomain();
   const { selectedSemesterObj } = useAcademic();
 
@@ -157,8 +159,8 @@ function ScheduleSlotsPage() {
         <div className="sch-header-left">
           <Clock size={20} />
           <div>
-            <h1>Schedule Builder</h1>
-            <p>Manage timetable slots per course offering</p>
+            <h1>{t("schedule_builder")}</h1>
+            <p>{t("manage_slots")}</p>
           </div>
         </div>
         <button
@@ -166,7 +168,7 @@ function ScheduleSlotsPage() {
           onClick={openCreate}
           disabled={!selectedOfferingId}
         >
-          <Plus size={16} /> Add Slot
+          <><Plus size={16} /> {t("add_slot")}</>
         </button>
       </div>
 
@@ -176,19 +178,19 @@ function ScheduleSlotsPage() {
           value={selectedOfferingId}
           onChange={(e) => setSelectedOfferingId(e.target.value)}
         >
-          <option value="">Select a course offering...</option>
+          <option value="">{t("select_course_offering")}</option>
           {offerings.map((o) => {
             const course = courseMap.current[o.courseId];
             return (
               <option key={o.id} value={o.id}>
-                {course?.code || "—"} — {course?.title || "Unknown"} ({o.sectionCode})
+                {course?.code || "—"} — {course?.title || t("unknown")} ({o.sectionCode})
               </option>
             );
           })}
         </select>
         {selectedOfferingId && selectedOffering && (
           <div className="sch-offering-badge">
-            <strong>Capacity:</strong> {selectedOffering.registeredCount}/{selectedOffering.capacity}
+            <strong>{t("capacity")}:</strong> {selectedOffering.registeredCount}/{selectedOffering.capacity}
           </div>
         )}
       </div>
@@ -201,16 +203,16 @@ function ScheduleSlotsPage() {
 
       {!selectedOfferingId ? (
         <div className="sch-empty">
-          Select a course offering above to view and manage its schedule.
+          {t("select_offering_first")}
         </div>
       ) : loading ? (
         <div className="sch-empty">
           <RefreshCw size={20} style={{ animation: "spin 1s linear infinite", marginRight: 8, verticalAlign: "middle" }} />
-          Loading timetable...
+          {t("loading_timetable")}
         </div>
       ) : slots.length === 0 ? (
         <div className="sch-empty">
-          No schedule slots for this offering yet. Click "Add Slot" to create one.
+          {t("no_slots_yet")}
         </div>
       ) : (
         <div className="sch-timetable-wrap">
@@ -223,7 +225,7 @@ function ScheduleSlotsPage() {
           >
             {/* Header */}
             <div className="sch-timetable-corner" style={{ gridRow: 1, gridColumn: 1 }}>
-              Time
+              {t("time")}
             </div>
             {days.map((d, idx) => (
               <div
@@ -281,14 +283,14 @@ function ScheduleSlotsPage() {
                   <div className="sch-slot-actions">
                     <button
                       className="sch-slot-action-btn"
-                      title="Edit"
+                      title={t("edit")}
                       onClick={(e) => { e.stopPropagation(); openEdit(slot); }}
                     >
                       <Edit2 size={9} />
                     </button>
                     <button
                       className="sch-slot-action-btn danger"
-                      title="Delete"
+                      title={t("delete")}
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(slot); }}
                     >
                       <Trash2 size={9} />
@@ -315,16 +317,12 @@ function ScheduleSlotsPage() {
       {deleteTarget && (
         <div className="sch-confirm-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="sch-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Slot</h3>
-            <p>
-              Delete {DAY_LABELS[deleteTarget.dayOfWeek]}{" "}
-              {deleteTarget.startTime?.slice(0, 5)}–{deleteTarget.endTime?.slice(0, 5)}?
-              This cannot be undone.
-            </p>
+            <h3>{t("delete_slot")}</h3>
+            <p>{t("delete_slot_confirm", { day: DAY_LABELS[deleteTarget.dayOfWeek], start: deleteTarget.startTime?.slice(0, 5), end: deleteTarget.endTime?.slice(0, 5) })}</p>
             <div className="sch-confirm-actions">
-              <button className="btn-cancel" onClick={() => setDeleteTarget(null)}>Cancel</button>
+              <button className="btn-cancel" onClick={() => setDeleteTarget(null)}>{t("cancel")}</button>
               <button className="btn-primary" style={{ background: "#dc2626", boxShadow: "none" }} onClick={handleDelete}>
-                Delete
+                {t("delete")}
               </button>
             </div>
           </div>

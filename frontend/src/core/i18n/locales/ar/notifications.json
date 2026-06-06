@@ -1,0 +1,20 @@
+{
+    "notifications": "الإشعارات",
+    "mark_as_read": "تحديد كمقروء",
+    "no_notifications": "لا توجد إشعارات",
+    "notification_info": "معلومات",
+    "notification_warning": "تحذير",
+    "notification_error": "خطأ",
+    "notifications_desc": "إشعارات النظام والتنبيهات والتحذيرات.",
+    "mark_all_read": "تحديد الكل كمقروء",
+    "no_unread_notifications": "لا توجد إشعارات غير مقروءة",
+    "all_caught_up": "كل شيء على ما يرام.",
+    "no_notifications_message": "عندما يكون لدى النظام شيء لك، سيظهر هنا.",
+    "mark_read": "تحديد كمقروء",
+    "just_now": "الآن",
+    "min_ago": "منذ {{count}} دقيقة",
+    "hours_ago": "منذ {{count}} ساعة",
+    "days_ago": "منذ {{count}} يوم",
+    "loading_notifications": "جاري تحميل الإشعارات...",
+    "unread": "غير مقروء"
+}

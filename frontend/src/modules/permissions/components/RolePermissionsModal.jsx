@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Shield, Save, AlertCircle } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import "../../permissions/styles/roles.css";
+import { useTranslation } from "react-i18next";
 
 const ACTION_LEVELS = [
   { value: 0, label: "None" },
@@ -15,6 +16,7 @@ const ACTION_LEVELS = [
 const ACTION_NAME_TO_LEVEL = {
   View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5,
 };
+const LEVEL_TO_ACTION = { 1: "View", 2: "Insert", 3: "EditClose", 4: "Open", 5: "Delete" };
 
 function computeResourceLevel(permissions) {
   if (!permissions || permissions.length === 0) return 0;
@@ -29,6 +31,15 @@ function computeResourceLevel(permissions) {
 }
 
 function RolePermissionsModal({ role, onClose }) {
+  const { t } = useTranslation();
+  const actionLevelLabels = {
+    0: t("none"),
+    1: t("view"),
+    2: t("insert"),
+    3: t("edit"),
+    4: t("open_level"),
+    5: t("delete"),
+  };
   const [modules, setModules] = useState([]);
   const [resourceLevels, setResourceLevels] = useState({});
   const [loading, setLoading] = useState(true);
@@ -76,13 +87,13 @@ function RolePermissionsModal({ role, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      const permissions = Object.entries(resourceLevels)
+      const resources = Object.entries(resourceLevels)
         .filter(([, level]) => level > 0)
         .map(([compositeKey, level]) => {
           const resourceId = compositeKey.split("::")[1];
-          return { resourceId, level };
+          return { resourceId, actions: [LEVEL_TO_ACTION[level]].filter(Boolean) };
         });
-      await permissionService.updateRolePermissions(role.id, { permissions });
+      await permissionService.updateRolePermissions(role.id, { resources });
       onClose();
     } catch (err) {
       setError(err.message || "Failed to save permissions");
@@ -101,7 +112,7 @@ function RolePermissionsModal({ role, onClose }) {
           <div className="roles-modal-header-left">
             <Shield size={18} />
             <div>
-              <h2>Role Permissions</h2>
+              <h2>{t("role_permissions")}</h2>
               <p className="roles-modal-subtitle">{role.name}</p>
             </div>
           </div>
@@ -119,11 +130,11 @@ function RolePermissionsModal({ role, onClose }) {
           {loading ? (
             <div className="roles-loading" style={{ padding: "40px 0" }}>
               <div className="roles-spinner" />
-              <p>Loading permissions...</p>
+              <p>{t("loading_permissions")}</p>
             </div>
           ) : modules.length === 0 ? (
             <div className="roles-empty" style={{ padding: "40px 0" }}>
-              <p>No permissions found</p>
+              <p>{t("no_permissions_found")}</p>
             </div>
           ) : (
             <div className="perm-tree-layout" style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
@@ -140,7 +151,7 @@ function RolePermissionsModal({ role, onClose }) {
               </div>
               <div className="perm-tree-resources" style={{ maxHeight: 360 }}>
                 {!activeModule || activeModule.resources?.length === 0 ? (
-                  <div className="perm-tree-empty">No resources in this module.</div>
+                  <div className="perm-tree-empty">{t("no_resources_module")}</div>
                 ) : (
                   activeModule.resources.map((res) => {
                     const key = `${activeModule.moduleId}::${res.resourceId}`;
@@ -154,9 +165,9 @@ function RolePermissionsModal({ role, onClose }) {
                               key={l.value}
                               className={`perm-lvl-btn ${currentLevel >= l.value ? "filled" : ""} ${currentLevel === l.value ? "current" : ""}`}
                               onClick={() => handleLevelChange(key, currentLevel === l.value ? 0 : l.value)}
-                              title={l.label}
+                              title={actionLevelLabels[l.value]}
                             >
-                              {l.label}
+                              {actionLevelLabels[l.value]}
                             </button>
                           ))}
                         </div>
@@ -169,14 +180,14 @@ function RolePermissionsModal({ role, onClose }) {
           )}
 
           <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
-            {totalConfigured} of {totalResources} resources configured
+            {t("resources_configured", { configured: totalConfigured, total: totalResources })}
           </div>
         </div>
 
         <div className="roles-modal-footer">
-          <button className="roles-btn roles-btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="roles-btn roles-btn-outline" onClick={onClose} disabled={saving}>{t("cancel")}</button>
           <button className="roles-btn roles-btn-primary" onClick={handleSave} disabled={saving || loading}>
-            {saving ? "Saving..." : <><Save size={14} /> Save Permissions</>}
+            {saving ? t("saving") : <><Save size={14} /> {t("save_permissions")}</>}
           </button>
         </div>
       </div>

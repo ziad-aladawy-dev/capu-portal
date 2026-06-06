@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Save } from "lucide-react";
 import { OFFERING_STATUSES, REGISTRATION_STATES } from "../../../core/services/courseOfferingService";
 import * as structureService from "../../../core/services/structureService";
 
 function OfferingForm({ editOffering, courses, faculties, semesterId, structureNodeId, saving, formError, onSave, onClose }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     courseId: "",
     semesterId: semesterId || "",
@@ -63,20 +65,20 @@ function OfferingForm({ editOffering, courses, faculties, semesterId, structureN
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content co-form-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editOffering ? "Edit Offering" : "New Course Offering"}</h3>
+          <h3>{editOffering ? t("edit_offering") : t("new_course_offering")}</h3>
           <button className="modal-close-btn" onClick={onClose}><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="co-form">
           <div className="co-form-grid">
             <div className="co-form-group">
-              <label>Course *</label>
+              <label>{t("course")} *</label>
               {editOffering ? (
                 <div className="co-form-static">
                   {courses.find((c) => c.id === editOffering.courseId)?.code || "—"} — {courses.find((c) => c.id === editOffering.courseId)?.title || ""}
                 </div>
               ) : (
                 <select value={form.courseId} onChange={(e) => handleChange("courseId", e.target.value)} required>
-                  <option value="">Select a course...</option>
+                  <option value="">{t("select_course_placeholder")}</option>
                   {courses.map((c) => (
                     <option key={c.id} value={c.id}>{c.code} — {c.title}</option>
                   ))}
@@ -85,18 +87,18 @@ function OfferingForm({ editOffering, courses, faculties, semesterId, structureN
             </div>
 
             <div className="co-form-group">
-              <label>Section Code *</label>
+              <label>{t("section_code")} *</label>
               <input
                 type="text"
                 value={form.sectionCode}
                 onChange={(e) => handleChange("sectionCode", e.target.value)}
-                placeholder="e.g. A, B, 01"
+                placeholder={t("section_code_placeholder")}
                 required
               />
             </div>
 
             <div className="co-form-group">
-              <label>Capacity</label>
+              <label>{t("capacity")}</label>
               <input
                 type="number"
                 min={0}
@@ -106,30 +108,30 @@ function OfferingForm({ editOffering, courses, faculties, semesterId, structureN
             </div>
 
             <div className="co-form-group">
-              <label>Status</label>
+              <label>{t("status")}</label>
               <select value={form.status} onChange={(e) => handleChange("status", parseInt(e.target.value))}>
-                <option value={OFFERING_STATUSES.Draft}>Draft</option>
-                <option value={OFFERING_STATUSES.Open}>Open</option>
-                <option value={OFFERING_STATUSES.Closed}>Closed</option>
-                <option value={OFFERING_STATUSES.Cancelled}>Cancelled</option>
+                <option value={OFFERING_STATUSES.Draft}>{t("draft")}</option>
+                <option value={OFFERING_STATUSES.Open}>{t("open")}</option>
+                <option value={OFFERING_STATUSES.Closed}>{t("closed")}</option>
+                <option value={OFFERING_STATUSES.Cancelled}>{t("cancelled")}</option>
               </select>
             </div>
 
             <div className="co-form-group">
-              <label>Registration</label>
+              <label>{t("registration")}</label>
               <select value={form.registrationState} onChange={(e) => handleChange("registrationState", parseInt(e.target.value))}>
-                <option value={REGISTRATION_STATES.Closed}>Closed</option>
-                <option value={REGISTRATION_STATES.Open}>Open</option>
-                <option value={REGISTRATION_STATES.Waitlist}>Waitlist</option>
+                <option value={REGISTRATION_STATES.Closed}>{t("closed")}</option>
+                <option value={REGISTRATION_STATES.Open}>{t("open")}</option>
+                <option value={REGISTRATION_STATES.Waitlist}>{t("waitlist")}</option>
               </select>
             </div>
 
             {!editOffering && (
               <>
                 <div className="co-form-group">
-                  <label>Faculty</label>
+                  <label>{t("faculty")}</label>
                   <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)}>
-                    <option value="">Select faculty...</option>
+                    <option value="">{t("select_faculty_placeholder")}</option>
                     {faculties.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
@@ -137,9 +139,9 @@ function OfferingForm({ editOffering, courses, faculties, semesterId, structureN
                 </div>
 
                 <div className="co-form-group">
-                  <label>Program / Structure Node</label>
+                  <label>{t("program_structure_node")}</label>
                   <select value={form.structureNodeId} onChange={(e) => handleChange("structureNodeId", e.target.value)} required>
-                    <option value="">Select program...</option>
+                    <option value="">{t("select_program_placeholder")}</option>
                     {programs.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
@@ -152,9 +154,9 @@ function OfferingForm({ editOffering, courses, faculties, semesterId, structureN
           {formError && <div className="co-form-error">{formError}</div>}
 
           <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+            <button type="button" className="btn-cancel" onClick={onClose} disabled={saving}>{t("cancel")}</button>
             <button type="submit" className="btn-primary" disabled={saving || !form.courseId || !form.sectionCode.trim()}>
-              <Save size={14} /> {saving ? "Saving..." : editOffering ? "Update" : "Create"}
+              <Save size={14} /> {saving ? t("saving") : editOffering ? t("update") : t("create")}
             </button>
           </div>
         </form>

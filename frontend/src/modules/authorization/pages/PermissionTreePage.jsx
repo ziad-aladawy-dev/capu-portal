@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FolderTree, Shield, Check, AlertTriangle, X, Search, RefreshCw,
 } from "lucide-react";
@@ -7,6 +8,7 @@ import * as permissionService from "../../../core/services/permissionService";
 import "../styles/authorization.css";
 
 function PermissionTreePage() {
+  const { t } = useTranslation();
   const [roles, setRoles] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [tree, setTree] = useState([]);
@@ -90,8 +92,8 @@ function PermissionTreePage() {
         <div className="auth-tree-header-left">
           <FolderTree size={22} />
           <div>
-            <h1>Permission Inspector</h1>
-            <p>Browse the complete permission tree or inspect a role's grants.</p>
+            <h1>{t("permission_inspector")}</h1>
+            <p>{t("permission_inspector_desc")}</p>
           </div>
         </div>
         <button className="spr-btn spr-btn-outline" onClick={load} style={{
@@ -109,7 +111,7 @@ function PermissionTreePage() {
           gap: 6,
         }}>
           <RefreshCw size={13} />
-          Refresh
+          {t("refresh")}
         </button>
       </div>
 
@@ -138,7 +140,7 @@ function PermissionTreePage() {
           onChange={(e) => setSelectedRoleId(e.target.value)}
           disabled={rolesLoading}
         >
-          <option value="">— Full permission tree —</option>
+          <option value="">{t("full_permission_tree")}</option>
           {roles.map((r) => (
             <option key={r.id} value={r.id}>
               Role: {r.name}
@@ -161,7 +163,7 @@ function PermissionTreePage() {
           <Search size={14} />
           <input
             type="text"
-            placeholder="Filter permissions…"
+            placeholder={t("filter_permissions")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ border: "none", outline: "none", flex: 1, background: "transparent", fontSize: 13 }}
@@ -172,18 +174,18 @@ function PermissionTreePage() {
       {loading ? (
         <div className="auth-tree-loading">
           <div className="auth-tree-spinner" />
-          <p>Loading permission tree…</p>
+          <p>{t("loading_permission_tree")}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="auth-tree-empty">
           <Shield size={40} />
-          <h3>No permissions to show</h3>
+          <h3>{t("no_permissions_to_show")}</h3>
           <p>
             {tree.length === 0
               ? selectedRoleId
-                ? "This role has no permission rows yet."
-                : "No permissions defined."
-              : "No permissions match the current filter."}
+                ? t("no_permission_rows")
+                : t("no_permissions_defined")
+              : t("no_permissions_filter")}
           </p>
         </div>
       ) : (
@@ -197,7 +199,7 @@ function PermissionTreePage() {
                     (sum, r) => sum + (r.permissions?.length || 0),
                     0
                   )}{" "}
-                  permissions
+                  {t("permissions")}
                 </span>
               </div>
               {(m.resources || []).map((r) => (

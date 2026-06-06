@@ -1,0 +1,93 @@
+.rs-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+.rs-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.rs-step {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  background: #e5e7eb;
+  border-radius: 2rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.rs-step.active {
+  background: #1a1f5e;
+  color: white;
+}
+.rs-step.completed {
+  background: #c9a84c;
+  color: #1a1f5e;
+}
+.rs-step-number {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  border-radius: 50%;
+  background: white;
+  color: #1a1f5e;
+  margin-right: 0.5rem;
+}
+.rs-content {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid #e5e7eb;
+}
+.review-box, .payment-box {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+.rs-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.rs-actions button {
+  padding: 0.6rem 1.5rem;
+  border-radius: 2rem;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rs-btn-secondary {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+.rs-btn-primary {
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  color: #1a1f5e;
+}
+.rs-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 640px) {
+  .rs-container {
+    padding: 1rem;
+  }
+  .rs-actions {
+    flex-direction: column;
+  }
+  .rs-actions button {
+    width: 100%;
+  }
+}

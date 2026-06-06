@@ -132,14 +132,15 @@ const UserManagement = ({ initialTab, hideTabs }) => {
     const type = activeTab === "students" ? "student" : "staff";
     const code = type === "student" ? user.studentCode : user.employeeCode;
     select({ id: user.id, name: user.name, code, type });
+    navigate(`/admin/users/${user.id}`);
   };
   const handleEdit = (id) => {
-    if (activeTab === 'students') navigate(`/admin/users/edit-student/${id}`);
-    else navigate(`/admin/users/edit-staff/${id}`);
+    if (activeTab === 'students') navigate(`/admin/users/students/${id}/edit`);
+    else navigate(`/admin/users/staff/${id}/edit`);
   };
   const handleAddUser = () => {
-    if (activeTab === 'students') navigate("/admin/users/add-student");
-    else navigate("/admin/users/add-staff");
+    if (activeTab === 'students') navigate("/admin/users/students/add");
+    else navigate("/admin/users/staff/add");
   };
 
   const handleExportClick = (format) => {

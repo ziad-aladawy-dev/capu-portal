@@ -1,25 +1,82 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, LogOut } from "lucide-react";
 
-import { buildMenu } from "../menuAggregator";
+import { buildMenu, getCategoryIcon } from "../menuAggregator";
 import { usePermission } from "../../auth/usePermission";
 import { useAuth } from "../../auth/useAuth";
 import "../../styles/sidebar.css";
 
+const labelToKey = (label) => label.toLowerCase().replace(/\s+/g, "_");
+
+function getUserDisplayName(user, language) {
+  if (!user) return "";
+  const raw = user.name || user.fullName || "";
+  if (typeof raw === "object" && raw !== null) {
+    return language === "ar"
+      ? (raw.ar || raw.en || "")
+      : (raw.en || raw.ar || "");
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return language === "ar"
+        ? (parsed.ar || parsed.en || raw)
+        : (parsed.en || parsed.ar || raw);
+    } catch {
+      return raw;
+    }
+  }
+  return String(raw);
+}
+
+function getUserAvatar(user, language) {
+  return getUserDisplayName(user, language).charAt(0).toUpperCase() || "U";
+}
+
+function getUserRole(user, language) {
+  if (!user) return "";
+  const role = user.role || "Staff";
+  const roleMap = {
+    "Super Admin": language === "ar" ? "مدير عام" : "Super Admin",
+    Staff: language === "ar" ? "موظف" : "Staff",
+    Student: language === "ar" ? "طالب" : "Student",
+  };
+  return roleMap[role] || role;
+}
+
 function Sidebar({ isOpen, isMobile, onClose }) {
-  const [openedCategory, setOpenedCategory] = useState("Overview");
+  const { t, i18n } = useTranslation();
+  const [openedCategory, setOpenedCategory] = useState("overview");
   const { can } = usePermission();
   const { user, logout } = useAuth();
+  const language = i18n.language;
+  const isRtl = language === "ar";
 
   const menu = buildMenu(can);
+
+  const displayName = useMemo(
+    () => getUserDisplayName(user, language) || t("guest"),
+    [user, language, t]
+  );
+  const avatar = useMemo(() => getUserAvatar(user, language), [user, language]);
+  const roleName = useMemo(() => getUserRole(user, language), [user, language]);
+
+  const handleLogout = async () => {
+    if (logout) await logout();
+    window.location.href = "/admin/login";
+  };
 
   const handleFeatureClick = () => {
     if (isMobile && onClose) onClose();
   };
 
   return (
-    <aside className={`sidebar ${isOpen ? "is-open" : "is-closed"}`}>
+    <aside
+      className={`sidebar ${isOpen ? "is-open" : "is-closed"}`}
+      dir={isRtl ? "rtl" : "ltr"}
+    >
       <svg className="sidebar-geo" viewBox="0 0 230 620" preserveAspectRatio="none">
         <circle cx="230" cy="0" r="140" fill="rgba(224,192,106,0.04)" />
         <circle cx="0" cy="460" r="110" fill="rgba(35,42,116,0.35)" />
@@ -27,29 +84,21 @@ function Sidebar({ isOpen, isMobile, onClose }) {
         <line x1="0" y1="300" x2="115" y2="180" stroke="rgba(224,192,106,0.04)" strokeWidth="1" />
       </svg>
 
-      <div className="sidebar-logo">
+      <div className="sidebar-brand">
         <div className="sidebar-logo-mark">
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M10 2L18 7V13L10 18L2 13V7L10 2Z" fill="#07091e" />
-            <path d="M10 5L15 8V12L10 15L5 12V8L10 5Z" fill="#e0c06a" opacity="0.6" />
-            <circle cx="10" cy="10" r="2" fill="#07091e" />
-          </svg>
+          <img src="/images/UniLogo2.png" alt="Capital University" className="sidebar-logo-img" />
         </div>
-        <div className="sidebar-logo-text">
-          UniAdmin
-          <small>Control Panel</small>
-        </div>
+        <div className="sidebar-university-name">{t("app_name")}</div>
+        <div className="sidebar-university-sub">{t("control_panel")}</div>
       </div>
 
       {user && (
-        <div className="sidebar-top">
+        <div className="sidebar-user-section">
           <div className="sidebar-user-card">
-            <div className="sidebar-avatar">
-              {user.name ? user.name.charAt(0).toUpperCase() : "?"}
-            </div>
+            <div className="sidebar-avatar">{avatar}</div>
             <div className="sidebar-user-info">
-              <strong>{user.name}</strong>
-              <span>{user.role || "User"}</span>
+              <strong>{displayName}</strong>
+              <span>{roleName}</span>
             </div>
             <div className="sidebar-user-badge" />
           </div>
@@ -57,43 +106,53 @@ function Sidebar({ isOpen, isMobile, onClose }) {
       )}
 
       <div className="sidebar-content">
-        <div className="sidebar-section-label">Menu</div>
+        <div className="sidebar-section-label">{t("menu")}</div>
 
         {menu.map((category) => {
-          const opened = openedCategory === category.category;
+          const catKey = labelToKey(category.category);
+          const opened = openedCategory === catKey;
+          const CatIcon = getCategoryIcon(category.category);
 
           return (
             <div className="sidebar-category" key={category.category}>
               <button
                 type="button"
                 className={`sidebar-category-header ${opened ? "is-open" : ""}`}
-                onClick={() => setOpenedCategory(opened ? null : category.category)}
+                onClick={() =>
+                  setOpenedCategory(opened ? null : catKey)
+                }
               >
                 <div className="sidebar-cat-icon">
-                  <category.icon size={14} />
+                  <CatIcon size={14} />
                 </div>
-                <span className="sidebar-category-title">{category.category}</span>
+                <span className="sidebar-category-title">
+                  {t(catKey)}
+                </span>
                 <ChevronRight size={11} className="sidebar-cat-arrow" />
               </button>
 
               {opened && (
                 <div className="sidebar-features">
                   {category.items.map((item) => {
-                    const Icon = item.icon;
+                    const ItemIcon = item.icon;
+                    const itemKey = labelToKey(item.label);
 
                     return (
                       <NavLink
                         key={item.path}
                         to={item.path}
-                        end={item.path === "/admin/dashboard"}
+                        end={
+                          item.path === "/admin/dashboard" ||
+                          item.path === "/admin/users"
+                        }
                         onClick={handleFeatureClick}
                         className={({ isActive }) =>
                           `sidebar-feature ${isActive ? "active" : ""}`
                         }
                       >
                         <span className="sidebar-feature-dot" />
-                        {Icon && <Icon size={13} />}
-                        <span>{item.label}</span>
+                        {ItemIcon && <ItemIcon size={13} />}
+                        <span>{t(itemKey)}</span>
                       </NavLink>
                     );
                   })}
@@ -105,13 +164,9 @@ function Sidebar({ isOpen, isMobile, onClose }) {
       </div>
 
       <div className="sidebar-footer">
-        <div className="sidebar-shortcut-hint">
-          <span>Search</span>
-          <kbd>Ctrl+K</kbd>
-        </div>
-        <button className="sidebar-footer-btn" onClick={logout}>
+        <button className="sidebar-footer-btn" onClick={handleLogout}>
           <LogOut size={14} />
-          <span>Sign out</span>
+          <span>{t("logout")}</span>
         </button>
       </div>
     </aside>

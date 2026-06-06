@@ -8,6 +8,12 @@ const StudentGrades = lazy(() => import("./pages/StudentGrades"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
 const StudentPayments = lazy(() => import("./pages/StudentPaymentsPage"));
 
+const StudentServiceDetails = lazy(() => import("./pages/StudentServiceDetails"));
+const RequestSubmission = lazy(() => import("./pages/RequestSubmission"));
+const MyRequests = lazy(() => import("./pages/MyRequests"));
+const StudentRequestDetails = lazy(() => import("./pages/StudentRequestDetails"));
+const StudentNotifications = lazy(() => import("./pages/StudentNotifications"));
+
 export default [
   {
     path: "/student",
@@ -94,6 +100,51 @@ export default [
       category: "Student",
       label: "Schedule",
       icon: "CalendarRange",
+    },
+  },
+  {
+    path: "/student/services/:id",
+    component: StudentServiceDetails,
+    permission: "student.services.view",
+    pageType: "entity",
+    applicableTo: "student",
+  },
+  {
+    path: "/student/services/:id/apply",
+    component: RequestSubmission,
+    permission: "student.services.request",
+    pageType: "entity",
+    applicableTo: "student",
+  },
+  {
+    path: "/student/requests",
+    component: MyRequests,
+    permission: "student.requests.view",
+    pageType: "management",
+    applicableTo: "student",
+    menuItem: {
+      category: "Student",
+      label: "My Requests",
+      icon: "ClipboardList",
+    },
+  },
+  {
+    path: "/student/requests/:id",
+    component: StudentRequestDetails,
+    permission: "student.requests.view",
+    pageType: "entity",
+    applicableTo: "student",
+  },
+  {
+    path: "/student/notifications",
+    component: StudentNotifications,
+    permission: "student.dashboard.view",
+    pageType: "management",
+    applicableTo: "student",
+    menuItem: {
+      category: "Student",
+      label: "Notifications",
+      icon: "Bell",
     },
   },
 ];

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { UserCog, Plus, Shield, ShieldCheck, Trash2, AlertTriangle, RefreshCw, Save, Info, Users, Settings, X, Search, RotateCcw } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import * as authorizationService from "../../../core/services/authorizationService";
@@ -16,6 +17,7 @@ const ACTION_LEVELS = [
 const ACTION_NAME_TO_LEVEL = {
   View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5,
 };
+const LEVEL_TO_ACTION = { 1: "View", 2: "Insert", 3: "EditClose", 4: "Open", 5: "Delete" };
 const LABEL_TO_ACTION = {
   View: "View",
   Insert: "Insert",
@@ -37,6 +39,15 @@ function computeResourceLevel(permissions) {
 }
 
 function RolesPage() {
+  const { t } = useTranslation();
+  const actionLevelLabels = {
+    0: t("no_permission"),
+    1: t("view"),
+    2: t("insert"),
+    3: t("edit"),
+    4: t("open_level"),
+    5: t("delete"),
+  };
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -220,13 +231,13 @@ function RolesPage() {
     if (!selectedRole) return;
     setPermSaving(true);
     try {
-      const permissions = Object.entries(displayLevels)
+      const resources = Object.entries(displayLevels)
         .filter(([, level]) => level > 0)
         .map(([compositeKey, level]) => {
           const resourceId = compositeKey.split("::")[1];
-          return { resourceId, level };
+          return { resourceId, actions: [LEVEL_TO_ACTION[level]].filter(Boolean) };
         });
-      await permissionService.updateRolePermissions(selectedRole.id, { permissions });
+      await permissionService.updateRolePermissions(selectedRole.id, { resources });
       await loadRolePermissions(selectedRole.id);
     } catch (err) {
       setError(err.message || "Failed to save permissions");
@@ -250,9 +261,9 @@ function RolesPage() {
   const handleCreate = async (e) => {
     e.preventDefault();
     const trimmed = createName.trim();
-    if (!trimmed) { setCreateError("Role name is required"); return; }
-    if (trimmed.length < 2) { setCreateError("Role name must be at least 2 characters"); return; }
-    if (trimmed.length > 100) { setCreateError("Role name must be 100 characters or fewer"); return; }
+    if (!trimmed) { setCreateError(t("role_name_required")); return; }
+    if (trimmed.length < 2) { setCreateError(t("role_name_min_length")); return; }
+    if (trimmed.length > 100) { setCreateError(t("role_name_max_length")); return; }
     setCreating(true);
     try {
       await permissionService.createRole({ name: trimmed });
@@ -260,7 +271,7 @@ function RolesPage() {
       await fetchRoles();
     } catch (err) {
       if (err.status === 409 || (err.message && err.message.includes("already exists"))) {
-        setCreateError("A role with this name already exists");
+        setCreateError(t("role_name_exists"));
       } else {
         setCreateError(err.message || "Failed to create role");
       }
@@ -279,9 +290,9 @@ function RolesPage() {
   const handleUpdateName = async () => {
     if (!selectedRole) return;
     const trimmed = formName.trim();
-    if (!trimmed) { setFormError("Role name is required"); return; }
-    if (trimmed.length < 2) { setFormError("Role name must be at least 2 characters"); return; }
-    if (trimmed.length > 100) { setFormError("Role name must be 100 characters or fewer"); return; }
+    if (!trimmed) { setFormError(t("role_name_required")); return; }
+    if (trimmed.length < 2) { setFormError(t("role_name_min_length")); return; }
+    if (trimmed.length > 100) { setFormError(t("role_name_max_length")); return; }
     setSaving(true);
     try {
       await permissionService.updateRole(selectedRole.id, { name: trimmed });
@@ -289,7 +300,7 @@ function RolesPage() {
       await fetchRoles();
     } catch (err) {
       if (err.status === 409 || (err.message && err.message.includes("already exists"))) {
-        setFormError("A role with this name already exists");
+        setFormError(t("role_name_exists"));
       } else {
         setFormError(err.message || "Failed to update role");
       }
@@ -332,7 +343,7 @@ function RolesPage() {
       <div className="roles-page">
         <div className="roles-loading">
           <div className="roles-spinner" />
-          <p>Loading roles…</p>
+          <p>{t("loading_roles")}</p>
         </div>
       </div>
     );
@@ -345,17 +356,17 @@ function RolesPage() {
           <div className="roles-header-left">
             <UserCog size={20} />
             <div>
-              <h1>Roles</h1>
-              <p>Manage role definitions and system roles</p>
+              <h1>{t("roles")}</h1>
+              <p>{t("manage_roles")}</p>
             </div>
           </div>
         </div>
         <div className="roles-error">
           <AlertTriangle size={36} className="roles-error-icon" />
-          <h3>Failed to load roles</h3>
+          <h3>{t("failed_to_load_roles")}</h3>
           <p>{error}</p>
           <button className="roles-btn roles-btn-outline" onClick={() => fetchRoles()}>
-            <RefreshCw size={13} /> Retry
+            <><RefreshCw size={13} /> {t("retry")}</>
           </button>
         </div>
       </div>
@@ -368,13 +379,13 @@ function RolesPage() {
         <div className="roles-header-left">
           <UserCog size={20} />
           <div>
-            <h1>Roles</h1>
-            <p>Manage role definitions and system roles</p>
+            <h1>{t("roles")}</h1>
+            <p>{t("manage_roles")}</p>
           </div>
         </div>
         <div className="roles-header-actions">
           <button className="roles-btn roles-btn-primary" onClick={openCreate}>
-            <Plus size={14} /> Create Role
+            <><Plus size={14} /> {t("create_role")}</>
           </button>
         </div>
       </div>
@@ -390,7 +401,7 @@ function RolesPage() {
       <div className="roles-content">
         <div className="roles-sidebar">
           <div className="roles-sidebar-header">
-            <span>{roles.length} roles</span>
+            <span>{t("roles_count", { count: roles.length })}</span>
           </div>
           <div style={{ padding: "6px 8px 0" }}>
             <div style={{
@@ -401,7 +412,7 @@ function RolesPage() {
               <Search size={13} color="#9ca3af" />
               <input
                 type="text"
-                placeholder="Search roles…"
+                placeholder={t("search_roles")}
                 value={roleSearch}
                 onChange={(e) => setRoleSearch(e.target.value)}
                 style={{
@@ -415,7 +426,7 @@ function RolesPage() {
           <div className="roles-sidebar-list">
             {filteredRoles.length === 0 && roleSearch && (
               <div style={{ padding: 20, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
-                No roles match "{roleSearch}"
+                {t("no_roles_match", { search: roleSearch })}
               </div>
             )}
             {filteredRoles.map((role) => (
@@ -427,7 +438,7 @@ function RolesPage() {
                 <span className="roles-sidebar-indicator" />
                 <span style={{ flex: 1, textAlign: "left" }}>{role.name}</span>
                 {role.isSystemRole && (
-                  <span style={{ fontSize: 9, opacity: 0.6, textTransform: "uppercase", letterSpacing: 0.5 }}>System</span>
+                  <span style={{ fontSize: 9, opacity: 0.6, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("system_role_badge")}</span>
                 )}
               </button>
             ))}
@@ -438,8 +449,8 @@ function RolesPage() {
           {!selectedRole ? (
             <div className="roles-not-selected">
               <Shield size={40} color="#d1d5db" />
-              <h3>Select a Role</h3>
-              <p>Choose a role from the sidebar to view and manage its settings.</p>
+              <h3>{t("select_role")}</h3>
+              <p>{t("select_role_desc")}</p>
             </div>
           ) : (
             <>
@@ -448,20 +459,20 @@ function RolesPage() {
                   className={`roles-detail-tab ${activeTab === "general" ? "active" : ""}`}
                   onClick={() => setActiveTab("general")}
                 >
-                  <Settings size={13} /> General
+                  <><Settings size={13} /> {t("general")}</>
                 </button>
                 <button
                   className={`roles-detail-tab ${activeTab === "permissions" ? "active" : ""}`}
                   onClick={() => setActiveTab("permissions")}
                 >
-                  <ShieldCheck size={13} /> Permissions
+                  <><ShieldCheck size={13} /> {t("permissions")}</>
                   {permDirty && <span style={{ marginLeft: 4, width: 6, height: 6, borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />}
                 </button>
                 <button
                   className={`roles-detail-tab ${activeTab === "members" ? "active" : ""}`}
                   onClick={() => setActiveTab("members")}
                 >
-                  <Users size={13} /> Members
+                  <><Users size={13} /> {t("members")}</>
                 </button>
               </div>
 
@@ -469,14 +480,14 @@ function RolesPage() {
                 {activeTab === "general" && (
                   <div className="role-general-form">
                     <div className="role-form-group">
-                      <label>Role Name</label>
+                      <label>{t("role_name")}</label>
                       <div style={{ display: "flex", gap: 8 }}>
                         <input
                           type="text"
                           className={`role-form-input ${formError ? "error" : ""}`}
                           value={formName}
                           onChange={(e) => setFormName(e.target.value)}
-                          placeholder="Role name"
+                          placeholder={t("role_name_placeholder")}
                           maxLength={100}
                           style={{ flex: 1 }}
                         />
@@ -485,33 +496,33 @@ function RolesPage() {
                           onClick={handleUpdateName}
                           disabled={saving || formName === selectedRole.name}
                         >
-                          <Save size={13} /> {saving ? "Saving…" : "Save"}
+                          <Save size={13} /> {saving ? t("saving") : t("save")}
                         </button>
                       </div>
                       {formError && <span className="role-form-error">{formError}</span>}
-                      <span className="role-form-hint">Must be unique and 2–100 characters.</span>
+                      <span className="role-form-hint">{t("role_name_hint")}</span>
                     </div>
 
                     {selectedRole.isSystemRole && (
                       <div className="role-badge-system">
-                        <Shield size={12} /> System Role
+                        <><Shield size={12} /> {t("system_role")}</>
                       </div>
                     )}
 
                     <p className="role-meta">
                       <Info size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                      Created {formatDate(selectedRole.createdAt)} {selectedRole.isSystemRole ? "· Managed by system" : ""}
+                      {t("created_at")} {formatDate(selectedRole.createdAt)}{selectedRole.isSystemRole ? ` · ${t("managed_by_system")}` : ""}
                     </p>
 
                     {!selectedRole.isSystemRole && (
                       <>
                         <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-                          <h4 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 8px", color: "#dc2626" }}>Danger Zone</h4>
+                          <h4 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 8px", color: "#dc2626" }}>{t("danger_zone")}</h4>
                           <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 12px" }}>
-                            Deleting this role cannot be undone. Users assigned to this role will lose its permissions.
+                            {t("delete_role_warning")}
                           </p>
                           <button className="role-delete-btn" onClick={openDelete}>
-                            <Trash2 size={13} /> Delete Role
+                            <><Trash2 size={13} /> {t("delete_role")}</>
                           </button>
                         </div>
                       </>
@@ -525,16 +536,16 @@ function RolesPage() {
                       <div>
                         <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "#1a1f5e" }}>
                           <ShieldCheck size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                          Role Permissions — {selectedRole.name}
+                          {t("role_permissions_title", { name: selectedRole.name })}
                         </h3>
                         <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
-                          {totalConfigured} of {totalResources} resources configured
+                          {t("resources_configured", { configured: totalConfigured, total: totalResources })}
                         </p>
                       </div>
                       <div className="roles-header-actions">
                         {permDirty && (
                           <button className="roles-btn roles-btn-outline" onClick={handleResetPermissions} disabled={permSaving}>
-                            <RotateCcw size={13} /> Reset
+                            <><RotateCcw size={13} /> {t("reset")}</>
                           </button>
                         )}
                         <button
@@ -542,7 +553,7 @@ function RolesPage() {
                           onClick={handleSavePermissions}
                           disabled={!permDirty || permSaving}
                         >
-                          {permSaving ? "Saving\u2026" : <><Save size={13} /> Save Changes</>}
+                          {permSaving ? t("saving") : <><Save size={13} /> {t("save_changes")}</>}
                         </button>
                       </div>
                     </div>
@@ -550,7 +561,7 @@ function RolesPage() {
                     {permLoading ? (
                       <div className="roles-loading" style={{ padding: "40px 0" }}>
                         <div className="roles-spinner" />
-                        <p>Loading permissions…</p>
+                        <p>{t("loading_permissions")}</p>
                       </div>
                     ) : (
                       <div className="perm-tree-layout">
@@ -567,7 +578,7 @@ function RolesPage() {
                         </div>
                         <div className="perm-tree-resources">
                           {!activeModule || activeModule.resources?.length === 0 ? (
-                            <div className="perm-tree-empty">No resources in this module.</div>
+                            <div className="perm-tree-empty">{t("no_resources_module")}</div>
                           ) : (
                             activeModule.resources.map((res) => {
                               const key = `${activeModule.moduleId}::${res.resourceId}`;
@@ -586,10 +597,10 @@ function RolesPage() {
                                           key={l.value}
                                           className={`perm-lvl-btn ${active ? "filled" : ""} ${currentLevel === l.value ? "current" : ""} ${!isAvailable ? "disabled" : ""}`}
                                           onClick={() => isAvailable && handleLevelChange(key, currentLevel === l.value ? 0 : l.value)}
-                                          title={l.label}
+                                          title={actionLevelLabels[l.value]}
                                           disabled={!isAvailable}
                                         >
-                                          {l.label}
+                                          {actionLevelLabels[l.value]}
                                         </button>
                                       );
                                     })}
@@ -610,10 +621,10 @@ function RolesPage() {
                       <div>
                         <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "#1a1f5e" }}>
                           <Users size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                          Members — {selectedRole.name}
+                          {t("members_title", { name: selectedRole.name })}
                         </h3>
                         <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
-                          {members.length} staff member{members.length !== 1 ? "s" : ""} assigned to this role
+                          {t("members_count", { count: members.length })}
                         </p>
                       </div>
                     </div>
@@ -621,12 +632,12 @@ function RolesPage() {
                       {membersLoading ? (
                         <div className="roles-loading" style={{ padding: "40px 0" }}>
                           <div className="roles-spinner" />
-                          <p>Loading members…</p>
+                          <p>{t("loading_members")}</p>
                         </div>
                       ) : members.length === 0 ? (
                         <div className="role-members-empty">
                           <Users size={32} color="#d1d5db" style={{ marginBottom: 8 }} />
-                          <p>No members assigned to this role.</p>
+                          <p>{t("no_members")}</p>
                         </div>
                       ) : (
                         members.map((m) => (
@@ -639,7 +650,7 @@ function RolesPage() {
                               <span>{m.email} &middot; {m.jobTitle || m.employeeCode}</span>
                             </div>
                             <div className="role-member-meta">
-                              <span className="role-member-scope-label">{m.structureNodePath || "Global"}</span>
+                              <span className="role-member-scope-label">{m.structureNodePath || t("global")}</span>
                               {m.year !== "Global" && <span className="role-member-scope">{m.year} / {m.semester}</span>}
                             </div>
                           </div>
@@ -658,31 +669,31 @@ function RolesPage() {
         <div className="roles-modal-overlay" onClick={closeCreate}>
           <div className="roles-modal" onClick={(e) => e.stopPropagation()}>
             <div className="roles-modal-header">
-              <h2>Create Role</h2>
+              <h2>{t("create_role")}</h2>
               <button className="roles-modal-close" onClick={closeCreate}><X size={16} /></button>
             </div>
             <form onSubmit={handleCreate}>
               <div className="roles-modal-body">
                 <div className="roles-form-group">
-                  <label htmlFor="role-name">Role Name</label>
+                  <label htmlFor="role-name">{t("role_name")}</label>
                   <input
                     id="role-name"
                     type="text"
                     className={`roles-form-input ${createError ? "error" : ""}`}
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="e.g. Department Head"
+                    placeholder={t("role_name_example")}
                     autoFocus
                     maxLength={100}
                   />
                   {createError && <span className="roles-form-error">{createError}</span>}
-                  <span className="roles-form-hint">Must be unique and 2–100 characters.</span>
+                  <span className="roles-form-hint">{t("role_name_hint")}</span>
                 </div>
               </div>
               <div className="roles-modal-footer">
-                <button type="button" className="roles-btn roles-btn-outline" onClick={closeCreate}>Cancel</button>
+                <button type="button" className="roles-btn roles-btn-outline" onClick={closeCreate}>{t("cancel")}</button>
                 <button type="submit" className="roles-btn roles-btn-primary" disabled={creating}>
-                  {creating ? "Creating…" : "Create"}
+                  {creating ? t("creating") : t("create")}
                 </button>
               </div>
             </form>
@@ -694,18 +705,18 @@ function RolesPage() {
         <div className="roles-modal-overlay" onClick={closeDelete}>
           <div className="roles-modal" onClick={(e) => e.stopPropagation()}>
             <div className="roles-modal-header">
-              <h2>Delete Role</h2>
+              <h2>{t("delete_role")}</h2>
               <button className="roles-modal-close" onClick={closeDelete}><X size={16} /></button>
             </div>
             <div className="roles-delete-body">
               <AlertTriangle size={36} className="roles-delete-icon" />
-              <p>Are you sure you want to delete <strong>{deleteTarget.name}</strong>?</p>
-              <p className="roles-delete-hint">This action cannot be undone. Any users assigned to this role will lose its permissions.</p>
+              <p>{t("delete_role_confirm", { name: deleteTarget.name })}</p>
+              <p className="roles-delete-hint">{t("delete_role_warning")}</p>
             </div>
             <div className="roles-modal-footer">
-              <button className="roles-btn roles-btn-outline" onClick={closeDelete} disabled={deleting}>Cancel</button>
+              <button className="roles-btn roles-btn-outline" onClick={closeDelete} disabled={deleting}>{t("cancel")}</button>
               <button className="roles-btn roles-btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? "Deleting…" : "Delete"}
+                {deleting ? t("deleting") : t("delete")}
               </button>
             </div>
           </div>

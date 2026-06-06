@@ -1,0 +1,18 @@
+{
+    "field_required": "This field is required",
+    "invalid_format": "Invalid format",
+    "min_length": "Minimum length is {{min}} characters",
+    "max_length": "Maximum length is {{max}} characters",
+    "national_id_required": "National ID is required",
+    "national_id_length": "Must be 14 digits",
+    "national_id_numbers_only": "Only numbers allowed",
+    "national_id_exists": "National ID already exists",
+    "full_name_required": "Full name is required",
+    "email_required": "Email is required",
+    "dob_required": "Date of birth is required",
+    "password_required": "Password is required",
+    "password_min_length": "At least 6 characters",
+    "faculty_required": "Faculty is required",
+    "program_required": "Program is required",
+    "level_required": "Level is required"
+  }

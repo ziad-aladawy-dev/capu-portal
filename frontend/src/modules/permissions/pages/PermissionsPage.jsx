@@ -1,15 +1,19 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  Shield, Save, RotateCcw, User,
+  Shield, Save, RotateCcw, User, Search, X, Check,
   Undo2, ShieldCheck, CheckSquare,
 } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import * as authorizationService from "../../../core/services/authorizationService";
+import * as staffService from "../../../core/services/staffService";
+import * as studentService from "../../../core/services/studentService";
 import { useUserScope } from "../../../core/hooks/useUserScope";
 import { useToast } from "../../../core/components/Toast";
 import "../styles/permissions.css";
+import { useTranslation } from "react-i18next";
 
 const ACTION_VALUES = { View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5 };
+const LEVEL_TO_ACTION = { 1: "View", 2: "Insert", 3: "EditClose", 4: "Open", 5: "Delete" };
 const LEVELS = [
   { value: 0, label: "No Permission" },
   { value: 1, label: "View" },
@@ -28,9 +32,23 @@ const LABEL_TO_ACTION = {
 };
 
 function PermissionsPage() {
-  const { scopedUser, isScoped } = useUserScope();
+  const { scopedUser, isScoped, scopeToUser } = useUserScope();
   const { addToast } = useToast();
+  const { t } = useTranslation();
+  const levelLabels = {
+    0: t("no_permission"),
+    1: t("view"),
+    2: t("insert"),
+    3: t("edit"),
+    4: t("open_level"),
+    5: t("delete"),
+  };
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef(null);
 
   const [allRoles, setAllRoles] = useState([]);
   const [assignedRoleIds, setAssignedRoleIds] = useState([]);
@@ -52,6 +70,24 @@ function PermissionsPage() {
       setAllRoles(res?.items || []);
     });
   }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const [staffRes, studentRes] = await Promise.all([
+          staffService.searchStaff({ search: searchQuery, page: 1, pageSize: 10 }),
+          studentService.searchStudents({ search: searchQuery, page: 1, pageSize: 10 }),
+        ]);
+        const staff = (staffRes?.items || []).map((s) => ({ id: s.id, name: s.name, code: s.employeeCode, type: "staff" }));
+        const students = (studentRes?.items || []).map((s) => ({ id: s.id, name: s.name, code: s.studentCode, type: "student" }));
+        setSearchResults([...staff, ...students]);
+      } catch { setSearchResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+  }, [searchQuery]);
 
   const loadUserTree = useCallback(async (userId) => {
     setLoading(true);
@@ -94,11 +130,19 @@ function PermissionsPage() {
       setOriginalSnapshot(snap);
       setResourceOverrides(resOv);
     } catch (err) {
-      addToast({ title: "Load Failed", message: err.message || "Failed to load permissions" }, "error");
+      addToast({ title: t("load_failed"), message: err.message || "Failed to load permissions" }, "error");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleSelectUser = (user) => {
+    scopeToUser(user);
+    setSelectedUser(user);
+    setSearchQuery("");
+    setSearchResults([]);
+    loadUserTree(user.id);
+  };
 
   useEffect(() => {
     if (isScoped && scopedUser && scopedUser.id !== selectedUser?.id) {
@@ -230,8 +274,13 @@ function PermissionsPage() {
           for (const action of ov.deny) toRemove.push({ resourceId: resId, actions: [action], type: 2 });
         }
 
-        if (desired > roleLvl) toAdd.push({ resourceId: resId, level: desired, type: 1 });
-        else if (desired < roleLvl) toAdd.push({ resourceId: resId, level: desired + 1, type: 2 });
+        if (desired > roleLvl) {
+          const action = LEVEL_TO_ACTION[desired];
+          if (action) toAdd.push({ resourceId: resId, actions: [action], type: 1 });
+        } else if (desired < roleLvl) {
+          const action = LEVEL_TO_ACTION[desired + 1];
+          if (action) toAdd.push({ resourceId: resId, actions: [action], type: 2 });
+        }
       }
 
       // Use the snapshot loaded at init time for role diffing — no re-fetch needed.
@@ -250,10 +299,10 @@ function PermissionsPage() {
 
       setDirty(false);
       setPendingLevels({});
-      addToast({ title: "Changes Saved", message: "Permissions updated successfully" }, "success");
+      addToast({ title: t("changes_saved"), message: t("permissions_updated") }, "success");
       loadUserTree(selectedUser.id);
     } catch (err) {
-      addToast({ title: "Save Failed", message: err.message || "Failed to save permissions" }, "error", 6000);
+      addToast({ title: t("save_failed"), message: err.message || "Failed to save permissions" }, "error", 6000);
     } finally {
       setSaving(false);
     }
@@ -269,14 +318,14 @@ function PermissionsPage() {
         <div className="perm-header-left">
           <Shield size={20} />
           <div>
-            <h1>Permissions Manager</h1>
-            <p>Manage user role assignments and permission overrides</p>
+            <h1>{t("permissions_manager")}</h1>
+            <p>{t("permissions_manager_desc")}</p>
           </div>
         </div>
         <div className="perm-header-actions">
           {dirty && (
             <button className="perm-btn perm-btn-outline" onClick={handleReset}>
-              <RotateCcw size={13} /> Reset
+              <RotateCcw size={13} /> {t("reset")}
             </button>
           )}
           <button
@@ -284,7 +333,7 @@ function PermissionsPage() {
             onClick={handleSave}
             disabled={!dirty || saving || !selectedUser}
           >
-            {saving ? "Saving\u2026" : <><Save size={13} /> Save Changes</>}
+            {saving ? t("saving") : <><Save size={13} /> {t("save_changes")}</>}
           </button>
         </div>
       </div>
@@ -292,19 +341,50 @@ function PermissionsPage() {
 
 
       <div className="perm-layout">
+        <div className="perm-search-box" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f4f5f7", borderRadius: 8, color: "#6b7280" }}>
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder={t("search_users_placeholder") || "Search users by name or ID…"}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ flex: 1, border: "none", background: "none", fontSize: 13, fontFamily: "Outfit, sans-serif", outline: "none", color: "#1a1f5e" }}
+          />
+          {searchQuery && <button style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }} onClick={() => { setSearchQuery(""); setSearchResults([]); }}><X size={12} /></button>}
+        </div>
+        {searching && <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 4px" }}>{t("searching") || "Searching…"}</div>}
+        {searchResults.length > 0 && (
+          <div style={{ maxHeight: 280, overflowY: "auto" }}>
+            {searchResults.map((u) => (
+              <button
+                key={`${u.type}-${u.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px", border: "none", background: selectedUser?.id === u.id ? "#e8eaf6" : "none", cursor: "pointer", borderRadius: 8, textAlign: "left", fontFamily: "Outfit, sans-serif", color: "#1a1f5e", transition: "background 0.15s" }}
+                onClick={() => handleSelectUser(u)}
+              >
+                <User size={14} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <strong style={{ display: "block", fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</strong>
+                  <span style={{ display: "block", fontSize: 11, color: "#6b7280" }}>{u.code} &middot; {u.type === "staff" ? t("staff") : t("student")}</span>
+                </div>
+                {selectedUser?.id === u.id && <Check size={13} />}
+              </button>
+            ))}
+          </div>
+        )}
+
         {selectedUser ? (
           <div className="perm-user-card">
             <div className="perm-user-avatar">{selectedUserName.charAt(0)}</div>
             <div className="perm-user-info">
               <strong>{selectedUserName}</strong>
-              <span>{selectedUserCode} &middot; {selectedUserType === "staff" ? "Staff" : "Student"}</span>
+              <span>{selectedUserCode} &middot; {selectedUserType === "staff" ? t("staff") : t("student")}</span>
             </div>
           </div>
         ) : (
           <div className="perm-empty-state">
             <User size={36} />
-            <h3>Select a User</h3>
-            <p>Search for a user from the sidebar and click to select.</p>
+            <h3>{t("select_user")}</h3>
+            <p>{t("select_user_desc")}</p>
           </div>
         )}
 
@@ -312,9 +392,9 @@ function PermissionsPage() {
           <>
             <div className="perm-roles-section">
               <h3 className="perm-section-title">
-                <Shield size={16} /> Role Assignments
+                <Shield size={16} /> {t("role_assignments")}
               </h3>
-              <p className="perm-section-desc">Select the roles assigned to this user.</p>
+              <p className="perm-section-desc">{t("role_assignments_desc")}</p>
               <div className="perm-role-grid">
                 {allRoles.map((role) => {
                   const isAssigned = assignedRoleIds.includes(String(role.id));
@@ -326,7 +406,7 @@ function PermissionsPage() {
                     >
                       <span className="perm-role-chip-check">{isAssigned ? <CheckSquare size={14} /> : null}</span>
                       <span className="perm-role-chip-name">{role.name}</span>
-                      {role.isSystemRole && <span className="perm-role-chip-badge">system</span>}
+                      {role.isSystemRole && <span className="perm-role-chip-badge">{t("system_role_badge")}</span>}
                     </button>
                   );
                 })}
@@ -337,12 +417,11 @@ function PermissionsPage() {
               <div className="perm-overrides-header">
                 <div>
                   <h3 className="perm-section-title">
-                    <Shield size={16} /> Effective Permissions
+                    <Shield size={16} /> {t("effective_permissions")}
                   </h3>
                   <p className="perm-section-desc">
-                    Shows the accumulated permission level from all roles. Click a pill to set the
-                    effective level — overrides are created automatically.
-                    <span className="perm-override-hint"> <Undo2 size={11} /> reverts to role-based state.</span>
+                    {t("effective_permissions_desc")}
+                    <span className="perm-override-hint"> <Undo2 size={11} /> {t("revert_hint")}</span>
                   </p>
                 </div>
               </div>
@@ -367,7 +446,7 @@ function PermissionsPage() {
                 <div className="perm-resource-area">
                   <div className="perm-resource-list">
                     {!activeModule || activeModule.resources?.length === 0 ? (
-                      <div className="perm-resource-empty">No resources in this module.</div>
+                      <div className="perm-resource-empty">{t("no_resources_module")}</div>
                     ) : (
                       activeModule.resources.map((res) => {
                         const rid = String(res.resourceId);
@@ -375,7 +454,7 @@ function PermissionsPage() {
                         const levels = resourceLevels[rid] || { effectiveLevel: 0, roleBasedLevel: 0 };
                         const overridden = resourceHasOverride(rid);
 
-                        const roleLvlName = LEVEL_LABELS[levels.roleBasedLevel] || "None";
+                        const roleLvlName = levelLabels[levels.roleBasedLevel] || t("none");
                         const isDowngraded = displayLevel < levels.roleBasedLevel;
 
                         return (
@@ -399,10 +478,10 @@ function PermissionsPage() {
                                       key={lvl.value}
                                       className={`perm-pill ${active ? "filled" : ""} ${displayLevel === lvl.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${!isAvailable ? " disabled" : ""}`}
                                       onClick={() => isAvailable && setLevel(rid, lvl.value, levels.roleBasedLevel)}
-                                      title={`Set effective level to ${lvl.label}`}
+                                      title={t("set_effective_level", { level: levelLabels[lvl.value] })}
                                       disabled={!isAvailable}
                                     >
-                                      {lvl.label}
+                                      {levelLabels[lvl.value]}
                                     </button>
                                   );
                                 })}
@@ -412,20 +491,20 @@ function PermissionsPage() {
                             {overridden && (
                               <div className="perm-res-override-footer">
                                 <span className="perm-ovr-tag">
-                                  Override{displayLevel > levels.roleBasedLevel
-                                    ? `: Allow ${LEVEL_LABELS[displayLevel]}`
+                                  {displayLevel > levels.roleBasedLevel
+                                    ? t("override_allow", { level: levelLabels[displayLevel] })
                                     : displayLevel < levels.roleBasedLevel
                                       ? displayLevel === 0
-                                        ? ": No Permission"
-                                        : `: Deny above ${LEVEL_LABELS[displayLevel]}`
+                                        ? t("override_no_permission")
+                                        : t("override_deny", { level: levelLabels[displayLevel] })
                                       : ""}
                                 </span>
                                 <button
                                   className="perm-ovr-revert"
                                   onClick={() => handleRevert(rid)}
-                                  title="Remove override, return to role-based state"
+                                  title={t("remove_override")}
                                 >
-                                  <Undo2 size={12} /> Revert
+                                  <Undo2 size={12} /> {t("revert")}
                                 </button>
                               </div>
                             )}
@@ -443,7 +522,7 @@ function PermissionsPage() {
         {selectedUser && loading && (
           <div className="roles-loading" style={{ padding: 40 }}>
             <div className="roles-spinner" />
-            <p>Loading permissions\u2026</p>
+            <p>{t("loading_permissions")}</p>
           </div>
         )}
       </div>

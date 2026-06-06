@@ -1,0 +1,116 @@
+.rr-container {
+  padding: 1.5rem;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+.rr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  color: white;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.rr-back-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+}
+.rr-header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-family: "Space Mono", monospace;
+}
+.rr-assign {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.rr-assign input {
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  border: none;
+  outline: none;
+  background: white;
+  color: #1a1f5e;
+}
+.rr-assign button {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  color: white;
+  font-weight: 600;
+}
+.rr-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.25rem;
+}
+.rr-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.rr-info-card,
+.rr-timeline-card,
+.rr-actions-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+}
+.rr-info-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1f5e;
+}
+.rr-json {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  overflow-x: auto;
+}
+.rr-actions-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.rr-actions-card select,
+.rr-actions-card textarea {
+  width: 100%;
+  padding: 0.6rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-family: inherit;
+}
+.rr-comment-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #1a1f5e;
+}
+@media (max-width: 900px) {
+  .rr-layout {
+    grid-template-columns: 1fr;
+  }
+}

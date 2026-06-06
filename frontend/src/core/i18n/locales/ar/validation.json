@@ -1,0 +1,18 @@
+{
+    "field_required": "هذا الحقل مطلوب",
+    "invalid_format": "صيغة غير صالحة",
+    "min_length": "الحد الأدنى للطول هو {{min}} أحرف",
+    "max_length": "الحد الأقصى للطول هو {{max}} أحرف",
+    "national_id_required": "الرقم القومي مطلوب",
+    "national_id_length": "يجب أن يكون 14 رقمًا",
+    "national_id_numbers_only": "أرقام فقط",
+    "national_id_exists": "الرقم القومي موجود بالفعل",
+    "full_name_required": "الاسم الكامل مطلوب",
+    "email_required": "البريد الإلكتروني مطلوب",
+    "dob_required": "تاريخ الميلاد مطلوب",
+    "password_required": "كلمة المرور مطلوبة",
+    "password_min_length": "6 أحرف على الأقل",
+    "faculty_required": "الكلية مطلوبة",
+    "program_required": "البرنامج مطلوب",
+    "level_required": "المستوى مطلوب"
+  }

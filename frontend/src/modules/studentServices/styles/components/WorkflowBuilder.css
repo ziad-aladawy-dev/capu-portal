@@ -1,0 +1,160 @@
+.wb-container {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  margin-top: 1rem;
+}
+.wb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.wb-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1f5e;
+}
+.wb-add-stage {
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  color: #1a1f5e;
+}
+.wb-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-radius: 0.75rem;
+}
+.wb-stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.wb-stage-card {
+  background: #f9fafb;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+.wb-stage-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.wb-stage-order {
+  font-family: monospace;
+  font-weight: bold;
+  background: #1a1f5e;
+  color: white;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30px;
+  font-size: 0.8rem;
+}
+.wb-stage-name-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  font-size: 0.85rem;
+}
+.wb-stage-actions-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+.wb-stage-actions-buttons button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 0.4rem;
+  color: #6b7280;
+}
+.wb-stage-actions-buttons button:hover {
+  background: #e5e7eb;
+}
+.wb-fields-section {
+  margin: 0.75rem 0 0.5rem 1rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid #e5e7eb;
+}
+.wb-fields-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.wb-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+.wb-stage-actions-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.wb-actions-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.wb-action-tag {
+  background: #e0e7ff;
+  color: #1e40af;
+  padding: 0.25rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.wb-remove-action {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #1e40af;
+  padding: 0 0.2rem;
+}
+.wb-add-action-select {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  font-size: 0.7rem;
+}
+@media (max-width: 768px) {
+  .wb-stage-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .wb-fields-section {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+  }
+}
