@@ -25,7 +25,15 @@ namespace CapitalUniversity.Core.Application.Courses;
 public class CourseService : ICourseService
 {
     internal const string CacheKeyPrefix = "course:object:";
+    // Collection caches (active list + search pages) are keyed by a catalog
+    // version stamp; any mutation rotates the stamp and orphans them all in one
+    // write — the same epoch/version invalidation model the permission cache uses.
+    internal const string CatalogVersionKey = "course:catalog:ver";
+    internal const string ActiveListKeyPrefix = "course:list:active:";
+    internal const string SearchKeyPrefix = "course:search:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
+    // The stamp only changes on mutation, so it long-outlives the data TTL.
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICourseRepository _courses;
@@ -53,40 +61,124 @@ public class CourseService : ICourseService
 
     public async Task<CourseResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var key = CacheKey(id);
         // Cache stores the culture-neutral response (Title still in
         // {"ar":"…","en":"…"} shape). Decoding happens on the way out so two
         // requests with different Accept-Language hit the same cache entry
         // without poisoning each other.
-        var cached = await _cache.GetAsync<CourseResponse>(key, cancellationToken);
-        if (cached is not null) return Localize(cached);
+        //
+        // GetOrSetAsync is the stampede-protected read-through: on a cache miss
+        // under load, only one instance runs the DB lookup and the rest reuse
+        // its result (see StampedeProtectedCacheService). A null course is not
+        // cached, so a missing id still returns null on every call.
+        var response = await _cache.GetOrSetAsync<CourseResponse>(
+            CacheKey(id),
+            async ct =>
+            {
+                var course = await _courses.GetByIdAsync(id, ct);
+                return course is null ? null : _mapper.MapToResponse(course);
+            },
+            CacheTtl,
+            cancellationToken);
 
-        var course = await _courses.GetByIdAsync(id, cancellationToken);
-        if (course is null) return null;
-
-        var response = _mapper.MapToResponse(course);
-        await _cache.SetAsync(key, response, CacheTtl, cancellationToken);
-        return Localize(response);
+        return response is null ? null : Localize(response);
     }
 
     public async Task<IReadOnlyList<CourseResponse>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
-        var courses = await _courses.GetActiveAsync(cancellationToken);
-        return courses.Select(c => Localize(_mapper.MapToResponse(c))).ToList();
+        // Stampede-protected: the active catalog is read on every catalog/login
+        // view, so a cold-cache burst must run one DB scan, not one per request
+        // per instance. Cached payload is culture-neutral; localization happens
+        // on the way out against fresh copies (no cross-culture poisoning).
+        var version = await GetCatalogVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<CourseResponse>>(
+            $"{ActiveListKeyPrefix}{version}",
+            async ct => (await _courses.GetActiveAsync(ct)).Select(_mapper.MapToResponse).ToList(),
+            CacheTtl,
+            cancellationToken);
+
+        return (cached ?? new List<CourseResponse>()).Select(LocalizeCopy).ToList();
     }
 
     public async Task<PagedResult<CourseResponse>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default)
     {
-        var page = await _courses.SearchAsync(query, cancellationToken);
+        // The catalog is school-wide (no per-user filter), so a given query+page
+        // yields the same result for everyone — safe to cache by query signature
+        // under the catalog version. Stampede-protected read-through.
+        var version = await GetCatalogVersionAsync(cancellationToken);
+        var cacheKey = $"{SearchKeyPrefix}{version}:{BuildSearchSignature(query)}";
+
+        var page = await _cache.GetOrSetAsync<PagedResult<CourseResponse>>(
+            cacheKey,
+            async ct =>
+            {
+                var result = await _courses.SearchAsync(query, ct);
+                return new PagedResult<CourseResponse>
+                {
+                    Items = result.Items.Select(_mapper.MapToResponse).ToList(),
+                    Page = result.Page,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount,
+                    TotalPages = result.TotalPages,
+                };
+            },
+            CacheTtl,
+            cancellationToken);
+
+        if (page is null)
+        {
+            return new PagedResult<CourseResponse>
+            {
+                Items = new List<CourseResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+            };
+        }
+
         return new PagedResult<CourseResponse>
         {
-            Items = page.Items.Select(c => Localize(_mapper.MapToResponse(c))).ToList(),
+            Items = page.Items.Select(LocalizeCopy).ToList(),
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount,
             TotalPages = page.TotalPages,
         };
     }
+
+    private async Task<string> GetCatalogVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CatalogVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CatalogVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCatalogVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CatalogVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
+    private static string BuildSearchSignature(CourseSearchQuery q) =>
+        string.Join('|',
+            $"cat={(q.Category.HasValue ? ((int)q.Category.Value).ToString() : string.Empty)}",
+            $"active={q.IsActive?.ToString() ?? string.Empty}",
+            $"min={q.MinCreditHours?.ToString() ?? string.Empty}",
+            $"max={q.MaxCreditHours?.ToString() ?? string.Empty}",
+            $"q={q.Search ?? string.Empty}",
+            $"sort={q.Sort ?? string.Empty}",
+            $"p={q.NormalizedPage}",
+            $"ps={q.NormalizedPageSize}");
+
+    /// <summary>
+    /// Localize onto a NEW response so list/search cache entries (which may be the
+    /// same instance under the in-memory provider) are never mutated in place.
+    /// </summary>
+    private CourseResponse LocalizeCopy(CourseResponse source) => new()
+    {
+        Id = source.Id,
+        Code = _localization.Get<string>(source.Code),
+        Title = _localization.Get<string>(source.Title),
+        CreditHours = source.CreditHours,
+        Category = source.Category,
+        IsActive = source.IsActive,
+    };
 
     /// <summary>
     /// Decode the bilingual <c>Code</c> and <c>Title</c> fields on a
@@ -119,6 +211,8 @@ public class CourseService : ICourseService
         var course = _mapper.MapToEntity(request);
         await _courses.AddAsync(course, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new catalog entry must show up in active-list / search reads.
+        await BumpCatalogVersionAsync(cancellationToken);
         return course.Id;
     }
 
@@ -145,6 +239,7 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         // Drop the shared object payload — next read repopulates with new values.
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCatalogVersionAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -154,9 +249,19 @@ public class CourseService : ICourseService
 
         course.EnsureMutable();
 
+        // M1 guard — a catalog course bound into any academic plan cannot be
+        // hard-deleted. Surfaces a clean Conflict instead of orphaning the
+        // composition rows (no DB FK historically) or, post-FK, a raw 500 from
+        // the FK violation. The DB FK (Restrict) remains the schema backstop.
+        if (await _courses.IsReferencedByPlanAsync(id, cancellationToken))
+        {
+            throw new ConflictException(LocalizedKeys.Courses.ReferencedByPlan);
+        }
+
         _courses.Delete(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCatalogVersionAsync(cancellationToken);
     }
 
     public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
@@ -193,6 +298,7 @@ public class CourseService : ICourseService
         _courses.Update(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCatalogVersionAsync(cancellationToken);
     }
 
     public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -204,6 +310,7 @@ public class CourseService : ICourseService
         _courses.Update(course);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCatalogVersionAsync(cancellationToken);
     }
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";

@@ -320,6 +320,8 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CourseId");
+
                     b.HasIndex("AcademicPlanId", "CourseId")
                         .IsUnique();
 
@@ -898,13 +900,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("ExternalSyncedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExternalSystemId")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
                     b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
 
@@ -1302,7 +1297,59 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("AcademicPlan");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.Course", b =>
+                {
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("CourseId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("CourseId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("Courses");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CourseId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.Staff", b =>
@@ -1311,6 +1358,49 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("StructureNodeId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("StaffId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("StaffId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("Staffs");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StaffId");
+                        });
+
+                    b.Navigation("ExternallySourced")
                         .IsRequired();
 
                     b.Navigation("StructureNode");
@@ -1322,6 +1412,49 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("StructureNodeId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("StudentId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("StudentId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("Students");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StudentId");
+                        });
+
+                    b.Navigation("ExternallySourced")
                         .IsRequired();
 
                     b.Navigation("StructureNode");
@@ -1367,6 +1500,49 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasForeignKey("StructureNodeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("CourseOfferingId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("CourseOfferingId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("CourseOfferings");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CourseOfferingId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
@@ -1375,6 +1551,49 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("InvoiceId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("InvoiceId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("Invoices");
+
+                            b1.WithOwner()
+                                .HasForeignKey("InvoiceId");
+                        });
+
+                    b.Navigation("ExternallySourced")
                         .IsRequired();
                 });
 
@@ -1398,6 +1617,52 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot", b =>
+                {
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("ScheduleSlotId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("ScheduleSlotId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("ScheduleSlots");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ScheduleSlotId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.Student.Domain.StudentProfileRecord", b =>

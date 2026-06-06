@@ -118,4 +118,4 @@ public class BufferedAppLoggerExtraTests
         var entry = await DrainOneAsync(queue);
         Assert.Equal("127.0.0.1", entry.IpAddress);
     }
-}
+}

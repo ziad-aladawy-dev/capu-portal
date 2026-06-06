@@ -65,4 +65,4 @@ public class ScheduleSlotEntityTests
         slot.StartTime.Should().Be(originalStart, "a rejected update must not partially mutate the entity");
         slot.EndTime.Should().Be(originalEnd, "a rejected update must not partially mutate the entity");
     }
-}
+}

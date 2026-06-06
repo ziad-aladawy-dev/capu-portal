@@ -21,4 +21,4 @@ internal sealed class TestLocalizationService : ILocalizationService
     public string Get(Enum value) => value.ToString();
     public string GetString(string key) => key;
     public bool ContainsKey(string? key) => false;
-}
+}

@@ -18,4 +18,4 @@ public class RolesControllerTests
         // This is just a compilation check
         Assert.True(true);
     }
-}
+}

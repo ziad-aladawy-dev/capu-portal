@@ -70,7 +70,7 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         db.Modules.Add(module);
         db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete); // Level Delete covers all
+        db.AddCrudGrant(role.Id, resource.Id, "Delete"); // Level Delete covers all
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
         // SessionVersionMiddleware rejects tokens for users that have no row in
@@ -254,4 +254,4 @@ public class AcademicYearApiTests : IClassFixture<WebApplicationFactory<ModulesR
         var getResponse = await _client.GetAsync($"/api/academic-years/{id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-}
+}

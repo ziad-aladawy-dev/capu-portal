@@ -129,4 +129,4 @@ public class InvoiceServiceTests
         inv.Status.Should().Be(InvoiceStatus.Cancelled);
         cache.RemoveCalls.Should().Be(1);
     }
-}
+}

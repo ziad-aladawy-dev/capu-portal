@@ -121,4 +121,4 @@ public class ExceptionTypesTests
         var ex = new DomainValidationException(errors);
         Assert.Same(errors, ex.Errors);
     }
-}
+}

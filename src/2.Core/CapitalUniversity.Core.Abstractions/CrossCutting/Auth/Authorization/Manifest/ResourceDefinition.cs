@@ -63,25 +63,6 @@ public sealed record ResourceDefinition
             },
         };
 
-    /// <summary>
-    /// CRUD-like resource without an <c>Open</c> verb (no draft / closed lifecycle).
-    /// View &lt; Insert &lt; EditClose &lt; Delete.
-    /// </summary>
-    public static ResourceDefinition WithCrudActionsNoOpen(string key, string displayName, int orderNumber = 0) =>
-        new()
-        {
-            Key = key,
-            DisplayName = displayName,
-            OrderNumber = orderNumber,
-            Actions = new[]
-            {
-                ActionDefinition.Hierarchical("View",      0),
-                ActionDefinition.Hierarchical("Insert",    1, "View"),
-                ActionDefinition.Hierarchical("EditClose", 2, "View", "Insert"),
-                ActionDefinition.Hierarchical("Delete",    3, "View", "Insert", "EditClose"),
-            },
-        };
-
     public string CanonicalName(string module, string action) => $"{module}.{Key}.{action}";
 
     /// <summary>

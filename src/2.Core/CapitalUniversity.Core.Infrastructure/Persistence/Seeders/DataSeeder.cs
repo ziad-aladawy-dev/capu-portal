@@ -9,13 +9,14 @@ using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher)
+    public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher, ManifestActionExpander actionExpander)
     {
         // Tables that are "one-shot" (skip if any rows exist).
         await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
@@ -25,7 +26,7 @@ public static class DataSeeder
         await RunOnceAsync("Roles",           context.Roles,           () => SeedRolesAsync(context));
 
         // Idempotent / self-healing: always run, upsert by natural key so stale state converges.
-        await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context));
+        await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context, actionExpander));
         await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
         await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
         await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
@@ -213,6 +214,7 @@ public static class DataSeeder
             ("sync",         LocalizedJson.Of("تكامل النظام",       "SIS Integration"),      "RefreshCw",       5),
             ("academics",    LocalizedJson.Of("الجدول الأكاديمي",   "Academic Timeline"),    "Calendar",        6),
             ("notifications",LocalizedJson.Of("الإشعارات",          "Notifications"),        "Bell",            7),
+            ("system",       LocalizedJson.Of("النظام",             "System"),               "ShieldCheck",     9),
         };
         foreach (var (key, display, icon, order) in modules)
             context.Modules.Add(new Module { Id = Guid.NewGuid(), ModuleKey = key, DisplayName = display, Icon = icon, OrderNumber = order });
@@ -256,6 +258,7 @@ public static class DataSeeder
         AddRes("sync",         "sync",           LocalizedJson.Of("مزامنة النظام",     "SIS Sync"),          0);
         AddRes("academics",    "academic-years", LocalizedJson.Of("الجدول الأكاديمي",  "Academic Timeline"), 0);
         AddRes("notifications","notifications",  LocalizedJson.Of("الإشعارات",         "Notifications"),     0);
+        AddRes("system",       "audit-logs",     LocalizedJson.Of("سجل التدقيق",       "Audit Log"),         0);
 
         await context.SaveChangesAsync();
     }
@@ -288,7 +291,7 @@ public static class DataSeeder
     //  7. ROLE PERMISSIONS
     // ════════════════════════════════════════════════════════════════
 
-    private static async Task SeedRolePermissionsAsync(CoreDbContext context)
+    private static async Task SeedRolePermissionsAsync(CoreDbContext context, ManifestActionExpander actionExpander)
     {
         var roles = await context.Roles.ToListAsync();
         var resources = await context.Resources.Include(r => r.Module).ToListAsync();
@@ -304,12 +307,15 @@ public static class DataSeeder
         var existing = await context.RolePermissions
             .ToDictionaryAsync(rp => (rp.RoleId, rp.ResourceId, rp.Action));
 
-        void Grant(string roleName, string moduleKey, string resourceKey, ActionLevel level)
+        void Grant(string roleName, string moduleKey, string resourceKey, string topAction)
         {
             if (!resourceMap.TryGetValue((moduleKey, resourceKey), out var res)) return;
             if (!roleMap.TryGetValue(roleName, out var roleId)) return;
 
-            foreach (var action in ExpandLegacyCrudLevel(level))
+            // Expand the granted verb through the resource manifest's forward implies
+            // graph (a role grant is an allow). Every granted resource is manifest-
+            // declared, so this is the single source of truth — no CRUD-ladder fallback.
+            foreach (var action in actionExpander.ExpandActionNames(moduleKey, resourceKey, topAction))
             {
                 if (existing.ContainsKey((roleId, res.Id, action))) continue;
 
@@ -324,66 +330,50 @@ public static class DataSeeder
 
         // Super Admin — full access to every seeded resource.
         foreach (var res in resources)
-            Grant("Super Admin", res.Module.ModuleKey, res.Key, ActionLevel.Delete);
+            Grant("Super Admin", res.Module.ModuleKey, res.Key, "Delete");
 
         // Faculty Admin
-        Grant("Faculty Admin", "dashboard",     "dashboard",      ActionLevel.View);
-        Grant("Faculty Admin", "users",         "users",          ActionLevel.EditClose);
-        Grant("Faculty Admin", "structure",     "structure",      ActionLevel.View);
-        Grant("Faculty Admin", "programs",      "programs",       ActionLevel.Insert);
-        Grant("Faculty Admin", "permissions",   "permissions",    ActionLevel.View);
-        Grant("Faculty Admin", "permissions",   "roles",          ActionLevel.View);
-        Grant("Faculty Admin", "academics",     "academic-years", ActionLevel.View);
-        Grant("Faculty Admin", "notifications", "notifications",  ActionLevel.Insert);
+        Grant("Faculty Admin", "dashboard",     "dashboard",      "View");
+        Grant("Faculty Admin", "users",         "users",          "EditClose");
+        Grant("Faculty Admin", "structure",     "structure",      "View");
+        Grant("Faculty Admin", "programs",      "programs",       "Insert");
+        Grant("Faculty Admin", "permissions",   "permissions",    "View");
+        Grant("Faculty Admin", "permissions",   "roles",          "View");
+        Grant("Faculty Admin", "academics",     "academic-years", "View");
+        Grant("Faculty Admin", "notifications", "notifications",  "Insert");
 
         // Department Head
-        Grant("Department Head", "dashboard",     "dashboard",      ActionLevel.View);
-        Grant("Department Head", "users",         "users",          ActionLevel.EditClose);
-        Grant("Department Head", "structure",     "structure",      ActionLevel.View);
-        Grant("Department Head", "programs",      "programs",       ActionLevel.View);
-        Grant("Department Head", "academics",     "academic-years", ActionLevel.View);
-        Grant("Department Head", "notifications", "notifications",  ActionLevel.View);
+        Grant("Department Head", "dashboard",     "dashboard",      "View");
+        Grant("Department Head", "users",         "users",          "EditClose");
+        Grant("Department Head", "structure",     "structure",      "View");
+        Grant("Department Head", "programs",      "programs",       "View");
+        Grant("Department Head", "academics",     "academic-years", "View");
+        Grant("Department Head", "notifications", "notifications",  "View");
 
         // Registrar
-        Grant("Registrar", "dashboard", "dashboard",      ActionLevel.View);
-        Grant("Registrar", "users",     "users",          ActionLevel.EditClose);
-        Grant("Registrar", "structure", "structure",      ActionLevel.View);
-        Grant("Registrar", "programs",  "programs",       ActionLevel.Insert);
-        Grant("Registrar", "academics", "academic-years", ActionLevel.View);
+        Grant("Registrar", "dashboard", "dashboard",      "View");
+        Grant("Registrar", "users",     "users",          "EditClose");
+        Grant("Registrar", "structure", "structure",      "View");
+        Grant("Registrar", "programs",  "programs",       "Insert");
+        Grant("Registrar", "academics", "academic-years", "View");
 
         // Academic Advisor
-        Grant("Academic Advisor", "dashboard",     "dashboard",     ActionLevel.View);
-        Grant("Academic Advisor", "users",         "users",         ActionLevel.View);
-        Grant("Academic Advisor", "structure",     "structure",     ActionLevel.View);
-        Grant("Academic Advisor", "programs",      "programs",      ActionLevel.View);
-        Grant("Academic Advisor", "notifications", "notifications", ActionLevel.View);
+        Grant("Academic Advisor", "dashboard",     "dashboard",     "View");
+        Grant("Academic Advisor", "users",         "users",         "View");
+        Grant("Academic Advisor", "structure",     "structure",     "View");
+        Grant("Academic Advisor", "programs",      "programs",      "View");
+        Grant("Academic Advisor", "notifications", "notifications", "View");
 
         // Staff (basic)
-        Grant("Staff", "dashboard",     "dashboard",     ActionLevel.View);
-        Grant("Staff", "users",         "users",         ActionLevel.View);
-        Grant("Staff", "notifications", "notifications", ActionLevel.View);
+        Grant("Staff", "dashboard",     "dashboard",     "View");
+        Grant("Staff", "users",         "users",         "View");
+        Grant("Staff", "notifications", "notifications", "View");
 
         // Viewer
-        Grant("Viewer", "dashboard", "dashboard", ActionLevel.View);
-        Grant("Viewer", "users",     "users",     ActionLevel.View);
+        Grant("Viewer", "dashboard", "dashboard", "View");
+        Grant("Viewer", "users",     "users",     "View");
 
         await context.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Mirrors the canonical CRUD ladder implies graph used by every seeded
-    /// resource: granting <c>Level=N</c> writes one row per action up to and
-    /// including <c>N</c>. Resources without an <c>Open</c> verb still get the
-    /// row written — the runtime ignores stored actions a resource's manifest
-    /// does not declare.
-    /// </summary>
-    private static IEnumerable<string> ExpandLegacyCrudLevel(ActionLevel level)
-    {
-        if (level >= ActionLevel.View)      yield return "View";
-        if (level >= ActionLevel.Insert)    yield return "Insert";
-        if (level >= ActionLevel.EditClose) yield return "EditClose";
-        if (level >= ActionLevel.Open)      yield return "Open";
-        if (level >= ActionLevel.Delete)    yield return "Delete";
     }
 
     // ════════════════════════════════════════════════════════════════

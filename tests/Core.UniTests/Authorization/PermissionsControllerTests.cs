@@ -72,4 +72,4 @@ public class PermissionsControllerTests
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Equal(response, okResult.Value);
     }
-}
+}

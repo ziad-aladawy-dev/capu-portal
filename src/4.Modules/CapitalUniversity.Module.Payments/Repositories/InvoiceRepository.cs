@@ -25,6 +25,9 @@ public class InvoiceRepository : IInvoiceRepository
         var query = _context.Set<Invoice>().AsQueryable();
         if (includeItems) query = query.Include(i => i.Items);
         if (includeTransactions) query = query.Include(i => i.Transactions);
+        // Two collection includes on one root multiply rows (Cartesian explosion);
+        // split into separate SQL round-trips when both are requested.
+        if (includeItems && includeTransactions) query = query.AsSplitQuery();
         return query.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 

@@ -42,4 +42,4 @@ public class PaymentsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Same(list, ok.Value);
     }
-}
+}

@@ -46,6 +46,26 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
             .HasForeignKey(x => x.StructureNodeId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // ExternallySourced is a composed data block (not a base class); EF
+        // flattens it onto the Students table via OwnsOne with explicit column
+        // names so the underlying schema is identical to the inheritance-era
+        // layout — no migration needed for the composition refactor.
+        // Populated by the sync write gateway when this row was sourced
+        // upstream. Filtered unique index keeps sync-sourced rows globally
+        // unique on ExternalId while allowing Core-created rows (ExternalId = NULL)
+        // to coexist.
+        builder.OwnsOne(x => x.ExternallySourced, ec =>
+        {
+            ec.Property(p => p.ExternalId).HasColumnName("ExternalId").HasMaxLength(128);
+            ec.Property(p => p.ExternalUpdatedAt).HasColumnName("ExternalUpdatedAt");
+            ec.Property(p => p.ExternalVersion).HasColumnName("ExternalVersion");
+            ec.Property(p => p.LastSyncedAt).HasColumnName("LastSyncedAt");
+            ec.Property(p => p.OriginSystem).HasColumnName("OriginSystem").HasMaxLength(32).IsRequired();
+            ec.HasIndex(p => p.ExternalId)
+                .IsUnique()
+                .HasFilter("[ExternalId] IS NOT NULL");
+        });
+
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

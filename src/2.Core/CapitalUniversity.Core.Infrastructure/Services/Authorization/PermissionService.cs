@@ -68,8 +68,15 @@ public class PermissionService : IPermissionService
 
     private Task<List<StaffPermissionOverride>> LoadOverridesAsync(Guid userId, string? resourceKey, AuthorizationScope? scope, CancellationToken cancellationToken)
     {
+        // Temporal expiry: a stamped ExpiresAt that is now-or-past means the
+        // override's temporal window has closed, so it must not grant or deny
+        // anything — exclude it here even before the manual ExpireOverridesAsync
+        // sweep physically removes the row. Null ExpiresAt = Global/never-expires.
+        var now = DateTime.UtcNow;
         var query = _dbContext.StaffPermissions
-            .Where(sp => sp.StaffId == userId && (resourceKey == null || sp.Resource.Key == resourceKey));
+            .Where(sp => sp.StaffId == userId
+                && (resourceKey == null || sp.Resource.Key == resourceKey)
+                && (sp.ExpiresAt == null || sp.ExpiresAt > now));
         if (scope is not null)
         {
             query = query.Where(sp =>

@@ -8,8 +8,15 @@ namespace CapitalUniversity.Core.Domain.Courses;
 /// prerequisites, enrollment, transcript, and GPA logic belong to a future
 /// Registration module and MUST NOT live on this entity.
 /// </summary>
-public class Course : BaseEntity
+public class Course : BaseEntity, IExternallySourced
 {
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
+
     private string _code = string.Empty;
 
     /// <summary>Unique short code (e.g. <c>"CS101"</c>). Trimmed and upper-cased on set so the catalog cannot drift on whitespace or casing.</summary>

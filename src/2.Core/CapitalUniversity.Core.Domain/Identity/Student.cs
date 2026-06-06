@@ -1,9 +1,9 @@
-﻿using CapitalUniversity.Core.Domain.Common;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.UniversityStructure;
 
 namespace CapitalUniversity.Core.Domain.Identity;
 
-public class Student : BaseEntity
+public class Student : BaseEntity, IExternallySourced
 {
     public string StudentCode { get; set; } = string.Empty;
 
@@ -31,4 +31,12 @@ public class Student : BaseEntity
     /// See Staff.SessionVersion.
     /// </summary>
     public int SessionVersion { get; set; }
+
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs. Always non-null — Core-created
+    /// rows have <see cref="ExternallySourcedData.ExternalId"/> = <c>null</c>.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
 }

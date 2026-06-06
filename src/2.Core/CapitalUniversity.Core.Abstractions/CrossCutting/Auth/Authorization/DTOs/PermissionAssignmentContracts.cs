@@ -35,25 +35,34 @@ public class CreatePermissionAssignmentRequest
 }
 
 /// <summary>
-/// One permission override for a single resource. <see cref="Level"/> remains
-/// the legacy ladder shape exposed to clients — the server translates it to a
-/// per-action grant set via the resource manifest's <c>Implies</c> graph on
-/// write and back to the highest covered <see cref="ActionLevel"/> on read. New
-/// callers may prefer <see cref="Actions"/>, which carries explicit action names
-/// for resources whose grants don't map cleanly to the legacy CRUD ladder.
+/// One permission override for a single resource, expressed as a per-action grant
+/// set (<see cref="Actions"/>) in the canonical manifest model. On write the server
+/// expands each action through the resource manifest's <c>Implies</c> graph —
+/// forward closure for <see cref="OverrideType.Allow"/>, reverse closure for
+/// <see cref="OverrideType.Deny"/> — and persists one row per action. On read it
+/// mirrors the stored per-action rows.
+/// <para>
+/// Scope is optional and <b>per-override</b>: when <see cref="StructuralScope"/> and
+/// <see cref="TemporalScope"/> are null the override inherits the request-level
+/// scope (the same scope the role assignments use); when set, this override is
+/// written at its own scope, independent of the role scope. This is what lets a
+/// single assignment carry a role at one scope and an individual permission at a
+/// different scope.
+/// </para>
 /// </summary>
 public class PermissionOverrideModel
 {
     public Guid ResourceId { get; set; }
-    public ActionLevel Level { get; set; }
     public OverrideType Type { get; set; }
 
-    /// <summary>
-    /// Optional explicit per-action grant set. When populated on a write, this
-    /// takes precedence over <see cref="Level"/>; when populated on a read it
-    /// mirrors the underlying per-action rows.
-    /// </summary>
-    public List<string>? Actions { get; set; }
+    /// <summary>Canonical per-action grant set (action names). Required.</summary>
+    public List<string> Actions { get; set; } = new();
+
+    /// <summary>Optional per-override structural scope; inherits the request scope when null.</summary>
+    public StructuralScopeModel? StructuralScope { get; set; }
+
+    /// <summary>Optional per-override temporal scope; inherits the request scope when null.</summary>
+    public TemporalScopeModel? TemporalScope { get; set; }
 }
 
 public class UpdatePermissionAssignmentRequest

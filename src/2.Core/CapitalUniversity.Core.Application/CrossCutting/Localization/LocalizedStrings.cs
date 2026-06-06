@@ -56,6 +56,7 @@ public static class LocalizedStrings
                 [LocalizedKeys.Courses.PlanCourseAlreadyPresent] = "Course already present in this plan.",
                 [LocalizedKeys.Courses.StructureNodeNotFound]    = "Structure node not found.",
                 [LocalizedKeys.Courses.EffectiveToAfterFrom]     = "Effective-to must be after effective-from.",
+                [LocalizedKeys.Courses.ReferencedByPlan]         = "This course is referenced by one or more academic plans and cannot be deleted. Remove it from those plans first.",
 
                 [LocalizedKeys.Semesters.NotFound]                 = "Semester not found.",
                 [LocalizedKeys.Semesters.AcademicYearNotFound]     = "Academic year not found.",
@@ -148,6 +149,7 @@ public static class LocalizedStrings
                 [LocalizedKeys.Courses.PlanCourseAlreadyPresent] = "هذا المقرر مُدرج بالفعل ضمن الخطة.",
                 [LocalizedKeys.Courses.StructureNodeNotFound]    = "عقدة الهيكل غير موجودة.",
                 [LocalizedKeys.Courses.EffectiveToAfterFrom]     = "يجب أن يكون تاريخ نهاية السريان بعد تاريخ بدايته.",
+                [LocalizedKeys.Courses.ReferencedByPlan]         = "هذا المقرر مُدرج ضمن خطة دراسية واحدة أو أكثر ولا يمكن حذفه. أزِله من تلك الخطط أولًا.",
 
                 [LocalizedKeys.Semesters.NotFound]                 = "الفصل الدراسي غير موجود.",
                 [LocalizedKeys.Semesters.AcademicYearNotFound]     = "العام الأكاديمي غير موجود.",

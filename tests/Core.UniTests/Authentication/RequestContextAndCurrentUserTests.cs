@@ -161,4 +161,4 @@ public class RequestContextAndCurrentUserTests
         var noAuth = new CurrentUser(BuildAccessor());
         Assert.False(noAuth.IsAuthenticated);
     }
-}
+}

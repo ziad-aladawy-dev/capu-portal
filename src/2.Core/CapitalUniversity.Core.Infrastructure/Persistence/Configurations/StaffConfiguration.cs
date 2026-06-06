@@ -53,6 +53,20 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
             .HasForeignKey(x => x.StructureNodeId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // ExternallySourced — composed data block flattened onto the table
+        // via OwnsOne. See StudentConfiguration for rationale.
+        builder.OwnsOne(x => x.ExternallySourced, ec =>
+        {
+            ec.Property(p => p.ExternalId).HasColumnName("ExternalId").HasMaxLength(128);
+            ec.Property(p => p.ExternalUpdatedAt).HasColumnName("ExternalUpdatedAt");
+            ec.Property(p => p.ExternalVersion).HasColumnName("ExternalVersion");
+            ec.Property(p => p.LastSyncedAt).HasColumnName("LastSyncedAt");
+            ec.Property(p => p.OriginSystem).HasColumnName("OriginSystem").HasMaxLength(32).IsRequired();
+            ec.HasIndex(p => p.ExternalId)
+                .IsUnique()
+                .HasFilter("[ExternalId] IS NOT NULL");
+        });
+
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

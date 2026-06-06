@@ -5,7 +5,6 @@ using CapitalUniversity.API;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Domain.Authorization;
 using CapitalUniversity.Core.Domain.Common;
@@ -52,9 +51,6 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
                 
                 services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>();
                 services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Logging.IAppLogger>().Object);
-                
-                services.RemoveAll<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>();
-                services.AddScoped(_ => new Mock<CapitalUniversity.Core.Abstractions.CrossCutting.Audit.ILoggerService>().Object);
             });
         });
     }
@@ -94,7 +90,7 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
             // Role with only View permission on the academic-years resource.
             var role = new Role { Id = Guid.NewGuid(), Name = "Viewer" };
             db.Roles.Add(role);
-            db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
+            db.AddCrudGrant(role.Id, resource.Id, "View");
 
             // Assign role to staff with truly-global structural scope so the request
             // (which sends no X-StructureNode-Id) doesn't get filtered out.
@@ -157,4 +153,4 @@ public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<Modu
         System.Console.WriteLine($"100 authorized requests took: {sw.ElapsedMilliseconds}ms");
         sw.ElapsedMilliseconds.Should().BeLessThan(2000); 
     }
-}
+}

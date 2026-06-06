@@ -215,4 +215,4 @@ public class CourseOfferingValidatorsTests
             .Validate(new UpdateCourseOfferingRequest { ExternalSystemId = new string('X', 129) })
             .IsValid.Should().BeFalse();
     }
-}
+}

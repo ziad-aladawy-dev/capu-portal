@@ -71,4 +71,4 @@ public class MapperTests
         Assert.Equal(new DateTime(2025, 9, 1), entity.StartDate);
         Assert.Equal(new DateTime(2025, 12, 31), entity.EndDate);
     }
-}
+}

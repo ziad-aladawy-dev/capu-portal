@@ -189,4 +189,4 @@ public class RefreshTokenServiceTests
             "the pre-revoked row's reason must be preserved");
         rows.Should().Contain(r => r.ReasonRevoked == "logout");
     }
-}
+}

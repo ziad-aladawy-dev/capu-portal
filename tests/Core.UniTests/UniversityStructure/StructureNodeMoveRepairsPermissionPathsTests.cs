@@ -129,4 +129,4 @@ public class StructureNodeMoveRepairsPermissionPathsTests
             Times.Never,
             "no path change ⇒ no global cache epoch bump");
     }
-}
+}

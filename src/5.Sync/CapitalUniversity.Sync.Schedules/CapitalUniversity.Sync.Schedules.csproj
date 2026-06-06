@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CapitalUniversity.Sync.Schedules</RootNamespace>
+    <AssemblyName>CapitalUniversity.Sync.Schedules</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
+    <!-- ScheduleSlot lives in Module.Schedule; CourseOffering lives in
+         Module.CourseOffering. Sync.Schedules needs both: the former for the
+         entity it upserts, the latter for the FK-resolution generic call
+         (ICoreWriteGateway.ResolveIdByExternalIdAsync<CourseOffering>). -->
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Schedule\CapitalUniversity.Module.Schedule.csproj" />
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Schedule.Abstractions\CapitalUniversity.Module.Schedule.Abstractions.csproj" />
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.CourseOffering\CapitalUniversity.Module.CourseOffering.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+</Project>

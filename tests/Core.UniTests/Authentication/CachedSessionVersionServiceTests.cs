@@ -136,4 +136,4 @@ public class CachedSessionVersionServiceTests
         cache.SetCalls.Should().Be(0);
         inner.Verify(s => s.GetCurrentVersionAsync(userId, default), Times.Exactly(2));
     }
-}
+}

@@ -193,4 +193,15 @@ public static class PermissionNames
         public const string Open      = "student-services.workflows.Open";
         public const string Delete    = "student-services.workflows.Delete";
     }
+
+    /// <summary>
+    /// System audit trail (read-only admin view of the Mongo audit log).
+    /// Module = <c>system</c>, Resource = <c>audit-logs</c>. Bound by
+    /// <see cref="AuditLogsController"/>; declared by <c>SystemPermissionManifest</c>.
+    /// Granted to Super Admin via the seeder's "every resource" loop.
+    /// </summary>
+    public static class AuditLogs
+    {
+        public const string View = "system.audit-logs.View";
+    }
 }

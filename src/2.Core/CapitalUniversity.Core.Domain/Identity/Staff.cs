@@ -3,8 +3,16 @@ using CapitalUniversity.Core.Domain.UniversityStructure;
 
 namespace CapitalUniversity.Core.Domain.Identity;
 
-public class Staff : BaseEntity
+public class Staff : BaseEntity, IExternallySourced
 {
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
+
+
     public string EmployeeCode { get; set; } = string.Empty;
 
     public string PasswordHash { get; set; } = string.Empty;

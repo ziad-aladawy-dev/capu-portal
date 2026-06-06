@@ -36,9 +36,17 @@ public sealed record AcademicPlanValidators(
 public class AcademicPlanService : IAcademicPlanService
 {
     internal const string CacheKeyPrefix = "academicplan:object:";
+    // Collection caches (per-node list + search pages) keyed by a collection
+    // version stamp; any plan or composition mutation rotates it and orphans them
+    // all in one write — mirrors the Courses module and the permission epoch model.
+    internal const string CollectionVersionKey = "academicplan:coll:ver";
+    internal const string NodeListKeyPrefix = "academicplan:node:";
+    internal const string SearchKeyPrefix = "academicplan:search:";
     private const string AcademicPlanNotFound = LocalizedKeys.Courses.PlanNotFound;
     private const string PlanCourseEntryNotFound = LocalizedKeys.Courses.PlanCourseEntryNotFound;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
+    // The stamp only rotates on mutation, so it long-outlives the data TTL.
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAcademicPlanRepository _plans;
@@ -77,22 +85,24 @@ public class AcademicPlanService : IAcademicPlanService
         // The cache stores the culture-neutral payload (Name still in the
         // {"ar":"…","en":"…"} JSON shape). Decoding runs on the way out so two
         // requests under different cultures share one cache entry.
-        var cached = await _cache.GetAsync<AcademicPlanResponse>(key, cancellationToken);
-        if (cached is not null)
-        {
-            return await _scope.CanAccessStructureNodeAsync(cached.StructureNodeId, cancellationToken)
-                ? Localize(cached)
-                : null;
-        }
+        // Stampede-protected read-through over the scope-neutral payload; scope is
+        // still enforced per read (below) so the shared entry never leaks across
+        // callers. A not-found plan returns null and is not cached.
+        var dto = await _cache.GetOrSetAsync<AcademicPlanResponse>(
+            key,
+            async ct =>
+            {
+                var plan = await _plans.GetByIdAsync(id, includeCourses: true, ct);
+                return plan is null ? null : ToResponse(plan);
+            },
+            CacheTtl,
+            cancellationToken);
 
-        var plan = await _plans.GetByIdAsync(id, includeCourses: true, cancellationToken);
-        if (plan is null) return null;
+        if (dto is null) return null;
 
-        if (!await _scope.CanAccessStructureNodeAsync(plan.StructureNodeId, cancellationToken)) return null;
-
-        var dto = ToResponse(plan);
-        await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
-        return Localize(dto);
+        return await _scope.CanAccessStructureNodeAsync(dto.StructureNodeId, cancellationToken)
+            ? Localize(dto)
+            : null;
     }
 
     public async Task<PagedResult<AcademicPlanResponse>> SearchAsync(AcademicPlanSearchQuery query, CancellationToken cancellationToken = default)
@@ -111,20 +121,48 @@ public class AcademicPlanService : IAcademicPlanService
             };
         }
 
-        var page = await _plans.SearchAsync(query, cancellationToken);
+        // Cache the scope-NEUTRAL page (all matches + unfiltered totals) under the
+        // collection version + query signature. The per-row scope filter runs per
+        // read, so the expensive DB query is shared while each caller still sees
+        // only the rows their scope permits (preserving the prior behaviour of
+        // unfiltered totals with filtered items).
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cacheKey = $"{SearchKeyPrefix}{version}:{BuildSearchSignature(query)}";
+
+        var page = await _cache.GetOrSetAsync<PagedResult<AcademicPlanResponse>>(
+            cacheKey,
+            async ct =>
+            {
+                var result = await _plans.SearchAsync(query, ct);
+                return new PagedResult<AcademicPlanResponse>
+                {
+                    Items = result.Items.Select(ToSlim).ToList(),
+                    Page = result.Page,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount,
+                    TotalPages = result.TotalPages,
+                };
+            },
+            CacheTtl,
+            cancellationToken);
+
+        if (page is null)
+        {
+            return new PagedResult<AcademicPlanResponse>
+            {
+                Items = new List<AcademicPlanResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+                TotalCount = 0,
+                TotalPages = 0,
+            };
+        }
+
         var visible = new List<AcademicPlanResponse>(page.Items.Count);
         foreach (var p in page.Items)
         {
             if (!await _scope.CanAccessStructureNodeAsync(p.StructureNodeId, cancellationToken)) continue;
-            visible.Add(Localize(new AcademicPlanResponse
-            {
-                Id = p.Id,
-                StructureNodeId = p.StructureNodeId,
-                Name = p.Name,
-                EffectiveFrom = p.EffectiveFrom,
-                EffectiveTo = p.EffectiveTo,
-                IsActive = p.IsActive,
-            }));
+            visible.Add(LocalizeCopy(p));
         }
 
         return new PagedResult<AcademicPlanResponse>
@@ -139,23 +177,24 @@ public class AcademicPlanService : IAcademicPlanService
 
     public async Task<IReadOnlyList<AcademicPlanResponse>> GetForStructureNodeAsync(Guid structureNodeId, CancellationToken cancellationToken = default)
     {
+        // Per-user scope gate stays OUT of the cache (it is caller-specific).
         if (!await _scope.CanAccessStructureNodeAsync(structureNodeId, cancellationToken))
         {
             return Array.Empty<AcademicPlanResponse>();
         }
 
-        var plans = await _plans.GetForStructureNodeAsync(structureNodeId, cancellationToken);
         // List read does not eager-load PlanCourses (avoids N+1) — list responses
-        // are slim summaries; callers re-fetch by ID for full composition.
-        return plans.Select(p => Localize(new AcademicPlanResponse
-        {
-            Id = p.Id,
-            StructureNodeId = p.StructureNodeId,
-            Name = p.Name,
-            EffectiveFrom = p.EffectiveFrom,
-            EffectiveTo = p.EffectiveTo,
-            IsActive = p.IsActive,
-        })).ToList();
+        // are slim summaries; callers re-fetch by ID for full composition. The
+        // node's list is the same for every caller that can see the node, so it is
+        // cached (scope-neutral) under the collection version, stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<AcademicPlanResponse>>(
+            $"{NodeListKeyPrefix}{structureNodeId:N}:{version}",
+            async ct => (await _plans.GetForStructureNodeAsync(structureNodeId, ct)).Select(ToSlim).ToList(),
+            CacheTtl,
+            cancellationToken);
+
+        return (cached ?? new List<AcademicPlanResponse>()).Select(LocalizeCopy).ToList();
     }
 
     /// <summary>
@@ -168,6 +207,53 @@ public class AcademicPlanService : IAcademicPlanService
         response.Name = _localization.Get<string>(response.Name);
         return response;
     }
+
+    /// <summary>
+    /// Localize onto a NEW response so cached list/search entries (possibly the
+    /// same instance under the in-memory provider) are never mutated in place.
+    /// </summary>
+    private AcademicPlanResponse LocalizeCopy(AcademicPlanResponse source) => new()
+    {
+        Id = source.Id,
+        StructureNodeId = source.StructureNodeId,
+        Name = _localization.Get<string>(source.Name),
+        EffectiveFrom = source.EffectiveFrom,
+        EffectiveTo = source.EffectiveTo,
+        IsActive = source.IsActive,
+    };
+
+    /// <summary>Slim list/search projection — no PlanCourses (avoids N+1).</summary>
+    private static AcademicPlanResponse ToSlim(AcademicPlan p) => new()
+    {
+        Id = p.Id,
+        StructureNodeId = p.StructureNodeId,
+        Name = p.Name,
+        EffectiveFrom = p.EffectiveFrom,
+        EffectiveTo = p.EffectiveTo,
+        IsActive = p.IsActive,
+    };
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCollectionVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
+    private static string BuildSearchSignature(AcademicPlanSearchQuery q) =>
+        string.Join('|',
+            $"node={q.StructureNodeId?.ToString("N") ?? string.Empty}",
+            $"active={q.IsActive?.ToString() ?? string.Empty}",
+            $"from={q.EffectiveFromInclusive?.ToString("O") ?? string.Empty}",
+            $"to={q.EffectiveToExclusive?.ToString("O") ?? string.Empty}",
+            $"q={q.Search ?? string.Empty}",
+            $"sort={q.Sort ?? string.Empty}",
+            $"p={q.NormalizedPage}",
+            $"ps={q.NormalizedPageSize}");
 
     public async Task<Guid> CreateAsync(CreateAcademicPlanRequest request, CancellationToken cancellationToken = default)
     {
@@ -183,6 +269,8 @@ public class AcademicPlanService : IAcademicPlanService
         var plan = _mapper.MapToEntity(request);
         await _plans.AddAsync(plan, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new plan must surface in node-list / search reads.
+        await BumpCollectionVersionAsync(cancellationToken);
         return plan.Id;
     }
 
@@ -213,6 +301,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -230,6 +319,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Delete(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task<BulkActionResult> DeleteManyAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
@@ -292,6 +382,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
         return entry.Id;
     }
 
@@ -373,6 +464,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task RemoveCourseAsync(Guid planId, Guid planCourseId, CancellationToken cancellationToken = default)
@@ -399,6 +491,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.RemovePlanCourse(entry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -408,6 +501,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -417,6 +511,7 @@ public class AcademicPlanService : IAcademicPlanService
         _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     /// <summary>

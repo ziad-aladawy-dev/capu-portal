@@ -1,5 +1,6 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
+using CapitalUniversity.Core.Domain.Common;
 using Microsoft.AspNetCore.Http;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Authorization;
@@ -48,6 +49,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.PermissionDenied,
                 [MetaUserId] = userId,
                 [MetaRequiredPermission] = requiredPermission,
@@ -61,6 +63,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.AuthFailed,
                 // Hash the identifier so we can correlate brute-force attempts
                 // without retaining the raw value.
@@ -75,6 +78,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.Logout,
                 [MetaUserId] = userId,
             }));
@@ -86,6 +90,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.TokenRevoked,
                 [MetaUserId] = userId,
                 [MetaReason] = reason,
@@ -99,6 +104,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.RefreshReplay,
                 [MetaUserId] = userId,
             }));
@@ -114,6 +120,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.RoleAssignmentChanged,
                 [MetaTargetUserId] = targetUserId,
                 [MetaRolesAdded] = rolesAdded.ToArray(),
@@ -127,6 +134,7 @@ public class AuthAuditLogger : IAuthAuditLogger
             _httpContextAccessor.HttpContext,
             new Dictionary<string, object>
             {
+                [AuditMetadataKeys.Category] = LogCategory.Auth,
                 [MetaEventType] = AuthAuditEventTypes.SessionRejected,
                 [MetaUserId] = userId,
                 [MetaReason] = reason,

@@ -27,7 +27,7 @@ public class SemesterServiceTests
         _uowMock.Setup(x => x.AcademicYears).Returns(_yearRepoMock.Object);
         _createValidatorMock = new Mock<IValidator<CreateSemesterRequest>>();
         _updateValidatorMock = new Mock<IValidator<(Guid, UpdateSemesterRequest)>>();
-        _service = new SemesterService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService());
+        _service = new SemesterService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService(), new NoOpCacheService());
     }
 
     [Fact]
@@ -67,4 +67,4 @@ public class SemesterServiceTests
         _semesterRepoMock.Verify(x => x.Update(sem1), Times.Once);
         _semesterRepoMock.Verify(x => x.Update(sem2), Times.Once);
     }
-}
+}

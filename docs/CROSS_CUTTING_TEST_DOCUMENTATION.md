@@ -63,10 +63,11 @@ Verified via `LocalizationServiceTests`.
 
 ## 5. Logging (`Logging/`)
 
-Verified via `SerilogLoggerServiceTests`.
+Verified via `BufferedAppLogger*Tests` (the Mongo audit pipeline is the single logging path).
 
-- **Contextual Enrichment**: Ensures every log entry automatically includes the `CorrelationId`, `UserId`, `ActiveRoleId`, and `Operation` from the current Execution Context.
-- **Error Depth**: Verifies that `LogError` correctly captures and formats stack traces from `Exception` objects.
+- **Contextual Enrichment**: Ensures every audit entry captures the actor (`UserId`, `UserName`, `Role`), `IpAddress`, request path/method, and the `CorrelationId` from `HttpContext`.
+- **Correlation Propagation**: The correlation id is snapshotted on the request thread so it survives the async hand-off to the Mongo flush worker.
+- **Secret Scrubbing**: Free-form messages and metadata are passed through `LogScrubber` before persistence.
 
 ---
 

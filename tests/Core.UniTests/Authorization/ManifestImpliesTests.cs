@@ -1,6 +1,5 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest;
-using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest;
 using FluentAssertions;
 using Xunit;
@@ -21,7 +20,7 @@ public class ManifestImpliesTests
     {
         var expander = BuildExpander(new CrudManifest("test", "things"));
 
-        var actions = expander.ExpandActions("test", "things", ActionLevel.Delete);
+        var actions = expander.ExpandActionNames("test", "things", "Delete");
 
         actions.Should().BeEquivalentTo(new[] { "View", "Insert", "EditClose", "Open", "Delete" });
     }
@@ -31,7 +30,7 @@ public class ManifestImpliesTests
     {
         var expander = BuildExpander(new CrudManifest("test", "things"));
 
-        var actions = expander.ExpandActions("test", "things", ActionLevel.EditClose);
+        var actions = expander.ExpandActionNames("test", "things", "EditClose");
 
         actions.Should().Contain("View");
         actions.Should().Contain("EditClose");
@@ -44,7 +43,7 @@ public class ManifestImpliesTests
     {
         var expander = BuildExpander(new CrudManifest("test", "things"));
 
-        var actions = expander.ExpandActions("test", "things", ActionLevel.Insert);
+        var actions = expander.ExpandActionNames("test", "things", "Insert");
 
         actions.Should().BeEquivalentTo(new[] { "View", "Insert" });
     }
@@ -115,6 +114,89 @@ public class ManifestImpliesTests
             .WithMessage("*implies 'DoesNotExist'*");
     }
 
+    // ---------------------------------------------------------------------
+    // Three-deep TRANSITIVE implies chain (each verb declares only the next
+    // hop, not the full set). EditClose -> Insert -> View. Confirms the closure
+    // walks all three hops for both the forward (allow) and reverse (deny)
+    // directions on a chained graph.
+    // ---------------------------------------------------------------------
+
+    private static IPermissionManifest ChainedCrud(string module, string resource) =>
+        new InMemoryManifest(module, new ResourceDefinition
+        {
+            Key = resource,
+            DisplayName = "Chain",
+            OrderNumber = 0,
+            Actions = new[]
+            {
+                ActionDefinition.Hierarchical("View", 0),
+                ActionDefinition.Hierarchical("Insert", 1, "View"),        // -> View
+                ActionDefinition.Hierarchical("EditClose", 2, "Insert"),   // -> Insert (NOT View directly)
+            },
+        });
+
+    [Fact]
+    public void ChainedImplies_ThreeDeep_AllowExpandsTransitively_ViaActionNames()
+    {
+        var expander = BuildExpander(ChainedCrud("test", "chain"));
+
+        // Granting EditClose must walk EditClose -> Insert -> View.
+        var actions = expander.ExpandActionNames("test", "chain", "EditClose");
+
+        actions.Should().BeEquivalentTo(new[] { "View", "Insert", "EditClose" });
+    }
+
+    [Fact]
+    public void ChainedImplies_ThreeDeep_DenyExpandsReverseTransitively_ViaActionNames()
+    {
+        var expander = BuildExpander(ChainedCrud("test", "chain"));
+
+        // Denying the lowest verb (View) must remove every verb that transitively
+        // grants it: Insert (->View) and EditClose (->Insert->View).
+        var actions = expander.ExpandDenyActionNames("test", "chain", "View");
+
+        actions.Should().BeEquivalentTo(new[] { "View", "Insert", "EditClose" });
+    }
+
+    [Fact]
+    public void ChainedImplies_MiddleVerb_AllowGoesDown_DenyGoesUp()
+    {
+        var expander = BuildExpander(ChainedCrud("test", "chain"));
+
+        // Allow Insert -> {Insert, View} (one hop down), never EditClose.
+        expander.ExpandActionNames("test", "chain", "Insert")
+            .Should().BeEquivalentTo(new[] { "View", "Insert" });
+
+        // Deny Insert -> {Insert, EditClose} (one hop up), never View.
+        expander.ExpandDenyActionNames("test", "chain", "Insert")
+            .Should().BeEquivalentTo(new[] { "Insert", "EditClose" });
+    }
+
+    [Fact]
+    public void ChainedImplies_NonCrudVerbs_ExpandTransitively_BothDirections()
+    {
+        // Same three-deep shape with non-CRUD names (Publish -> Approve -> Draft),
+        // proving transitivity is a property of the graph, not the CRUD ladder.
+        var manifest = new InMemoryManifest("ops", new ResourceDefinition
+        {
+            Key = "articles",
+            DisplayName = "Articles",
+            OrderNumber = 0,
+            Actions = new[]
+            {
+                ActionDefinition.Hierarchical("Draft", 0),
+                ActionDefinition.Hierarchical("Approve", 1, "Draft"),
+                ActionDefinition.Hierarchical("Publish", 2, "Approve"),
+            },
+        });
+        var resource = new PermissionManifestRegistry(new[] { (IPermissionManifest)manifest })
+            .GetResource("ops", "articles")!;
+
+        resource.ExpandImplied("Publish").Should().BeEquivalentTo(new[] { "Publish", "Approve", "Draft" });
+        resource.ExpandReverseImplied("Draft").Should().BeEquivalentTo(new[] { "Draft", "Approve", "Publish" });
+        resource.ExpandReverseImplied("Approve").Should().BeEquivalentTo(new[] { "Approve", "Publish" });
+    }
+
     private sealed class CrudManifest : IPermissionManifest
     {
         public CrudManifest(string module, string resource)
@@ -144,4 +226,4 @@ public class ManifestImpliesTests
         public int? OrderNumber => 0;
         public IReadOnlyCollection<ResourceDefinition> Resources { get; }
     }
-}
+}

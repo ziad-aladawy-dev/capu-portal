@@ -183,4 +183,4 @@ public class PermissionManifestRegistryTests
             .And.Contain("permissions.roles.View")
             .And.Contain("notifications.notifications.View");
     }
-}
+}

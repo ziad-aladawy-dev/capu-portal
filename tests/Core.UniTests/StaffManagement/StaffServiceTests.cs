@@ -396,4 +396,4 @@ public class StaffServiceTests
             "statistics aggregates the whole population, so the underlying query must not be paginated");
         observed.Page.Should().Be(1);
     }
-}
+}

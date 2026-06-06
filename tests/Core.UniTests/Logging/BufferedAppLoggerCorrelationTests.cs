@@ -129,4 +129,4 @@ public class BufferedAppLoggerCorrelationTests
         }
         return result;
     }
-}
+}

@@ -68,7 +68,7 @@ private void SetupAuth()
     db.Modules.Add(module);
     db.Resources.Add(resource);
     db.Roles.Add(role);
-    db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
+    db.AddCrudGrant(role.Id, resource.Id, "Delete");
     db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
     // SessionVersionMiddleware needs a Staff row matching the token's user id.
@@ -231,4 +231,4 @@ private void SetupAuth()
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-}
+}

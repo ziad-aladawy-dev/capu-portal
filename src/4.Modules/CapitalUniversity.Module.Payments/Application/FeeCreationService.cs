@@ -116,8 +116,11 @@ public class FeeCreationService : IFeeCreationService
         _invoices.Update(invoice);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        // Existing invoice — drop the cached payload so the next read picks up new items.
+        // Drop the cached payload so the next read picks up new items, and rotate
+        // the invoice collection version so list/search reads reflect the new or
+        // newly-larger invoice.
         await _cache.RemoveAsync(InvoiceService.CacheKey(invoice.Id), cancellationToken);
+        await InvoiceService.BumpCollectionVersionAsync(_cache, cancellationToken);
         return invoice.Id;
     }
 }

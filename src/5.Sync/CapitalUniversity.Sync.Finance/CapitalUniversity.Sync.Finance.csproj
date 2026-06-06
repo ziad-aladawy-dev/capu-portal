@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CapitalUniversity.Sync.Finance</RootNamespace>
+    <AssemblyName>CapitalUniversity.Sync.Finance</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
+    <!-- Invoice + InvoiceStatus live in the Payments module. Sync.Finance writes
+         to Core's Invoice via ICoreWriteGateway and resolves cross-module
+         student FKs through the same gateway. -->
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Payments\CapitalUniversity.Module.Payments.csproj" />
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Payments.Abstractions\CapitalUniversity.Module.Payments.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+</Project>

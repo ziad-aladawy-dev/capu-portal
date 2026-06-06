@@ -75,4 +75,4 @@ public partial class PermissionNamesCoverageTests
         dir.Should().NotBeNull("the test must be run within a tree containing a src/ folder");
         return Path.Combine(dir!.FullName, "src");
     }
-}
+}

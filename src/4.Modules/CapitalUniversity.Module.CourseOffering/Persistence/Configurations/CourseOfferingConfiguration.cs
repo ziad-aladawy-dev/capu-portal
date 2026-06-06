@@ -29,8 +29,6 @@ public class CourseOfferingConfiguration : IEntityTypeConfiguration<CourseOfferi
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.RegistrationState).HasConversion<int>().IsRequired();
 
-        builder.Property(x => x.ExternalSystemId).HasMaxLength(128);
-
         builder.Property(x => x.RowVersion).IsRowVersion();
 
         // Soft-delete filter — declared here because the entity lives in the
@@ -68,5 +66,22 @@ public class CourseOfferingConfiguration : IEntityTypeConfiguration<CourseOfferi
 
         // Course-centric lookup: "where else is this course running this term?"
         builder.HasIndex(x => new { x.CourseId, x.SemesterId });
+
+        // ExternallySourced — composed data block flattened onto the
+        // CourseOfferings table. ExternalId carries forward the legacy
+        // ExternalSystemId column name (renamed in the AddExternallySourced
+        // migration). LastSyncedAt carries forward the legacy ExternalSyncedAt
+        // column name.
+        builder.OwnsOne(x => x.ExternallySourced, ec =>
+        {
+            ec.Property(p => p.ExternalId).HasColumnName("ExternalId").HasMaxLength(128);
+            ec.Property(p => p.ExternalUpdatedAt).HasColumnName("ExternalUpdatedAt");
+            ec.Property(p => p.ExternalVersion).HasColumnName("ExternalVersion");
+            ec.Property(p => p.LastSyncedAt).HasColumnName("LastSyncedAt");
+            ec.Property(p => p.OriginSystem).HasColumnName("OriginSystem").HasMaxLength(32).IsRequired();
+            ec.HasIndex(p => p.ExternalId)
+                .IsUnique()
+                .HasFilter("[ExternalId] IS NOT NULL");
+        });
     }
 }

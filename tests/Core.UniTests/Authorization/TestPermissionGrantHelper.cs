@@ -1,35 +1,33 @@
 using CapitalUniversity.Core.Domain.Authorization;
-using CapitalUniversity.Core.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
 /// <summary>
-/// Test convenience: translate the legacy <see cref="ActionLevel"/> ladder a
-/// test wants to express into the per-action <see cref="RolePermission"/> rows
-/// the production schema now stores. Mirrors the seeder's
-/// <c>ExpandLegacyCrudLevel</c>: granting <c>Level=N</c> writes one row per
-/// action up to and including <c>N</c> on the canonical CRUD ladder.
+/// Test convenience: expand a CRUD "top action" into the per-action
+/// <see cref="RolePermission"/> rows the production schema stores. Mirrors the
+/// canonical CRUD ladder (View &lt; Insert &lt; EditClose &lt; Open &lt; Delete):
+/// granting a verb writes one row per action up to and including it.
 /// </summary>
 internal static class TestPermissionGrantHelper
 {
-    public static IEnumerable<string> ExpandCrud(ActionLevel level)
+    private static readonly string[] CrudLadder = { "View", "Insert", "EditClose", "Open", "Delete" };
+
+    public static IEnumerable<string> ExpandCrud(string topAction)
     {
-        if (level >= ActionLevel.View)      yield return "View";
-        if (level >= ActionLevel.Insert)    yield return "Insert";
-        if (level >= ActionLevel.EditClose) yield return "EditClose";
-        if (level >= ActionLevel.Open)      yield return "Open";
-        if (level >= ActionLevel.Delete)    yield return "Delete";
+        var idx = Array.IndexOf(CrudLadder, topAction);
+        if (idx < 0) yield break;
+        for (var i = 0; i <= idx; i++) yield return CrudLadder[i];
     }
 
-    public static IEnumerable<RolePermission> GrantsFor(Guid roleId, Guid resourceId, ActionLevel level) =>
-        ExpandCrud(level).Select(action => new RolePermission(roleId, resourceId, action));
+    public static IEnumerable<RolePermission> GrantsFor(Guid roleId, Guid resourceId, string topAction) =>
+        ExpandCrud(topAction).Select(action => new RolePermission(roleId, resourceId, action));
 
-    public static void AddCrudGrant<TDbContext>(this TDbContext context, Guid roleId, Guid resourceId, ActionLevel level)
+    public static void AddCrudGrant<TDbContext>(this TDbContext context, Guid roleId, Guid resourceId, string topAction)
         where TDbContext : DbContext
     {
         var set = context.Set<RolePermission>();
-        foreach (var rp in GrantsFor(roleId, resourceId, level))
+        foreach (var rp in GrantsFor(roleId, resourceId, topAction))
         {
             set.Add(rp);
         }
