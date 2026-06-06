@@ -26,4 +26,4 @@ public class AuthorizationScopeTests
         scope.StructureNodeId.Should().Be(nodeId);
         scope.StructureNodePath.Should().Be(nodePath);
     }
-}
+}

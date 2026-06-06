@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CapitalUniversity.API;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.DTOs;
-using CapitalUniversity.Core.Abstractions.CrossCutting.Audit;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using FluentAssertions;
@@ -46,7 +45,6 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
                 services.RemoveAll<CoreDbContext>();
                 services.AddDbContext<CoreDbContext>(o => o.UseInMemoryDatabase(dbName));
                 services.AddScoped(_ => new Mock<IAppLogger>().Object);
-                services.AddScoped(_ => new Mock<ILoggerService>().Object);
                 services.AddSingleton(_ => new Mock<IMongoClient>().Object);
             });
         });
@@ -242,4 +240,4 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
             new RefreshTokenRequestDto { RefreshToken = "not-a-real-token-value" });
         refresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-}
+}

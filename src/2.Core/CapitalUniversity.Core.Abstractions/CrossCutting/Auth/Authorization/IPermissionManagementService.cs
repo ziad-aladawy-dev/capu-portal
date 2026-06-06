@@ -24,6 +24,27 @@ public interface IPermissionManagementService
     Task<PermissionAssignmentResponse> UpdateAssignmentAsync(UpdatePermissionAssignmentRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Manually-triggered expiry sweep. An override's temporal window ends at the
+    /// <c>EndDate</c> of its scoped Semester (or AcademicYear when only a year is
+    /// scoped), which is stamped onto <c>ExpiresAt</c> at write time. This call
+    /// hard-deletes every override whose <c>ExpiresAt</c> is now-or-past and
+    /// rotates the cache version of each affected user. Global / AlwaysActive
+    /// overrides carry a null <c>ExpiresAt</c> and are never touched. Returns the
+    /// number of override rows deleted.
+    /// </summary>
+    Task<int> ExpireOverridesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// One-time migration for override rows written before <c>ExpiresAt</c> was
+    /// stamped. For every row with a null <c>ExpiresAt</c> that is scoped to a
+    /// bounded Semester/AcademicYear, re-derives the end of that window and fills
+    /// it in so the expiry sweep and read-time filter can act on legacy rows.
+    /// Genuinely Global / AlwaysActive rows are left null. Returns the number of
+    /// rows updated.
+    /// </summary>
+    Task<int> BackfillOverrideExpiryAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 3.3 — bulk-create assignments. All-or-nothing: any single failure rolls
     /// back the whole batch. Use case: seeding role-permission rows for a new
     /// module so the system never lands in a partially-permissioned state.

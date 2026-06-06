@@ -23,6 +23,9 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim("Id", user.Id.ToString()), // Keep for compatibility if needed
             new Claim("NationalId", user.Identifier),
+            // Full display name — captured into the audit trail (LogEntry.UserName)
+            // so audit records show who acted, and the read API can filter by name.
+            new Claim(ClaimTypes.Name, user.Name ?? string.Empty),
             new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(SessionClaims.SessionVersion, user.SessionVersion.ToString())

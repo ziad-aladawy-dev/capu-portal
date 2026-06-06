@@ -24,8 +24,15 @@ namespace CapitalUniversity.Modules.CourseOffering.Domain;
 /// <c>StudentProfileRecord</c>.
 /// </para>
 /// </summary>
-public class CourseOffering : BaseEntity, ISoftDeletable
+public class CourseOffering : BaseEntity, ISoftDeletable, IExternallySourced
 {
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
+
     /// <summary>Catalog course this offering opens. FK-by-id; no nav.</summary>
     public Guid CourseId { get; set; }
 
@@ -61,11 +68,9 @@ public class CourseOffering : BaseEntity, ISoftDeletable
         init => _registrationState = value;
     }
 
-    /// <summary>Identifier in an upstream system if this offering mirrors one. Optional.</summary>
-    public string? ExternalSystemId { get; set; }
-
-    /// <summary>Timestamp of the last successful sync from the upstream system. Optional.</summary>
-    public DateTime? ExternalSyncedAt { get; set; }
+    // ExternalSystemId + ExternalSyncedAt were renamed in the AddExternallySourced
+    // migration to ExternalId + LastSyncedAt and are now reached via the composed
+    // ExternallySourced data block (ExternallySourced.ExternalId / .LastSyncedAt).
 
     /// <summary>
     /// Closable lifecycle. Once true the entity is immutable under

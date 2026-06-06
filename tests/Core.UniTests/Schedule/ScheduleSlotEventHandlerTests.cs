@@ -105,4 +105,4 @@ public class ScheduleSlotEventHandlerTests
         var act = () => sut.HandleAsync(Guid.NewGuid(), "null", CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
-}
+}

@@ -50,7 +50,12 @@ public sealed record StudentServiceRequestValidators(
 public class StudentServiceRequestService : IStudentServiceRequestService
 {
     internal const string CacheKeyPrefix = "student-service-request:object:";
+    // List caches keyed by a version stamp; any request lifecycle transition
+    // rotates it. Per-row scope filtering still runs on read.
+    internal const string CollectionVersionKey = "student-service-request:coll:ver";
+    internal const string ListKeyPrefix = "student-service-request:list:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStudentServiceRequestRepository _requests;
@@ -132,38 +137,16 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         return response;
     }
 
-    public async Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListAsync(StudentServiceRequestListQuery query, CancellationToken cancellationToken = default)
-    {
-        var (items, total) = await _requests.ListAsync(query, statusInclude: null, cancellationToken);
+    public Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListAsync(StudentServiceRequestListQuery query, CancellationToken cancellationToken = default) =>
+        CachedListAsync(query, statusInclude: null, discriminator: "all", cancellationToken);
 
-        // Per-row scope filter — the repository does not know who the caller
-        // is. This is the same pattern InvoiceService uses for list endpoints.
-        var visible = await FilterByScopeAsync(items, cancellationToken);
-
-        return new PagedResponse<StudentServiceRequestSummaryResponse>
-        {
-            Items = visible.Select(r => LocalizeSummary(MapToSummary(r))).ToList(),
-            Page = query.Page,
-            PageSize = query.PageSize,
-            TotalCount = total,
-        };
-    }
-
-    public async Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListAssignedToStaffAsync(Guid staffId, StudentServiceRequestListQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListAssignedToStaffAsync(Guid staffId, StudentServiceRequestListQuery query, CancellationToken cancellationToken = default)
     {
         query.AssignedStaffId = staffId;
-        var (items, total) = await _requests.ListAsync(query, statusInclude: null, cancellationToken);
-        var visible = await FilterByScopeAsync(items, cancellationToken);
-        return new PagedResponse<StudentServiceRequestSummaryResponse>
-        {
-            Items = visible.Select(r => LocalizeSummary(MapToSummary(r))).ToList(),
-            Page = query.Page,
-            PageSize = query.PageSize,
-            TotalCount = total,
-        };
+        return CachedListAsync(query, statusInclude: null, discriminator: "assigned", cancellationToken);
     }
 
-    public async Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListPendingAsync(StudentServiceRequestListQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResponse<StudentServiceRequestSummaryResponse>> ListPendingAsync(StudentServiceRequestListQuery query, CancellationToken cancellationToken = default)
     {
         // Default sort for pending lists is oldest-first per the spec, but
         // a caller can override.
@@ -176,16 +159,99 @@ public class StudentServiceRequestService : IStudentServiceRequestService
             ServiceRequestStatus.UnderReview,
             ServiceRequestStatus.WaitingPayment,
         };
-        var (items, total) = await _requests.ListAsync(query, statusInclude: pending, cancellationToken);
-        var visible = await FilterByScopeAsync(items, cancellationToken);
+        return CachedListAsync(query, statusInclude: pending, discriminator: "pending", cancellationToken);
+    }
+
+    /// <summary>
+    /// Shared cached read-through for the three list endpoints. The repository
+    /// page (projected to culture-neutral summaries + the unfiltered total) is
+    /// cached under the collection version + a discriminator + the query
+    /// signature; the per-row scope filter and localization run on read so the
+    /// expensive query is shared while each caller still sees only permitted rows
+    /// (preserving the prior "unfiltered total, filtered items" behaviour).
+    /// </summary>
+    private async Task<PagedResponse<StudentServiceRequestSummaryResponse>> CachedListAsync(
+        StudentServiceRequestListQuery query,
+        ServiceRequestStatus[]? statusInclude,
+        string discriminator,
+        CancellationToken cancellationToken)
+    {
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var key = $"{ListKeyPrefix}{version}:{discriminator}:{BuildSignature(query)}";
+        var cached = await _cache.GetOrSetAsync<PagedResponse<StudentServiceRequestSummaryResponse>>(
+            key,
+            async ct =>
+            {
+                var (items, total) = await _requests.ListAsync(query, statusInclude, ct);
+                return new PagedResponse<StudentServiceRequestSummaryResponse>
+                {
+                    Items = items.Select(MapToSummary).ToList(),
+                    Page = query.Page,
+                    PageSize = query.PageSize,
+                    TotalCount = total,
+                };
+            },
+            CacheTtl,
+            cancellationToken)
+            ?? new PagedResponse<StudentServiceRequestSummaryResponse> { Items = new List<StudentServiceRequestSummaryResponse>(), Page = query.Page, PageSize = query.PageSize };
+
+        var visible = new List<StudentServiceRequestSummaryResponse>(cached.Items.Count);
+        foreach (var s in cached.Items)
+        {
+            if (await _scope.CanAccessStudentAsync(s.StudentId, cancellationToken))
+            {
+                visible.Add(LocalizeSummaryCopy(s));
+            }
+        }
+
         return new PagedResponse<StudentServiceRequestSummaryResponse>
         {
-            Items = visible.Select(r => LocalizeSummary(MapToSummary(r))).ToList(),
-            Page = query.Page,
-            PageSize = query.PageSize,
-            TotalCount = total,
+            Items = visible,
+            Page = cached.Page,
+            PageSize = cached.PageSize,
+            TotalCount = cached.TotalCount,
         };
     }
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCollectionVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
+    private static string BuildSignature(StudentServiceRequestListQuery q) =>
+        string.Join('|',
+            $"status={(q.Status.HasValue ? ((int)q.Status.Value).ToString() : string.Empty)}",
+            $"svc={q.StudentServiceId?.ToString("N") ?? string.Empty}",
+            $"stu={q.StudentId?.ToString("N") ?? string.Empty}",
+            $"staff={q.AssignedStaffId?.ToString("N") ?? string.Empty}",
+            $"from={q.SubmittedFrom?.ToString("O") ?? string.Empty}",
+            $"to={q.SubmittedTo?.ToString("O") ?? string.Empty}",
+            $"sortby={q.SortBy ?? string.Empty}",
+            $"asc={q.SortAscending?.ToString() ?? string.Empty}",
+            $"search={q.Search ?? string.Empty}",
+            $"p={q.Page}",
+            $"ps={q.PageSize}");
+
+    /// <summary>Localize onto a NEW summary so cached list entries are never mutated.</summary>
+    private StudentServiceRequestSummaryResponse LocalizeSummaryCopy(StudentServiceRequestSummaryResponse s) => new()
+    {
+        Id = s.Id,
+        StudentId = s.StudentId,
+        StudentServiceId = s.StudentServiceId,
+        ServiceCode = s.ServiceCode,
+        ServiceName = string.IsNullOrEmpty(s.ServiceName) ? s.ServiceName : _localization.Get<string>(s.ServiceName),
+        CurrentStatus = s.CurrentStatus,
+        SubmittedAt = s.SubmittedAt,
+        AssignedStaffId = s.AssignedStaffId,
+        PaymentReferenceId = s.PaymentReferenceId,
+        CreatedAt = s.CreatedAt,
+    };
 
     public async Task<Guid> SubmitAsync(Guid studentId, SubmitStudentServiceRequestRequest request, CancellationToken cancellationToken = default)
     {
@@ -289,6 +355,8 @@ public class StudentServiceRequestService : IStudentServiceRequestService
                 ["InvoiceId"] = entity.PaymentReferenceId?.ToString() ?? string.Empty,
             });
 
+        // A new request must surface in the list/pending/assigned reads.
+        await BumpCollectionVersionAsync(cancellationToken);
         return entity.Id;
     }
 
@@ -317,6 +385,7 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(requestId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"student-service.request cancelled id={requestId}",
@@ -345,6 +414,7 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(requestId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await NotifyStudentAsync(entity, "Request approved", request.Note ?? string.Empty, NotificationType.Info, cancellationToken);
 
@@ -375,6 +445,7 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(requestId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await NotifyStudentAsync(entity, "Request rejected", request.Reason, NotificationType.Warning, cancellationToken);
 
@@ -444,6 +515,7 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(requestId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"student-service.request moved id={requestId} to={request.TargetStatus}",
@@ -496,6 +568,7 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests.Update(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(requestId), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"student-service.request payment confirmed id={requestId} → {nextStatus}",

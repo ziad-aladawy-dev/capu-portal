@@ -44,6 +44,9 @@ public class CourseRepository : ICourseRepository
 
     public void Delete(Course course) => _context.Courses.Remove(course);
 
+    public Task<bool> IsReferencedByPlanAsync(Guid courseId, CancellationToken cancellationToken = default) =>
+        _context.Set<AcademicPlanCourse>().AnyAsync(apc => apc.CourseId == courseId, cancellationToken);
+
     private static readonly HashSet<string> CourseSortFields = new(StringComparer.OrdinalIgnoreCase) { "code", "creditHours", "createdAt" };
 
     public async Task<PagedResult<Course>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default)

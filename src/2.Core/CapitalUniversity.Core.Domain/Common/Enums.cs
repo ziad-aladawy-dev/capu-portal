@@ -7,6 +7,25 @@ public enum LogLevelType
     Error = 3,
     Critical = 4
 }
+
+/// <summary>
+/// Origin classification for an audit/log entry, used as a top-level filter
+/// dimension on the audit read API. Orthogonal to <see cref="LogLevelType"/>
+/// (severity): a Sync entry can be an Error, an entry with no explicit category
+/// defaults to <see cref="Data"/> for Info and <see cref="Error"/> for
+/// Warning/Error/Critical.
+/// </summary>
+public enum LogCategory
+{
+    /// <summary>Entity state change captured by the EF audit trail (Created/Updated/Deleted).</summary>
+    Data = 1,
+    /// <summary>Security/authentication event (login, logout, permission denied, role change…).</summary>
+    Auth = 2,
+    /// <summary>Emitted by the Sync platform (background jobs writing into Core).</summary>
+    Sync = 3,
+    /// <summary>Application errors and warnings not otherwise categorised.</summary>
+    Error = 4
+}
 public enum SystemType
 {
     [Localized("نظام الفصول", "Semester System")]
@@ -49,24 +68,7 @@ public enum NotificationType
     [Localized("معلومات", "Info")]
     Info = 1,
     [Localized("تحذير", "Warning")]
-    Warning = 2,
-    [Localized("خطأ", "Error")]
-    Error = 3
-}
-public enum ActionLevel
-{
-    [Localized("غير محدد", "None")]
-    None = 0,
-    [Localized("عرض", "View")]
-    View = 1,
-    [Localized("إضافة", "Insert")]
-    Insert = 2,
-    [Localized("تعديل/إغلاق", "Edit / Close")]
-    EditClose = 3,
-    [Localized("إعادة فتح", "Reopen")]
-    Open = 4,
-    [Localized("حذف", "Delete")]
-    Delete = 5
+    Warning = 2
 }
 public enum OverrideType
 {

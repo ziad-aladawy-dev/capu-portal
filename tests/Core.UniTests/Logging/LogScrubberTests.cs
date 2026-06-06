@@ -114,4 +114,4 @@ public class LogScrubberTests
     {
         LogScrubber.ScrubMetadata(null).Should().BeNull();
     }
-}
+}

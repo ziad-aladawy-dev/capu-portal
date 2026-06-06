@@ -7,6 +7,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs.Management;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Permissions.Queries;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
@@ -21,17 +22,27 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
     private readonly IPermissionManifestRegistry _registry;
     private readonly ILocalizationService _localization;
     private readonly IPermissionManagementService _permissionManagementService;
+    private readonly ICacheService? _cache;
+    private readonly PermissionCacheOptions _cacheOptions;
 
     public PermissionTreeQueryHandler(
         CoreDbContext dbContext,
         IPermissionManifestRegistry registry,
         ILocalizationService localization,
-        IPermissionManagementService permissionManagementService)
+        IPermissionManagementService permissionManagementService,
+        ICacheService? cache = null,
+        PermissionCacheOptions? cacheOptions = null)
     {
         _dbContext = dbContext;
         _registry = registry;
         _localization = localization;
         _permissionManagementService = permissionManagementService;
+        // Cache is optional: when absent (unit tests construct without it) the
+        // handler falls back to direct DB reads. PermissionCacheOptions is bound
+        // as IOptions<>, not as the bare type, so DI supplies null here — default
+        // the TTL rather than NRE.
+        _cache = cache;
+        _cacheOptions = cacheOptions ?? new PermissionCacheOptions();
     }
 
     public async Task<List<ModulePermissionTreeDto>> Handle(GetPermissionTreeRequest request, CancellationToken cancellationToken)
@@ -114,19 +125,60 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         return BuildUserTree(modules, resources, scopesByPermission, allowOverrides, denyOverrides);
     }
 
-    private async Task<List<ModuleRow>> LoadModulesAsync(CancellationToken cancellationToken) =>
-        await _dbContext.Modules
+    // Module/Resource rows are cached culture-NEUTRAL (DisplayName stays JSON);
+    // localization runs per-request in BuildTree, so one cache entry serves every
+    // culture. Keyed by the global permission epoch — a manifest sync rotates the
+    // epoch (InvalidateAllAsync) and orphans these entries; the TTL is the
+    // backstop if a deploy adds modules without rotating it. Stampede-protected so
+    // a burst of admin tree loads after a cold cache runs one scan, not N.
+    private async Task<List<ModuleRow>> LoadModulesAsync(CancellationToken cancellationToken)
+    {
+        if (_cache is null) return await QueryModulesAsync(cancellationToken);
+
+        var epoch = await GetEpochAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<ModuleRow>>(
+            $"perm_tree_modules_{epoch}",
+            async ct => await QueryModulesAsync(ct),
+            TimeSpan.FromMinutes(_cacheOptions.LookupTtlMinutes),
+            cancellationToken);
+        return cached ?? await QueryModulesAsync(cancellationToken);
+    }
+
+    private Task<List<ModuleRow>> QueryModulesAsync(CancellationToken cancellationToken) =>
+        _dbContext.Modules
             .AsNoTracking()
             .OrderBy(m => m.OrderNumber)
             .Select(m => new ModuleRow(m.Id, m.ModuleKey, m.DisplayName))
             .ToListAsync(cancellationToken);
 
-    private async Task<List<ResourceRow>> LoadResourcesAsync(CancellationToken cancellationToken) =>
-        await _dbContext.Resources
+    private async Task<List<ResourceRow>> LoadResourcesAsync(CancellationToken cancellationToken)
+    {
+        if (_cache is null) return await QueryResourcesAsync(cancellationToken);
+
+        var epoch = await GetEpochAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<ResourceRow>>(
+            $"perm_tree_resources_{epoch}",
+            async ct => await QueryResourcesAsync(ct),
+            TimeSpan.FromMinutes(_cacheOptions.LookupTtlMinutes),
+            cancellationToken);
+        return cached ?? await QueryResourcesAsync(cancellationToken);
+    }
+
+    private Task<List<ResourceRow>> QueryResourcesAsync(CancellationToken cancellationToken) =>
+        _dbContext.Resources
             .AsNoTracking()
             .OrderBy(r => r.OrderNumber)
             .Select(r => new ResourceRow(r.Id, r.ModuleId, r.Key, r.DisplayName))
             .ToListAsync(cancellationToken);
+
+    // Reads the global epoch stamp (seeded/owned by PermissionManagementService);
+    // defaults to "0" when missing so the key is stable before first seed.
+    private async Task<string> GetEpochAsync(CancellationToken cancellationToken)
+    {
+        if (_cache is null) return "0";
+        var v = await _cache.GetAsync<string>(PermissionCacheInvalidator.GlobalEpochKey, cancellationToken);
+        return string.IsNullOrEmpty(v) ? "0" : v;
+    }
 
     private List<ModulePermissionTreeDto> BuildTree(
         IReadOnlyList<ModuleRow> modules,
@@ -290,6 +342,7 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         _           => _localization.GetString(LocalizedKeys.Permissions.ActionDescriptionFallback),
     };
 
-    private sealed record ModuleRow(Guid Id, string ModuleKey, string DisplayName);
-    private sealed record ResourceRow(Guid Id, Guid ModuleId, string Key, string DisplayName);
+    // internal (not private) so System.Text.Json can round-trip them through Redis.
+    internal sealed record ModuleRow(Guid Id, string ModuleKey, string DisplayName);
+    internal sealed record ResourceRow(Guid Id, Guid ModuleId, string Key, string DisplayName);
 }

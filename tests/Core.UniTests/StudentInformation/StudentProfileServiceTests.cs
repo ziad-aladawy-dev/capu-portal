@@ -179,4 +179,4 @@ public class StudentProfileServiceTests
 
         repo.Verify(r => r.GetByIdAsync(id, default), Times.Once);
     }
-}
+}

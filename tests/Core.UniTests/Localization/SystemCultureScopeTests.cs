@@ -165,4 +165,4 @@ public class SystemCultureScopeTests
             CultureInfo.DefaultThreadCurrentUICulture.Should().BeSameAs(defaultUiBefore);
         }
     }
-}
+}

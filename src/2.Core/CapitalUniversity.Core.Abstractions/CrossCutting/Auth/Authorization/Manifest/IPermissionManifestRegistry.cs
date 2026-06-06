@@ -21,12 +21,4 @@ public interface IPermissionManifestRegistry
     /// given module + resource key pair, or <c>null</c> if the pair is unknown.
     /// </summary>
     ResourceDefinition? GetResource(string module, string resourceKey);
-
-    /// <summary>
-    /// Expands an action against the manifest's per-resource implies graph and
-    /// returns every canonical <c>{module}.{resource}.{action}</c> identity the
-    /// caller is considered to hold. Unknown resources or actions yield an
-    /// empty set — the runtime treats unknown grants as inert.
-    /// </summary>
-    IReadOnlySet<string> ExpandToCanonical(string module, string resourceKey, string action);
 }

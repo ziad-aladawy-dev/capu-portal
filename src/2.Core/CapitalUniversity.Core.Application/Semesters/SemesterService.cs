@@ -1,3 +1,4 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Semesters;
@@ -14,55 +15,104 @@ public class SemesterService : ISemesterService
 {
     private const string SemesterField = "Semester";
 
+    // Semesters are tiny, global reference data (no per-user scope). Every cache
+    // entry is keyed by the collection version, so a single bump on any mutation
+    // invalidates the object, current and by-year caches at once. Cached payloads
+    // are culture-neutral; localization runs on read against fresh copies.
+    private const string ObjectKeyPrefix = "semester:object:";
+    private const string CurrentKey = "semester:current:";
+    private const string ByYearKeyPrefix = "semester:by-year:";
+    private const string CollectionVersionKey = "semester:coll:ver";
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<CreateSemesterRequest> _createValidator;
     private readonly IValidator<(Guid Id, UpdateSemesterRequest Request)> _updateValidator;
     private readonly ILocalizationService _localization;
+    private readonly ICacheService _cache;
     private readonly SemesterMapper _mapper;
 
     public SemesterService(
         IUnitOfWork unitOfWork,
         IValidator<CreateSemesterRequest> createValidator,
         IValidator<(Guid Id, UpdateSemesterRequest Request)> updateValidator,
-        ILocalizationService localization)
+        ILocalizationService localization,
+        ICacheService cache)
     {
         _unitOfWork = unitOfWork;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _localization = localization;
+        _cache = cache;
         _mapper = new SemesterMapper();
     }
 
     public async Task<SemesterResponse?> GetByIdAsync(Guid id)
     {
-        var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
-        return semester == null ? null : Localize(_mapper.MapToResponse(semester));
+        var version = await GetCollectionVersionAsync();
+        var dto = await _cache.GetOrSetAsync<SemesterResponse>(
+            $"{ObjectKeyPrefix}{id:N}:{version}",
+            async _ =>
+            {
+                var semester = await _unitOfWork.Semesters.GetByIdAsync(id);
+                return semester == null ? null : _mapper.MapToResponse(semester);
+            },
+            CacheTtl,
+            CancellationToken.None);
+        return dto == null ? null : LocalizeCopy(dto);
     }
 
     public async Task<SemesterResponse?> GetCurrentAsync()
     {
-        var semester = await _unitOfWork.Semesters.GetCurrentAsync();
-        return semester == null ? null : Localize(_mapper.MapToResponse(semester));
+        var version = await GetCollectionVersionAsync();
+        var dto = await _cache.GetOrSetAsync<SemesterResponse>(
+            $"{CurrentKey}{version}",
+            async _ =>
+            {
+                var semester = await _unitOfWork.Semesters.GetCurrentAsync();
+                return semester == null ? null : _mapper.MapToResponse(semester);
+            },
+            CacheTtl,
+            CancellationToken.None);
+        return dto == null ? null : LocalizeCopy(dto);
     }
 
     public async Task<IEnumerable<SemesterResponse>> GetByAcademicYearIdAsync(Guid academicYearId)
     {
-        var semesters = await _unitOfWork.Semesters.GetByAcademicYearIdAsync(academicYearId);
-        return semesters.Select(s => Localize(_mapper.MapToResponse(s)));
+        var version = await GetCollectionVersionAsync();
+        var cached = await _cache.GetOrSetAsync<List<SemesterResponse>>(
+            $"{ByYearKeyPrefix}{academicYearId:N}:{version}",
+            async _ => (await _unitOfWork.Semesters.GetByAcademicYearIdAsync(academicYearId)).Select(_mapper.MapToResponse).ToList(),
+            CacheTtl,
+            CancellationToken.None);
+        return (cached ?? new List<SemesterResponse>()).Select(LocalizeCopy).ToList();
     }
 
-    /// <summary>
-    /// Decode the bilingual fields on a <see cref="SemesterResponse"/> against
-    /// the current culture. <c>Semester.Name</c> is the only user-visible
-    /// string on the response that may carry the canonical
-    /// <c>{"ar":"…","en":"…"}</c> JSON shape; legacy plain text passes
-    /// through untouched.
-    /// </summary>
-    private SemesterResponse Localize(SemesterResponse response)
+    private async Task<string> GetCollectionVersionAsync()
     {
-        response.Name = _localization.Get<string>(response.Name);
-        return response;
+        var v = await _cache.GetAsync<string>(CollectionVersionKey);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl);
+        return "0";
     }
+
+    private Task BumpCollectionVersionAsync() =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl);
+
+    /// <summary>Localize onto a NEW response so cached entries are never mutated.</summary>
+    private SemesterResponse LocalizeCopy(SemesterResponse s) => new()
+    {
+        Id = s.Id,
+        AcademicYearId = s.AcademicYearId,
+        Name = _localization.Get<string>(s.Name),
+        Order = s.Order,
+        StartDate = s.StartDate,
+        EndDate = s.EndDate,
+        IsCurrent = s.IsCurrent,
+        IsClosed = s.IsClosed,
+        ClosedAt = s.ClosedAt,
+    };
 
     public async Task<Guid> CreateAsync(CreateSemesterRequest request)
     {
@@ -106,6 +156,7 @@ public class SemesterService : ISemesterService
 
         await _unitOfWork.Semesters.AddAsync(semester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
         return semester.Id;
     }
 
@@ -161,6 +212,7 @@ public class SemesterService : ISemesterService
 
         _unitOfWork.Semesters.Update(semester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
     }
 
     public async Task DeleteAsync(Guid id)
@@ -171,6 +223,7 @@ public class SemesterService : ISemesterService
 
         _unitOfWork.Semesters.Delete(semester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
     }
 
     public async Task CloseRecordAsync(Guid id)
@@ -181,6 +234,7 @@ public class SemesterService : ISemesterService
         semester.Close();
         _unitOfWork.Semesters.Update(semester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
     }
 
     public async Task OpenRecordAsync(Guid id)
@@ -191,6 +245,7 @@ public class SemesterService : ISemesterService
         semester.Reopen();
         _unitOfWork.Semesters.Update(semester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
     }
 
 
@@ -205,6 +260,7 @@ public class SemesterService : ISemesterService
         {
             await DeactivateCurrentSemesterAsync();
             await _unitOfWork.SaveChangesAsync();
+            await BumpCollectionVersionAsync();
             return;
         }
 
@@ -223,7 +279,11 @@ public class SemesterService : ISemesterService
                 dirty = true;
             }
         }
-        if (dirty) await _unitOfWork.SaveChangesAsync();
+        if (dirty)
+        {
+            await _unitOfWork.SaveChangesAsync();
+            await BumpCollectionVersionAsync();
+        }
 
         if (currentSemester is null) return;
         if (currentSemester.IsCurrent) return;
@@ -232,6 +292,7 @@ public class SemesterService : ISemesterService
         currentSemester.UpdatedAt = DateTime.UtcNow;
         _unitOfWork.Semesters.Update(currentSemester);
         await _unitOfWork.SaveChangesAsync();
+        await BumpCollectionVersionAsync();
     }
 
     private async Task<bool> DeactivateCurrentSemesterAsync(Guid? excludeId = null)

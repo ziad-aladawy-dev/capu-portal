@@ -24,7 +24,7 @@ public class AcademicYearServiceTests
         _uowMock.Setup(x => x.AcademicYears).Returns(_repoMock.Object);
         _createValidatorMock = new Mock<IValidator<CreateAcademicYearRequest>>();
         _updateValidatorMock = new Mock<IValidator<(Guid, UpdateAcademicYearRequest)>>();
-        _service = new AcademicYearService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService());
+        _service = new AcademicYearService(_uowMock.Object, _createValidatorMock.Object, _updateValidatorMock.Object, new TestLocalizationService(), new NoOpCacheService());
     }
 
     [Fact]
@@ -76,4 +76,4 @@ public class AcademicYearServiceTests
         _repoMock.Verify(x => x.Update(year2), Times.Once);
         _uowMock.Verify(x => x.SaveChangesAsync(default), Times.Exactly(2));
     }
-}
+}

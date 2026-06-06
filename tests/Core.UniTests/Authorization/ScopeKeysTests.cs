@@ -39,4 +39,4 @@ public class ScopeKeysTests
     {
         Assert.False(ScopeKeys.IsGlobal(value));
     }
-}
+}

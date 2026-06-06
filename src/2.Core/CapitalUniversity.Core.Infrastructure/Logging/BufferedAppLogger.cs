@@ -68,10 +68,19 @@ public class BufferedAppLogger : IAppLogger
         HttpContext? context,
         Dictionary<string, object>? metadata)
     {
+        // Pull the reserved audit keys off BEFORE scrubbing so they land on
+        // dedicated columns (and never reach the persisted metadata blob).
+        var category = ExtractCategory(metadata, level);
+        var action = ExtractString(metadata, AuditMetadataKeys.Action);
+        var entityName = ExtractString(metadata, AuditMetadataKeys.Entity);
+
         var entry = new LogEntry
         {
             Id = Guid.NewGuid(),
             Level = level,
+            Category = category,
+            Action = action,
+            EntityName = entityName,
             Message = LogScrubber.ScrubMessage(message) ?? string.Empty,
             Source = source,
             CreatedAtUtc = DateTime.UtcNow,
@@ -90,10 +99,39 @@ public class BufferedAppLogger : IAppLogger
             entry.RequestPath = context.Request.Path;
             entry.HttpMethod = context.Request.Method;
             entry.UserId = context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            entry.UserName = context.User?.FindFirstValue(ClaimTypes.Name);
+            entry.Role = context.User?.FindFirstValue(ClaimTypes.Role);
             entry.CorrelationId = ResolveCorrelationId(context);
         }
 
         return entry;
+    }
+
+    /// <summary>
+    /// Reads (and removes) the reserved category key. Falls back to a severity-
+    /// derived default so uncategorised warnings/errors land in
+    /// <see cref="LogCategory.Error"/> rather than silently as Data.
+    /// </summary>
+    private static LogCategory ExtractCategory(Dictionary<string, object>? metadata, LogLevelType level)
+    {
+        if (metadata is not null && metadata.TryGetValue(AuditMetadataKeys.Category, out var raw))
+        {
+            metadata.Remove(AuditMetadataKeys.Category);
+            switch (raw)
+            {
+                case LogCategory c: return c;
+                case string s when Enum.TryParse<LogCategory>(s, ignoreCase: true, out var parsed): return parsed;
+            }
+        }
+
+        return level == LogLevelType.Info ? LogCategory.Data : LogCategory.Error;
+    }
+
+    private static string? ExtractString(Dictionary<string, object>? metadata, string key)
+    {
+        if (metadata is null || !metadata.TryGetValue(key, out var raw)) return null;
+        metadata.Remove(key);
+        return raw?.ToString();
     }
 
     /// <summary>

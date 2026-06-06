@@ -27,8 +27,15 @@ namespace CapitalUniversity.Modules.Schedule.Domain;
 /// </list>
 /// </para>
 /// </summary>
-public class ScheduleSlot : BaseEntity
+public class ScheduleSlot : BaseEntity, IExternallySourced
 {
+    /// <summary>
+    /// Composed sync-provenance block. <see cref="BaseEntity"/> inheritance is
+    /// untouched; this property carries the upstream-merge-key + external-wins
+    /// fields the sync write gateway needs.
+    /// </summary>
+    public ExternallySourcedData ExternallySourced { get; set; } = new();
+
     /// <summary>Owning offering. FK-by-id; no nav. Set at creation and never reassigned — move-by-delete-and-recreate.</summary>
     public Guid CourseOfferingId { get; set; }
 

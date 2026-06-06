@@ -207,6 +207,32 @@ public class AcademicPlanServiceTests
     }
 
     [Fact]
+    public async Task GetForStructureNode_SecondCall_ServedFromCache_AndCreateInvalidates()
+    {
+        var (sut, plans, _, _, _) = Build();
+        var node = Guid.NewGuid();
+        plans.Setup(p => p.GetForStructureNodeAsync(node, default)).ReturnsAsync(new List<AcademicPlan>
+        {
+            new() { Id = Guid.NewGuid(), Name = "P", EffectiveFrom = DateTime.UtcNow, StructureNodeId = node },
+        });
+
+        await sut.GetForStructureNodeAsync(node);
+        await sut.GetForStructureNodeAsync(node);
+        plans.Verify(p => p.GetForStructureNodeAsync(node, default), Times.Once,
+            "the node list must be served from cache on the second read");
+
+        // Creating a plan rotates the collection version → next node read misses.
+        await sut.CreateAsync(new CreateAcademicPlanRequest
+        {
+            StructureNodeId = node, Name = "New", EffectiveFrom = DateTime.UtcNow,
+        });
+
+        await sut.GetForStructureNodeAsync(node);
+        plans.Verify(p => p.GetForStructureNodeAsync(node, default), Times.Exactly(2),
+            "a new plan must rotate the collection version and invalidate the node list");
+    }
+
+    [Fact]
     public async Task Update_InvalidatesCachedObject()
     {
         var (sut, plans, _, _, cache) = Build();
@@ -220,4 +246,4 @@ public class AcademicPlanServiceTests
 
         cache.RemoveCalls.Should().Be(1);
     }
-}
+}

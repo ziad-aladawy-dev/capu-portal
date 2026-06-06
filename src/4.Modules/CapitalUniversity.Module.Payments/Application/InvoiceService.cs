@@ -24,7 +24,23 @@ namespace CapitalUniversity.Modules.Payments.Application;
 public class InvoiceService : IInvoiceService
 {
     internal const string CacheKeyPrefix = "invoice:object:";
+    // Collection caches (per-student list + search pages) keyed by a version
+    // stamp; any invoice mutation — including a payment recorded by
+    // PaymentVerificationService or fees appended by FeeCreationService — rotates
+    // it and orphans them all in one write.
+    internal const string CollectionVersionKey = "invoice:coll:ver";
+    internal const string StudentListKeyPrefix = "invoice:student:";
+    internal const string SearchKeyPrefix = "invoice:search:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+    internal static readonly TimeSpan CollectionVersionTtl = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Rotate the invoice collection version. Static so sibling services
+    /// (PaymentVerificationService, FeeCreationService) that mutate an invoice's
+    /// read model can invalidate the list/search caches consistently.
+    /// </summary>
+    internal static Task BumpCollectionVersionAsync(ICacheService cache, CancellationToken cancellationToken) =>
+        cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), CollectionVersionTtl, cancellationToken);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IInvoiceRepository _invoices;
@@ -60,22 +76,22 @@ public class InvoiceService : IInvoiceService
         // Cache stores the culture-neutral payload (line Descriptions still in
         // {"ar":"…","en":"…"} JSON shape). Decoding runs on return so two
         // requests with different Accept-Language share the same cache entry.
-        var cached = await _cache.GetAsync<InvoiceResponse>(key, cancellationToken);
-        if (cached is not null)
-        {
-            return await _scope.CanAccessStudentAsync(cached.StudentId, cancellationToken)
-                ? Localize(cached)
-                : null;
-        }
+        // Stampede-protected shared-object read-through; scope enforced per read.
+        var dto = await _cache.GetOrSetAsync<InvoiceResponse>(
+            key,
+            async ct =>
+            {
+                var invoice = await _invoices.GetByIdAsync(id, includeItems: true, cancellationToken: ct);
+                return invoice is null ? null : ToResponse(invoice);
+            },
+            CacheTtl,
+            cancellationToken);
 
-        var invoice = await _invoices.GetByIdAsync(id, includeItems: true, cancellationToken: cancellationToken);
-        if (invoice is null) return null;
+        if (dto is null) return null;
 
-        if (!await _scope.CanAccessStudentAsync(invoice.StudentId, cancellationToken)) return null;
-
-        var dto = ToResponse(invoice);
-        await _cache.SetAsync(key, dto, CacheTtl, cancellationToken);
-        return Localize(dto);
+        return await _scope.CanAccessStudentAsync(dto.StudentId, cancellationToken)
+            ? Localize(dto)
+            : null;
     }
 
     /// <summary>
@@ -103,18 +119,17 @@ public class InvoiceService : IInvoiceService
             return Array.Empty<InvoiceResponse>();
         }
 
-        var invoices = await _invoices.GetForStudentAsync(studentId, cancellationToken);
-        // List view — slim summary, no items. Callers fetch by ID for full payload.
-        return invoices.Select(i => new InvoiceResponse
-        {
-            Id = i.Id,
-            StudentId = i.StudentId,
-            Status = i.Status,
-            TotalAmount = i.TotalAmount,
-            Currency = i.Currency,
-            DueAt = i.DueAt,
-            CreatedAt = i.CreatedAt,
-        }).ToList();
+        // List view — slim summary, no items (no localizable content), so it is
+        // cached scope-neutral per student under the collection version, behind
+        // the per-caller scope gate above. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<InvoiceResponse>>(
+            $"{StudentListKeyPrefix}{studentId:N}:{version}",
+            async ct => (await _invoices.GetForStudentAsync(studentId, ct)).Select(ToSummary).ToList(),
+            CacheTtl,
+            cancellationToken);
+
+        return new List<InvoiceResponse>(cached ?? new List<InvoiceResponse>());
     }
 
     public async Task<Guid> CreateAsync(CreateInvoiceRequest request, CancellationToken cancellationToken = default)
@@ -158,20 +173,50 @@ public class InvoiceService : IInvoiceService
 
         await _invoices.AddAsync(invoice, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new invoice must surface in the student's list / search reads.
+        await BumpCollectionVersionAsync(_cache, cancellationToken);
         return invoice.Id;
     }
 
     public async Task CancelAsync(Guid id, CancelInvoiceRequest request, CancellationToken cancellationToken = default)
     {
+        var invoice = await LoadForCancelAsync(id, cancellationToken);
+        if (!ApplyCancel(invoice)) return;
+
+        _invoices.Update(invoice);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(_cache, cancellationToken);
+    }
+
+    /// <summary>
+    /// Fetch a tracked invoice by id and require the caller's scope to cover
+    /// its student. Both miss and out-of-scope map to the same NotFound key so
+    /// the caller cannot distinguish (P1.1). Loads the transaction collection
+    /// to match the original single-row cancel load.
+    /// </summary>
+    private async Task<Invoice> LoadForCancelAsync(Guid id, CancellationToken cancellationToken)
+    {
         var invoice = await _invoices.GetByIdAsync(id, includeItems: false, includeTransactions: true, cancellationToken: cancellationToken)
             ?? throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
 
-        // Out-of-scope is reported as not-found — caller cannot distinguish.
         if (!await _scope.CanAccessStudentAsync(invoice.StudentId, cancellationToken))
         {
             throw new NotFoundException(LocalizedKeys.Payments.InvoiceNotFound);
         }
+        return invoice;
+    }
 
+    /// <summary>
+    /// Apply the cancel transition to a loaded, in-scope invoice. Returns
+    /// <c>false</c> when the invoice is already cancelled (idempotent no-op,
+    /// no persist needed) and <c>true</c> when the status was flipped. Throws
+    /// <see cref="ConflictException"/> for a paid invoice and
+    /// <see cref="InvalidOperationException"/> (via <c>EnsureMutable</c>) for a
+    /// closed one — identical to the original single-row cancel contract.
+    /// </summary>
+    private static bool ApplyCancel(Invoice invoice)
+    {
         invoice.EnsureMutable();
 
         if (invoice.Status == InvoiceStatus.Paid)
@@ -180,14 +225,12 @@ public class InvoiceService : IInvoiceService
         }
         if (invoice.Status == InvoiceStatus.Cancelled)
         {
-            return;
+            return false;
         }
 
         invoice.Status = InvoiceStatus.Cancelled;
         invoice.UpdatedAt = DateTime.UtcNow;
-        _invoices.Update(invoice);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        return true;
     }
 
     public async Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -197,6 +240,7 @@ public class InvoiceService : IInvoiceService
         _invoices.Update(invoice);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(_cache, cancellationToken);
     }
 
     public async Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default)
@@ -206,6 +250,7 @@ public class InvoiceService : IInvoiceService
         _invoices.Update(invoice);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(_cache, cancellationToken);
     }
 
     private async Task<Invoice> LoadForWriteAsync(Guid id, CancellationToken cancellationToken)
@@ -239,22 +284,37 @@ public class InvoiceService : IInvoiceService
             };
         }
 
-        var page = await _invoices.SearchAsync(query, cancellationToken);
+        // Slim summary projection (drops Items) cached under the collection
+        // version + query signature. Stampede-protected. The pinned-student scope
+        // gate above runs before any cache read; cross-student queries are route
+        // permission-gated, so the page itself is scope-neutral.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var page = await _cache.GetOrSetAsync<PagedResult<InvoiceResponse>>(
+            $"{SearchKeyPrefix}{version}:{BuildSearchSignature(query)}",
+            async ct =>
+            {
+                var result = await _invoices.SearchAsync(query, ct);
+                return new PagedResult<InvoiceResponse>
+                {
+                    Items = result.Items.Select(ToSummary).ToList(),
+                    Page = result.Page,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount,
+                    TotalPages = result.TotalPages,
+                };
+            },
+            CacheTtl,
+            cancellationToken)
+            ?? new PagedResult<InvoiceResponse>
+            {
+                Items = new List<InvoiceResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+            };
 
         return new PagedResult<InvoiceResponse>
         {
-            // Slim summary projection — drops Items to keep the list payload
-            // cheap. Callers re-fetch by id for the full breakdown.
-            Items = page.Items.Select(i => new InvoiceResponse
-            {
-                Id = i.Id,
-                StudentId = i.StudentId,
-                Status = i.Status,
-                TotalAmount = i.TotalAmount,
-                Currency = i.Currency,
-                DueAt = i.DueAt,
-                CreatedAt = i.CreatedAt,
-            }).ToList(),
+            Items = new List<InvoiceResponse>(page.Items),
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount,
@@ -262,20 +322,31 @@ public class InvoiceService : IInvoiceService
         };
     }
 
+    /// <summary>
+    /// Per-row driver mirroring <c>CourseOfferingService.BulkApplyAsync</c>:
+    /// loads each invoice through <see cref="LoadForCancelAsync"/> (re-using the
+    /// scope guard), applies the cancel transition, and commits independently so
+    /// a failed peer does not roll back successes ("partial success" model).
+    /// Reason is not persisted today — captured only on the audit/log path,
+    /// matching the prior behaviour.
+    /// </summary>
     public async Task<BulkActionResult> BulkCancelAsync(IReadOnlyList<Guid> ids, string reason, CancellationToken cancellationToken = default)
     {
         var succeeded = new List<Guid>(ids.Count);
         var failures = new List<BulkActionFailure>();
-        // Reason is plumbed via single-row CancelAsync (which already ingests
-        // CancelInvoiceRequest); persistence of the reason is a separate item
-        // owned by the Phase-2 audit work.
-        var request = new CancelInvoiceRequest { Reason = reason };
 
         foreach (var id in ids.Distinct())
         {
             try
             {
-                await CancelAsync(id, request, cancellationToken);
+                var invoice = await LoadForCancelAsync(id, cancellationToken);
+                if (ApplyCancel(invoice))
+                {
+                    _invoices.Update(invoice);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(_cache, cancellationToken);
+                }
                 succeeded.Add(id);
             }
             catch (NotFoundException ex)
@@ -290,6 +361,41 @@ public class InvoiceService : IInvoiceService
 
         return BulkActionResult.From(succeeded, failures);
     }
+
+    /// <summary>Slim list/search summary — drops Items (no localizable content).</summary>
+    private static InvoiceResponse ToSummary(Invoice i) => new()
+    {
+        Id = i.Id,
+        StudentId = i.StudentId,
+        Status = i.Status,
+        TotalAmount = i.TotalAmount,
+        Currency = i.Currency,
+        DueAt = i.DueAt,
+        CreatedAt = i.CreatedAt,
+    };
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", CollectionVersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private static string BuildSearchSignature(InvoiceSearchQuery q) =>
+        string.Join('|',
+            $"stu={q.StudentId?.ToString("N") ?? string.Empty}",
+            $"status={(q.Status.HasValue ? ((int)q.Status.Value).ToString() : string.Empty)}",
+            $"ifrom={q.IssuedFrom?.ToString("O") ?? string.Empty}",
+            $"ito={q.IssuedTo?.ToString("O") ?? string.Empty}",
+            $"dfrom={q.DueFrom?.ToString("O") ?? string.Empty}",
+            $"dto={q.DueTo?.ToString("O") ?? string.Empty}",
+            $"min={q.MinAmount?.ToString() ?? string.Empty}",
+            $"max={q.MaxAmount?.ToString() ?? string.Empty}",
+            $"q={q.Search ?? string.Empty}",
+            $"sort={q.Sort ?? string.Empty}",
+            $"p={q.NormalizedPage}",
+            $"ps={q.NormalizedPageSize}");
 
     internal static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id:N}";
 

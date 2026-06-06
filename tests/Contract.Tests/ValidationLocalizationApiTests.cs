@@ -71,7 +71,7 @@ public class ValidationLocalizationApiTests : IClassFixture<WebApplicationFactor
         db.Modules.Add(module);
         db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
+        db.AddCrudGrant(role.Id, resource.Id, "Delete");
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, "Global", "Global"));
 
         var anyNodeId = db.StructureNodes.AsNoTracking().Select(n => n.Id).First();
@@ -177,4 +177,4 @@ public class ValidationLocalizationApiTests : IClassFixture<WebApplicationFactor
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();
     }
-}
+}

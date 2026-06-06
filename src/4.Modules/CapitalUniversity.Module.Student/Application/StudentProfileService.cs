@@ -24,9 +24,17 @@ namespace CapitalUniversity.Modules.Student.Application;
 public class StudentProfileService : IStudentProfileService
 {
     internal const string CacheKeyPrefix = "studentprofile:object:";
+    // Collection caches (per-student list + per-category record) keyed by a
+    // version stamp; any record mutation rotates it. Correctness against access
+    // revocation is preserved by the per-caller CanAccessStudentAsync gate that
+    // runs OUTSIDE the cache on every read.
+    internal const string CollectionVersionKey = "studentprofile:coll:ver";
+    internal const string StudentListKeyPrefix = "studentprofile:student:";
+    internal const string CategoryKeyPrefix = "studentprofile:student-cat:";
     private const string ProfileRecordNotFound = LocalizedKeys.StudentInformation.ProfileRecordNotFound;
     private static readonly TimeSpan StandardTtl = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan SensitiveTtl = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStudentProfileRecordRepository _records;
@@ -80,17 +88,47 @@ public class StudentProfileService : IStudentProfileService
             return Array.Empty<StudentProfileRecordResponse>();
         }
 
-        var records = await _records.GetForStudentAsync(studentId, cancellationToken);
-        return records.Select(ToResponse).ToList();
+        // Cached scope-neutral per student under the collection version, behind
+        // the per-caller scope gate above. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<StudentProfileRecordResponse>>(
+            $"{StudentListKeyPrefix}{studentId:N}:{version}",
+            async ct => (await _records.GetForStudentAsync(studentId, ct)).Select(ToResponse).ToList(),
+            StandardTtl,
+            cancellationToken);
+
+        return new List<StudentProfileRecordResponse>(cached ?? new List<StudentProfileRecordResponse>());
     }
 
     public async Task<StudentProfileRecordResponse?> GetForStudentCategoryAsync(Guid studentId, StudentProfileCategory category, string? customCategoryKey = null, CancellationToken cancellationToken = default)
     {
         if (!await _scope.CanAccessStudentAsync(studentId, cancellationToken)) return null;
 
-        var record = await _records.GetForStudentCategoryAsync(studentId, category, customCategoryKey ?? string.Empty, cancellationToken);
-        return record is null ? null : ToResponse(record);
+        // Cached by (student, category, customKey) under the collection version.
+        // not-found is not cached. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var custom = customCategoryKey ?? string.Empty;
+        return await _cache.GetOrSetAsync<StudentProfileRecordResponse>(
+            $"{CategoryKeyPrefix}{studentId:N}:{(int)category}:{custom}:{version}",
+            async ct =>
+            {
+                var record = await _records.GetForStudentCategoryAsync(studentId, category, custom, ct);
+                return record is null ? null : ToResponse(record);
+            },
+            StandardTtl,
+            cancellationToken);
     }
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCollectionVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
 
     public async Task<Guid> UpsertAsync(Guid studentId, UpsertStudentProfileRecordRequest request, CancellationToken cancellationToken = default)
     {
@@ -125,6 +163,7 @@ public class StudentProfileService : IStudentProfileService
             _records.Update(existing);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _cache.RemoveAsync(CacheKey(existing.Id), cancellationToken);
+            await BumpCollectionVersionAsync(cancellationToken);
             return existing.Id;
         }
 
@@ -139,6 +178,8 @@ public class StudentProfileService : IStudentProfileService
         };
         await _records.AddAsync(record, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new record must surface in the student's list / category reads.
+        await BumpCollectionVersionAsync(cancellationToken);
         return record.Id;
     }
 
@@ -174,6 +215,7 @@ public class StudentProfileService : IStudentProfileService
         _records.Update(record);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default)
@@ -195,6 +237,7 @@ public class StudentProfileService : IStudentProfileService
         _records.Delete(record);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
     }
 
     public async Task<BulkActionResult> BatchUpsertAsync(Guid studentId, IReadOnlyList<UpsertStudentProfileRecordRequest> records, CancellationToken cancellationToken = default)

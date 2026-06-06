@@ -1,4 +1,5 @@
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Modules.Schedule.Abstractions.DTOs;
 
 namespace CapitalUniversity.Modules.Schedule.Abstractions;
@@ -30,11 +31,13 @@ public interface IScheduleSlotService
     Task OpenRecordAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Atomically create multiple slots under one parent offering. The whole
-    /// batch commits together or none of it does — a partial schedule is
-    /// rejected on the first overlap (intra-batch or against existing
-    /// siblings) or per-slot validation failure. Returns the ids of the
-    /// newly-created slots in input order.
+    /// Bulk-create multiple slots under one parent offering with partial-success
+    /// semantics (consistent with the Payments / CourseOffering bulk endpoints):
+    /// each slot is validated and committed independently, so a conflicting,
+    /// duplicate, or invalid slot is reported as a per-row failure in the
+    /// returned <see cref="BulkActionResult"/> while its valid peers still land.
+    /// A missing / out-of-scope parent offering rejects the whole request with
+    /// <c>NotFoundException</c>.
     /// </summary>
-    Task<IReadOnlyList<Guid>> BatchCreateAsync(BatchCreateScheduleSlotsRequest request, CancellationToken cancellationToken = default);
+    Task<BulkActionResult> BatchCreateAsync(BatchCreateScheduleSlotsRequest request, CancellationToken cancellationToken = default);
 }

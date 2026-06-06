@@ -92,7 +92,7 @@ public class ScopeEnforcementTests : IClassFixture<WebApplicationFactory<Modules
         db.Modules.Add(module);
         db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.Delete);
+        db.AddCrudGrant(role.Id, resource.Id, "Delete");
 
         // Two staff, each scoped to a single faculty subtree.
         db.Staffs.AddRange(
@@ -218,4 +218,4 @@ public class ScopeEnforcementTests : IClassFixture<WebApplicationFactory<Modules
         var body = await response.Content.ReadFromJsonAsync<InvoiceResponse[]>();
         body.Should().NotBeNull().And.BeEmpty();
     }
-}
+}

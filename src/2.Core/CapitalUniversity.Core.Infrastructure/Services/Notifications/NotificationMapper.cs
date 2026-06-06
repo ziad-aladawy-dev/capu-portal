@@ -4,9 +4,8 @@ using Riok.Mapperly.Abstractions;
 
 namespace CapitalUniversity.Core.Infrastructure.Services.Notifications;
 
-// RequiredMappingStrategy.None: NotificationDto carries forward-compat
-// fields (ReferenceId) that aren't yet on the entity, and the entity has
-// audit/soft-delete plumbing that doesn't belong on client payloads.
+// RequiredMappingStrategy.None: the entity has audit/soft-delete plumbing
+// that doesn't belong on client payloads, so not every source member maps.
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class NotificationMapper
 {

@@ -42,4 +42,4 @@ internal static class ModuleAssemblyRegistration
             }
         }
     }
-}
+}

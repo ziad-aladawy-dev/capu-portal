@@ -95,4 +95,4 @@ public class CoursesControllerTests
         Assert.IsType<OkObjectResult>(result);
         svc.Verify();
     }
-}
+}

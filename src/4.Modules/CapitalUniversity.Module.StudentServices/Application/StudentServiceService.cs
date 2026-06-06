@@ -31,7 +31,13 @@ public sealed record StudentServiceValidators(
 public class StudentServiceService : IStudentServiceService
 {
     internal const string CacheKeyPrefix = "student-service:object:";
+    // Catalog list caches keyed by a version stamp; any service mutation rotates
+    // it. The catalog is global (no per-user scope), so lists are shared.
+    internal const string CollectionVersionKey = "student-service:coll:ver";
+    internal const string AvailableKeyPrefix = "student-service:available:";
+    internal const string AllKeyPrefix = "student-service:all:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStudentServiceRepository _services;
@@ -82,20 +88,46 @@ public class StudentServiceService : IStudentServiceService
         bool? isActive = null,
         CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _services.ListAsync(page, pageSize, search, isActive, cancellationToken);
+        // Cache the raw (culture-neutral) summary page under the collection
+        // version + query params; localize onto copies on read. Stampede-protected.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var key = $"{AllKeyPrefix}{version}:{page}:{pageSize}:{search ?? string.Empty}:{isActive?.ToString() ?? string.Empty}";
+        var cached = await _cache.GetOrSetAsync<PagedResponse<StudentServiceSummaryResponse>>(
+            key,
+            async ct =>
+            {
+                var (items, total) = await _services.ListAsync(page, pageSize, search, isActive, ct);
+                return new PagedResponse<StudentServiceSummaryResponse>
+                {
+                    Items = items.Select(MapToSummary).ToList(),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = total,
+                };
+            },
+            CacheTtl,
+            cancellationToken)
+            ?? new PagedResponse<StudentServiceSummaryResponse> { Items = new List<StudentServiceSummaryResponse>(), Page = page, PageSize = pageSize };
+
         return new PagedResponse<StudentServiceSummaryResponse>
         {
-            Items = items.Select(s => LocalizeSummary(MapToSummary(s))).ToList(),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = total,
+            Items = cached.Items.Select(LocalizeSummaryCopy).ToList(),
+            Page = cached.Page,
+            PageSize = cached.PageSize,
+            TotalCount = cached.TotalCount,
         };
     }
 
-    public async Task<IReadOnlyList<StudentServiceSummaryResponse>> GetAvailableAsync(CancellationToken cancellationToken = default) =>
-        (await _services.GetActiveAsync(cancellationToken))
-            .Select(s => LocalizeSummary(MapToSummary(s)))
-            .ToList();
+    public async Task<IReadOnlyList<StudentServiceSummaryResponse>> GetAvailableAsync(CancellationToken cancellationToken = default)
+    {
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<StudentServiceSummaryResponse>>(
+            $"{AvailableKeyPrefix}{version}",
+            async ct => (await _services.GetActiveAsync(ct)).Select(MapToSummary).ToList(),
+            CacheTtl,
+            cancellationToken);
+        return (cached ?? new List<StudentServiceSummaryResponse>()).Select(LocalizeSummaryCopy).ToList();
+    }
 
     /// <summary>
     /// Decode bilingual JSON fields (Name, Description, child Label rows) into
@@ -150,6 +182,30 @@ public class StudentServiceService : IStudentServiceService
         return response;
     }
 
+    /// <summary>Localize onto a NEW summary so cached list entries are never mutated.</summary>
+    private StudentServiceSummaryResponse LocalizeSummaryCopy(StudentServiceSummaryResponse s) => new()
+    {
+        Id = s.Id,
+        Code = s.Code,
+        Name = _localization.Get<string>(s.Name),
+        IsActive = s.IsActive,
+        RequiresPayment = s.RequiresPayment,
+        FeeAmount = s.FeeAmount,
+        Currency = s.Currency,
+        EstimatedProcessingDays = s.EstimatedProcessingDays,
+    };
+
+    private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(CollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(CollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpCollectionVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(CollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
     public async Task<Guid> CreateAsync(CreateStudentServiceRequest request, CancellationToken cancellationToken = default)
     {
         var validation = await _validators.Create.ValidateAsync(request, cancellationToken);
@@ -184,6 +240,8 @@ public class StudentServiceService : IStudentServiceService
         }
         await _services.AddAsync(service, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        // A new service must surface in catalog list / available reads.
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"StudentService created code={service.Code}",
@@ -233,6 +291,7 @@ public class StudentServiceService : IStudentServiceService
         _services.Update(service);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"StudentService updated id={id}",
@@ -252,6 +311,7 @@ public class StudentServiceService : IStudentServiceService
         _services.Update(service);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"StudentService toggled id={id} active={isActive}",
@@ -278,6 +338,7 @@ public class StudentServiceService : IStudentServiceService
         _services.Update(service);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
 
         await _logger.LogInfoAsync(
             $"StudentService soft-deleted id={id}",

@@ -127,4 +127,4 @@ public class PaymentVerificationServiceTests
         await sut.Invoking(s => s.RecordAsync(ValidRequest(Guid.NewGuid(), 100m)))
             .Should().ThrowAsync<NotFoundException>();
     }
-}
+}

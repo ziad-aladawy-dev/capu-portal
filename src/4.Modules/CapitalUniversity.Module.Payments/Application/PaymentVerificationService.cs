@@ -1,7 +1,9 @@
 using CapitalUniversity.Core.Abstractions.CrossCutting.Caching;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Outbox;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
@@ -27,10 +29,19 @@ namespace CapitalUniversity.Modules.Payments.Application;
 /// </summary>
 public class PaymentVerificationService : IPaymentVerificationService
 {
+    // Transaction collection caches (per-invoice list + search pages) keyed by a
+    // version stamp; recording a payment rotates it and orphans them all.
+    internal const string TxCollectionVersionKey = "payment-tx:coll:ver";
+    internal const string InvoiceTxListKeyPrefix = "payment-tx:invoice:";
+    internal const string TxSearchKeyPrefix = "payment-tx:search:";
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan VersionTtl = TimeSpan.FromHours(24);
+
     private readonly IInvoiceRepository _invoices;
     private readonly IValidator<RecordPaymentRequest> _validator;
     private readonly ICacheService _cache;
     private readonly IOutbox? _outbox;
+    private readonly INotificationService? _notifications;
     private readonly IUnitOfWork _unitOfWork;
 
     public PaymentVerificationService(
@@ -38,13 +49,15 @@ public class PaymentVerificationService : IPaymentVerificationService
         IValidator<RecordPaymentRequest> validator,
         ICacheService cache,
         IUnitOfWork unitOfWork,
-        IOutbox? outbox = null)
+        IOutbox? outbox = null,
+        INotificationService? notifications = null)
     {
         _invoices = invoices;
         _validator = validator;
         _cache = cache;
         _unitOfWork = unitOfWork;
         _outbox = outbox;
+        _notifications = notifications;
     }
 
     public async Task<PaymentTransactionResponse> RecordAsync(RecordPaymentRequest request, CancellationToken cancellationToken = default)
@@ -141,6 +154,24 @@ public class PaymentVerificationService : IPaymentVerificationService
                         invoice.Currency,
                         DateTime.UtcNow),
                     ct);
+
+                // Tell the student their payment landed. Staged on the same
+                // outbox/DbContext as the InvoicePaidFact above, so it commits
+                // atomically with the settlement in the SaveChangesAsync below —
+                // and is dropped on the next ConcurrencyRetry attempt if this one
+                // fails (exactly-on-edge, mirroring the fact enqueue). Bilingual
+                // payload; the recipient sees it in their own culture.
+                if (_notifications is not null)
+                {
+                    await _notifications.EnqueueNotificationAsync(
+                        invoice.StudentId,
+                        LocalizedJson.Of("تم استلام الدفعة", "Payment received"),
+                        LocalizedJson.Of(
+                            $"تم سداد فاتورتك بمبلغ {invoice.TotalAmount} {invoice.Currency} بنجاح.",
+                            $"Your invoice of {invoice.TotalAmount} {invoice.Currency} has been paid successfully."),
+                        NotificationType.Info,
+                        ct);
+                }
             }
 
             // P1.3 — narrow idempotency handling: we catch unique-index collision 
@@ -160,6 +191,10 @@ public class PaymentVerificationService : IPaymentVerificationService
             }
 
             await _cache.RemoveAsync(InvoiceService.CacheKey(invoice.Id), ct);
+            // The invoice's status (read model) changed → invalidate invoice
+            // list/search caches; a new transaction → invalidate tx caches.
+            await InvoiceService.BumpCollectionVersionAsync(_cache, ct);
+            await BumpTxVersionAsync(ct);
             return ToResponse(tx);
         }, cancellationToken: cancellationToken);
     }
@@ -173,8 +208,16 @@ public class PaymentVerificationService : IPaymentVerificationService
 
     public async Task<IReadOnlyList<PaymentTransactionResponse>> GetForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken = default)
     {
-        var rows = await _invoices.GetTransactionsForInvoiceAsync(invoiceId, cancellationToken);
-        return rows.Select(ToResponse).ToList();
+        // Stampede-protected read-through. Transactions carry no localizable
+        // content, so the cached list is returned as-is (copied to avoid handing
+        // out the cached reference). Invalidated by the tx version stamp.
+        var version = await GetTxVersionAsync(cancellationToken);
+        var cached = await _cache.GetOrSetAsync<List<PaymentTransactionResponse>>(
+            $"{InvoiceTxListKeyPrefix}{invoiceId:N}:{version}",
+            async ct => (await _invoices.GetTransactionsForInvoiceAsync(invoiceId, ct)).Select(ToResponse).ToList(),
+            CacheTtl,
+            cancellationToken);
+        return new List<PaymentTransactionResponse>(cached ?? new List<PaymentTransactionResponse>());
     }
 
     public async Task<PagedResult<PaymentTransactionResponse>> SearchAsync(PaymentTransactionSearchQuery query, CancellationToken cancellationToken = default)
@@ -183,16 +226,66 @@ public class PaymentVerificationService : IPaymentVerificationService
         // route permission (PaymentTransactions.View) is the admin gate. If a
         // future caller wants per-student scope, the repository's StudentId
         // join makes it cheap to add an additional pre-check here.
-        var page = await _invoices.SearchTransactionsAsync(query, cancellationToken);
+        // Stampede-protected read-through keyed by the tx version + query signature.
+        var version = await GetTxVersionAsync(cancellationToken);
+        var page = await _cache.GetOrSetAsync<PagedResult<PaymentTransactionResponse>>(
+            $"{TxSearchKeyPrefix}{version}:{BuildSearchSignature(query)}",
+            async ct =>
+            {
+                var result = await _invoices.SearchTransactionsAsync(query, ct);
+                return new PagedResult<PaymentTransactionResponse>
+                {
+                    Items = result.Items.Select(ToResponse).ToList(),
+                    Page = result.Page,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount,
+                    TotalPages = result.TotalPages,
+                };
+            },
+            CacheTtl,
+            cancellationToken)
+            ?? new PagedResult<PaymentTransactionResponse>
+            {
+                Items = new List<PaymentTransactionResponse>(),
+                Page = query.NormalizedPage,
+                PageSize = query.NormalizedPageSize,
+            };
+
         return new PagedResult<PaymentTransactionResponse>
         {
-            Items = page.Items.Select(ToResponse).ToList(),
+            Items = new List<PaymentTransactionResponse>(page.Items),
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount,
             TotalPages = page.TotalPages,
         };
     }
+
+    private async Task<string> GetTxVersionAsync(CancellationToken cancellationToken)
+    {
+        var v = await _cache.GetAsync<string>(TxCollectionVersionKey, cancellationToken);
+        if (!string.IsNullOrEmpty(v)) return v;
+        await _cache.SetAsync(TxCollectionVersionKey, "0", VersionTtl, cancellationToken);
+        return "0";
+    }
+
+    private Task BumpTxVersionAsync(CancellationToken cancellationToken) =>
+        _cache.SetAsync(TxCollectionVersionKey, Guid.NewGuid().ToString("N"), VersionTtl, cancellationToken);
+
+    private static string BuildSearchSignature(PaymentTransactionSearchQuery q) =>
+        string.Join('|',
+            $"inv={q.InvoiceId?.ToString("N") ?? string.Empty}",
+            $"stu={q.StudentId?.ToString("N") ?? string.Empty}",
+            $"status={(q.Status.HasValue ? ((int)q.Status.Value).ToString() : string.Empty)}",
+            $"prov={q.Provider ?? string.Empty}",
+            $"from={q.From?.ToString("O") ?? string.Empty}",
+            $"to={q.To?.ToString("O") ?? string.Empty}",
+            $"min={q.MinAmount?.ToString() ?? string.Empty}",
+            $"max={q.MaxAmount?.ToString() ?? string.Empty}",
+            $"q={q.Search ?? string.Empty}",
+            $"sort={q.Sort ?? string.Empty}",
+            $"p={q.NormalizedPage}",
+            $"ps={q.NormalizedPageSize}");
 
     private static void ReflectSettledTotal(Invoice invoice)
     {

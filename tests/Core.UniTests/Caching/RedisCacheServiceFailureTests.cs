@@ -117,4 +117,4 @@ public class RedisCacheServiceFailureTests
 
         Assert.Null(ex);
     }
-}
+}

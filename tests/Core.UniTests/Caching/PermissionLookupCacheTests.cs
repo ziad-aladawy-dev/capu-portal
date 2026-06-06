@@ -54,7 +54,7 @@ public class PermissionLookupCacheTests
         db.Modules.Add(module);
         db.Resources.Add(resource);
         db.Roles.Add(role);
-        db.AddCrudGrant(role.Id, resource.Id, ActionLevel.View);
+        db.AddCrudGrant(role.Id, resource.Id, "View");
         db.StaffRoles.Add(new StaffRoleAssignment(userId, role.Id, year, semester));
         db.SaveChanges();
 
@@ -199,4 +199,4 @@ internal class CountingPermissionService : IPermissionService
         Calls++;
         return _inner.GetResourcePermissionsAsync(userId, resourceKey, scope, cancellationToken);
     }
-}
+}

@@ -180,6 +180,45 @@ public class CourseServiceTests
     }
 
     [Fact]
+    public async Task GetActive_SecondCall_ServedFromCache()
+    {
+        var (sut, repo, _, _) = Build();
+        repo.Setup(r => r.GetActiveAsync(default)).ReturnsAsync(new List<Course>
+        {
+            new() { Id = Guid.NewGuid(), Code = "CS101", Title = "T", CreditHours = 3, IsActive = true },
+        });
+
+        await sut.GetActiveAsync();
+        await sut.GetActiveAsync();
+
+        repo.Verify(r => r.GetActiveAsync(default), Times.Once,
+            "the active catalog list must be served from cache on the second read");
+    }
+
+    [Fact]
+    public async Task Create_RotatesCatalogVersion_InvalidatesActiveList()
+    {
+        var (sut, repo, _, _) = Build();
+        repo.Setup(r => r.GetActiveAsync(default)).ReturnsAsync(new List<Course>
+        {
+            new() { Id = Guid.NewGuid(), Code = "CS101", Title = "T", CreditHours = 3, IsActive = true },
+        });
+        repo.Setup(r => r.CodeExistsAsync(It.IsAny<string>(), null, default)).ReturnsAsync(false);
+
+        await sut.GetActiveAsync();   // prime
+
+        await sut.CreateAsync(new CreateCourseRequest
+        {
+            Code = "CS102", Title = "New", CreditHours = 3, Category = CourseCategory.ProgramRequirement,
+        });
+
+        await sut.GetActiveAsync();   // catalog version rotated → must miss
+
+        repo.Verify(r => r.GetActiveAsync(default), Times.Exactly(2),
+            "a new course must rotate the catalog version and invalidate the active list");
+    }
+
+    [Fact]
     public async Task Delete_RemovesAndDropsCacheEntry()
     {
         var (sut, repo, uow, cache) = Build();
@@ -193,4 +232,4 @@ public class CourseServiceTests
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
         cache.RemoveCalls.Should().Be(1);
     }
-}
+}
