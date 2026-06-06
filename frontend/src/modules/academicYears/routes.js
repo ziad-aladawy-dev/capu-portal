@@ -6,7 +6,7 @@ export default [
   {
     path: "/admin/academic-years",
     component: AcademicYearsPage,
-    permission: "academicYears.academicYears.view",
+    permission: "academics.academic-years.view",
     pageType: "management",
     applicableTo: "both",
     menuItem: {

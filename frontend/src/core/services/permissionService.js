@@ -57,6 +57,11 @@ export async function deleteRole(id) {
   return data;
 }
 
+export async function fetchRoleMembers(roleId) {
+  const { data } = await api.get(`/roles/${roleId}/members`);
+  return data;
+}
+
 export async function fetchRolePermissions(roleId) {
   const { data } = await api.get(`/authorization/roles/${roleId}/permissions`);
   return data;

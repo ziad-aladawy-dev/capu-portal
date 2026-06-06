@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, GraduationCap, Users, BookOpen, Receipt,
+  Search, GraduationCap, Users, BookOpen,
   FileText, ArrowRight, Clock, X,
 } from "lucide-react";
 import * as studentService from "../services/studentService";
 import * as staffService from "../services/staffService";
 import * as courseService from "../services/courseService";
-import * as invoiceService from "../services/invoiceService";
 import "./commandPalette.css";
 
 const RECENT_KEY = "capu_cmd_recent";
@@ -18,7 +17,7 @@ const QUICK_PAGES = [
   { title: "Student Directory", path: "/admin/students", type: "page" },
   { title: "Staff Directory", path: "/admin/staff", type: "page" },
   { title: "Course Catalog", path: "/admin/courses", type: "page" },
-  { title: "Invoices", path: "/admin/invoices", type: "page" },
+
   { title: "Roles", path: "/admin/roles", type: "page" },
   { title: "Permissions", path: "/admin/permissions", type: "page" },
   { title: "University Structure", path: "/admin/university-structure", type: "page" },
@@ -33,7 +32,7 @@ const CATEGORY_ICONS = {
   student: GraduationCap,
   staff: Users,
   course: BookOpen,
-  invoice: Receipt,
+
   page: FileText,
 };
 
@@ -41,7 +40,7 @@ const CATEGORY_LABELS = {
   student: "Students",
   staff: "Staff",
   course: "Courses",
-  invoice: "Invoices",
+
   page: "Pages",
 };
 
@@ -105,11 +104,10 @@ function CommandPalette({ onClose }) {
 
     // Search entities from API in parallel
     try {
-      const [students, staff, courses, invoices] = await Promise.allSettled([
+      const [students, staff, courses] = await Promise.allSettled([
         studentService.searchStudents({ search: q, page: 1, pageSize: 5 }),
         staffService.searchStaff({ search: q, page: 1, pageSize: 5 }),
         courseService.fetchActiveCourses(),
-        invoiceService.fetchInvoices({ search: q, page: 1, pageSize: 5 }),
       ]);
 
       if (students.status === "fulfilled" && students.value?.items) {
@@ -154,17 +152,6 @@ function CommandPalette({ onClose }) {
           });
       }
 
-      if (invoices.status === "fulfilled" && invoices.value?.items) {
-        invoices.value.items.forEach((inv) => {
-          all.push({
-            title: `Invoice #${inv.invoiceNumber || inv.id?.slice(0, 8)}`,
-            subtitle: inv.studentName || "",
-            path: `/admin/invoices/${inv.id}`,
-            type: "invoice",
-            id: inv.id,
-          });
-        });
-      }
     } catch {
       // Silently fail — show what we have
     }
@@ -252,7 +239,7 @@ function CommandPalette({ onClose }) {
             ref={inputRef}
             className="cmd-palette-input"
             type="text"
-            placeholder="Search students, staff, courses, invoices, pages…"
+            placeholder="Search students, staff, courses, pages…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -1,85 +1,100 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import {
-  Shield, X, Save, RotateCcw, User, AlertTriangle,
-  Building2, CheckCircle, Globe, Lock, Unlock,
+  Shield, Save, RotateCcw, User,
+  Undo2, ShieldCheck, CheckSquare,
 } from "lucide-react";
 import * as permissionService from "../../../core/services/permissionService";
 import * as authorizationService from "../../../core/services/authorizationService";
 import { useUserScope } from "../../../core/hooks/useUserScope";
-import ScopeMultiSelectModal from "../../../core/components/ScopeMultiSelectModal";
+import { useToast } from "../../../core/components/Toast";
 import "../styles/permissions.css";
 
-const ACTION_LEVELS = [
-  { value: 0, label: "None" },
+const ACTION_VALUES = { View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5 };
+const LEVELS = [
+  { value: 0, label: "No Permission" },
   { value: 1, label: "View" },
   { value: 2, label: "Insert" },
   { value: 3, label: "Edit" },
   { value: 4, label: "Open" },
   { value: 5, label: "Delete" },
 ];
+const LEVEL_LABELS = { 0: "No Permission", 1: "View", 2: "Insert", 3: "Edit", 4: "Open", 5: "Delete" };
+const LABEL_TO_ACTION = {
+  View: "View",
+  Insert: "Insert",
+  Edit: "EditClose",
+  Open: "Open",
+  Delete: "Delete",
+};
 
 function PermissionsPage() {
   const { scopedUser, isScoped } = useUserScope();
+  const { addToast } = useToast();
   const [selectedUser, setSelectedUser] = useState(null);
 
   const [allRoles, setAllRoles] = useState([]);
   const [assignedRoleIds, setAssignedRoleIds] = useState([]);
+  const [initialRoleIds, setInitialRoleIds] = useState([]);
 
-  // Permission tree for the override UI
-  const [permissionTree, setPermissionTree] = useState([]);
+  const [userTree, setUserTree] = useState([]);
   const [activeModuleId, setActiveModuleId] = useState(null);
 
-  // Override configs: keyed by resourceId → { level, type, scopeNodes }
-  const [overrideConfigs, setOverrideConfigs] = useState({});
-  const [alwaysActive, setAlwaysActive] = useState(true);
-
-  // Scope modal state — tracks which resource we're picking scope for
-  const [scopeModalTarget, setScopeModalTarget] = useState(null); // resourceId or null
+  const [originalSnapshot, setOriginalSnapshot] = useState(null);
+  const [pendingLevels, setPendingLevels] = useState({});
+  const [resourceOverrides, setResourceOverrides] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [error, setError] = useState(null);
-  const [saved, setSaved] = useState(false);
 
-  // Load roles
   useEffect(() => {
     permissionService.fetchAllRoles({ pageSize: 100 }).then((res) => {
       setAllRoles(res?.items || []);
     });
   }, []);
 
-  // Load permission tree
-  useEffect(() => {
-    authorizationService.fetchPermissionTree().then((tree) => {
-      const modules = Array.isArray(tree) ? tree : [];
-      setPermissionTree(modules);
-      if (modules.length > 0 && !activeModuleId) {
-        setActiveModuleId(modules[0].moduleId);
-      }
-    }).catch(() => setPermissionTree([]));
-  }, []);
-
-  const loadAssignment = useCallback(async (userId) => {
+  const loadUserTree = useCallback(async (userId) => {
     setLoading(true);
-    setError(null);
+    setDirty(false);
+    setPendingLevels({});
     try {
-      const assignment = await permissionService.fetchPermissionAssignment({ userId });
+      const [tree, assignment] = await Promise.all([
+        authorizationService.fetchUserPermissionTree(userId),
+        permissionService.fetchPermissionAssignment({ userId, alwaysActive: true }),
+      ]);
+      const modules = Array.isArray(tree) ? tree : [];
+      setUserTree(modules);
+      setActiveModuleId((prev) => {
+        if (prev && modules.some((m) => m.moduleId === prev)) return prev;
+        return modules.length > 0 ? modules[0].moduleId : null;
+      });
       setAssignedRoleIds((assignment?.roleIds || []).map(String));
+      setInitialRoleIds((assignment?.roleIds || []).map(String));
 
-      // Build overrideConfigs from existing overrides
-      const configs = {};
-      for (const ov of (assignment?.permissionOverrides || [])) {
-        configs[String(ov.resourceId)] = {
-          level: ov.level || 0,
-          type: ov.type || 1,
-          scopeNodes: [],
-        };
+      const snap = {};
+      const resOv = {};
+      for (const mod of modules) {
+        for (const res of (mod.resources || [])) {
+          const rid = String(res.resourceId);
+          const overrides = { allow: [], deny: [] };
+          for (const p of (res.permissions || [])) {
+            snap[p.permissionId] = {
+              resourceId: res.resourceId,
+              action: p.action,
+              isAssigned: p.isAssigned,
+              hasAllowOverride: p.hasAllowOverride,
+              hasDenyOverride: p.hasDenyOverride,
+            };
+            if (p.hasAllowOverride) overrides.allow.push(p.action);
+            if (p.hasDenyOverride) overrides.deny.push(p.action);
+          }
+          resOv[rid] = overrides;
+        }
       }
-      setOverrideConfigs(configs);
-      setDirty(false);
+      setOriginalSnapshot(snap);
+      setResourceOverrides(resOv);
     } catch (err) {
-      setError(err.message || "Failed to load assignment");
+      addToast({ title: "Load Failed", message: err.message || "Failed to load permissions" }, "error");
     } finally {
       setLoading(false);
     }
@@ -88,38 +103,106 @@ function PermissionsPage() {
   useEffect(() => {
     if (isScoped && scopedUser && scopedUser.id !== selectedUser?.id) {
       setSelectedUser(scopedUser);
-      loadAssignment(scopedUser.id);
+      loadUserTree(scopedUser.id);
     }
-  }, [scopedUser?.id, isScoped, selectedUser?.id, loadAssignment]);
+  }, [scopedUser?.id, isScoped, selectedUser?.id, loadUserTree]);
 
   useEffect(() => {
     if (!isScoped && selectedUser) {
       setSelectedUser(null);
+      setUserTree([]);
       setAssignedRoleIds([]);
-      setOverrideConfigs({});
+      setInitialRoleIds([]);
+      setPendingLevels({});
+      setOriginalSnapshot(null);
     }
   }, [isScoped]);
 
-  // Active module data
   const activeModule = useMemo(
-    () => permissionTree.find((m) => m.moduleId === activeModuleId),
-    [permissionTree, activeModuleId]
+    () => userTree.find((m) => m.moduleId === activeModuleId),
+    [userTree, activeModuleId]
   );
 
-  // Count overrides per module for badges
+  const resourceLevels = useMemo(() => {
+    const map = {};
+    for (const mod of userTree) {
+      for (const res of (mod.resources || [])) {
+        const rid = String(res.resourceId);
+        let roleLvl = 0, effLvl = 0;
+        for (const p of (res.permissions || [])) {
+          const orig = originalSnapshot?.[p.permissionId];
+          if (!orig) continue;
+          const val = ACTION_VALUES[orig.action] || 0;
+          if (orig.isAssigned) effLvl = Math.max(effLvl, val);
+          let roleAssg;
+          if (orig.hasAllowOverride) roleAssg = false;
+          else if (orig.hasDenyOverride) roleAssg = true;
+          else roleAssg = orig.isAssigned;
+          if (roleAssg) roleLvl = Math.max(roleLvl, val);
+        }
+        map[rid] = { effectiveLevel: effLvl, roleBasedLevel: roleLvl };
+      }
+    }
+    return map;
+  }, [userTree, originalSnapshot]);
+
+  const resourceActions = useMemo(() => {
+    const map = {};
+    for (const mod of userTree) {
+      for (const res of (mod.resources || [])) {
+        const rid = String(res.resourceId);
+        const actions = new Set();
+        for (const p of (res.permissions || [])) {
+          actions.add(p.action);
+        }
+        map[rid] = actions;
+      }
+    }
+    return map;
+  }, [userTree]);
+
+  const getDisplayLevel = useCallback((resId) => {
+    if (pendingLevels[resId] !== undefined) return pendingLevels[resId];
+    return resourceLevels[resId]?.effectiveLevel || 0;
+  }, [pendingLevels, resourceLevels]);
+
+  const resourceHasOverride = useCallback((resId) => {
+    if (pendingLevels[resId] !== undefined) return true;
+    const ov = resourceOverrides[resId];
+    return ov && (ov.allow.length > 0 || ov.deny.length > 0);
+  }, [pendingLevels, resourceOverrides]);
+
   const overrideCountByModule = useMemo(() => {
     const counts = {};
-    for (const mod of permissionTree) {
+    for (const mod of userTree) {
       let count = 0;
       for (const res of (mod.resources || [])) {
-        if (overrideConfigs[String(res.resourceId)]) count++;
+        if (resourceHasOverride(String(res.resourceId))) count++;
       }
       counts[mod.moduleId] = count;
     }
     return counts;
-  }, [permissionTree, overrideConfigs]);
+  }, [userTree, resourceHasOverride]);
 
-  const markDirty = () => { setDirty(true); setSaved(false); };
+  const markDirty = () => { setDirty(true); };
+
+  const setLevel = (resId, desired, roleBasedLevel) => {
+    if (desired === roleBasedLevel) {
+      const next = { ...pendingLevels };
+      delete next[resId];
+      setPendingLevels(next);
+    } else {
+      setPendingLevels((prev) => ({ ...prev, [resId]: desired }));
+    }
+    markDirty();
+  };
+
+  const handleRevert = (resId) => {
+    const next = { ...pendingLevels };
+    delete next[resId];
+    setPendingLevels(next);
+    markDirty();
+  };
 
   const toggleRole = (roleId) => {
     const s = String(roleId);
@@ -127,144 +210,50 @@ function PermissionsPage() {
     markDirty();
   };
 
-  // --- Override helpers ---
-  const toggleOverride = (resourceId) => {
-    const key = String(resourceId);
-    setOverrideConfigs((prev) => {
-      if (prev[key]) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      }
-      return { ...prev, [key]: { level: 1, type: 1, scopeNodes: [] } };
-    });
-    markDirty();
-  };
-
-  const setOverrideLevel = (resourceId, level) => {
-    const key = String(resourceId);
-    setOverrideConfigs((prev) => {
-      if (!prev[key]) return prev;
-      return { ...prev, [key]: { ...prev[key], level } };
-    });
-    markDirty();
-  };
-
-  const setOverrideType = (resourceId, type) => {
-    const key = String(resourceId);
-    setOverrideConfigs((prev) => {
-      if (!prev[key]) return prev;
-      return { ...prev, [key]: { ...prev[key], type } };
-    });
-    markDirty();
-  };
-
-  const openScopeFor = (resourceId) => {
-    setScopeModalTarget(resourceId);
-  };
-
-  const handleScopeApply = useCallback((ids, nodes) => {
-    const target = scopeModalTarget;
-    if (!target) return;
-    const nodeObjs = nodes || ids.map((id) => ({ id, name: id }));
-    setOverrideConfigs((prev) => {
-      if (!prev[target]) return prev;
-      return { ...prev, [target]: { ...prev[target], scopeNodes: nodeObjs } };
-    });
-    markDirty();
-    setScopeModalTarget(null);
-  }, [scopeModalTarget]);
-
-  const removeScopeNode = (resourceId, nodeId) => {
-    const key = String(resourceId);
-    setOverrideConfigs((prev) => {
-      if (!prev[key]) return prev;
-      return {
-        ...prev,
-        [key]: {
-          ...prev[key],
-          scopeNodes: prev[key].scopeNodes.filter((n) => n.id !== nodeId),
-        },
-      };
-    });
-    markDirty();
-  };
-
   const handleReset = () => {
-    if (selectedUser) loadAssignment(selectedUser.id);
+    if (selectedUser) loadUserTree(selectedUser.id);
   };
 
   const handleSave = async () => {
     if (!selectedUser) return;
     setSaving(true);
-    setError(null);
     try {
-      // Get current state from server
-      const current = await permissionService.fetchPermissionAssignment({ userId: selectedUser.id });
-      const currentRoleIds = (current?.roleIds || []).map(String);
-      const currentOverrides = current?.permissionOverrides || [];
+      const toAdd = [];
+      const toRemove = [];
 
-      const rolesToAdd = assignedRoleIds.filter((id) => !currentRoleIds.includes(id));
-      const rolesToRemove = currentRoleIds.filter((id) => !assignedRoleIds.includes(id));
+      for (const [resId, desired] of Object.entries(pendingLevels)) {
+        const roleLvl = resourceLevels[resId]?.roleBasedLevel || 0;
+        const ov = resourceOverrides[resId];
 
-      // Build new overrides list
-      const newOverrides = Object.entries(overrideConfigs).map(([resourceId, cfg]) => ({
-        resourceId,
-        level: cfg.level,
-        type: cfg.type,
-        scopeNodes: cfg.scopeNodes,
-      }));
-
-      // Determine adds and removes
-      const currentKeySet = new Set(currentOverrides.map((o) => `${String(o.resourceId)}|${o.type}`));
-      const newKeySet = new Set(newOverrides.map((o) => `${o.resourceId}|${o.type}`));
-
-      const permissionsToAdd = newOverrides.filter((o) => !currentKeySet.has(`${o.resourceId}|${o.type}`));
-      const permissionsToRemove = currentOverrides.filter((o) => !newKeySet.has(`${String(o.resourceId)}|${o.type}`));
-
-      // Group overrides by scope for batched API calls
-      const scopeGroups = new Map();
-      for (const ov of newOverrides) {
-        const scopeKey = ov.scopeNodes.length === 0
-          ? "__global__"
-          : ov.scopeNodes.map((n) => n.id).sort().join(",");
-        if (!scopeGroups.has(scopeKey)) {
-          scopeGroups.set(scopeKey, { nodeIds: ov.scopeNodes.map((n) => n.id), perms: [] });
+        if (ov) {
+          for (const action of ov.allow) toRemove.push({ resourceId: resId, actions: [action], type: 1 });
+          for (const action of ov.deny) toRemove.push({ resourceId: resId, actions: [action], type: 2 });
         }
-        scopeGroups.get(scopeKey).perms.push({ resourceId: ov.resourceId, level: ov.level, type: ov.type });
+
+        if (desired > roleLvl) toAdd.push({ resourceId: resId, level: desired, type: 1 });
+        else if (desired < roleLvl) toAdd.push({ resourceId: resId, level: desired + 1, type: 2 });
       }
 
-      // If no scope groups exist, still send role changes
-      if (scopeGroups.size === 0) {
-        scopeGroups.set("__global__", { nodeIds: [], perms: [] });
-      }
+      // Use the snapshot loaded at init time for role diffing — no re-fetch needed.
+      const rolesToAdd = assignedRoleIds.filter((id) => !initialRoleIds.includes(id));
+      const rolesToRemove = initialRoleIds.filter((id) => !assignedRoleIds.includes(id));
 
-      let first = true;
-      for (const [, group] of scopeGroups) {
-        const scopes = group.nodeIds.length > 0 ? group.nodeIds : [null];
-        for (const nodeId of scopes) {
-          await permissionService.updatePermissionAssignment({
-            userId: selectedUser.id,
-            rolesToAdd: first ? rolesToAdd : [],
-            rolesToRemove: first ? rolesToRemove : [],
-            permissionsToAdd: first ? permissionsToAdd.filter((p) =>
-              group.perms.some((gp) => gp.resourceId === p.resourceId)
-            ).map((o) => ({ resourceId: o.resourceId, level: o.level, type: o.type })) : [],
-            permissionsToRemove: first ? permissionsToRemove.map((o) => ({
-              resourceId: String(o.resourceId), level: o.level, type: o.type,
-            })) : [],
-            structuralScope: { structureNodeId: nodeId },
-            temporalScope: { academicYearId: null, semesterId: null, alwaysActive },
-          });
-          first = false;
-        }
-      }
+      await permissionService.updatePermissionAssignment({
+        userId: selectedUser.id,
+        rolesToAdd,
+        rolesToRemove,
+        permissionsToAdd: toAdd,
+        permissionsToRemove: toRemove,
+        structuralScope: { structureNodeId: null },
+        temporalScope: { academicYearId: null, semesterId: null, alwaysActive: true },
+      });
 
       setDirty(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setPendingLevels({});
+      addToast({ title: "Changes Saved", message: "Permissions updated successfully" }, "success");
+      loadUserTree(selectedUser.id);
     } catch (err) {
-      setError(err.message || "Failed to save");
+      addToast({ title: "Save Failed", message: err.message || "Failed to save permissions" }, "error", 6000);
     } finally {
       setSaving(false);
     }
@@ -275,7 +264,7 @@ function PermissionsPage() {
   const selectedUserType = selectedUser?.type || "";
 
   return (
-    <div className="permissions-page">
+    <div className="perm-page">
       <div className="perm-header">
         <div className="perm-header-left">
           <Shield size={20} />
@@ -295,36 +284,24 @@ function PermissionsPage() {
             onClick={handleSave}
             disabled={!dirty || saving || !selectedUser}
           >
-            {saving ? "Saving\u2026" : saved ? "Saved!" : <><Save size={13} /> Save Changes</>}
+            {saving ? "Saving\u2026" : <><Save size={13} /> Save Changes</>}
           </button>
         </div>
       </div>
 
-      {error && (
-        <div className="perm-error-banner">
-          <AlertTriangle size={15} />
-          <span>{error}</span>
-          <button onClick={() => setError(null)}><X size={13} /></button>
-        </div>
-      )}
-      {saved && (
-        <div className="perm-success-banner">
-          <CheckCircle size={15} /><span>Permissions saved successfully</span>
-        </div>
-      )}
 
-      <div className="perm-stack">
-        {/* User Card */}
+
+      <div className="perm-layout">
         {selectedUser ? (
           <div className="perm-user-card">
             <div className="perm-user-avatar">{selectedUserName.charAt(0)}</div>
             <div className="perm-user-info">
               <strong>{selectedUserName}</strong>
-              <span>{selectedUserCode} · {selectedUserType === "staff" ? "Staff" : "Student"}</span>
+              <span>{selectedUserCode} &middot; {selectedUserType === "staff" ? "Staff" : "Student"}</span>
             </div>
           </div>
         ) : (
-          <div className="perm-empty-state" style={{ padding: "40px 20px" }}>
+          <div className="perm-empty-state">
             <User size={36} />
             <h3>Select a User</h3>
             <p>Search for a user from the sidebar and click to select.</p>
@@ -333,8 +310,7 @@ function PermissionsPage() {
 
         {selectedUser && !loading && (
           <>
-            {/* Role Assignments */}
-            <div className="perm-content-card">
+            <div className="perm-roles-section">
               <h3 className="perm-section-title">
                 <Shield size={16} /> Role Assignments
               </h3>
@@ -348,7 +324,7 @@ function PermissionsPage() {
                       className={`perm-role-chip ${isAssigned ? "is-assigned" : ""} ${role.isSystemRole ? "is-system" : ""}`}
                       onClick={() => toggleRole(role.id)}
                     >
-                      <span className="perm-role-chip-check">{isAssigned ? <CheckCircle size={11} /> : null}</span>
+                      <span className="perm-role-chip-check">{isAssigned ? <CheckSquare size={14} /> : null}</span>
                       <span className="perm-role-chip-name">{role.name}</span>
                       {role.isSystemRole && <span className="perm-role-chip-badge">system</span>}
                     </button>
@@ -357,152 +333,120 @@ function PermissionsPage() {
               </div>
             </div>
 
-            {/* Permission Overrides — Tab + Card design */}
-            <div className="perm-content-card perm-overrides-panel">
+            <div className="perm-overrides-section">
               <div className="perm-overrides-header">
                 <div>
                   <h3 className="perm-section-title">
-                    <AlertTriangle size={16} /> Permission Overrides
+                    <Shield size={16} /> Effective Permissions
                   </h3>
                   <p className="perm-section-desc">
-                    Configure per-resource overrides. Each resource can have its own scope.
+                    Shows the accumulated permission level from all roles. Click a pill to set the
+                    effective level — overrides are created automatically.
+                    <span className="perm-override-hint"> <Undo2 size={11} /> reverts to role-based state.</span>
                   </p>
                 </div>
-                <label className="perm-scope-check">
-                  <input
-                    type="checkbox"
-                    checked={alwaysActive}
-                    onChange={(e) => { setAlwaysActive(e.target.checked); markDirty(); }}
-                  />
-                  <span>Always Active</span>
-                </label>
               </div>
 
-              {/* Module Tabs */}
-              <div className="perm-module-tabs">
-                {permissionTree.map((mod) => {
-                  const count = overrideCountByModule[mod.moduleId] || 0;
-                  return (
-                    <button
-                      key={mod.moduleId}
-                      className={`perm-module-tab ${activeModuleId === mod.moduleId ? "active" : ""}`}
-                      onClick={() => setActiveModuleId(mod.moduleId)}
-                    >
-                      <span>{mod.moduleName}</span>
-                      {count > 0 && <span className="perm-module-tab-badge">{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
+              <div className="perm-body">
+                <div className="perm-module-sidebar">
+                  {userTree.map((mod) => {
+                    const count = overrideCountByModule[mod.moduleId] || 0;
+                    return (
+                      <button
+                        key={mod.moduleId}
+                        className={`perm-module-btn ${activeModuleId === mod.moduleId ? "active" : ""}`}
+                        onClick={() => setActiveModuleId(mod.moduleId)}
+                      >
+                        <span>{mod.moduleName}</span>
+                        {count > 0 && <span className="perm-module-badge">{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {/* Resource Cards */}
-              <div className="perm-resource-list">
-                {activeModule?.resources?.length === 0 && (
-                  <div className="perm-resource-empty">No resources in this module.</div>
-                )}
-                {(activeModule?.resources || []).map((res) => {
-                  const key = String(res.resourceId);
-                  const config = overrideConfigs[key];
-                  const isEnabled = !!config;
+                <div className="perm-resource-area">
+                  <div className="perm-resource-list">
+                    {!activeModule || activeModule.resources?.length === 0 ? (
+                      <div className="perm-resource-empty">No resources in this module.</div>
+                    ) : (
+                      activeModule.resources.map((res) => {
+                        const rid = String(res.resourceId);
+                        const displayLevel = getDisplayLevel(rid);
+                        const levels = resourceLevels[rid] || { effectiveLevel: 0, roleBasedLevel: 0 };
+                        const overridden = resourceHasOverride(rid);
 
-                  return (
-                    <div key={key} className={`perm-resource-card ${isEnabled ? "is-active" : ""}`}>
-                      <div className="perm-resource-top">
-                        <button
-                          className={`perm-resource-toggle ${isEnabled ? "on" : ""}`}
-                          onClick={() => toggleOverride(res.resourceId)}
-                          title={isEnabled ? "Remove override" : "Add override"}
-                        >
-                          <span className="perm-toggle-track">
-                            <span className="perm-toggle-thumb" />
-                          </span>
-                        </button>
-                        <span className="perm-resource-name">{res.resourceName}</span>
+                        const roleLvlName = LEVEL_LABELS[levels.roleBasedLevel] || "None";
+                        const isDowngraded = displayLevel < levels.roleBasedLevel;
 
-                        {isEnabled && (
-                          <div className="perm-resource-type-group">
-                            <button
-                              className={`perm-type-btn allow ${config.type === 1 ? "active" : ""}`}
-                              onClick={() => setOverrideType(res.resourceId, 1)}
-                            >
-                              <Unlock size={10} /> Allow
-                            </button>
-                            <button
-                              className={`perm-type-btn deny ${config.type === 2 ? "active" : ""}`}
-                              onClick={() => setOverrideType(res.resourceId, 2)}
-                            >
-                              <Lock size={10} /> Deny
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {isEnabled && (
-                        <div className="perm-resource-body">
-                          {/* Action level pills */}
-                          <div className="perm-action-row">
-                            <span className="perm-action-label">Level</span>
-                            <div className="perm-action-pills">
-                              {ACTION_LEVELS.filter((l) => l.value > 0).map((l) => (
-                                <button
-                                  key={l.value}
-                                  className={`perm-action-pill ${config.level >= l.value ? "filled" : ""} ${config.level === l.value ? "current" : ""}`}
-                                  onClick={() => setOverrideLevel(res.resourceId, l.value)}
-                                  title={`${l.label} (${l.value})`}
-                                >
-                                  {l.label}
-                                </button>
-                              ))}
+                        return (
+                          <div key={rid} className={`perm-res-card ${overridden ? "has-override" : ""} ${isDowngraded ? "is-denied" : ""}`}>
+                            <div className="perm-res-card-header">
+                              <ShieldCheck size={14} className="perm-res-card-icon" />
+                              <span>{res.resourceName}</span>
+                              {levels.roleBasedLevel > 0 && (
+                                <span className="perm-role-badge">{roleLvlName}</span>
+                              )}
                             </div>
-                          </div>
-
-                          {/* Per-override scope */}
-                          <div className="perm-resource-scope">
-                            <Building2 size={12} className="perm-scope-icon" />
-                            {config.scopeNodes.length === 0 ? (
-                              <span className="perm-scope-all-label">All scopes</span>
-                            ) : (
-                              <div className="perm-scope-chips">
-                                {config.scopeNodes.map((n) => (
-                                  <span key={n.id} className="perm-scope-chip">
-                                    {n.name}
-                                    <button onClick={() => removeScopeNode(res.resourceId, n.id)}>
-                                      <X size={9} />
+                            <div className="perm-level-selector">
+                              <div className="perm-level-pills-row">
+                                {LEVELS.map((lvl) => {
+                                  const isLevelZero = lvl.value === 0;
+                                  const backendAction = LABEL_TO_ACTION[lvl.label];
+                                  const isAvailable = isLevelZero || (backendAction && resourceActions[rid]?.has(backendAction));
+                                  const active = isLevelZero ? displayLevel === 0 : displayLevel >= lvl.value;
+                                  return (
+                                    <button
+                                      key={lvl.value}
+                                      className={`perm-pill ${active ? "filled" : ""} ${displayLevel === lvl.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${!isAvailable ? " disabled" : ""}`}
+                                      onClick={() => isAvailable && setLevel(rid, lvl.value, levels.roleBasedLevel)}
+                                      title={`Set effective level to ${lvl.label}`}
+                                      disabled={!isAvailable}
+                                    >
+                                      {lvl.label}
                                     </button>
-                                  </span>
-                                ))}
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {overridden && (
+                              <div className="perm-res-override-footer">
+                                <span className="perm-ovr-tag">
+                                  Override{displayLevel > levels.roleBasedLevel
+                                    ? `: Allow ${LEVEL_LABELS[displayLevel]}`
+                                    : displayLevel < levels.roleBasedLevel
+                                      ? displayLevel === 0
+                                        ? ": No Permission"
+                                        : `: Deny above ${LEVEL_LABELS[displayLevel]}`
+                                      : ""}
+                                </span>
+                                <button
+                                  className="perm-ovr-revert"
+                                  onClick={() => handleRevert(rid)}
+                                  title="Remove override, return to role-based state"
+                                >
+                                  <Undo2 size={12} /> Revert
+                                </button>
                               </div>
                             )}
-                            <button
-                              className="perm-scope-add-btn"
-                              onClick={() => openScopeFor(key)}
-                            >
-                              {config.scopeNodes.length === 0 ? "Narrow scope" : "Edit"}
-                            </button>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </>
         )}
 
         {selectedUser && loading && (
-          <div className="perm-loading">Loading permissions\u2026</div>
+          <div className="roles-loading" style={{ padding: 40 }}>
+            <div className="roles-spinner" />
+            <p>Loading permissions\u2026</p>
+          </div>
         )}
       </div>
-
-      {/* Scope Modal */}
-      {scopeModalTarget && (
-        <ScopeMultiSelectModal
-          initialSelectedIds={(overrideConfigs[scopeModalTarget]?.scopeNodes || []).map((n) => n.id)}
-          onApply={handleScopeApply}
-          onClose={() => setScopeModalTarget(null)}
-        />
-      )}
     </div>
   );
 }

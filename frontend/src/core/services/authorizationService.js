@@ -9,3 +9,8 @@ export async function fetchRolePermissions(roleId) {
   const { data } = await api.get(`/authorization/roles/${roleId}/permissions`);
   return data;
 }
+
+export async function fetchUserPermissionTree(userId) {
+  const { data } = await api.get(`/authorization/users/${userId}/permission-tree`);
+  return data;
+}

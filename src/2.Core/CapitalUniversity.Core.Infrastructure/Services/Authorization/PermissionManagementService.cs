@@ -388,24 +388,49 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default)
     {
-        var year = query.AlwaysActive ? ScopeKeys.Global : (query.AcademicYearId?.ToString() ?? ScopeKeys.Global);
-        var semester = query.AlwaysActive ? ScopeKeys.Global : (query.SemesterId?.ToString() ?? ScopeKeys.Global);
+        // Each null scope param is treated as a wildcard (no filter), so
+        // partial-scope queries return all matches for the specified dimensions.
+        // Only non-null params constrain the result.  When AlwaysActive is true,
+        // Year/Semester are pinned to "Global"/"Global" regardless of the ids.
 
-        var roles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == query.UserId &&
-                         sr.StructureNodeId == query.StructureNodeId &&
-                         sr.Year == year && sr.Semester == semester)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+        var rolesQuery = _dbContext.StaffRoles
+            .Where(sr => sr.StaffId == query.UserId)
+            .AsNoTracking();
 
-        var overrides = await _dbContext.StaffPermissions
-            .Include(sp => sp.Resource)
-                .ThenInclude(r => r.Module)
-            .Where(sp => sp.StaffId == query.UserId &&
-                         sp.StructureNodeId == query.StructureNodeId &&
-                         sp.Year == year && sp.Semester == semester)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
+        var overridesQuery = _dbContext.StaffPermissions
+            .Include(sp => sp.Resource).ThenInclude(r => r.Module)
+            .Where(sp => sp.StaffId == query.UserId)
+            .AsNoTracking();
+
+        if (query.StructureNodeId is not null)
+        {
+            rolesQuery = rolesQuery.Where(sr => sr.StructureNodeId == query.StructureNodeId);
+            overridesQuery = overridesQuery.Where(sp => sp.StructureNodeId == query.StructureNodeId);
+        }
+
+        if (query.AlwaysActive)
+        {
+            rolesQuery = rolesQuery.Where(sr => sr.Year == ScopeKeys.Global && sr.Semester == ScopeKeys.Global);
+            overridesQuery = overridesQuery.Where(sp => sp.Year == ScopeKeys.Global && sp.Semester == ScopeKeys.Global);
+        }
+        else
+        {
+            if (query.AcademicYearId is not null)
+            {
+                var yearStr = query.AcademicYearId.ToString();
+                rolesQuery = rolesQuery.Where(sr => sr.Year == yearStr);
+                overridesQuery = overridesQuery.Where(sp => sp.Year == yearStr);
+            }
+            if (query.SemesterId is not null)
+            {
+                var semStr = query.SemesterId.ToString();
+                rolesQuery = rolesQuery.Where(sr => sr.Semester == semStr);
+                overridesQuery = overridesQuery.Where(sp => sp.Semester == semStr);
+            }
+        }
+
+        var roles = await rolesQuery.ToListAsync(cancellationToken);
+        var overrides = await overridesQuery.ToListAsync(cancellationToken);
 
         if (roles.Count == 0 && overrides.Count == 0)
         {

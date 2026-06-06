@@ -6,7 +6,7 @@ export default [
   {
     path: "/admin/university",
     component: UniversityStructurePage,
-    permission: "university.structure.view",
+    permission: "structure.structure.view",
     pageType: "management",
     menuItem: {
       category: "Organization",

@@ -127,7 +127,7 @@ const StudentTable = ({
               </td>
               <td>
                 <div className="action-buttons">
-                  <button className="action-btn info-btn" onClick={() => onViewDetails(student.id)} title="View Details">
+                  <button className="action-btn info-btn" onClick={() => onViewDetails(student)} title="View Details">
                     <Eye size={16} />
                   </button>
                   <button className="action-btn edit-btn" onClick={() => onEdit(student.id)} title="Edit">

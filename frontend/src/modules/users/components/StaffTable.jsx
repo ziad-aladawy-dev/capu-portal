@@ -127,7 +127,7 @@ const StaffTable = ({
               </td>
               <td>
                 <div className="action-buttons">
-                  <button className="action-btn info-btn" onClick={() => onViewDetails(member.id)} title="View Details">
+                  <button className="action-btn info-btn" onClick={() => onViewDetails(member)} title="View Details">
                     <Eye size={16} />
                   </button>
                   <button className="action-btn edit-btn" onClick={() => onEdit(member.id)} title="Edit">

@@ -5,7 +5,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 export default [
   {
     path: "/admin",
-    permission: "admin.dashboard.view",
+    permission: "dashboard.dashboard.view",
     pageType: "management",
     isRedirect: true,
     redirectTo: "/admin/dashboard",
@@ -13,7 +13,7 @@ export default [
   {
     path: "/admin/dashboard",
     component: AdminDashboard,
-    permission: "admin.dashboard.view",
+    permission: "dashboard.dashboard.view",
     pageType: "management",
     menuItem: {
       category: "Admin",

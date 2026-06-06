@@ -9,11 +9,13 @@ import UserFilters from "../components/UserFilters";
 import UserStats from "../components/UserStats";
 import BulkImportModal from "../components/BulkImportModal";
 import { useToast } from "../../../core/components/Toast";
+import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
 import "../styles/users.css";
 
 const UserManagement = ({ initialTab, hideTabs }) => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { select } = useStickySelection();
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportButtonRef = useRef(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -126,7 +128,11 @@ const UserManagement = ({ initialTab, hideTabs }) => {
     }
   }, [selectedIds, exportToExcel, addToast]);
 
-  const handleViewDetails = (id) => navigate(`/admin/users/${id}`);
+  const handleViewDetails = (user) => {
+    const type = activeTab === "students" ? "student" : "staff";
+    const code = type === "student" ? user.studentCode : user.employeeCode;
+    select({ id: user.id, name: user.name, code, type });
+  };
   const handleEdit = (id) => {
     if (activeTab === 'students') navigate(`/admin/users/edit-student/${id}`);
     else navigate(`/admin/users/edit-staff/${id}`);

@@ -14,7 +14,7 @@ const SEGMENT_LABELS = {
   staff: "Staff",
   users: "Users",
   courses: "Courses",
-  invoices: "Invoices",
+
   roles: "Roles",
   permissions: "Permissions",
   authorization: "Authorization Matrix",

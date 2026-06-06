@@ -29,7 +29,7 @@ function StudentDirectory() {
   const { addToast } = useToast();
   const { scopeNode } = useDomain();
   const { selectedYearObj, selectedSemesterObj } = useAcademic();
-  const { scopedUser, isScoped, clearScope } = useUserScope();
+  const { scopedUser, isScoped, clearScope, scopeToUser } = useUserScope();
   const searchRef = useRef(null);
 
   if (isScoped && scopedUser?.type === "student") {
@@ -344,7 +344,7 @@ function StudentDirectory() {
               </thead>
               <tbody>
                 {students.map((s, idx) => (
-                  <tr key={s.id} className={selectedIds.has(s.id) ? "selected-row" : ""} style={{ cursor: "pointer" }} onClick={() => navigate(`/admin/students/${s.id}`)}>
+                  <tr key={s.id} className={selectedIds.has(s.id) ? "selected-row" : ""} style={{ cursor: "pointer" }} onClick={() => scopeToUser({ id: s.id, name: s.name, code: s.studentCode, type: "student" })}>
                     <td className="bulk-check-cell" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" className="bulk-checkbox" checked={selectedIds.has(s.id)} onChange={() => handleSelectOne(s.id)} />
                     </td>
@@ -365,7 +365,7 @@ function StudentDirectory() {
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div className="action-buttons">
-                        <button className="action-btn info-btn" onClick={() => navigate(`/admin/students/${s.id}`)} title="View Details">
+                        <button className="action-btn info-btn" onClick={() => scopeToUser({ id: s.id, name: s.name, code: s.studentCode, type: "student" })} title="View Details">
                           <Eye size={16} />
                         </button>
                         <button className="action-btn edit-btn" onClick={() => navigate(`/admin/users/edit-student/${s.id}`)} title="Edit">

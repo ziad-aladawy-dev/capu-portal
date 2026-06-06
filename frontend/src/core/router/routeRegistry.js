@@ -12,7 +12,7 @@ import coursesRoutes from "../../modules/courses/routes";
 import academicPlansRoutes from "../../modules/academicPlans/routes";
 import academicYearsRoutes from "../../modules/academicYears/routes";
 import studentPortalRoutes from "../../modules/studentPortal/routes";
-import invoicesRoutes from "../../modules/invoices/routes";
+
 import notificationsRoutes from "../../modules/notifications/routes";
 import studentProfileRecordsRoutes from "../../modules/studentProfileRecords/routes";
 import authorizationRoutes from "../../modules/authorization/routes";
@@ -30,7 +30,7 @@ const ALL_ROUTES = [
   ...academicPlansRoutes,
   ...academicYearsRoutes,
   ...studentPortalRoutes,
-  ...invoicesRoutes,
+
   ...notificationsRoutes,
   ...studentProfileRecordsRoutes,
   ...authorizationRoutes,
@@ -99,7 +99,7 @@ export function getCurrentRouteInfo(pathname) {
     const pattern = route.path
       .replace(/\/:id\b/g, "/[^/]+")
       .replace(/\/:studentId\b/g, "/[^/]+")
-      .replace(/\/:invoiceId\b/g, "/[^/]+");
+
     const regex = new RegExp(`^${pattern}$`);
     if (regex.test(pathname)) {
       return route;

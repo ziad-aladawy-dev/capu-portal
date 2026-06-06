@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, Building2, Calendar, Shield, Phone, BadgeCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, Mail, Building2, Calendar, Shield, Phone, BadgeCheck } from "lucide-react";
 import * as studentService from "../services/studentService";
 import * as staffService from "../services/staffService";
 import "./userDetailView.css";
 
 function UserDetailView({ userId, userType, onBack }) {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,12 +65,7 @@ function UserDetailView({ userId, userType, onBack }) {
         <button className="user-detail-back-btn" onClick={onBack}>
           <ArrowLeft size={14} /> Back to Directory
         </button>
-        <button
-          className="user-detail-full-profile-btn"
-          onClick={() => navigate(`/admin/users/${user.id}`)}
-        >
-          <ExternalLink size={14} /> Full Profile
-        </button>
+
       </div>
 
       <div className="user-detail-card">
