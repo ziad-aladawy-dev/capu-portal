@@ -2,6 +2,7 @@ using CapitalUniversity.Sync.Abstractions.Enums;
 using CapitalUniversity.Sync.Courses;
 using CapitalUniversity.Sync.Finance;
 using CapitalUniversity.Sync.Infrastructure.Configuration;
+using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Sync.Infrastructure.Scheduling;
 using CapitalUniversity.Sync.Schedules;
 using CapitalUniversity.Sync.Staff;
@@ -20,19 +21,22 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
     private readonly IOptions<SyncOptions> _options;
     private readonly IOptions<SyncRetentionOptions> _retentionOptions;
     private readonly IOptions<SyncOrphanReaperOptions> _reaperOptions;
+    private readonly IOptions<TreasuryOptions> _treasuryOptions;
 
     public SyncRecurringJobsRegistrar(
         IRecurringJobManager recurringJobManager,
         ILogger<SyncRecurringJobsRegistrar> logger,
         IOptions<SyncOptions> options,
         IOptions<SyncRetentionOptions> retentionOptions,
-        IOptions<SyncOrphanReaperOptions> reaperOptions)
+        IOptions<SyncOrphanReaperOptions> reaperOptions,
+        IOptions<TreasuryOptions> treasuryOptions)
     {
         _recurringJobManager = recurringJobManager;
         _logger = logger;
         _options = options;
         _retentionOptions = retentionOptions;
         _reaperOptions = reaperOptions;
+        _treasuryOptions = treasuryOptions;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -122,6 +126,14 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(CancellationToken.None),
             cronExpression: _reaperOptions.Value.CronExpression);
+
+        // Treasury receipt pull (Phase 3). Pulls ConnectionTypeId=6 receipts
+        // into Core via ICoreWriteGateway on the configured cron.
+        _recurringJobManager.AddOrUpdate<TreasuryReceiptPullTrigger>(
+            recurringJobId: "treasury-receipt-pull",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.RunAsync(CancellationToken.None),
+            cronExpression: _treasuryOptions.Value.ReceiptPullCron);
 
         _logger.LogInformation(
             "Recurring jobs registered: 'student-sync-pull', 'student-sync-push', 'staff-sync-pull', 'staff-sync-push', 'courses-sync-pull', 'courses-sync-push', 'finance-sync-pull', 'finance-sync-push', 'schedules-sync-pull', 'schedules-sync-push', 'sync-retention', 'sync-orphan-reaper' (trigger queue: {Queue}; per-module dispatch queues resolved via Sync:ModuleQueues; retention enabled={RetentionEnabled} cron={RetentionCron}; reaper enabled={ReaperEnabled} cron={ReaperCron} grace={ReaperGrace}min).",

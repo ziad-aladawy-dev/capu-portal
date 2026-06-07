@@ -22,4 +22,7 @@ public sealed class TreasuryOptions
 
     /// <summary>Relative path for the receipts list endpoint.</summary>
     public string ReceiptsPath { get; set; } = "api/payments/receipts";
+
+    /// <summary>Cron for the recurring receipt-pull job (Hangfire, Sync host). Default every 6h.</summary>
+    public string ReceiptPullCron { get; set; } = "0 */6 * * *";
 }

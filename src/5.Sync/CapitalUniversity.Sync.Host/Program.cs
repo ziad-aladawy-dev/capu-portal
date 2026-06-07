@@ -40,6 +40,7 @@ using CapitalUniversity.Core.Infrastructure.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Sync;
 using CapitalUniversity.Modules.CourseOffering.Domain;
+using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Schedule.Abstractions;
@@ -137,6 +138,13 @@ builder.Services.AddSchedulesSync(builder.Configuration);
 // HTTP-adapter override. When Sync:Integration:UseHttpAdapters is true, HTTP
 // implementations replace the per-module in-memory ones via DI last-wins.
 builder.Services.AddSyncHttpAdaptersIfEnabled(builder.Configuration);
+
+// Treasury receipt synchronization (Phase 3). Outbound client + receipt sync
+// service + Hangfire trigger. Receipts merge into Core via ICoreWriteGateway
+// (already registered above). Additive — does not touch existing sync modules.
+builder.Services.AddTreasuryIntegration(builder.Configuration);
+builder.Services.AddTreasuryReceiptSync();
+builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReceiptPullTrigger>();
 
 builder.Services.AddHangfire(cfg => cfg
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

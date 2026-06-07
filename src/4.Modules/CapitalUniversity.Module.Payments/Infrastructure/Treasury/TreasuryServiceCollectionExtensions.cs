@@ -1,4 +1,5 @@
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
+using CapitalUniversity.Modules.Payments.Application.Treasury;
 using CapitalUniversity.Modules.Payments.Infrastructure.Treasury;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,17 @@ public static class TreasuryServiceCollectionExtensions
             }
         }).AddStandardResilienceHandler();
 
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the receipt synchronization service. Depends on
+    /// <c>ITreasuryClient</c> (AddTreasuryIntegration) and <c>ICoreWriteGateway</c>
+    /// (registered by the host). Call from the host that runs the pull job.
+    /// </summary>
+    public static IServiceCollection AddTreasuryReceiptSync(this IServiceCollection services)
+    {
+        services.AddScoped<IReceiptSyncService, ReceiptSyncService>();
         return services;
     }
 }
