@@ -54,6 +54,13 @@ public class StudentServiceRequestServiceTests
         var services = new Mock<IStudentServiceRepository>();
         var workflows = new Mock<IWorkflowService>();
         var fees = new Mock<IFeeCreationService>();
+        var feeGeneration = new Mock<CapitalUniversity.Modules.Payments.Abstractions.Treasury.IFeeGenerationService>();
+        // Default: no Treasury receipt mapping → null → legacy fee path runs.
+        feeGeneration
+            .Setup(f => f.GenerateFeeFromServiceAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(),
+                It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
         var scope = new Mock<IEffectiveScope>();
         var cache = new Mock<ICacheService>();
         var notifications = new Mock<INotificationService>();
@@ -80,6 +87,7 @@ public class StudentServiceRequestServiceTests
             services.Object,
             workflows.Object,
             fees.Object,
+            feeGeneration.Object,
             scope.Object,
             cache.Object,
             notifications.Object,

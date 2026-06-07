@@ -46,6 +46,10 @@ public static class PaymentsModuleExtensions
         services.AddScoped<Repositories.Treasury.IPaymentRepository, Core.Infrastructure.Repositories.Treasury.PaymentRepository>();
         services.AddScoped<Repositories.Treasury.IPaymentTransactionRepository, Core.Infrastructure.Repositories.Treasury.PaymentTransactionRepository>();
 
+        // Treasury fee generation + mapping admin (Phase 4).
+        services.AddScoped<Abstractions.Treasury.IFeeGenerationService, Application.Treasury.FeeGenerationService>();
+        services.AddScoped<Abstractions.Treasury.IServiceReceiptMappingService, Application.Treasury.ServiceReceiptMappingService>();
+
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IFeeCreationService, FeeCreationService>();
         services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();

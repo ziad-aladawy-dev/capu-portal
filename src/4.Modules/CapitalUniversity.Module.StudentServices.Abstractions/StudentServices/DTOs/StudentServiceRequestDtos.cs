@@ -81,6 +81,13 @@ public class SubmitStudentServiceRequestRequest
     public Guid StudentServiceId { get; set; }
     public IReadOnlyList<ServiceFieldValueInput> FieldValues { get; set; } = Array.Empty<ServiceFieldValueInput>();
     public IReadOnlyList<ServiceDocumentSubmissionInput> Files { get; set; } = Array.Empty<ServiceDocumentSubmissionInput>();
+
+    /// <summary>
+    /// Units to charge when the service is priced from a quantity-based Treasury
+    /// receipt (e.g. credit hours). Ignored for fixed-quantity mappings and the
+    /// legacy fee path. Defaults to 1.
+    /// </summary>
+    public int Quantity { get; set; } = 1;
 }
 
 public class ServiceFieldValueInput
