@@ -37,6 +37,15 @@ public static class PaymentsModuleExtensions
     {
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 
+        // Treasury payment redesign — Phase 1 repositories (additive; legacy
+        // invoice path untouched).
+        services.AddScoped<Repositories.Treasury.ITreasuryReceiptRepository, Core.Infrastructure.Repositories.Treasury.TreasuryReceiptRepository>();
+        services.AddScoped<Repositories.Treasury.IServiceReceiptMappingRepository, Core.Infrastructure.Repositories.Treasury.ServiceReceiptMappingRepository>();
+        services.AddScoped<Repositories.Treasury.IStudentFeeRepository, Core.Infrastructure.Repositories.Treasury.StudentFeeRepository>();
+        services.AddScoped<Repositories.Treasury.IOrderRepository, Core.Infrastructure.Repositories.Treasury.OrderRepository>();
+        services.AddScoped<Repositories.Treasury.IPaymentRepository, Core.Infrastructure.Repositories.Treasury.PaymentRepository>();
+        services.AddScoped<Repositories.Treasury.IPaymentTransactionRepository, Core.Infrastructure.Repositories.Treasury.PaymentTransactionRepository>();
+
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IFeeCreationService, FeeCreationService>();
         services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();
