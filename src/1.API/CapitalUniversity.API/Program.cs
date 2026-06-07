@@ -69,6 +69,8 @@ builder.Services.AddCoreServices(builder.Configuration);
 // infrastructure (cache, UoW, scope services) is already in the container
 // before the module wires its services that depend on those interfaces.
 builder.Services.AddPaymentsModule();
+// Treasury outbound integration (Phase 2) — typed HttpClient + options.
+builder.Services.AddTreasuryIntegration(builder.Configuration);
 builder.Services.AddStudentModule();
 builder.Services.AddCourseOfferingModule();
 // Schedule depends on ICourseOfferingService for parent existence + scope
