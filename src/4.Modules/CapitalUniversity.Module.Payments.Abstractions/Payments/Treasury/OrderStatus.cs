@@ -12,4 +12,5 @@ public enum OrderStatus
     Failed = 3,
     Expired = 4,
     Refunded = 5,
+    Cancelled = 6,
 }

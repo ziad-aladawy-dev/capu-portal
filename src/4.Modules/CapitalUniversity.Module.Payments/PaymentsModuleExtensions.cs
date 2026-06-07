@@ -50,6 +50,10 @@ public static class PaymentsModuleExtensions
         services.AddScoped<Abstractions.Treasury.IFeeGenerationService, Application.Treasury.FeeGenerationService>();
         services.AddScoped<Abstractions.Treasury.IServiceReceiptMappingService, Application.Treasury.ServiceReceiptMappingService>();
 
+        // Treasury order management + fee read-side (Phase 5).
+        services.AddScoped<Abstractions.Treasury.IOrderService, Application.Treasury.OrderService>();
+        services.AddScoped<Abstractions.Treasury.IStudentFeeQueryService, Application.Treasury.StudentFeeQueryService>();
+
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IFeeCreationService, FeeCreationService>();
         services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();

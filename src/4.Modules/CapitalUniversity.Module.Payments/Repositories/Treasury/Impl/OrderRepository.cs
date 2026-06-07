@@ -28,6 +28,13 @@ public class OrderRepository : IOrderRepository
         return query.FirstOrDefaultAsync(o => o.MerchantOrderId == merchantOrderId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Order>> GetForStudentAsync(Guid studentId, CancellationToken cancellationToken = default) =>
+        await _context.Set<Order>()
+            .AsNoTracking()
+            .Where(o => o.StudentId == studentId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Order>> GetPendingPaymentOlderThanAsync(DateTime cutoffUtc, CancellationToken cancellationToken = default) =>
         await _context.Set<Order>()
             .Where(o => o.Status == OrderStatus.PendingPayment && o.CreatedAt < cutoffUtc)
