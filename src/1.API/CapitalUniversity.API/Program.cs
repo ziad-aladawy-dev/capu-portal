@@ -20,6 +20,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
+using System.Data.Common;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -157,10 +159,17 @@ using (var scope = app.Services.CreateScope())
     var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
     if (autoMigrate && db.Database.IsRelational())
     {
-        await db.Database.ExecuteSqlRawAsync("""
-            IF OBJECT_ID('__EFMigrationsHistory') IS NOT NULL
-                DROP TABLE __EFMigrationsHistory;
-            """);
+        // CanConnect returns false when the database does not exist yet,
+        // which is the common case on first startup.  Skip the migration
+        // history cleanup in that case — EnsureCreatedAsync below will
+        // create both the database and the schema from scratch.
+        if (db.Database.CanConnect())
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                IF OBJECT_ID('__EFMigrationsHistory') IS NOT NULL
+                    DROP TABLE __EFMigrationsHistory;
+                """);
+        }
         await db.Database.EnsureCreatedAsync();
 
         // Create performance indexes that are defined in entity configurations
@@ -183,6 +192,51 @@ using (var scope = app.Services.CreateScope())
                     CREATE INDEX IX_Staffs_StructureNodeId ON Staffs (StructureNodeId);
             END
             """);
+    }
+
+    // StudentServicesDbContext uses the same database but a different schema
+    // (StudentServices.*).  EnsureCreatedAsync skips when ANY tables exist, so
+    // we cannot rely on it for the 2nd context.  Instead we generate the CREATE
+    // script from the model and run it, guarded by a schema-scoped table check.
+    if (autoMigrate && studentServicesDbContext.Database.IsRelational())
+    {
+        await studentServicesDbContext.Database.ExecuteSqlRawAsync("""
+            IF SCHEMA_ID('StudentServices') IS NULL
+                EXEC('CREATE SCHEMA StudentServices');
+            """);
+
+        var hasTables = false;
+        var conn = studentServicesDbContext.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open)
+            await conn.OpenAsync();
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = """
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM sys.tables t
+                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                    WHERE s.name = 'StudentServices'
+                ) THEN 1 ELSE 0 END
+                """;
+            hasTables = (int)(await cmd.ExecuteScalarAsync())! == 1;
+        }
+
+        if (!hasTables)
+        {
+            var script = studentServicesDbContext.Database.GenerateCreateScript();
+            if (!string.IsNullOrWhiteSpace(script))
+            {
+                var batches = script.Split(
+                    ["\nGO\n", "\nGO\r\n", "\r\nGO\r\n", "\r\nGO\n"],
+                    StringSplitOptions.RemoveEmptyEntries);
+                foreach (var batch in batches)
+                {
+                    var trimmed = batch.Trim();
+                    if (trimmed.Length > 0)
+                        await studentServicesDbContext.Database.ExecuteSqlRawAsync(trimmed);
+                }
+            }
+        }
     }
 
     //await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);

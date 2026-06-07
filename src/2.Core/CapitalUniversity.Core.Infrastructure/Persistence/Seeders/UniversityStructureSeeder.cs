@@ -1,13 +1,20 @@
 using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 
 namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 
 public static class UniversityStructureSeeder
 {
     private static readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     public static async Task SeedAsync(CoreDbContext context)
     {
@@ -241,7 +248,7 @@ public static class UniversityStructureSeeder
         {
             { "ar", nameAr },
             { "en", nameEn }
-        });
+        }, _jsonOptions);
 
         var node = new StructureNode
         {

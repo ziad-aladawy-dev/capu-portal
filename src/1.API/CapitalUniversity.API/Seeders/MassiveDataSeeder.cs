@@ -17,6 +17,7 @@ using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CapitalUniversity.API.Seeders;
 
@@ -134,9 +135,24 @@ public static class MassiveDataSeeder
         var years = await context.AcademicYears.OrderBy(y => y.Name).ToListAsync();
         var effectiveFrom = years.FirstOrDefault()?.StartDate ?? new DateTime(2023, 9, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        StructureNode GetProgram(string name) =>
-            programs.FirstOrDefault(n => n.Name.Contains(name))
-            ?? throw new InvalidOperationException($"Program '{name}' not found in structure.");
+        StructureNode? GetProgram(string name)
+        {
+            var found = programs.FirstOrDefault(n =>
+            {
+                try
+                {
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(n.Name);
+                    return dict != null && dict.TryGetValue("en", out var en) && en.Contains(name, StringComparison.OrdinalIgnoreCase);
+                }
+                catch
+                {
+                    return n.Name.Contains(name, StringComparison.OrdinalIgnoreCase);
+                }
+            });
+            if (found == null)
+                Console.WriteLine($"[MassSeed] Plan: program '{name}' not found in structure — skipping.");
+            return found;
+        }
 
         int GetLevelCount(Guid programId)
         {
@@ -146,9 +162,10 @@ public static class MassiveDataSeeder
 
         Course C(string code) => courses.GetValueOrDefault(code) ?? throw new InvalidOperationException($"Course '{code}' not found.");
 
-        Guid MakePlan(string name, string programName, (string Code, int Level, int Semester, bool Mandatory)[] planCourses)
+        Guid? MakePlan(string name, string programName, (string Code, int Level, int Semester, bool Mandatory)[] planCourses)
         {
             var prog = GetProgram(programName);
+            if (prog == null) return null;
             var plan = new AcademicPlan
             {
                 Id = Guid.NewGuid(),
@@ -343,7 +360,18 @@ public static class MassiveDataSeeder
 
         void AddStudentsToProgram(string programName, int countPerLevel, Func<int, string, string> nameGen, Func<int, string> nidGen)
         {
-            var prog = programs.Values.FirstOrDefault(p => p.Name.Contains(programName));
+            var prog = programs.Values.FirstOrDefault(p =>
+            {
+                try
+                {
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(p.Name);
+                    return dict != null && dict.TryGetValue("en", out var en) && en.Contains(programName, StringComparison.OrdinalIgnoreCase);
+                }
+                catch
+                {
+                    return p.Name.Contains(programName, StringComparison.OrdinalIgnoreCase);
+                }
+            });
             if (prog == null)
             {
                 Console.WriteLine($"[MassSeed] Students: program '{programName}' not found.");
