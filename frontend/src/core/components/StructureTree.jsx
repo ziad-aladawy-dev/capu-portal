@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Check } from "lucide-react";
 import { getLocalized } from "../utils/getLocalized";
 import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
 import NodeTypeBadge from "./NodeTypeBadge";
+import "./structureTree.css";
 
 function DefaultNodeRenderer({ node, isSelected, isExpanded, onToggle, onSelect, depth, selectionMode, isChecked, onCheck }) {
   const typeConfig = getNodeTypeConfig(node.type);

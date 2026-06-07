@@ -14,7 +14,8 @@ function transformApiPermissions(apiPermissions) {
   return apiPermissions.map((p) => {
     const resource = `${p.module}.${p.resource}.${p.action}`.toLowerCase();
     const level = ACTION_LEVEL_MAP[p.action] || 0;
-    return { resource, level };
+    const scope = p.scope || null;
+    return { resource, level, scope };
   });
 }
 

@@ -16,7 +16,7 @@ export async function fetchPermissionAssignment(params = {}) {
     return data;
   } catch (err) {
     if (err.response?.status === 404) {
-      return { roleIds: [], permissionOverrides: [] };
+      return { roleAssignments: [], permissionOverrides: [] };
     }
     throw err;
   }

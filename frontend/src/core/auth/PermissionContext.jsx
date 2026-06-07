@@ -1,5 +1,7 @@
 import { createContext, useMemo } from "react";
 import { useAuth } from "./useAuth";
+import { useDomain } from "../contexts/DomainContext";
+import { useAcademic } from "../contexts/AcademicContext";
 
 const PermissionContext = createContext(null);
 
@@ -27,13 +29,43 @@ function canDelete(level) {
   return level >= 5;
 }
 
+function matchScope(p, scopeNode, selectedYearObj, selectedSemesterObj) {
+  if (!p.scope) return true;
+
+  // Structural: pass when no filter, global, or matches selected node
+  const structuralOk =
+    !scopeNode ||
+    !p.scope ||
+    p.scope.isGlobalStructural ||
+    (p.scope.structureNodeId && p.scope.structureNodeId === scopeNode.id);
+
+  // Temporal year: pass when no filter, global, or matches selected year
+  const yearOk =
+    !selectedYearObj ||
+    !p.scope ||
+    p.scope.isGlobalYear ||
+    (p.scope.academicYearId && p.scope.academicYearId === selectedYearObj.id);
+
+  // Temporal semester: pass when no filter, global, or matches selected semester
+  const semOk =
+    !selectedSemesterObj ||
+    !p.scope ||
+    p.scope.isGlobalSemester ||
+    (p.scope.semesterId && p.scope.semesterId === selectedSemesterObj.id);
+
+  return structuralOk && yearOk && semOk;
+}
+
 function PermissionProvider({ children }) {
   const { permissions } = useAuth();
+  const { scopeNode } = useDomain();
+  const { selectedYearObj, selectedSemesterObj } = useAcademic();
 
   const permissionMap = useMemo(() => {
     const map = {};
     if (permissions && Array.isArray(permissions)) {
       for (const p of permissions) {
+        if (!matchScope(p, scopeNode, selectedYearObj, selectedSemesterObj)) continue;
         map[p.resource] = p.level;
         const dot = p.resource.lastIndexOf('.');
         if (dot !== -1) {
@@ -43,7 +75,7 @@ function PermissionProvider({ children }) {
       }
     }
     return map;
-  }, [permissions]);
+  }, [permissions, scopeNode, selectedYearObj, selectedSemesterObj]);
 
   const getLevel = (resource) => {
     let level = permissionMap[resource] || 0;

@@ -22,17 +22,17 @@ ReactDOM.createRoot(
   <BrowserRouter>
     <ErrorBoundary>
       <AuthProvider>
-        <PermissionProvider>
-          <ToastProvider>
-            <DomainProvider>
-              <AcademicProvider>
+        <ToastProvider>
+          <DomainProvider>
+            <AcademicProvider>
+              <PermissionProvider>
                 <StickySelectionProvider>
                   <App />
                 </StickySelectionProvider>
-              </AcademicProvider>
-            </DomainProvider>
-          </ToastProvider>
-        </PermissionProvider>
+              </PermissionProvider>
+            </AcademicProvider>
+          </DomainProvider>
+        </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>
   </BrowserRouter>

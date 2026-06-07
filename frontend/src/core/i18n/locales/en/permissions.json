@@ -72,5 +72,18 @@
     "save_failed": "Save Failed",
     "role_permissions": "Role Permissions",
     "no_permissions_found": "No permissions found",
-    "created_info": "Created {{date}}"
+    "created_info": "Created {{date}}",
+    "assignment_scope": "Assignment Scope",
+    "change_scope": "Change",
+    "always_active": "Always Active",
+    "limited_to": "Limited to",
+    "select_academic_year": "Select Academic Year",
+    "select_semester": "Select Semester",
+    "loading_structure": "Loading structure…",
+    "scope_global": "Global",
+    "scope_structural": "Scoped",
+    "override_scope_title": "Permission Scope",
+    "override_scope_global": "Global",
+    "override_scope_set": "Set scope for this override",
+    "temporal_hint": "Temporal scope controls when this assignment is active."
 }
