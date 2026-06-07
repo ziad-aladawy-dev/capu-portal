@@ -1,0 +1,277 @@
+/* ── Command Palette (Cmd+K) ────────────────────────────── */
+
+.cmd-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: rgba(7, 9, 30, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: cmdOverlayIn 0.18s ease-out;
+}
+
+@keyframes cmdOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cmd-palette {
+  width: 580px;
+  max-width: 94vw;
+  max-height: 70vh;
+  background: #0d1033;
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  border-radius: 14px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(201, 168, 76, 0.08) inset;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: cmdSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cmdSlideIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Search input ── */
+.cmd-palette-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.cmd-palette-input-wrap svg {
+  color: rgba(201, 168, 76, 0.5);
+  flex-shrink: 0;
+}
+
+.cmd-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e8e6e3;
+  font-size: 15px;
+  font-family: "DM Sans", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.cmd-palette-input::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.cmd-palette-kbd {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: "Space Mono", monospace;
+}
+
+/* ── Results area ── */
+.cmd-palette-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.cmd-palette-body::-webkit-scrollbar {
+  width: 4px;
+}
+.cmd-palette-body::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.15);
+  border-radius: 4px;
+}
+
+/* ── Category group ── */
+.cmd-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(201, 168, 76, 0.5);
+}
+
+/* ── Result item ── */
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.cmd-item:hover,
+.cmd-item.is-focused {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.cmd-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cmd-item-icon.type-student {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+.cmd-item-icon.type-staff {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+.cmd-item-icon.type-course {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.cmd-item-icon.type-invoice {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+.cmd-item-icon.type-page {
+  background: rgba(201, 168, 76, 0.08);
+  color: #c9a84c;
+}
+
+.cmd-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmd-item-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e8e6e3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-item-subtitle {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-item-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.cmd-item-badge.type-student { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+.cmd-item-badge.type-staff   { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+.cmd-item-badge.type-course  { background: rgba(34, 197, 94, 0.12);  color: #4ade80; }
+.cmd-item-badge.type-invoice { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+.cmd-item-badge.type-page    { background: rgba(201, 168, 76, 0.08); color: #c9a84c; }
+
+/* ── Empty / loading ── */
+.cmd-palette-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 13px;
+  gap: 8px;
+}
+
+.cmd-palette-empty svg {
+  opacity: 0.3;
+}
+
+.cmd-palette-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: rgba(201, 168, 76, 0.4);
+  font-size: 12px;
+  gap: 8px;
+}
+
+/* ── Footer ── */
+.cmd-palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid rgba(201, 168, 76, 0.08);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.cmd-palette-footer kbd {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: "Space Mono", monospace;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Recent searches ── */
+.cmd-recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 4px;
+}
+
+.cmd-recent-header span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(201, 168, 76, 0.5);
+}
+
+.cmd-recent-clear {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+
+.cmd-recent-clear:hover {
+  color: rgba(201, 168, 76, 0.7);
+}

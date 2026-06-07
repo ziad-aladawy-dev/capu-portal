@@ -35,10 +35,7 @@ public class StaffRepository : IStaffRepository
 
     public async Task<PagedResult<Staff>> SearchAsync(StaffQueryRequest request)
     {
-        var query = _context.Staffs
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-            .AsQueryable();
+        var query = _context.Staffs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -113,6 +110,10 @@ public class StaffRepository : IStaffRepository
 
         int totalCount =
             await query.CountAsync();
+
+        query = query
+            .Include(x => x.StructureNode)
+                .ThenInclude(x => x.Parent);
 
         var items = await query
             .OrderBy(x => x.EmployeeCode)
@@ -210,6 +211,28 @@ public class StaffRepository : IStaffRepository
             .OrderByDescending(x => x.EmployeeCode)
             .Select(x => x.EmployeeCode)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
+    {
+        var query = _context.Staffs.AsQueryable();
+
+        if (request.ScopeNodeId.HasValue)
+        {
+            var scopeNode = await _context.StructureNodes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
+
+            if (scopeNode != null)
+                query = query.Where(x => x.StructureNode.Path.StartsWith(scopeNode.Path));
+        }
+
+        return new UserStatisticsDto
+        {
+            TotalStaff = await query.CountAsync(),
+            ActiveStaff = await query.CountAsync(x => x.IsActive),
+            InactiveStaff = await query.CountAsync(x => !x.IsActive)
+        };
     }
 
     // P0.7 — services/UoW own the transaction boundary. This delegate exists

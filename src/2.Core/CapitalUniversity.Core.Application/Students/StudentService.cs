@@ -245,21 +245,7 @@ public class StudentService : IStudentService
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        var result = await SearchAsync(new StudentQueryRequest
-        {
-            ScopeNodeId = request.ScopeNodeId,
-
-            Page = 1,
-
-            PageSize = int.MaxValue
-        });
-
-        return new UserStatisticsDto
-        {
-            TotalStudents = result.Items.Count,
-            ActiveStudents = result.Items.Count(x => x.IsActive),
-            InactiveStudents = result.Items.Count(x => !x.IsActive)
-        };
+        return await _repository.GetStatisticsAsync(request);
     }
 
     private StudentDto Map(Student student)

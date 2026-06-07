@@ -227,7 +227,7 @@ const UserDetails = () => {
 
           <div className="bottom-actions-panel animated-fade">
             <div className="bottom-actions-row">
-              <button className="bottom-action-btn gold" onClick={() => navigate(userType === 'student' ? `/admin/users/edit-student/${id}` : `/admin/users/edit-staff/${id}`)}>
+              <button className="bottom-action-btn gold" onClick={() => navigate(userType === 'student' ? `/admin/users/students/${id}/edit` : `/admin/users/staff/${id}/edit`)}>
                 <Edit3 size={18} /> {t('edit_user')}
               </button>
               <span className="action-separator"></span>

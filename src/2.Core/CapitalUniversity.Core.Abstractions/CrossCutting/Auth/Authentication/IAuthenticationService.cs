@@ -21,6 +21,14 @@ public interface IAuthenticationService
     Task<bool> ChangePasswordAsync(System.Guid userId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the user profile, permissions, and active scope for the currently
+    /// authenticated user identified by <paramref name="userId"/>. Returns null if
+    /// the user no longer exists. Does NOT issue new tokens — this is a read-only
+    /// bootstrap used to rehydrate SPA auth state on page reload.
+    /// </summary>
+    Task<LoginResponseDto?> GetCurrentUserAsync(System.Guid userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Validates the supplied refresh token, rotates it, and returns a fresh access +
     /// refresh pair. The previous refresh token becomes invalid. On any failure
     /// (unknown / expired / revoked) returns null; replay attempts trigger a full chain

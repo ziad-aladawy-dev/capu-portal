@@ -1,38 +1,90 @@
 import axios from "axios";
-import i18n from "../i18n/i18n";
+
+let onUnauthorizedCallback = null;
+let isRefreshing = false;
+let failedQueue = [];
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5256", 
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5256/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
+apiClient.setOnUnauthorized = (callback) => {
+  onUnauthorizedCallback = callback;
+};
+
+apiClient.getToken = () => {
+  return localStorage.getItem("accessToken");
+};
+
+apiClient.getRefreshToken = () => {
+  return localStorage.getItem("refreshToken");
+};
+
+apiClient.clearTokens = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+};
+
+apiClient.setToken = (token) => {
+  if (token) localStorage.setItem("accessToken", token);
+};
+
+apiClient.setRefreshToken = (token) => {
+  if (token) localStorage.setItem("refreshToken", token);
+};
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  if (config.skipScope) return config;
+  const token = apiClient.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
-  const language = i18n.language || localStorage.getItem('i18nextLng') || 'ar';
-  config.headers['Accept-Language'] = language === 'en' ? 'en' : 'ar';
-
-  const activeScope = localStorage.getItem("activeScope");
-  if (activeScope) {
-    try {
-      const scope = JSON.parse(activeScope);
-      if (scope.structural?.nodeId) {
-        config.headers['X-StructureNode-Id'] = scope.structural.nodeId;
-      }
-      if (scope.temporal?.academicYearId) {
-        config.headers['X-AcademicYear-Id'] = scope.temporal.academicYearId;
-      }
-      if (scope.temporal?.semesterId) {
-        config.headers['X-Semester-Id'] = scope.temporal.semesterId;
-      }
-    } catch (e) {}
+  // Attach language header for i18n
+  const lang = localStorage.getItem("i18nextLng") || "ar";
+  config.headers["Accept-Language"] = lang;
+  // Auto-attach scope context from localStorage to every request
+  // Both query params AND headers are sent: query-params support existing
+  // backend DTOs (StudentQueryRequest.ScopeNodeId etc.), while headers
+  // support the IRequestContext interface (X-StructureNode-Id etc.) used
+  // by permission and effective-scope services.
+  try {
+    const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
+    const academicYear = JSON.parse(localStorage.getItem("capu_selected_academic_year"));
+    const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
+    const params = {};
+    if (scopeNode?.id) {
+      params.ScopeNodeId = scopeNode.id;
+      config.headers["X-StructureNode-Id"] = scopeNode.id;
+    }
+    if (academicYear?.id) {
+      params.AcademicYearId = academicYear.id;
+      config.headers["X-AcademicYear-Id"] = academicYear.id;
+    }
+    if (semester?.id) {
+      params.SemesterId = semester.id;
+      config.headers["X-Semester-Id"] = semester.id;
+    }
+    if (Object.keys(params).length > 0) {
+      config.params = { ...config.params, ...params };
+    }
+    return config;
+  } catch {
+    // localStorage items may be absent or invalid
   }
-
   return config;
 });
 
@@ -40,25 +92,69 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const path = window.location.pathname;
+      if (path === "/admin/login" || path === "/student/login" || path === "/") {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = apiClient.getRefreshToken();
+      if (!refreshToken) {
+        apiClient.clearTokens();
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback();
+        } else {
+          window.location.href = "/admin/login";
+        }
+        isRefreshing = false;
+        return Promise.reject(error);
+      }
+
       try {
-        const response = await apiClient.post('/api/auth/refresh');
-        const newToken = response.data.token;
-        localStorage.setItem("accessToken", newToken);
+        const { data } = await axios.post(
+          `${apiClient.defaults.baseURL}/auth/refresh`,
+          { refreshToken }
+        );
+
+        const newToken = data.token || data.accessToken;
+        const newRefreshToken = data.refreshToken;
+
+        apiClient.setToken(newToken);
+        if (newRefreshToken) apiClient.setRefreshToken(newRefreshToken);
+
+        processQueue(null, newToken);
+
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("user");
-        localStorage.removeItem("permissions");
-        localStorage.removeItem("activeScope");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const redirectUrl = user?.role === "Student" ? "/student/login" : "/admin/login";
-        window.location.href = redirectUrl;
+        processQueue(refreshError, null);
+        apiClient.clearTokens();
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback();
+        } else {
+          window.location.href = "/admin/login";
+        }
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

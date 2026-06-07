@@ -56,6 +56,20 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the profile, permissions, and active scope for the currently
+    /// authenticated user. Used by the SPA on page reload to rehydrate auth
+    /// state without requiring the user to log in again.
+    /// </summary>
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<LoginResponseDto>> Me(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId)) return Unauthorized();
+        var result = await _authService.GetCurrentUserAsync(userId, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>
     /// Changes the caller's password, revokes every refresh token, and bumps
     /// SessionVersion so every previously issued credential (including the one used
     /// to make this call) stops working.

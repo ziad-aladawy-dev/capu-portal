@@ -1,0 +1,1 @@
+Navy/gold admin UI. Sidebar+navbar+user search. 7 screens: Permissions (role chips, action levels), Roles (CRUD), Users (tabs, filters, bulk), User Hub (profile+tabs), Invoices (search, create modal), Invoice detail (items, payments), Finance (KPI cards, charts). Loading/empty/error states included.

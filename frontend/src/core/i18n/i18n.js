@@ -939,6 +939,11 @@ const resources = {
   }
 };
 
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng;
+  document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+});
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

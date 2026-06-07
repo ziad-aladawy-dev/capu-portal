@@ -23,19 +23,22 @@ public class RolesController : ControllerBase
     private readonly DeleteRoleCommandHandler _deleteRoleHandler;
     private readonly GetRoleByIdQueryHandler _getRoleByIdHandler;
     private readonly GetRolesQueryHandler _getRolesHandler;
+    private readonly GetRoleMembersQueryHandler _getRoleMembersHandler;
 
     public RolesController(
         CreateRoleCommandHandler createRoleHandler,
         UpdateRoleCommandHandler updateRoleHandler,
         DeleteRoleCommandHandler deleteRoleHandler,
         GetRoleByIdQueryHandler getRoleByIdHandler,
-        GetRolesQueryHandler getRolesHandler)
+        GetRolesQueryHandler getRolesHandler,
+        GetRoleMembersQueryHandler getRoleMembersHandler)
     {
         _createRoleHandler = createRoleHandler;
         _updateRoleHandler = updateRoleHandler;
         _deleteRoleHandler = deleteRoleHandler;
         _getRoleByIdHandler = getRoleByIdHandler;
         _getRolesHandler = getRolesHandler;
+        _getRoleMembersHandler = getRoleMembersHandler;
     }
 
     [HttpGet]
@@ -71,6 +74,14 @@ public class RolesController : ControllerBase
         var response = await _updateRoleHandler.Handle(request, cancellationToken);
         if (response == null) return NotFound();
         return Ok(response);
+    }
+
+    [HttpGet("{id:guid}/members")]
+    [HasPermission(PermissionNames.Roles.View)]
+    public async Task<ActionResult<List<RoleMemberResponse>>> GetRoleMembers(Guid id, CancellationToken cancellationToken)
+    {
+        var members = await _getRoleMembersHandler.Handle(new GetRoleMembersRequest { RoleId = id }, cancellationToken);
+        return Ok(members);
     }
 
     [HttpDelete("{id:guid}")]

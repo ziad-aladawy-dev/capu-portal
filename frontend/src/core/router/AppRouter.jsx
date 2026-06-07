@@ -1,90 +1,65 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "../contexts/AuthContext";
-import { ScopeProvider } from "../contexts/ScopeContext";
-import ProtectedRoute from "./ProtectedRoute";
-
-// Public pages
-import LandingPage from "../../modules/landing/pages/LandingPage";
-import AdminLogin from "../../modules/auth/pages/AdminLogin";
-import StudentLogin from "../../modules/auth/pages/StudentLogin";
-
-// Admin/Staff layouts and pages
+import { lazy, Suspense, useMemo } from "react";
+import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
-import AdminDashboard from "../../modules/admin/pages/AdminDashboard";
-import UserManagement from "../../modules/users/pages/UserManagement";
-import AddStudent from "../../modules/users/pages/AddStudent";
-import EditStudent from "../../modules/users/pages/EditStudent";
-import AddStaff from "../../modules/users/pages/AddStaff";
-import EditStaff from "../../modules/users/pages/EditStaff";
-import UserDetails from "../../modules/users/pages/UserDetails";
-import UniversityStructurePage from "../../modules/university/pages/UniversityStructurePage";
+import { buildProtectedRoutes } from "./routeRegistry";
 
-// Student Services - Staff/Admin pages
-import StaffDashboard from "../../modules/studentServices/pages/admin/StaffDashboard";
-import ServicesManagement from "../../modules/studentServices/pages/admin/ServicesManagement";
-import ServiceBuilder from "../../modules/studentServices/pages/admin/ServiceBuilder";
-import RequestsManagement from "../../modules/studentServices/pages/admin/RequestsManagement";
-import RequestReview from "../../modules/studentServices/pages/admin/RequestReview";
-import NotificationsCenter from "../../modules/studentServices/pages/admin/NotificationsCenter";
-
-// Student Services - Student pages
-import StudentDashboard from "../../modules/studentServices/pages/student/StudentDashboard";
-import ServiceDetails from "../../modules/studentServices/pages/student/ServiceDetails";
-import RequestSubmission from "../../modules/studentServices/pages/student/RequestSubmission";
-import MyRequests from "../../modules/studentServices/pages/student/MyRequests";
-import StudentRequestDetails from "../../modules/studentServices/pages/student/StudentRequestDetails";
-import StudentNotificationsCenter from "../../modules/studentServices/pages/student/StudentNotificationsCenter";
+const LandingPage = lazy(() => import("../../modules/landing/pages/LandingPage"));
+const AdminLogin = lazy(() => import("../auth/pages/AdminLogin"));
+const StudentLogin = lazy(() => import("../auth/pages/StudentLogin"));
 
 function AppRouter() {
+  const protectedRoutes = useMemo(() => buildProtectedRoutes(), []);
+
   return (
-    <AuthProvider>
-      <ScopeProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/student/login" element={<StudentLogin />} />
+    <Suspense fallback={<div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      height: "100vh", color: "#9ca3af", fontFamily: '"Outfit", sans-serif',
+      fontSize: 13,
+    }}>Loading...</div>}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/student/login" element={<StudentLogin />} />
 
-          {/* Staff / Admin protected routes */}
-          <Route element={<ProtectedRoute allowedRoles={["Staff", "Super Admin", "Admin", "SystemAdmin"]} />}>
-            <Route element={<DashboardLayout />}>
-              {/* Core admin routes */}
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/users/add-student" element={<AddStudent />} />
-              <Route path="/admin/users/edit-student/:id" element={<EditStudent />} />
-              <Route path="/admin/users/add-staff" element={<AddStaff />} />
-              <Route path="/admin/users/edit-staff/:id" element={<EditStaff />} />
-              <Route path="/admin/users/:id" element={<UserDetails />} />
-              <Route path="/admin/university-structure" element={<UniversityStructurePage />} />
+        {/* Protected dashboard routes — manifest-driven, wrapped by RouteGuard */}
+        <Route element={<DashboardLayout />}>
+          {protectedRoutes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={route.element}
+            />
+          ))}
+        </Route>
 
-              {/* Student Services staff routes */}
-              <Route path="/admin/student-services/dashboard" element={<StaffDashboard />} />
-              <Route path="/admin/student-services/services" element={<ServicesManagement />} />
-              <Route path="/admin/student-services/services/create" element={<ServiceBuilder />} />
-              <Route path="/admin/student-services/services/edit/:id" element={<ServiceBuilder />} />
-              <Route path="/admin/student-services/requests" element={<RequestsManagement />} />
-              <Route path="/admin/student-services/requests/:id" element={<RequestReview />} />
-              <Route path="/admin/student-services/notifications" element={<NotificationsCenter />} />
-            </Route>
-          </Route>
-
-          {/* Student protected routes */}
-          {/* <Route element={<ProtectedRoute allowedRoles={["Student"]} />}> */}
-            {/* <Route element={<StudentLayout />}> */}
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/services/:id" element={<ServiceDetails />} />
-              <Route path="/student/services/:id/apply" element={<RequestSubmission />} />
-              <Route path="/student/requests" element={<MyRequests />} />
-              <Route path="/student/requests/:id" element={<StudentRequestDetails />} />
-              <Route path="/student/notifications" element={<StudentNotificationsCenter />} />
-              <Route path="/student/profile" element={<div>Student Profile Page</div>} />
-            {/* </Route> */}
-          {/* </Route> */}
-        </Routes>
-      </ScopeProvider>
-    </AuthProvider>
+        {/* 404 catch-all */}
+        <Route
+          path="*"
+          element={
+            <div className="error-page-container">
+              <div className="error-page-card">
+                <div className="error-page-icon not-found">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m15 9-6 6" />
+                    <path d="m9 9 6 6" />
+                  </svg>
+                </div>
+                <h1 className="error-page-code">404</h1>
+                <h2 className="error-page-title">Page Not Found</h2>
+                <p className="error-page-desc">
+                  The page you're looking for doesn't exist or has been moved.
+                </p>
+                <a href="/admin/dashboard" className="error-page-link">
+                  ← Back to Dashboard
+                </a>
+              </div>
+            </div>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

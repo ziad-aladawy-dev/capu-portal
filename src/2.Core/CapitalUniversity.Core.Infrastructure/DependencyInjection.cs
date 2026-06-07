@@ -244,6 +244,7 @@ public static class DependencyInjection
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Commands.SetRolePermissionsCommandHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRoleByIdQueryHandler>();
         services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRolesQueryHandler>();
+        services.AddScoped<CapitalUniversity.Core.Infrastructure.Services.Roles.Queries.GetRoleMembersQueryHandler>();
 
         // Security-event audit logger (PR-B4) — routes denials, auth failures,
         // token revocations + role assignment changes through the async audit

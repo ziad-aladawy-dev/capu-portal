@@ -41,10 +41,14 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
         builder.Property(x => x.Email)
             .HasMaxLength(200);
 
+        builder.HasIndex(x => x.Email);
+
         builder.HasOne(x => x.StructureNode)
             .WithMany()
             .HasForeignKey(x => x.StructureNodeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.StructureNodeId);
 
         // ExternallySourced is a composed data block (not a base class); EF
         // flattens it onto the Students table via OwnsOne with explicit column

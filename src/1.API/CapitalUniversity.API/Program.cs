@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.API.Seeders;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -9,6 +10,7 @@ using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Payments.Persistence;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
 using FluentValidation.AspNetCore;
@@ -54,6 +56,7 @@ if (builder.Environment.EnvironmentName != "Testing")
 {
     builder.Services.AddDbContext<CoreDbContext>(options =>
         options
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
             .UseSqlServer(
                 builder.Configuration.GetConnectionString("DefaultConnection"),
                 // Transient SQL errors (deadlocks with retryable codes, brief
@@ -146,21 +149,48 @@ using (var scope = app.Services.CreateScope())
     var actionExpander = scope.ServiceProvider.GetRequiredService<CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.ManifestActionExpander>();
     var studentServicesDbContext = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
 
-    // Apply pending EF migrations on startup when running against a relational
-    // provider (skipped for InMemory which uses EnsureCreated in tests). Lets the
-    // app pick up schema changes shipped in the same release without an explicit
-    // "dotnet ef database update" step. Disable by setting
-    // "Database:AutoMigrate" = false in appsettings if you prefer explicit gating.
+    // Ensure database schema is created. There are no migration files, so
+    // EnsureCreatedAsync creates all tables + indexes from the model.
+    // If the database was previously touched by MigrateAsync (which creates
+    // __EFMigrationsHistory but no app tables), drop that tracking table first
+    // so EnsureCreated sees a clean slate.
     var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
     if (autoMigrate && db.Database.IsRelational())
     {
-        await db.Database.MigrateAsync();
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID('__EFMigrationsHistory') IS NOT NULL
+                DROP TABLE __EFMigrationsHistory;
+            """);
+        await db.Database.EnsureCreatedAsync();
+
+        // Create performance indexes that are defined in entity configurations
+        // but may not exist on databases that were created before the index
+        // definitions were added. Guarded with OBJECT_ID so they run safely
+        // on any existing database.
+        await db.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID('Students') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Students_Email' AND object_id = OBJECT_ID('Students'))
+                    CREATE INDEX IX_Students_Email ON Students (Email);
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Students_StructureNodeId' AND object_id = OBJECT_ID('Students'))
+                    CREATE INDEX IX_Students_StructureNodeId ON Students (StructureNodeId);
+            END
+            IF OBJECT_ID('Staffs') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Staffs_Email' AND object_id = OBJECT_ID('Staffs'))
+                    CREATE INDEX IX_Staffs_Email ON Staffs (Email);
+                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Staffs_StructureNodeId' AND object_id = OBJECT_ID('Staffs'))
+                    CREATE INDEX IX_Staffs_StructureNodeId ON Staffs (StructureNodeId);
+            END
+            """);
     }
 
     //await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await UniversityStructureSeeder.SeedAsync(db);
     await IdentitySeeder.SeedAsync(db, passwordHasher);
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
+    await PaymentsSeeder.SeedAsync(db);
+    await MassiveDataSeeder.SeedAsync(db, passwordHasher);
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
     // every module owns its permissions through IPermissionManifest, and the

@@ -540,24 +540,9 @@ public static class DataSeeder
     private static async Task SeedStaffRoleAssignmentsAsync(CoreDbContext context)
     {
         var staff = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
-        // Roles + semesters are stored bilingually; the seeder pivots on
-        // their English form so index by the "en" subkey (legacy plain-text
-        // values fall through as the literal).
         var roles = (await context.Roles.ToListAsync())
             .ToDictionary(r => LocalizedJson.Extract(r.Name, "en"));
         var nodes = await context.StructureNodes.ToListAsync();
-        var years = await context.AcademicYears.Include(y => y.Semesters).ToListAsync();
-
-        var year2526 = years.FirstOrDefault(y => y.Name == "2025-2026");
-        var fall = year2526?.Semesters.FirstOrDefault(s => LocalizedJson.Extract(s.Name, "en") == "Fall");
-        if (year2526 == null || fall == null)
-        {
-            Console.WriteLine("[Seed] StaffRoles: aborting — academic year '2025-2026' or its 'Fall' semester missing.");
-            return;
-        }
-
-        var yearKey = year2526.Id.ToString();
-        var fallKey = fall.Id.ToString();
 
         StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
@@ -567,16 +552,28 @@ public static class DataSeeder
         var defs = new (string EmpCode, string RoleName, string Year, string Semester, string? NodeName)[]
         {
             ("ADMIN-001", "Super Admin",      ScopeKeys.Global, ScopeKeys.Global, null),
-            ("FAC-001",   "Faculty Admin",    yearKey,  fallKey,  "Home Economics"),
-            ("HOD-001",   "Department Head",  yearKey,  fallKey,  "Clinical Nutrition"),
-            ("REG-001",   "Registrar",        yearKey,  fallKey,  "Capital University"),
-            ("ADV-001",   "Academic Advisor", yearKey,  fallKey,  "Nutrition & Food Science"),
-            ("STF-001",   "Staff",            yearKey,  fallKey,  "Capital University"),
-            ("VWR-001",   "Viewer",           yearKey,  fallKey,  "Capital University"),
-            ("FAC-002",   "Faculty Admin",    yearKey,  fallKey,  "Mataria"),
+            ("FAC-001",   "Faculty Admin",    ScopeKeys.Global, ScopeKeys.Global, "Home Economics"),
+            ("HOD-001",   "Department Head",  ScopeKeys.Global, ScopeKeys.Global, "Clinical Nutrition"),
+            ("REG-001",   "Registrar",        ScopeKeys.Global, ScopeKeys.Global, "Capital University"),
+            ("ADV-001",   "Academic Advisor", ScopeKeys.Global, ScopeKeys.Global, "Nutrition & Food Science"),
+            ("STF-001",   "Staff",            ScopeKeys.Global, ScopeKeys.Global, "Capital University"),
+            ("VWR-001",   "Viewer",           ScopeKeys.Global, ScopeKeys.Global, "Capital University"),
+            ("FAC-002",   "Faculty Admin",    ScopeKeys.Global, ScopeKeys.Global, "Mataria"),
         };
 
         var existing = await context.StaffRoles.ToListAsync();
+
+        // Cleanup rows that were stored at a specific year/semester scope —
+        // all seeded role assignments should use Global scope.
+        var stale = existing.Where(r => r.Year != ScopeKeys.Global || r.Semester != ScopeKeys.Global).ToList();
+        if (stale.Count > 0)
+        {
+            context.StaffRoles.RemoveRange(stale);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[Seed] StaffRoles: cleaned {stale.Count} stale scoped assignment(s).");
+            existing = await context.StaffRoles.ToListAsync();
+        }
+
         var added = 0;
         foreach (var d in defs)
         {

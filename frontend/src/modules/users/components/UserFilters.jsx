@@ -2,11 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Filter, X } from "lucide-react";
 
+const getLocalizedName = (item) => {
+  return item?.localizedName || item?.name || '';
+};
+
 const UserFilters = ({ 
   filters, 
   roles, 
-  faculties, 
-  departments, 
+  faculties,
+  programs,
   levels,
   activeTab,
   onFilterChange, 
@@ -86,10 +90,6 @@ const UserFilters = ({
     onFilterChange({ ...filters, search: "" });
   };
 
-  const getLocalizedName = (item) => {
-    return item?.localizedName || item?.name || "";
-  };
-
   return (
     <section className="users-filter-card">
       <div className="users-filter-row">
@@ -152,7 +152,7 @@ const UserFilters = ({
                   <label>{t("program")}</label>
                   <select name="programId" value={localFilters.programId} onChange={handleChange} disabled={!localFilters.facultyId}>
                     <option value="">{t("all_programs")}</option>
-                    {departments.map(p => (
+                    {programs.map(p => (
                       <option key={p.id} value={p.id}>{getLocalizedName(p)}</option>
                     ))}
                   </select>

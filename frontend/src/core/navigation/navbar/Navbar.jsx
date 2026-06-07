@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from "react";
-import { Bell, ChevronDown, Menu, Building2, CalendarRange, BookOpen, User, Settings, LogOut} from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell, ChevronDown, Menu, Building2, CalendarRange,
+  BookOpen, HelpCircle, User, LogOut, Key, Settings, Search, Globe,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../../core/contexts/AuthContext";
-import { useScope } from "../../../core/contexts/ScopeContext";
-import { ScopeTreeModal } from "../../../modules/university/components/ScopeTreeModal";
-import "./navbar.css";
+
+import { useDomain } from "../../contexts/DomainContext";
+import { useAcademic } from "../../contexts/AcademicContext";
+import { useAuth } from "../../auth/useAuth";
+import * as notificationService from "../../services/notificationService";
+import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
+import ScopeModal from "../../components/ScopeModal";
+import "../../styles/navbar.css";
 
 const getLocalizedText = (text, lang) => {
   if (!text) return "";
@@ -16,19 +24,60 @@ const getLocalizedText = (text, lang) => {
   }
 };
 
-function Navbar({ onToggleSidebar }) {
-  const { selectedScope, updateScope } = useScope();
-  const [showScopeModal, setShowScopeModal] = useState(false);
-  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
-  const avatarMenuRef = useRef(null);
+function getUserInitial(user, language) {
+  if (!user) return "U";
+  let displayName = "";
+  const raw = user.name || user.fullName || "";
+  if (typeof raw === "object" && raw !== null) {
+    displayName = language === "ar"
+      ? (raw.ar || raw.en || "")
+      : (raw.en || raw.ar || "");
+  } else if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      displayName = language === "ar"
+        ? (parsed.ar || parsed.en || raw)
+        : (parsed.en || parsed.ar || raw);
+    } catch {
+      displayName = raw;
+    }
+  }
+  return displayName?.charAt(0)?.toUpperCase() || "U";
+}
+
+function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenCommandPalette }) {
   const { t, i18n } = useTranslation();
+  const { scopeNode } = useDomain();
+  const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj, academicYears = [], semesters = [], selectYear, selectSemester, clearYear, clearSemester, loading: academicLoading } = useAcademic();
   const { user, logout } = useAuth();
-  const currentLanguage = i18n.language;
+  const navigate = useNavigate();
+  const language = i18n.language;
+
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showScopeModal, setShowScopeModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  const scopeRef = useRef(null);
+  const yearRef = useRef(null);
+  const semRef = useRef(null);
+  const bellRef = useRef(null);
+  const avatarRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target)) {
-        setShowAvatarMenu(false);
+    const handleClickOutside = (e) => {
+      if (
+        !scopeRef.current?.contains(e.target) &&
+        !yearRef.current?.contains(e.target) &&
+        !semRef.current?.contains(e.target) &&
+        !bellRef.current?.contains(e.target) &&
+        !avatarRef.current?.contains(e.target)
+      ) {
+        setOpenDropdown(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -36,156 +85,313 @@ function Navbar({ onToggleSidebar }) {
   }, []);
 
   useEffect(() => {
-    if (i18n.language === 'ar') {
-      document.body.classList.add('rtl');
-      document.body.dir = 'rtl';
-    } else {
-      document.body.classList.remove('rtl');
-      document.body.dir = 'ltr';
+    notificationService
+      .fetchUnreadNotifications()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setUnreadCount(list.length);
+      })
+      .catch(() => setUnreadCount(0));
+  }, []);
+
+  const loadNotifications = useCallback(async () => {
+    if (notifications.length > 0) return;
+    setNotifLoading(true);
+    try {
+      const data = await notificationService.fetchUnreadNotifications();
+      setNotifications(Array.isArray(data) ? data.slice(0, 5) : []);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setNotifLoading(false);
     }
-  }, [i18n.language]);
+  }, [notifications.length]);
+
+  const handleMarkRead = async (id) => {
+    try {
+      await notificationService.markNotificationRead(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch { /* ignore */ }
+  };
+
+  const toggleDropdown = (name) => {
+    setOpenDropdown((prev) => (prev === name ? null : name));
+    if (name === "bell") loadNotifications();
+  };
+
+  const userInitial = getUserInitial(user, language);
+  const userName = user?.name || user?.fullName || "User";
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
-    localStorage.setItem('i18nextLng', lng);
   };
 
-  let currentScopeName = t("select_scope");
-  if (selectedScope) {
-    if (selectedScope.localizedName) {
-      currentScopeName = selectedScope.localizedName;
-    } else if (selectedScope.name) {
-      currentScopeName = getLocalizedText(selectedScope.name, i18n.language);
-    } else {
-      currentScopeName = t("select_scope");
-    }
-  }
-  const selectedYear = "2025-2026";
-  const selectedSemester = "Fall Semester";
-
-  const handleScopeSelect = (node) => {
-    updateScope({
-      id: node.id,
-      name: node.name,
-      originalName: node.originalName,
-      localizedName: node.localizedName,
-      type: node.type,
-      path: node.path,
-    });
+  const formatTime = (iso) => {
+    if (!iso) return "";
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return t("just_now");
+    if (diff < 3600) return `${Math.floor(diff / 60)}${t("m_ago")}`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}${t("h_ago")}`;
+    return `${Math.floor(diff / 86400)}${t("d_ago")}`;
   };
 
-  const getUserInitial = () => {
-    if (!user) return "U";
-    let displayName = "";
-    try {
-      if (typeof user.name === 'object' && user.name !== null) {
-        displayName = currentLanguage === 'ar' ? (user.name.ar || user.name.en) : (user.name.en || user.name.ar);
-      } else {
-        const parsed = JSON.parse(user.name);
-        displayName = currentLanguage === 'ar' ? (parsed.ar || parsed.en) : (parsed.en || parsed.ar);
-      }
-    } catch {
-      displayName = user.name || "";
-    }
-    return displayName?.charAt(0)?.toUpperCase() || "U";
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    navigate(`/admin/users?search=${encodeURIComponent(trimmed)}`);
+    setSearchQuery("");
   };
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = "/admin/login";
-  };
+  const scopeDisplayName = scopeNode
+    ? (scopeNode.localizedName || getLocalizedText(scopeNode.name, language) || scopeNode.name)
+    : t("all_scopes");
 
-  const handleProfile = () => {
-    window.location.href = "/admin/profile";
-  };
-
-  const handleSettings = () => {
-    window.location.href = "/admin/settings";
-  };
+  const scopeBadgeText = [
+    scopeDisplayName,
+    selectedYearObj?.name || null,
+    selectedSemesterObj?.name || null,
+  ].filter(Boolean).join(" | ") || t("all_scopes");
 
   return (
-    <header className="navbar">
-      <div className="navbar-left">
-        <button className="nav-icon-btn" onClick={onToggleSidebar}>
-          <Menu size={16} />
-        </button>
-        <div className="nav-divider" />
-        <div className="nav-dropdown-trigger scope-trigger" onClick={() => setShowScopeModal(true)}>
-          <Building2 size={15} />
-          <div className="scope-content">
-            <span className="nav-label">{t("current_scope") || "Current Scope"}</span>
-            <strong>{currentScopeName}</strong>
-          </div>
-          <ChevronDown size={13} />
-        </div>
-        <div className="nav-dropdown-trigger small">
-          <CalendarRange size={15} />
-          <div>
-            <span className="nav-label">{t("academic_year") || "Academic Year"}</span>
-            <strong>{selectedYear}</strong>
-          </div>
-          <ChevronDown size={13} />
-        </div>
-        <div className="nav-dropdown-trigger small">
-          <BookOpen size={15} />
-          <div>
-            <span className="nav-label">{t("semester") || "Semester"}</span>
-            <strong>{selectedSemester}</strong>
-          </div>
-          <ChevronDown size={13} />
-        </div>
-      </div>
-      <div className="navbar-right">
-        <div className="language-selector">
-          <select
-            value={currentLanguage}
-            onChange={(e) => changeLanguage(e.target.value)}
-            className="lang-select"
-          >
-            <option value="ar">العربية</option>
-            <option value="en">English</option>
-          </select>
-        </div>
+    <>
+      <header className="navbar">
+        <div className="navbar-left">
+          <button className="nav-icon-btn" onClick={onToggleSidebar}>
+            <Menu size={16} />
+          </button>
 
-        <button className="nav-icon-btn">
-          <Bell size={14} />
-          <span className="badge" />
-        </button>
-        
-        <div className="avatar-dropdown" ref={avatarMenuRef}>
-          <div 
-            className="topbar-avatar" 
-            onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+          <button
+            className={`nav-icon-btn ${showSecondary ? "is-active" : ""}`}
+            onClick={onToggleSecondary}
+            title={t("toggle_directory_search")}
           >
-            {getUserInitial()}
-          </div>
-          {showAvatarMenu && (
-            <div className="avatar-menu">
-              <button onClick={handleProfile} className="avatar-menu-item">
-                <User size={14} />
-                <span>{t("profile")}</span>
-              </button>
-              <button onClick={handleSettings} className="avatar-menu-item">
-                <Settings size={14} />
-                <span>{t("settings")}</span>
-              </button>
-              <hr className="avatar-menu-divider" />
-              <button onClick={handleLogout} className="avatar-menu-item logout">
-                <LogOut size={14} />
-                <span>{t("logout")}</span>
+            <Search size={14} />
+          </button>
+
+          {!showSecondary && <div className="nav-divider" />}
+
+          <div className="nav-scope-group">
+            <div className="nav-dropdown-wrapper" ref={scopeRef}>
+              <button
+                className={`nav-dropdown-trigger scope-trigger${scopeNode ? " has-active" : ""}`}
+                onClick={() => setShowScopeModal(true)}
+              >
+                <Building2 size={15} />
+                <div className="scope-content">
+                  <span className="nav-label">{t("current_scope")}</span>
+                  <strong>{scopeDisplayName}</strong>
+                  {scopeNode && <small>{scopeNode.type}</small>}
+                </div>
+                {scopeNode && <span className="scope-active-indicator" />}
+                <ChevronDown size={13} />
               </button>
             </div>
-          )}
-        </div>
-      </div>
 
-      <ScopeTreeModal
-        isOpen={showScopeModal}
-        onClose={() => setShowScopeModal(false)}
-        onSelect={handleScopeSelect}
-        initialScopeId={selectedScope?.id}
-      />
-    </header>
+            <div className="nav-dropdown-wrapper" ref={yearRef}>
+              <button
+                className={`nav-dropdown-trigger small ${openDropdown === "year" ? "is-open" : ""}${selectedYearObj ? " has-active" : ""}`}
+                onClick={() => toggleDropdown("year")}
+              >
+                <CalendarRange size={15} />
+                <div>
+                  <span className="nav-label">{t("academic_year")}</span>
+                  <strong>{selectedYearObj?.name || t("all_years")}</strong>
+                </div>
+                <ChevronDown size={13} />
+              </button>
+              {openDropdown === "year" && (
+                <div className="nav-dropdown-menu">
+                  <button
+                    className={`nav-dropdown-item ${!selectedYearObj ? "is-selected" : ""}`}
+                    onClick={() => { clearYear(); setOpenDropdown(null); }}
+                  >
+                    <Globe size={13} />
+                    <span><strong>{t("all_years")}</strong></span>
+                    {!selectedYearObj && <span className="nav-dropdown-check">✓</span>}
+                  </button>
+                  <div className="nav-dropdown-separator" />
+                  {academicLoading ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
+                  ) : academicYears.length === 0 ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_years_found")}</div>
+                  ) : academicYears.map((y) => (
+                    <button
+                      key={y.id}
+                      className={`nav-dropdown-item ${selectedYearObj?.id === y.id ? "is-selected" : ""} ${y.isClosed ? "is-closed" : ""}`}
+                      onClick={() => { selectYear(y); setOpenDropdown(null); }}
+                    >
+                      <CalendarRange size={13} />
+                      <div className="nav-item-content">
+                        <strong>{y.name}</strong>
+                        <span className="nav-item-sub">{y.startDate?.split("T")[0]} – {y.endDate?.split("T")[0]}</span>
+                      </div>
+                      {y.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
+                      {selectedYearObj?.id === y.id && <span className="nav-dropdown-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="nav-dropdown-wrapper" ref={semRef}>
+              <button
+                className={`nav-dropdown-trigger small ${openDropdown === "semester" ? "is-open" : ""}${selectedSemesterObj ? " has-active" : ""}`}
+                onClick={() => toggleDropdown("semester")}
+              >
+                <BookOpen size={15} />
+                <div>
+                  <span className="nav-label">{t("semester")}</span>
+                  <strong>{selectedSemesterObj?.name || t("all_semesters")}</strong>
+                </div>
+                <ChevronDown size={13} />
+              </button>
+              {openDropdown === "semester" && (
+                <div className="nav-dropdown-menu">
+                  <button
+                    className={`nav-dropdown-item ${!selectedSemesterObj ? "is-selected" : ""}`}
+                    onClick={() => { clearSemester(); setOpenDropdown(null); }}
+                  >
+                    <Globe size={13} />
+                    <span><strong>{t("all_semesters")}</strong></span>
+                    {!selectedSemesterObj && <span className="nav-dropdown-check">✓</span>}
+                  </button>
+                  <div className="nav-dropdown-separator" />
+                  {academicLoading ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
+                  ) : semesters.length === 0 ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_semesters")}</div>
+                  ) : semesters.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`nav-dropdown-item ${selectedSemesterObj?.id === s.id ? "is-selected" : ""} ${s.isClosed ? "is-closed" : ""}`}
+                      onClick={() => { selectSemester(s); setOpenDropdown(null); }}
+                    >
+                      <BookOpen size={13} />
+                      <div className="nav-item-content">
+                        <strong>{s.name}</strong>
+                        <span className="nav-item-sub">{s.startDate?.split("T")[0]} – {s.endDate?.split("T")[0]}</span>
+                      </div>
+                      {s.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
+                      {selectedSemesterObj?.id === s.id && <span className="nav-dropdown-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="navbar-right">
+          <div
+            className={`nav-scope-badge${!scopeNode ? " is-global" : ""}`}
+            title={`${t("viewing")}: ${scopeBadgeText}`}
+            onClick={() => setShowScopeModal(true)}
+          >
+            <span className={`nav-scope-badge-dot${selectedYearObj || selectedSemesterObj ? " is-filtered" : ""}`} />
+            <span className="nav-scope-badge-text">{scopeBadgeText}</span>
+          </div>
+
+          <button
+            className="nav-search nav-cmdk-trigger"
+            onClick={onOpenCommandPalette}
+            title={`${t("search")} (Ctrl+K)`}
+          >
+            <Search size={13} />
+            <span className="nav-cmdk-label">{t("search")}…</span>
+            <kbd className="nav-cmdk-kbd">⌘K</kbd>
+          </button>
+
+          <div className="nav-dropdown-wrapper" ref={bellRef}>
+            <button className="nav-icon-btn" onClick={() => toggleDropdown("bell")}>
+              <Bell size={14} />
+              {unreadCount > 0 && <span className="badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+            </button>
+            {openDropdown === "bell" && (
+              <div className="nav-dropdown-menu notification-dropdown">
+                <div className="notif-dropdown-header">
+                  <strong>{t("notifications")}</strong>
+                  <button className="notif-view-all" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
+                    {t("view_all")}
+                  </button>
+                </div>
+                {notifLoading ? (
+                  <div className="notif-dropdown-empty">{t("loading")}…</div>
+                ) : notifications.length === 0 ? (
+                  <div className="notif-dropdown-empty">{t("no_unread_notifications")}</div>
+                ) : (
+                  notifications.map((n) => (
+                    <div key={n.id} className="notif-dropdown-item" onClick={() => handleMarkRead(n.id)}>
+                      <div className="notif-dropdown-dot" />
+                      <div className="notif-dropdown-body">
+                        <span className="notif-dropdown-title">{n.title}</span>
+                        <span className="notif-dropdown-time">{formatTime(n.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          <button className="nav-icon-btn">
+            <HelpCircle size={14} />
+          </button>
+
+          <div className="language-selector">
+            <button
+              className="lang-toggle"
+              onClick={() => changeLanguage(language === "ar" ? "en" : "ar")}
+              title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            >
+              <Globe size={14} />
+              <span className="lang-code">{language === "ar" ? "AR" : "EN"}</span>
+              <span className="lang-label">{language === "ar" ? "العربية" : "English"}</span>
+              <ChevronDown size={10} className="lang-chevron" />
+            </button>
+          </div>
+
+          <div className="nav-dropdown-wrapper" ref={avatarRef}>
+            <div className="topbar-avatar" onClick={() => toggleDropdown("profile")} style={{ cursor: "pointer" }}>
+              {userInitial}
+            </div>
+            {openDropdown === "profile" && (
+              <div className="nav-dropdown-menu profile-dropdown">
+                <div className="profile-dropdown-header">
+                  <div className="profile-dropdown-avatar">{userInitial}</div>
+                  <div>
+                    <strong>{userName}</strong>
+                    <span style={{ fontSize: 11, opacity: 0.6, display: "block" }}>{user?.email || ""}</span>
+                  </div>
+                </div>
+                <div className="profile-dropdown-divider" />
+                <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); setShowChangePassword(true); }}>
+                  <Key size={13} />
+                  <span>{t("change_password")}</span>
+                </button>
+                <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); navigate("/admin/notifications"); }}>
+                  <Bell size={13} />
+                  <span>{t("notifications")}</span>
+                </button>
+                <div className="profile-dropdown-divider" />
+                <button className="nav-dropdown-item logout-item" onClick={() => { setOpenDropdown(null); logout(); }}>
+                  <LogOut size={13} />
+                  <span>{t("logout")}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {showScopeModal && (
+        <ScopeModal onClose={() => setShowScopeModal(false)} />
+      )}
+      {showChangePassword && (
+        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+    </>
   );
 }
 

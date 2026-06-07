@@ -1,128 +1,71 @@
 import { useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../../core/contexts/AuthContext";
-import {
-  ChevronRight,
-  LogOut,
-  Building2,
-  Plug,
-  LayoutDashboard,
-  Users,
-  UserPlus,
-  Shield,
-  Bell,
-  GraduationCap,
-  Briefcase,
-  Settings,
-} from "lucide-react";
-import "./sidebar.css";
-import universityLogo from "../../../../public/images/UniLogo2.png";
+import { ChevronRight, LogOut } from "lucide-react";
 
-const categoryIcons = {
-  overview: <LayoutDashboard size={14} />,
-  management: <Settings size={14} />,
-  people: <Users size={14} />,
-  integration: <Plug size={14} />,
-  studentServices: <GraduationCap size={14} />,
-};
+import { buildMenu, getCategoryIcon } from "../menuAggregator";
+import { usePermission } from "../../auth/usePermission";
+import { useAuth } from "../../auth/useAuth";
+import "../../styles/sidebar.css";
 
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
+const labelToKey = (label) => label.toLowerCase().replace(/\s+/g, "_");
+
+function getUserDisplayName(user, language) {
+  if (!user) return "";
+  const raw = user.name || user.fullName || "";
+  if (typeof raw === "object" && raw !== null) {
+    return language === "ar"
+      ? (raw.ar || raw.en || "")
+      : (raw.en || raw.ar || "");
   }
-};
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return language === "ar"
+        ? (parsed.ar || parsed.en || raw)
+        : (parsed.en || parsed.ar || raw);
+    } catch {
+      return raw;
+    }
+  }
+  return String(raw);
+}
+
+function getUserAvatar(user, language) {
+  return getUserDisplayName(user, language).charAt(0).toUpperCase() || "U";
+}
+
+function getUserRole(user, language) {
+  if (!user) return "";
+  const role = user.role || "Staff";
+  const roleMap = {
+    "Super Admin": language === "ar" ? "مدير عام" : "Super Admin",
+    Staff: language === "ar" ? "موظف" : "Staff",
+    Student: language === "ar" ? "طالب" : "Student",
+  };
+  return roleMap[role] || role;
+}
 
 function Sidebar({ isOpen, isMobile, onClose }) {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
   const [openedCategory, setOpenedCategory] = useState("overview");
-  const isRtl = i18n.language === 'ar';
+  const { can } = usePermission();
+  const { user, logout } = useAuth();
+  const language = i18n.language;
 
-  const userDisplayName = useMemo(() => {
-    if (!user) return t("guest");
-    
-    if (typeof user.name === 'object' && user.name !== null) {
-      return i18n.language === 'ar' 
-        ? (user.name.ar || user.name.en || t("guest"))
-        : (user.name.en || user.name.ar || t("guest"));
-    }
-    
-    if (typeof user.name === 'string') {
-      try {
-        const parsed = JSON.parse(user.name);
-        return i18n.language === 'ar'
-          ? (parsed.ar || parsed.en || t("guest"))
-          : (parsed.en || parsed.ar || t("guest"));
-      } catch {
-        return user.name || t("guest");
-      }
-    }
-    
-    return t("guest");
-  }, [user, i18n.language, t]);
+  const menu = buildMenu(can);
 
-  const getUserAvatar = () => {
-    const firstChar = userDisplayName?.charAt(0)?.toUpperCase() || "U";
-    return firstChar;
-  };
-
-  const userRoleDisplay = useMemo(() => {
-    if (!user) return "";
-    const role = user.role || "Staff";
-    const roleMap = {
-      "Super Admin": isRtl ? "مدير عام" : "Super Admin",
-      "Staff": isRtl ? "موظف" : "Staff",
-      "Student": isRtl ? "طالب" : "Student",
-    };
-    return roleMap[role] || role;
-  }, [user, isRtl]);
+  const displayName = useMemo(
+    () => getUserDisplayName(user, language) || t("guest"),
+    [user, language, t]
+  );
+  const avatar = useMemo(() => getUserAvatar(user, language), [user, language]);
+  const roleName = useMemo(() => getUserRole(user, language), [user, language]);
 
   const handleLogout = async () => {
     if (logout) await logout();
     window.location.href = "/admin/login";
   };
-  
-  const categories = [
-    {
-      key: "overview",
-      title: t("overview"),
-      items: [{ label: t("dashboard"), path: "/admin/dashboard", icon: <LayoutDashboard size={13} /> }],
-    },
-    {
-      key: "management",
-      title: t("management"),
-      items: [
-        { label: t("university_structure"), path: "/admin/university-structure", icon: <Building2 size={13} /> },
-        { label: t("users"), path: "/admin/users", icon: <Users size={13} /> },
-        { label: t("permissions"), path: "/admin/permissions", icon: <Shield size={13} /> },
-      ],
-    },
-    {
-      key: "people",
-      title: t("people_management"),
-      items: [
-        { label: t("students_management"), path: "/admin/users?role=Student", icon: <GraduationCap size={13} /> },
-        { label: t("staff_management"), path: "/admin/users?role=Staff", icon: <Briefcase size={13} /> },
-        { label: t("add_student"), path: "/admin/users/add-student", icon: <UserPlus size={13} /> },
-        { label: t("add_staff"), path: "/admin/users/add-staff", icon: <UserPlus size={13} /> },
-      ],
-    },
-    {
-      key: "studentServices",
-      title: t("student_services"),
-      items: [
-        { label: t("dashboard"), path: "/admin/student-services/dashboard", icon: <LayoutDashboard size={13} /> },
-        { label: t("services_management"), path: "/admin/student-services/services", icon: <Shield size={13} /> },
-        { label: t("requests"), path: "/admin/student-services/requests", icon: <Users size={13} /> },
-        { label: t("notifications"), path: "/admin/student-services/notifications", icon: <Bell size={13} /> },
-      ],
-    },
-  ];
 
   const handleFeatureClick = () => {
     if (isMobile && onClose) onClose();
@@ -130,8 +73,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
 
   return (
     <aside
-      className={`sidebar ${isOpen ? "is-open" : "is-closed"} ${isRtl ? "rtl" : ""}`}
-      dir={isRtl ? "rtl" : "ltr"}
+      className={`sidebar ${isOpen ? "is-open" : "is-closed"}`}
     >
       <svg className="sidebar-geo" viewBox="0 0 230 620" preserveAspectRatio="none">
         <circle cx="230" cy="0" r="140" fill="rgba(224,192,106,0.04)" />
@@ -142,56 +84,76 @@ function Sidebar({ isOpen, isMobile, onClose }) {
 
       <div className="sidebar-brand">
         <div className="sidebar-logo-mark">
-          <img src={universityLogo} alt="Capital University" className="sidebar-logo-img" />
+          <img src="/images/UniLogo2.png" alt="Capital University" className="sidebar-logo-img" />
         </div>
         <div className="sidebar-university-name">{t("app_name")}</div>
         <div className="sidebar-university-sub">{t("control_panel")}</div>
       </div>
 
-      <div className="sidebar-user-section">
-        <div className="sidebar-user-card">
-          <div className="sidebar-avatar">{getUserAvatar()}</div>
-          <div className="sidebar-user-info">
-            <strong>{userDisplayName}</strong>
-            <span>{userRoleDisplay}</span>
+      {user && (
+        <div className="sidebar-user-section">
+          <div className="sidebar-user-card">
+            <div className="sidebar-avatar">{avatar}</div>
+            <div className="sidebar-user-info">
+              <strong>{displayName}</strong>
+              <span>{roleName}</span>
+            </div>
+            <div className="sidebar-user-badge" />
           </div>
-          <div className="sidebar-user-badge" />
         </div>
-      </div>
+      )}
 
       <div className="sidebar-content">
         <div className="sidebar-section-label">{t("menu")}</div>
-        {categories.map((category) => {
-          const opened = openedCategory === category.key;
+
+        {menu.map((category) => {
+          const catKey = labelToKey(category.category);
+          const opened = openedCategory === catKey;
+          const CatIcon = getCategoryIcon(category.category);
+
           return (
-            <div className="sidebar-category" key={category.key}>
+            <div className="sidebar-category" key={category.category}>
               <button
                 type="button"
                 className={`sidebar-category-header ${opened ? "is-open" : ""}`}
-                onClick={() => setOpenedCategory(opened ? null : category.key)}
+                onClick={() =>
+                  setOpenedCategory(opened ? null : catKey)
+                }
               >
-                <div className="sidebar-cat-icon">{categoryIcons[category.key]}</div>
-                <span className="sidebar-category-title">{category.title}</span>
+                <div className="sidebar-cat-icon">
+                  <CatIcon size={14} />
+                </div>
+                <span className="sidebar-category-title">
+                  {t(catKey) === catKey ? category.category : t(catKey)}
+                </span>
                 <ChevronRight size={11} className="sidebar-cat-arrow" />
               </button>
 
               {opened && (
                 <div className="sidebar-features">
-                  {category.items.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      end={item.path === "/admin/users" || item.path === "/admin/dashboard"}
-                      onClick={handleFeatureClick}
-                      className={({ isActive }) =>
-                        `sidebar-feature ${isActive ? "active" : ""}`
-                      }
-                    >
-                      <span className="sidebar-feature-dot" />
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
+                  {category.items.map((item) => {
+                    const ItemIcon = item.icon;
+                    const itemKey = labelToKey(item.label);
+
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={
+                          item.path === "/admin/dashboard" ||
+                          item.path === "/admin/users"
+                        }
+                        onClick={handleFeatureClick}
+                        className={({ isActive }) =>
+                          `sidebar-feature ${isActive ? "active" : ""}`
+                        }
+                      >
+                        <span className="sidebar-feature-dot" />
+                        {ItemIcon && <ItemIcon size={13} />}
+                        <span>{t(itemKey) === itemKey ? item.label : t(itemKey)}</span>
+                      </NavLink>
+                    );
+                  })}
                 </div>
               )}
             </div>

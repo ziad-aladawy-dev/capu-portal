@@ -34,7 +34,8 @@ public class RolesControllerEndpointTests
             new UpdateRoleCommandHandler(db, localization, permissions, currentUser),
             new DeleteRoleCommandHandler(db, permissions, currentUser, invalidator),
             new GetRoleByIdQueryHandler(db, localization),
-            new GetRolesQueryHandler(db, localization));
+            new GetRolesQueryHandler(db, localization),
+            new GetRoleMembersQueryHandler(db));
         return (ctrl, db);
     }
 

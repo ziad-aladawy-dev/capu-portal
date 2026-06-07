@@ -194,8 +194,13 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         foreach (var m in modules)
         {
             var resourceDtos = resourcesByModule.TryGetValue(m.Id, out var moduleResources)
-                ? moduleResources.Select(r => BuildResourceDto(m.ModuleKey, r, grantedActionsByResource)).ToList()
+                ? moduleResources
+                    .Select(r => BuildResourceDto(m.ModuleKey, r, grantedActionsByResource))
+                    .Where(r => r.Permissions.Count > 0)
+                    .ToList()
                 : new List<ResourcePermissionTreeDto>();
+
+            if (resourceDtos.Count == 0) continue;
 
             result.Add(new ModulePermissionTreeDto
             {
@@ -263,8 +268,13 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
         foreach (var m in modules)
         {
             var resourceDtos = resourcesByModule.TryGetValue(m.Id, out var moduleResources)
-                ? moduleResources.Select(r => BuildUserResourceDto(m.ModuleKey, r, scopesByPermission, allowOverrides, denyOverrides)).ToList()
+                ? moduleResources
+                    .Select(r => BuildUserResourceDto(m.ModuleKey, r, scopesByPermission, allowOverrides, denyOverrides))
+                    .Where(r => r.Permissions.Count > 0)
+                    .ToList()
                 : new List<ResourcePermissionTreeDto>();
+
+            if (resourceDtos.Count == 0) continue;
 
             result.Add(new ModulePermissionTreeDto
             {
