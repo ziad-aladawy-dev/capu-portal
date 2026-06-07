@@ -85,6 +85,12 @@ function DashboardLayout() {
     setShowCommandPalette(true);
   }, []);
 
+  const getPrimaryMargin = () => {
+    if (isMobile) return "0px";
+    if (windowWidth <= 1024) return sidebarOpen ? "64px" : "0px";
+    return sidebarOpen ? `${SIDEBAR_WIDTH}px` : "0px";
+  };
+
   const getContentMargin = () => {
     if (isMobile) return "0px";
 
@@ -139,6 +145,17 @@ function DashboardLayout() {
         />
       )}
 
+      <Navbar
+        onToggleSidebar={toggleSidebar}
+        onToggleSecondary={toggleSecondary}
+        onOpenCommandPalette={openCommandPalette}
+        secondaryOpen={secondaryOpen}
+        style={{
+          marginInlineStart: getPrimaryMargin(),
+          transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
+        }}
+      />
+
       <div
         className="dashboard-content"
         style={{
@@ -146,12 +163,6 @@ function DashboardLayout() {
           transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
         }}
       >
-        <Navbar
-          onToggleSidebar={toggleSidebar}
-          showSecondary={secondaryOpen}
-          onToggleSecondary={toggleSecondary}
-          onOpenCommandPalette={openCommandPalette}
-        />
 
         <Breadcrumbs />
 

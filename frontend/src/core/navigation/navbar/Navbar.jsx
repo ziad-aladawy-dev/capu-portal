@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell, ChevronDown, Menu, Building2, CalendarRange,
-  BookOpen, HelpCircle, User, LogOut, Key, Settings, Search, Globe,
+  Bell, ChevronDown, Menu, Building2,
+  LogOut, Key, Search, Globe,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -22,10 +22,10 @@ function getUserInitial(user, language) {
   return displayName?.charAt(0)?.toUpperCase() || "U";
 }
 
-function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenCommandPalette }) {
+function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, secondaryOpen, style }) {
   const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
-  const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj, academicYears = [], semesters = [], selectYear, selectSemester, clearYear, clearSemester, loading: academicLoading } = useAcademic();
+  const { selectedYearObj, selectedSemesterObj } = useAcademic();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const language = i18n.language;
@@ -33,24 +33,17 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
   const [openDropdown, setOpenDropdown] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showScopeModal, setShowScopeModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
 
-  const scopeRef = useRef(null);
-  const yearRef = useRef(null);
-  const semRef = useRef(null);
   const bellRef = useRef(null);
   const avatarRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
-        !scopeRef.current?.contains(e.target) &&
-        !yearRef.current?.contains(e.target) &&
-        !semRef.current?.contains(e.target) &&
         !bellRef.current?.contains(e.target) &&
         !avatarRef.current?.contains(e.target)
       ) {
@@ -113,173 +106,68 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
     return `${Math.floor(diff / 86400)}${t("d_ago")}`;
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return;
-    navigate(`/admin/users?search=${encodeURIComponent(trimmed)}`);
-    setSearchQuery("");
-  };
-
   const scopeDisplayName = scopeNode
-    ? (scopeNode.localizedName || getLocalized(scopeNode.name, language))
+    ? getLocalized(scopeNode.localizedName || scopeNode.name, language)
     : t("all_scopes");
 
-  const scopeBadgeText = [
-    scopeDisplayName,
-    selectedYearObj?.name || null,
-    selectedSemesterObj?.name || null,
-  ].filter(Boolean).join(" | ") || t("all_scopes");
+  const yearLabel = selectedYearObj ? getLocalized(selectedYearObj.name, language) : null;
+  const semesterLabel = selectedSemesterObj ? getLocalized(selectedSemesterObj.name, language) : null;
+
+  const showTemporal = yearLabel || semesterLabel;
 
   return (
     <>
-      <header className="navbar">
+      <header className="navbar" style={style} data-secondary-open={secondaryOpen || undefined}>
         <div className="navbar-left">
           <button className="nav-icon-btn" onClick={onToggleSidebar}>
             <Menu size={16} />
           </button>
-
           <button
-            className={`nav-icon-btn ${showSecondary ? "is-active" : ""}`}
+            className={`nav-icon-btn${secondaryOpen ? " is-active" : ""}`}
             onClick={onToggleSecondary}
             title={t("toggle_directory_search")}
           >
             <Search size={14} />
           </button>
+        </div>
 
-          {!showSecondary && <div className="nav-divider" />}
-
-          <div className="nav-scope-group">
-            <div className="nav-dropdown-wrapper" ref={scopeRef}>
-              <button
-                className={`nav-dropdown-trigger scope-trigger${scopeNode ? " has-active" : ""}`}
-                onClick={() => setShowScopeModal(true)}
-              >
-                {(() => {
-                  const ScopeIcon = scopeNode ? (getNodeTypeConfig(scopeNode.type)?.icon || Building2) : Building2;
-                  return <ScopeIcon size={15} />;
-                })()}
-                <div className="scope-content">
-                  <span className="nav-label">{t("current_scope")}</span>
-                  <strong>{scopeDisplayName}</strong>
-                </div>
-                {scopeNode && <span className="scope-active-indicator" />}
-                <ChevronDown size={13} />
-              </button>
-            </div>
-
-            <div className="nav-dropdown-wrapper" ref={yearRef}>
-              <button
-                className={`nav-dropdown-trigger small ${openDropdown === "year" ? "is-open" : ""}${selectedYearObj ? " has-active" : ""}`}
-                onClick={() => toggleDropdown("year")}
-              >
-                <CalendarRange size={15} />
-                <div>
-                  <span className="nav-label">{t("academic_year")}</span>
-                  <strong>{selectedYearObj?.name || t("all_years")}</strong>
-                </div>
-                <ChevronDown size={13} />
-              </button>
-              {openDropdown === "year" && (
-                <div className="nav-dropdown-menu">
-                  <button
-                    className={`nav-dropdown-item ${!selectedYearObj ? "is-selected" : ""}`}
-                    onClick={() => { clearYear(); setOpenDropdown(null); }}
-                  >
-                    <Globe size={13} />
-                    <span><strong>{t("all_years")}</strong></span>
-                    {!selectedYearObj && <span className="nav-dropdown-check">✓</span>}
-                  </button>
-                  <div className="nav-dropdown-separator" />
-                  {academicLoading ? (
-                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
-                  ) : academicYears.length === 0 ? (
-                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_years_found")}</div>
-                  ) : academicYears.map((y) => (
-                    <button
-                      key={y.id}
-                      className={`nav-dropdown-item ${selectedYearObj?.id === y.id ? "is-selected" : ""} ${y.isClosed ? "is-closed" : ""}`}
-                      onClick={() => { selectYear(y); setOpenDropdown(null); }}
-                    >
-                      <CalendarRange size={13} />
-                      <div className="nav-item-content">
-                        <strong>{y.name}</strong>
-                        <span className="nav-item-sub">{y.startDate?.split("T")[0]} – {y.endDate?.split("T")[0]}</span>
-                      </div>
-                      {y.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
-                      {selectedYearObj?.id === y.id && <span className="nav-dropdown-check">✓</span>}
-                    </button>
-                  ))}
-                </div>
+        <div className="navbar-center">
+          <button
+            className={`nav-scope-pill${scopeNode || selectedYearObj || selectedSemesterObj ? " has-scope" : ""}`}
+            onClick={() => setShowScopeModal(true)}
+            title={t("select_scope")}
+          >
+            <div className="nav-scope-pill-content">
+              {scopeNode ? (
+                (() => {
+                  const ScopeIcon = getNodeTypeConfig(scopeNode.type)?.icon || Building2;
+                  return <ScopeIcon size={15} className="nav-scope-icon" />;
+                })()
+              ) : (
+                <Globe size={15} className="nav-scope-icon" />
+              )}
+              <span className="nav-scope-pill-main">{scopeDisplayName}</span>
+              
+              {showTemporal && (
+                <>
+                  <span className="nav-scope-divider" />
+                  <span className="nav-scope-pill-temporal">
+                    {yearLabel} <span className="temporal-dot">•</span> {semesterLabel}
+                  </span>
+                </>
               )}
             </div>
-
-            <div className="nav-dropdown-wrapper" ref={semRef}>
-              <button
-                className={`nav-dropdown-trigger small ${openDropdown === "semester" ? "is-open" : ""}${selectedSemesterObj ? " has-active" : ""}`}
-                onClick={() => toggleDropdown("semester")}
-              >
-                <BookOpen size={15} />
-                <div>
-                  <span className="nav-label">{t("semester")}</span>
-                  <strong>{selectedSemesterObj?.name || t("all_semesters")}</strong>
-                </div>
-                <ChevronDown size={13} />
-              </button>
-              {openDropdown === "semester" && (
-                <div className="nav-dropdown-menu">
-                  <button
-                    className={`nav-dropdown-item ${!selectedSemesterObj ? "is-selected" : ""}`}
-                    onClick={() => { clearSemester(); setOpenDropdown(null); }}
-                  >
-                    <Globe size={13} />
-                    <span><strong>{t("all_semesters")}</strong></span>
-                    {!selectedSemesterObj && <span className="nav-dropdown-check">✓</span>}
-                  </button>
-                  <div className="nav-dropdown-separator" />
-                  {academicLoading ? (
-                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
-                  ) : semesters.length === 0 ? (
-                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_semesters")}</div>
-                  ) : semesters.map((s) => (
-                    <button
-                      key={s.id}
-                      className={`nav-dropdown-item ${selectedSemesterObj?.id === s.id ? "is-selected" : ""} ${s.isClosed ? "is-closed" : ""}`}
-                      onClick={() => { selectSemester(s); setOpenDropdown(null); }}
-                    >
-                      <BookOpen size={13} />
-                      <div className="nav-item-content">
-                        <strong>{s.name}</strong>
-                        <span className="nav-item-sub">{s.startDate?.split("T")[0]} – {s.endDate?.split("T")[0]}</span>
-                      </div>
-                      {s.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
-                      {selectedSemesterObj?.id === s.id && <span className="nav-dropdown-check">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+            <ChevronDown size={14} className="nav-scope-pill-chevron" />
+          </button>
         </div>
 
         <div className="navbar-right">
-          <div
-            className={`nav-scope-badge${!scopeNode ? " is-global" : ""}`}
-            title={`${t("viewing")}: ${scopeBadgeText}`}
-            onClick={() => setShowScopeModal(true)}
-          >
-            <span className={`nav-scope-badge-dot${selectedYearObj || selectedSemesterObj ? " is-filtered" : ""}`} />
-            <span className="nav-scope-badge-text">{scopeBadgeText}</span>
-          </div>
-
           <button
-            className="nav-search nav-cmdk-trigger"
+            className="nav-icon-btn"
             onClick={onOpenCommandPalette}
             title={`${t("search")} (Ctrl+K)`}
           >
-            <Search size={13} />
-            <span className="nav-cmdk-label">{t("search")}…</span>
-            <kbd className="nav-cmdk-kbd">⌘K</kbd>
+            <Search size={14} />
           </button>
 
           <div className="nav-dropdown-wrapper" ref={bellRef}>
@@ -314,10 +202,6 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             )}
           </div>
 
-          <button className="nav-icon-btn">
-            <HelpCircle size={14} />
-          </button>
-
           <div className="language-selector">
             <button
               className="lang-toggle"
@@ -326,8 +210,6 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
             >
               <Globe size={14} />
               <span className="lang-code">{language === "ar" ? "AR" : "EN"}</span>
-              <span className="lang-label">{language === "ar" ? "العربية" : "English"}</span>
-              <ChevronDown size={10} className="lang-chevron" />
             </button>
           </div>
 

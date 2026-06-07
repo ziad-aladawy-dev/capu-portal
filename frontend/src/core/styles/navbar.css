@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  gap: 10px;
+  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 250;
@@ -21,26 +21,33 @@
   box-shadow:
     0 1px 0 rgba(224, 192, 106, 0.06),
     0 8px 24px rgba(7, 9, 30, 0.2);
-  transition: all 0.3s ease;
 }
 
-/* ── Navbar Sections ── */
+/* ── Sections ── */
 
 .navbar-left,
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .navbar-left {
-  flex: 1;
-  overflow: hidden;
+  min-width: 0;
 }
 
 .navbar-right {
-  flex-shrink: 0;
+  min-width: 0;
+}
+
+.navbar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
 }
 
 /* ── Icon Buttons ── */
@@ -75,240 +82,132 @@
   border-color: rgba(224, 192, 106, 0.3);
 }
 
-/* ── Divider ── */
+/* ── Scope Pill (centered, clickable) ── */
 
-.nav-divider {
+.nav-scope-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 12px;
+  border-radius: 100px;
+  border: 1px solid rgba(224, 192, 106, 0.2);
+  background: linear-gradient(135deg, rgba(224, 192, 106, 0.08) 0%, rgba(224, 192, 106, 0.02) 100%);
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  min-width: 0;
+  font-family: "Outfit", sans-serif;
+  box-shadow: 0 2px 8px rgba(7, 9, 30, 0.06);
+}
+
+.nav-scope-pill:hover {
+  background: linear-gradient(135deg, rgba(224, 192, 106, 0.16) 0%, rgba(224, 192, 106, 0.06) 100%);
+  border-color: rgba(224, 192, 106, 0.4);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(224, 192, 106, 0.15);
+}
+
+.nav-scope-pill.has-scope {
+  border-color: rgba(224, 192, 106, 0.35);
+  background: linear-gradient(135deg, rgba(224, 192, 106, 0.12) 0%, rgba(224, 192, 106, 0.04) 100%);
+}
+
+.nav-scope-pill.has-scope:hover {
+  border-color: rgba(224, 192, 106, 0.55);
+  background: linear-gradient(135deg, rgba(224, 192, 106, 0.2) 0%, rgba(224, 192, 106, 0.08) 100%);
+}
+
+.nav-scope-pill:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(224, 192, 106, 0.08);
+}
+
+.nav-scope-pill-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nav-scope-icon {
+  flex-shrink: 0;
+  color: #e0c06a;
+  filter: drop-shadow(0 0 4px rgba(224, 192, 106, 0.25));
+}
+
+.nav-scope-pill-main {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+.nav-scope-divider {
   width: 1px;
-  height: 18px;
-  background: rgba(224, 192, 106, 0.12);
+  height: 14px;
+  background: rgba(224, 192, 106, 0.3);
+  margin: 0 2px;
   flex-shrink: 0;
 }
 
-/* ── Dropdown Triggers ── */
-
-.nav-dropdown-trigger {
-  height: 32px;
-  min-width: 155px;
-  max-width: 190px;
-  padding: 0 10px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: white;
-  cursor: pointer;
+.nav-scope-pill-temporal {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e0c06a;
   white-space: nowrap;
-  overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-dropdown-trigger:hover {
-  background: rgba(224, 192, 106, 0.1);
-  border-color: rgba(224, 192, 106, 0.25);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(7, 9, 30, 0.1);
-}
-
-.nav-dropdown-trigger.small {
-  min-width: 125px;
-  max-width: 150px;
-}
-
-.nav-label {
-  display: block;
-  font-size: 7.5px;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 2px;
-}
-
-.nav-dropdown-trigger strong {
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Scope Group — wraps Scope + Year + Semester ── */
-
-.nav-scope-group {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px 2px 4px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 11px;
-  min-width: 0;
-  flex: 1;
-  max-width: fit-content;
+  background: rgba(224, 192, 106, 0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
 }
 
-/* ── Active indicator dot on scope triggers ── */
-
-.scope-active-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4ade80;
-  flex-shrink: 0;
-  box-shadow: 0 0 4px rgba(74, 222, 128, 0.5);
-  margin-inline-end: -2px;
-}
-
-.nav-dropdown-trigger.has-active {
-  border-color: rgba(74, 222, 128, 0.2);
-  background: rgba(74, 222, 128, 0.06);
-}
-
-.nav-dropdown-trigger.has-active:hover {
-  border-color: rgba(74, 222, 128, 0.35);
-  background: rgba(74, 222, 128, 0.1);
-}
-
-/* ── Separator inside dropdown (All vs specific items) ── */
-
-.nav-dropdown-separator {
-  height: 1px;
-  background: rgba(26, 31, 94, 0.06);
-  margin: 2px 4px;
-}
-
-/* ── Scope Trigger (wider) ── */
-
-.scope-trigger {
-  min-width: 175px;
-  max-width: 220px;
-}
-
-.scope-content {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  text-align: start;
-}
-
-.scope-content strong {
+.temporal-dot {
   font-size: 10px;
-  font-weight: 700;
-  color: white;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  opacity: 0.5;
 }
 
-.scope-content small {
+.nav-scope-pill-chevron {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+}
+
+.nav-scope-pill:hover .nav-scope-pill-chevron {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Badge counter ── */
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.65; }
+}
+
+.nav-icon-btn .badge {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 2px;
+  min-width: 14px;
+  height: 14px;
+  background: #e0c06a;
+  border-radius: 7px;
+  border: 1.5px solid #1a1f5e;
   font-size: 8px;
-  color: rgba(255, 255, 255, 0.48);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Cmd+K Search Trigger ── */
-
-.nav-search {
-  width: 170px;
-  height: 32px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 10px;
-  color: rgba(255, 255, 255, 0.42);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-search:hover,
-.nav-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(224, 192, 106, 0.24);
-}
-
-.nav-cmdk-trigger {
-  cursor: pointer;
-  justify-content: flex-start;
-  gap: 8px;
-  transition: all 0.25s ease;
-}
-
-.nav-cmdk-trigger:hover {
-  background: rgba(224, 192, 106, 0.12);
-  border-color: rgba(224, 192, 106, 0.25);
-}
-
-.nav-cmdk-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
-  flex: 1;
-  text-align: start;
-  font-family: "Outfit", sans-serif;
-}
-
-.nav-cmdk-kbd {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  padding: 1px 5px;
-  font-family: "Space Mono", monospace;
-  line-height: 1.4;
-}
-
-/* ── Avatar ── */
-
-.topbar-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  font-weight: 700;
   color: #07091e;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(224, 192, 106, 0.2);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.topbar-avatar:hover {
-  transform: translateY(-1px) scale(1.04);
-  box-shadow: 0 6px 18px rgba(224, 192, 106, 0.28);
-}
-
-/* ══════════════════════════════════════════════════════════
-   DASHBOARD LAYOUT — Shell wrapper
-   ══════════════════════════════════════════════════════════ */
-
-.dashboard-wrapper {
-  min-height: 100vh;
-  background: #f5f6fa;
-}
-
-.dashboard-content {
-  min-height: 100vh;
-  transition: margin-inline-start 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #f5f6fa;
-}
-
-.dashboard-page-content {
-  min-height: calc(100vh - 54px);
-  padding: 18px;
-  background: #f5f6fa;
+  padding: 0 3px;
+  line-height: 1;
+  animation: pulseBadge 1.8s ease-in-out infinite;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -327,7 +226,7 @@
 .nav-dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
-  inset-inline-start: 0;
+  inset-inline-end: 0;
   min-width: 220px;
   background: #ffffff;
   border: 1px solid rgba(26, 31, 94, 0.1);
@@ -423,47 +322,8 @@
 }
 
 @keyframes dropdownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ── Badge counter ── */
-
-@keyframes pulseBadge {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.65;
-  }
-}
-
-.nav-icon-btn .badge {
-  position: absolute;
-  top: 2px;
-  inset-inline-end: 2px;
-  min-width: 14px;
-  height: 14px;
-  background: #e0c06a;
-  border-radius: 7px;
-  border: 1.5px solid #1a1f5e;
-  font-size: 8px;
-  font-weight: 700;
-  color: #07091e;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  line-height: 1;
-  animation: pulseBadge 1.8s ease-in-out infinite;
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -627,58 +487,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   SCOPE BADGE (right side summary pill)
-   ══════════════════════════════════════════════════════════ */
-
-.nav-scope-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(201, 168, 76, 0.06);
-  border: 1px solid rgba(201, 168, 76, 0.12);
-  border-radius: 6px;
-  max-width: 200px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-scope-badge:hover {
-  background: rgba(201, 168, 76, 0.12);
-  border-color: rgba(201, 168, 76, 0.22);
-}
-
-.nav-scope-badge.is-global {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.nav-scope-badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  flex-shrink: 0;
-  transition: all 0.25s ease;
-}
-
-.nav-scope-badge-dot.is-filtered {
-  background: #4ade80;
-  box-shadow: 0 0 4px rgba(74, 222, 128, 0.4);
-}
-
-.nav-scope-badge-text {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: "Outfit", sans-serif;
-}
-
-/* ══════════════════════════════════════════════════════════
-   LANGUAGE SELECTOR — uses logical properties, no RTL hacks
+   LANGUAGE SELECTOR
    ══════════════════════════════════════════════════════════ */
 
 .language-selector {
@@ -721,89 +530,99 @@
   line-height: 1.4;
 }
 
-.lang-label {
+/* ══════════════════════════════════════════════════════════
+   AVATAR
+   ══════════════════════════════════════════════════════════ */
+
+.topbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #c9a84c, #e0c06a);
+  color: #07091e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(224, 192, 106, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.lang-chevron {
-  opacity: 0.5;
-  transition: transform 0.2s ease;
+.topbar-avatar:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 18px rgba(224, 192, 106, 0.28);
 }
 
-.lang-toggle:hover .lang-chevron {
-  opacity: 0.9;
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT — Shell wrapper
+   ══════════════════════════════════════════════════════════ */
+
+.dashboard-wrapper {
+  min-height: 100vh;
+  background: #f5f6fa;
+}
+
+.dashboard-content {
+  min-height: calc(100vh - 54px);
+  transition: margin-inline-start 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f5f6fa;
+}
+
+.dashboard-page-content {
+  min-height: calc(100vh - 54px);
+  padding: 18px;
+  background: #f5f6fa;
 }
 
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE BREAKPOINTS
    ══════════════════════════════════════════════════════════ */
 
-@media (max-width: 1200px) {
-  .nav-scope-group .nav-dropdown-trigger.small:last-child {
-    display: none;
-  }
-
-  .nav-scope-badge {
-    display: none;
-  }
-}
-
-@media (max-width: 1100px) {
-  .nav-scope-group .nav-dropdown-trigger.small {
-    display: none;
-  }
-
-  .nav-search {
-    width: 135px;
-  }
-
-  .nav-cmdk-label {
-    display: none;
-  }
-
-  .nav-cmdk-kbd {
-    display: none;
-  }
-}
-
 @media (max-width: 900px) {
-  .nav-search {
-    display: none;
+  .nav-scope-pill {
+    padding: 5px 12px;
   }
 
-  .nav-scope-group .nav-dropdown-trigger {
-    min-width: 120px;
-    max-width: 140px;
+  .nav-scope-pill-main {
+    font-size: 12px;
   }
 
-  .nav-scope-group .scope-trigger {
-    min-width: 150px;
-    max-width: 180px;
+  .nav-scope-pill-temporal {
+    font-size: 11px;
+    padding: 1px 6px;
   }
 }
 
 @media (max-width: 768px) {
   .navbar {
     height: 50px;
-    padding: 0 12px;
+    padding: 0 10px;
   }
 
-  .nav-scope-group,
-  .nav-dropdown-trigger,
-  .nav-divider,
-  .nav-search,
-  .nav-scope-badge,
-  .nav-cmdk-trigger {
-    display: none;
+  .nav-scope-pill {
+    padding: 4px 10px;
+    gap: 6px;
   }
 
-  .lang-label {
-    display: none;
+  .nav-scope-pill-content {
+    gap: 4px;
   }
 
-  .dashboard-content {
-    padding-top: 50px;
+  .nav-scope-pill-main {
+    font-size: 11px;
+  }
+
+  .nav-scope-pill-temporal {
+    font-size: 10px;
+    padding: 0;
+    background: transparent;
+  }
+
+  .nav-scope-divider {
+    height: 10px;
   }
 
   .dashboard-page-content {

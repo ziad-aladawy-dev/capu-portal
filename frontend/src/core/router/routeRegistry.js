@@ -19,6 +19,7 @@ import studentProfileRecordsRoutes from "../../modules/studentProfileRecords/rou
 import authorizationRoutes from "../../modules/authorization/routes";
 import courseOfferingsRoutes from "../../modules/courseOfferings/routes";
 import scheduleRoutes from "../../modules/schedule/routes";
+import invoicesRoutes from "../../modules/invoices/routes";
 
 const ALL_ROUTES = [
   ...adminRoutes,
@@ -38,6 +39,7 @@ const ALL_ROUTES = [
   ...authorizationRoutes,
   ...courseOfferingsRoutes,
   ...scheduleRoutes,
+  ...invoicesRoutes,
 ];
 
 const LOADING_FALLBACK = createElement(

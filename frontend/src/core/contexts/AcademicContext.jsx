@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import * as academicService from "../services/academicService";
 
 const AcademicContext = createContext();
@@ -7,6 +8,7 @@ const YEAR_STORAGE_KEY = "capu_selected_academic_year";
 const SEMESTER_STORAGE_KEY = "capu_selected_semester";
 
 export const AcademicProvider = ({ children }) => {
+  const { i18n } = useTranslation();
   const [academicYears, setAcademicYears] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -65,7 +67,13 @@ export const AcademicProvider = ({ children }) => {
         const list = Array.isArray(years) ? years : [];
         setAcademicYears(list);
         // Prefer saved year, fall back to current or first
-        const saved = savedYearRef.current;
+        let saved = savedYearRef.current;
+        if (!saved) {
+          try {
+            const localSaved = localStorage.getItem(YEAR_STORAGE_KEY);
+            if (localSaved) saved = JSON.parse(localSaved);
+          } catch {}
+        }
         const match = saved
           ? list.find((y) => y.id === saved.id)
           : null;
@@ -83,7 +91,7 @@ export const AcademicProvider = ({ children }) => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [saveYear]);
+  }, [saveYear, i18n.language]);
 
   useEffect(() => {
     if (!selectedYear?.id) {
@@ -100,7 +108,13 @@ export const AcademicProvider = ({ children }) => {
         const list = Array.isArray(sems) ? sems : [];
         setSemesters(list);
         // Prefer saved semester, fall back to current or first
-        const saved = savedSemRef.current;
+        let saved = savedSemRef.current;
+        if (!saved) {
+          try {
+            const localSaved = localStorage.getItem(SEMESTER_STORAGE_KEY);
+            if (localSaved) saved = JSON.parse(localSaved);
+          } catch {}
+        }
         const match = saved
           ? list.find((s) => s.id === saved.id)
           : null;
@@ -117,7 +131,7 @@ export const AcademicProvider = ({ children }) => {
         }
       });
     return () => { cancelled = true; };
-  }, [selectedYear, saveSemester]);
+  }, [selectedYear, saveSemester, i18n.language]);
 
   const selectYear = useCallback(
     (yearNameOrObj) => {

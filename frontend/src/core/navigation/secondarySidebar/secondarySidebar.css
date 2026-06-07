@@ -14,10 +14,11 @@
   --ss-bg: #ffffff;
 
   width: 280px;
-  height: calc(100vh - 54px);
+  height: 100vh;
   position: fixed;
   inset-inline-start: 0;
-  top: 54px;
+  top: 0;
+  padding-top: 54px;
   background: var(--ss-bg);
   border-inline-end: 1px solid var(--ss-border);
   display: flex;
