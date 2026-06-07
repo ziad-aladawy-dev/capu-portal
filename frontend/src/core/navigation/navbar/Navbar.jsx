@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
+import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeRegistry";
 
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
@@ -154,11 +155,13 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
                 className={`nav-dropdown-trigger scope-trigger${scopeNode ? " has-active" : ""}`}
                 onClick={() => setShowScopeModal(true)}
               >
-                <Building2 size={15} />
+                {(() => {
+                  const ScopeIcon = scopeNode ? (getNodeTypeConfig(scopeNode.type)?.icon || Building2) : Building2;
+                  return <ScopeIcon size={15} />;
+                })()}
                 <div className="scope-content">
                   <span className="nav-label">{t("current_scope")}</span>
                   <strong>{scopeDisplayName}</strong>
-                  {scopeNode && <small>{scopeNode.type}</small>}
                 </div>
                 {scopeNode && <span className="scope-active-indicator" />}
                 <ChevronDown size={13} />

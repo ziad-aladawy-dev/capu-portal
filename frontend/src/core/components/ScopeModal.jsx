@@ -8,17 +8,9 @@ import * as structureService from "../services/structureService";
 import { getLocalized } from "../utils/getLocalized";
 import { useDomain } from "../contexts/DomainContext";
 import { useAcademic } from "../contexts/AcademicContext";
+import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
+import NodeTypeBadge from "./NodeTypeBadge";
 import "./scopeModal.css";
-
-const TYPE_ICONS = {
-  University: Building2,
-  Faculty: Building2,
-  System: Building2,
-  Program: Building2,
-  Level: Building2,
-  Department: Building2,
-  Specialization: Building2,
-};
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -34,7 +26,9 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = selectedId === node.id;
-  const Icon = TYPE_ICONS[node.type] || Building2;
+  const typeConfig = getNodeTypeConfig(node.type);
+  const Icon = typeConfig?.icon || Building2;
+  const typeColor = typeConfig?.color || "rgba(26, 31, 94, 0.4)";
   const displayName = node.localizedName || getLocalized(node.name, i18n.language);
 
   return (
@@ -54,9 +48,9 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth
         ) : (
           <span className="scope-tree-toggle scope-tree-toggle-placeholder" />
         )}
-        <Icon size={14} className="scope-tree-type-icon" />
+        <Icon size={14} className="scope-tree-type-icon" style={{ color: typeColor }} />
         <span className="scope-tree-label">{displayName}</span>
-        <span className="scope-tree-type">{node.typeNameLocalized || node.type}</span>
+        <NodeTypeBadge type={node.type} size="xs" />
         {isSelected && <Check size={12} className="scope-tree-check" />}
       </button>
       {hasChildren && isExpanded && (
@@ -265,7 +259,11 @@ function ScopeModal({ onClose }) {
             <div className="scope-summary">
               {selectedNode ? (
                 <div className="scope-summary-chip structural">
-                  <Building2 size={12} />
+                  {(() => {
+                    const SelIcon = getNodeTypeConfig(selectedNode.type)?.icon || Building2;
+                    const selColor = getNodeTypeConfig(selectedNode.type)?.color || "#1a1f5e";
+                    return <SelIcon size={12} style={{ color: selColor }} />;
+                  })()}
                   <span className="scope-summary-chip-label">{selectedNode.localizedName || getLocalized(selectedNode.name, i18n.language)}</span>
                   <button
                     className="scope-summary-chip-clear"

@@ -1,25 +1,19 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, ChevronRight, ChevronDown, Building2, GraduationCap, Layers, BookOpen, Award } from "lucide-react";
+import { X, ChevronRight, ChevronDown } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
 import { getLocalized } from "../../../core/utils/getLocalized";
+import { getNodeTypeConfig } from "../utils/nodeTypeRegistry";
+import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
 import "../styles/scopeModal.css";
-
-const typeIcons = {
-  University: Building2,
-  Faculty: GraduationCap,
-  Department: Layers,
-  Program: BookOpen,
-  Level: Award,
-  System: Layers,
-  Specialization: Award,
-};
 
 function TreeNode({ node, onSelect, selectedId, level = 0 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(level < 1);
   const hasChildren = node.children && node.children.length > 0;
-  const Icon = typeIcons[node.type] || Building2;
+  const typeConfig = getNodeTypeConfig(node.type);
+  const Icon = typeConfig?.icon || null;
+  const typeColor = typeConfig?.color || "#6b7280";
   const isSelected = selectedId === node.id;
   const displayName = node.localizedName || getLocalized(node.name, i18n.language);
 
@@ -42,9 +36,13 @@ function TreeNode({ node, onSelect, selectedId, level = 0 }) {
           </button>
         )}
         {!hasChildren && <span className="scope-tree-placeholder" />}
-        <div className="scope-tree-icon"><Icon size={14} /></div>
+        {Icon && (
+          <div className="scope-tree-icon" style={{ color: typeColor }}>
+            <Icon size={14} />
+          </div>
+        )}
         <span className="scope-tree-name">{displayName}</span>
-        <span className="scope-tree-type">{node.type}</span>
+        <NodeTypeBadge type={node.type} size="xs" />
       </div>
       {hasChildren && open && (
         <div className="scope-tree-children">

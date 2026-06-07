@@ -1,14 +1,16 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
-  Search, X, Building2, Users,
+  Search, X, Users,
   CalendarRange, BookOpen, User, RotateCcw,
-  GraduationCap, ChevronDown, Eye,
+  GraduationCap, ChevronDown, Eye, Building2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
+import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeRegistry";
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useStickySelection } from "../../contexts/StickySelectionContext";
+import { useScopeAwareUI } from "../../hooks/useScopeAwareUI";
 import * as staffService from "../../services/staffService";
 import * as studentService from "../../services/studentService";
 import * as structureService from "../../services/structureService";
@@ -56,6 +58,7 @@ const TABS = [
 function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
+  const { preferredUserTab } = useScopeAwareUI();
   const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
   const { selected, select, clear, isActive } = useStickySelection();
 
@@ -66,6 +69,19 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const [resultsLoading, setResultsLoading] = useState(false);
   const debounceRef = useRef(null);
   const [filterOptions, setFilterOptions] = useState({});
+  const prevScopeIdRef = useRef(null);
+
+  useEffect(() => {
+    if (scopeNode?.id && scopeNode.id !== prevScopeIdRef.current) {
+      setActiveTab(preferredUserTab);
+      setSearchQuery("");
+      setFilters({});
+      prevScopeIdRef.current = scopeNode.id;
+    }
+    if (!scopeNode) {
+      prevScopeIdRef.current = null;
+    }
+  }, [scopeNode, preferredUserTab]);
 
   const effectiveDirType = activeTab === "all" ? "all" : activeTab;
   const activeFilters = FILTER_DEFS[effectiveDirType] || FILTER_DEFS.all;
@@ -211,7 +227,11 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
       {/* ── Scope Section ────────────────── */}
       <div className="sec-scope">
         <div className="sec-scope-main">
-          <Building2 size={13} />
+          {(() => {
+            const ScopeIcon = scopeNode ? (getNodeTypeConfig(scopeNode.type)?.icon || Building2) : Building2;
+            const scopeColor = getNodeTypeConfig(scopeNode?.type)?.color || "inherit";
+            return <ScopeIcon size={13} style={{ color: scopeColor }} />;
+          })()}
           <div className="sec-scope-content">
             <span className="sec-scope-label">{t("scope_summary")}</span>
             <span className="sec-scope-value">{scopeDisplayName}</span>

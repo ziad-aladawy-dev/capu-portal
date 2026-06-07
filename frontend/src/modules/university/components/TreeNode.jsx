@@ -8,23 +8,11 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
-  Building2,
-  GraduationCap,
-  Layers,
-  BookOpen,
 } from "lucide-react";
 import { getLocalized } from "../../../core/utils/getLocalized";
-import { getAllowedChildTypes, normalizeType } from "../utils/nodeTypeHelpers";
-
-const typeIcons = {
-  University: Building2,
-  Faculty: GraduationCap,
-  Department: Layers,
-  Program: BookOpen,
-  Level: BookOpen,
-  System: Layers,
-  Specialization: BookOpen,
-};
+import { getAllowedChildTypes } from "../utils/nodeTypeHelpers";
+import { getNodeTypeConfig } from "../utils/nodeTypeRegistry";
+import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
 
 function TreeNode({
   node,
@@ -43,7 +31,9 @@ function TreeNode({
 }) {
   const { t, i18n } = useTranslation();
   const hasChildren = node.children?.length > 0;
-  const Icon = typeIcons[node.type] || Layers;
+  const typeConfig = getNodeTypeConfig(node.type);
+  const Icon = typeConfig?.icon || null;
+  const typeColor = typeConfig?.color || "#6b7280";
   const canAddChildren = getAllowedChildTypes(node.type).length > 0;
 
   const isOpen = expandedNodes.has(node.id);
@@ -53,7 +43,6 @@ function TreeNode({
   const isMatched = search && matchedIds.includes(node.id);
 
   const displayName = node.localizedName || getLocalized(node.name, i18n.language);
-  const displayType = node.typeNameLocalized || normalizeType(node.type);
 
   const handleToggle = (e) => {
     e.stopPropagation();
@@ -119,13 +108,18 @@ function TreeNode({
             )}
           </button>
 
-          <div className="tree-node-icon">
-            <Icon size={15} />
-          </div>
+          {Icon && (
+            <div className="tree-node-icon" style={{ background: `linear-gradient(135deg, ${typeColor}, ${typeColor}dd)`, color: "#fff" }}>
+              <Icon size={15} />
+            </div>
+          )}
 
           <div className="tree-node-text">
             <strong>{displayName}</strong>
-            <span>{displayType} • {t("depth")} {node.depth}</span>
+            <span>
+              <NodeTypeBadge type={node.type} showIcon={false} size="xs" />
+              {" • "}{t("depth")} {node.depth}
+            </span>
           </div>
         </div>
 
