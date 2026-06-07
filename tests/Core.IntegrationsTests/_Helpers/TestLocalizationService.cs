@@ -20,5 +20,6 @@ internal sealed class TestLocalizationService : ILocalizationService
 
     public string Get(Enum value) => value.ToString();
     public string GetString(string key) => key;
+    public string GetLocalizedString(string? json) => json is null ? "" : LocalizedJson.Extract(json, "en");
     public bool ContainsKey(string? key) => false;
 }

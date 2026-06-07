@@ -56,7 +56,7 @@ if (builder.Environment.EnvironmentName != "Testing")
 {
     builder.Services.AddDbContext<CoreDbContext>(options =>
         options
-            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
             .UseSqlServer(
                 builder.Configuration.GetConnectionString("DefaultConnection"),
                 // Transient SQL errors (deadlocks with retryable codes, brief

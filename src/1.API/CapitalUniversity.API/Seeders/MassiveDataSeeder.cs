@@ -13,8 +13,6 @@ using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Abstractions;
 using CapitalUniversity.Modules.Student.Domain;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
-using CapitalUniversity.Modules.StudentServices.Domain;
-using CapitalUniversity.Modules.StudentServices.Abstractions;
 using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Core.Infrastructure.Persistence;
@@ -31,9 +29,9 @@ public static class MassiveDataSeeder
         await ExpandStudentsAsync(context, passwordHasher);
         await SeedCourseOfferingsAsync(context);
         await SeedScheduleSlotsAsync(context);
-        await SeedWorkflowsAsync(context);
-        await SeedStudentServicesAsync(context);
-        await SeedStudentServiceRequestsAsync(context);
+        //await SeedWorkflowsAsync(context);
+        //await SeedStudentServicesAsync(context);
+        //await SeedStudentServiceRequestsAsync(context);
         await ExpandPaymentsAsync(context);
         await SeedStudentProfileRecordsAsync(context);
     }
@@ -636,573 +634,408 @@ public static class MassiveDataSeeder
         Console.WriteLine($"[MassSeed] ScheduleSlots: {added} created.");
     }
 
-    private static async Task SeedWorkflowsAsync(CoreDbContext context)
-    {
-        if (await context.Set<WorkflowDefinition>().AnyAsync()) return;
+    //private static async Task SeedWorkflowsAsync(CoreDbContext context)
+    //{
+    //    if (await context.Set<WorkflowDefinition>().AnyAsync()) return;
+    //    var workflowRepo = context.Set<WorkflowDefinition>();
+    //    var simpleWf = new WorkflowDefinition
+    //    {
+    //        Id = Guid.NewGuid(),
+    //        Code = "simple-approval",
+    //        Name = LocalizedJson.Of("اعتماد بسيط", "Simple Approval"),
+    //        Description = LocalizedJson.Of("سير عمل بسيط: تقديم → مراجعة → إكمال", "Simple workflow: Submit → Review → Complete"),
+    //    };
+    //    simpleWf.States = new List<WorkflowState>
+    //    {
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Draft,       DisplayOrder = 0, IsInitial = true,  IsTerminal = false },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Submitted,   DisplayOrder = 1, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.UnderReview, DisplayOrder = 2, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Approved,    DisplayOrder = 3, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Completed,   DisplayOrder = 4, IsInitial = false, IsTerminal = true  },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Rejected,    DisplayOrder = 5, IsInitial = false, IsTerminal = true  },
+    //    };
+    //    simpleWf.Transitions = new List<WorkflowTransition>
+    //    {
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Submitted,   TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Submitted,   ToStatus = ServiceRequestStatus.UnderReview, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Approved,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Rejected,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Approved,    ToStatus = ServiceRequestStatus.Completed,   TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Cancelled,    TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
+    //    };
+    //    workflowRepo.Add(simpleWf);
+    //    var paymentWf = new WorkflowDefinition
+    //    {
+    //        Id = Guid.NewGuid(),
+    //        Code = "payment-approval",
+    //        Name = LocalizedJson.Of("اعتماد مع دفع", "Approval with Payment"),
+    //        Description = LocalizedJson.Of("سير عمل مع خطوة دفع: تقديم → دفع → مراجعة → إكمال", "Workflow with payment: Submit → Pay → Review → Complete"),
+    //    };
+    //    paymentWf.States = new List<WorkflowState>
+    //    {
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Draft,          DisplayOrder = 0, IsInitial = true,  IsTerminal = false, IsWaitingPayment = false },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Submitted,      DisplayOrder = 1, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.WaitingPayment, DisplayOrder = 2, IsInitial = false, IsTerminal = false, IsWaitingPayment = true  },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.UnderReview,    DisplayOrder = 3, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Approved,       DisplayOrder = 4, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Completed,      DisplayOrder = 5, IsInitial = false, IsTerminal = true,  IsWaitingPayment = false },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Rejected,       DisplayOrder = 6, IsInitial = false, IsTerminal = true,  IsWaitingPayment = false },
+    //    };
+    //    paymentWf.Transitions = new List<WorkflowTransition>
+    //    {
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Draft,          ToStatus = ServiceRequestStatus.Submitted,      TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Submitted,      ToStatus = ServiceRequestStatus.WaitingPayment, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.WaitingPayment, ToStatus = ServiceRequestStatus.UnderReview,    TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "payment-confirmed" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.UnderReview,    ToStatus = ServiceRequestStatus.Approved,       TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.UnderReview,    ToStatus = ServiceRequestStatus.Rejected,       TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Approved,       ToStatus = ServiceRequestStatus.Completed,      TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Draft,          ToStatus = ServiceRequestStatus.Cancelled,       TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
+    //        new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.WaitingPayment, ToStatus = ServiceRequestStatus.Cancelled,       TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
+    //    };
+    //    workflowRepo.Add(paymentWf);
+    //    var multiStepWf = new WorkflowDefinition
+    //    {
+    //        Id = Guid.NewGuid(),
+    //        Code = "multi-step",
+    //        Name = LocalizedJson.Of("اعتماد متعدد الخطوات", "Multi-Step Approval"),
+    //        Description = LocalizedJson.Of("سير عمل متعدد: تقديم → مراجعة قسم → مراجعة إدارة → اعتماد → إكمال", "Multi-step: Submit → Dept Review → Admin Review → Approve → Complete"),
+    //    };
+    //    multiStepWf.States = new List<WorkflowState>
+    //    {
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Draft,       DisplayOrder = 0, IsInitial = true,  IsTerminal = false },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Submitted,   DisplayOrder = 1, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.UnderReview, DisplayOrder = 2, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Approved,    DisplayOrder = 3, IsInitial = false, IsTerminal = false },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Completed,   DisplayOrder = 4, IsInitial = false, IsTerminal = true  },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Rejected,    DisplayOrder = 5, IsInitial = false, IsTerminal = true  },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Cancelled,   DisplayOrder = 6, IsInitial = false, IsTerminal = true  },
+    //    };
+    //    multiStepWf.Transitions = new List<WorkflowTransition>
+    //    {
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Submitted,   TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Submitted,   ToStatus = ServiceRequestStatus.UnderReview, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Approved,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Rejected,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Approved,    ToStatus = ServiceRequestStatus.Completed,   TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
+    //        new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Cancelled,    TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
+    //    };
+    //    workflowRepo.Add(multiStepWf);
+    //    await context.SaveChangesAsync();
+    //    Console.WriteLine($"[MassSeed] Workflows: 3 definitions created.");
+    //}
 
-        var workflowRepo = context.Set<WorkflowDefinition>();
+    //private static async Task SeedStudentServicesAsync(CoreDbContext context)
+    //{
+    //    if (await context.Set<StudentService>().AnyAsync()) return;
+    //    var workflows = await context.Set<WorkflowDefinition>().ToListAsync();
+    //    var simpleWfId = workflows.First(w => w.Code == "simple-approval").Id;
+    //    var paymentWfId = workflows.First(w => w.Code == "payment-approval").Id;
+    //    var multiWfId = workflows.First(w => w.Code == "multi-step").Id;
+    //    var roles = await context.Roles.ToListAsync();
+    //    var registrarRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Registrar").Id;
+    //    var facAdminRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Faculty Admin").Id;
+    //    var deptHeadRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Department Head").Id;
+    //    var staffRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Staff").Id;
+    //    var serviceRepo = context.Set<StudentService>();
+    //    var transcriptService = new StudentService
+    //    {
+    //        Id = Guid.NewGuid(),
+    //        Code = "transcript-request",
+    //        Name = LocalizedJson.Of("طلب بيان درجات", "Transcript Request"),
+    //        Description = LocalizedJson.Of("طلب الحصول على بيان درجات رسمي معتمد من الكلية", "Request an official certified transcript from the faculty"),
+    //        IsActive = true, RequiresPayment = true, FeeType = "خدمة بيان درجات", FeeAmount = 150.00m, Currency = "EGP",
+    //        EstimatedProcessingDays = 5, AllowedProcessingRoleIdsCsv = $"{registrarRoleId},{facAdminRoleId}", WorkflowDefinitionId = paymentWfId,
+    //    };
+    //    transcriptService.Fields = new List<ServiceFieldDefinition>
+    //    {
+    //        new() { StudentServiceId = transcriptService.Id, Name = "full_name", Label = LocalizedJson.Of("الاسم الكامل", "Full Name"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "student_id", Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "copies", Label = LocalizedJson.Of("عدد النسخ", "Number of Copies"), FieldType = DynamicFieldType.Number, IsRequired = true, DisplayOrder = 2, MinValue = 1, MaxValue = 10 },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "language", Label = LocalizedJson.Of("اللغة", "Language"), FieldType = DynamicFieldType.Dropdown, IsRequired = true, DisplayOrder = 3, DropdownValues = "arabic,english,both" },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "delivery_method", Label = LocalizedJson.Of("طريقة الاستلام", "Delivery Method"), FieldType = DynamicFieldType.Dropdown, IsRequired = true, DisplayOrder = 4, DropdownValues = "in_person,mail,courier" },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "purpose", Label = LocalizedJson.Of("الغرض من الطلب", "Purpose of Request"), FieldType = DynamicFieldType.MultilineText, IsRequired = false, DisplayOrder = 5, MaxLength = 500 },
+    //    };
+    //    transcriptService.Documents = new List<ServiceDocumentDefinition>
+    //    {
+    //        new() { StudentServiceId = transcriptService.Id, Name = "id_copy", Label = LocalizedJson.Of("صورة بطاقة الرقم القومي", "National ID Copy"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
+    //        new() { StudentServiceId = transcriptService.Id, Name = "payment_receipt", Label = LocalizedJson.Of("إيصال الدفع", "Payment Receipt"), IsRequired = false, DisplayOrder = 1, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
+    //    };
+    //    serviceRepo.Add(transcriptService);
+    //    var enrollmentCert = new StudentService
+    //    {
+    //        Id = Guid.NewGuid(), Code = "enrollment-certificate",
+    //        Name = LocalizedJson.Of("شهادة قيد", "Enrollment Certificate"),
+    //        Description = LocalizedJson.Of("طلب شهادة قيد رسمية للطلبة المسجلين", "Request an official enrollment certificate for registered students"),
+    //        IsActive = true, RequiresPayment = true, FeeType = "خدمة شهادة قيد", FeeAmount = 75.00m, Currency = "EGP",
+    //        EstimatedProcessingDays = 3, AllowedProcessingRoleIdsCsv = $"{registrarRoleId},{staffRoleId}", WorkflowDefinitionId = paymentWfId,
+    //    };
+    //    enrollmentCert.Fields = new List<ServiceFieldDefinition>
+    //    {
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "full_name", Label = LocalizedJson.Of("الاسم الكامل", "Full Name"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "student_id", Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "graduation_year", Label = LocalizedJson.Of("السنة الدراسية", "Academic Year"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 2, MinLength = 4, MaxLength = 20 },
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "language", Label = LocalizedJson.Of("اللغة", "Language"), FieldType = DynamicFieldType.Dropdown, IsRequired = true, DisplayOrder = 3, DropdownValues = "arabic,english,both" },
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "delivery_method", Label = LocalizedJson.Of("طريقة الاستلام", "Delivery Method"), FieldType = DynamicFieldType.Dropdown, IsRequired = true, DisplayOrder = 4, DropdownValues = "in_person,mail,courier" },
+    //    };
+    //    enrollmentCert.Documents = new List<ServiceDocumentDefinition>
+    //    {
+    //        new() { StudentServiceId = enrollmentCert.Id, Name = "id_copy", Label = LocalizedJson.Of("صورة بطاقة الرقم القومي", "National ID Copy"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
+    //    };
+    //    serviceRepo.Add(enrollmentCert);
+    //    var simpleServices = new[]
+    //    {
+    //        new { Code = "leave-request", NameAr = "طلب إجازة", NameEn = "Leave Request", Fee = 0m, Days = 7 },
+    //        new { Code = "grievance", NameAr = "تقديم تظلم", NameEn = "Submit Grievance", Fee = 0m, Days = 14 },
+    //        new { Code = "appeal", NameAr = "استئناف قرار", NameEn = "Appeal Decision", Fee = 0m, Days = 30 },
+    //        new { Code = "name-change", NameAr = "طلب تغيير الاسم", NameEn = "Name Change Request", Fee = 100m, Days = 10 },
+    //        new { Code = "grade-review", NameAr = "مراجعة درجة", NameEn = "Grade Review Request", Fee = 50m, Days = 7 },
+    //        new { Code = "document-attestation", NameAr = "تصديق مستند", NameEn = "Document Attestation", Fee = 25m, Days = 3 },
+    //    };
+    //    foreach (var svc in simpleServices)
+    //    {
+    //        var service = new StudentService
+    //        {
+    //            Id = Guid.NewGuid(), Code = svc.Code,
+    //            Name = LocalizedJson.Of(svc.NameAr, svc.NameEn),
+    //            Description = LocalizedJson.Of($"طلب {svc.NameAr}", $"{svc.NameEn} request"),
+    //            IsActive = true, RequiresPayment = svc.Fee > 0, FeeType = svc.Fee > 0 ? $"خدمة {svc.NameAr}" : null,
+    //            FeeAmount = svc.Fee > 0 ? svc.Fee : null, Currency = "EGP", EstimatedProcessingDays = svc.Days,
+    //            AllowedProcessingRoleIdsCsv = $"{registrarRoleId},{facAdminRoleId},{deptHeadRoleId}",
+    //            WorkflowDefinitionId = svc.Fee > 0 ? paymentWfId : simpleWfId,
+    //        };
+    //        service.Fields = new List<ServiceFieldDefinition>
+    //        {
+    //            new() { StudentServiceId = service.Id, Name = "student_id", Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"), FieldType = DynamicFieldType.Text, IsRequired = true, DisplayOrder = 0, MinLength = 8, MaxLength = 20 },
+    //            new() { StudentServiceId = service.Id, Name = "description", Label = LocalizedJson.Of("الوصف", "Description"), FieldType = DynamicFieldType.MultilineText, IsRequired = true, DisplayOrder = 1, MaxLength = 1000 },
+    //        };
+    //        service.Documents = new List<ServiceDocumentDefinition>
+    //        {
+    //            new() { StudentServiceId = service.Id, Name = "supporting_doc", Label = LocalizedJson.Of("مستند داعم", "Supporting Document"), IsRequired = false, DisplayOrder = 0, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
+    //        };
+    //        serviceRepo.Add(service);
+    //    }
+    //    await context.SaveChangesAsync();
+    //    Console.WriteLine($"[MassSeed] StudentServices: 8 services created.");
+    //}
 
-        var simpleWf = new WorkflowDefinition
-        {
-            Id = Guid.NewGuid(),
-            Code = "simple-approval",
-            Name = LocalizedJson.Of("اعتماد بسيط", "Simple Approval"),
-            Description = LocalizedJson.Of("سير عمل بسيط: تقديم → مراجعة → إكمال", "Simple workflow: Submit → Review → Complete"),
-        };
-        simpleWf.States = new List<WorkflowState>
-        {
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Draft,       DisplayOrder = 0, IsInitial = true,  IsTerminal = false },
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Submitted,   DisplayOrder = 1, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.UnderReview, DisplayOrder = 2, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Approved,    DisplayOrder = 3, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Completed,   DisplayOrder = 4, IsInitial = false, IsTerminal = true  },
-            new() { WorkflowDefinitionId = simpleWf.Id, Status = ServiceRequestStatus.Rejected,    DisplayOrder = 5, IsInitial = false, IsTerminal = true  },
-        };
-        simpleWf.Transitions = new List<WorkflowTransition>
-        {
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Submitted,   TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Submitted,   ToStatus = ServiceRequestStatus.UnderReview, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Approved,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Rejected,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Approved,    ToStatus = ServiceRequestStatus.Completed,   TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = simpleWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Cancelled,    TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
-        };
-        workflowRepo.Add(simpleWf);
-
-        var paymentWf = new WorkflowDefinition
-        {
-            Id = Guid.NewGuid(),
-            Code = "payment-approval",
-            Name = LocalizedJson.Of("اعتماد مع دفع", "Approval with Payment"),
-            Description = LocalizedJson.Of("سير عمل مع خطوة دفع: تقديم → دفع → مراجعة → إكمال", "Workflow with payment: Submit → Pay → Review → Complete"),
-        };
-        paymentWf.States = new List<WorkflowState>
-        {
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Draft,          DisplayOrder = 0, IsInitial = true,  IsTerminal = false, IsWaitingPayment = false },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Submitted,      DisplayOrder = 1, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.WaitingPayment, DisplayOrder = 2, IsInitial = false, IsTerminal = false, IsWaitingPayment = true  },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.UnderReview,    DisplayOrder = 3, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Approved,       DisplayOrder = 4, IsInitial = false, IsTerminal = false, IsWaitingPayment = false },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Completed,      DisplayOrder = 5, IsInitial = false, IsTerminal = true,  IsWaitingPayment = false },
-            new() { WorkflowDefinitionId = paymentWf.Id, Status = ServiceRequestStatus.Rejected,       DisplayOrder = 6, IsInitial = false, IsTerminal = true,  IsWaitingPayment = false },
-        };
-        paymentWf.Transitions = new List<WorkflowTransition>
-        {
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Draft,          ToStatus = ServiceRequestStatus.Submitted,      TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Submitted,      ToStatus = ServiceRequestStatus.WaitingPayment, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.WaitingPayment, ToStatus = ServiceRequestStatus.UnderReview,    TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "payment-confirmed" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.UnderReview,    ToStatus = ServiceRequestStatus.Approved,       TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.UnderReview,    ToStatus = ServiceRequestStatus.Rejected,       TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Approved,       ToStatus = ServiceRequestStatus.Completed,      TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.Draft,          ToStatus = ServiceRequestStatus.Cancelled,       TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
-            new() { WorkflowDefinitionId = paymentWf.Id, FromStatus = ServiceRequestStatus.WaitingPayment, ToStatus = ServiceRequestStatus.Cancelled,       TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
-        };
-        workflowRepo.Add(paymentWf);
-
-        var multiStepWf = new WorkflowDefinition
-        {
-            Id = Guid.NewGuid(),
-            Code = "multi-step",
-            Name = LocalizedJson.Of("اعتماد متعدد الخطوات", "Multi-Step Approval"),
-            Description = LocalizedJson.Of("سير عمل متعدد: تقديم → مراجعة قسم → مراجعة إدارة → اعتماد → إكمال", "Multi-step: Submit → Dept Review → Admin Review → Approve → Complete"),
-        };
-        multiStepWf.States = new List<WorkflowState>
-        {
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Draft,       DisplayOrder = 0, IsInitial = true,  IsTerminal = false },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Submitted,   DisplayOrder = 1, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.UnderReview, DisplayOrder = 2, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Approved,    DisplayOrder = 3, IsInitial = false, IsTerminal = false },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Completed,   DisplayOrder = 4, IsInitial = false, IsTerminal = true  },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Rejected,    DisplayOrder = 5, IsInitial = false, IsTerminal = true  },
-            new() { WorkflowDefinitionId = multiStepWf.Id, Status = ServiceRequestStatus.Cancelled,   DisplayOrder = 6, IsInitial = false, IsTerminal = true  },
-        };
-        multiStepWf.Transitions = new List<WorkflowTransition>
-        {
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Submitted,   TransitionType = WorkflowTransitionType.Student,   RequiredAction = "submit" },
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Submitted,   ToStatus = ServiceRequestStatus.UnderReview, TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Approved,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "approve" },
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.UnderReview, ToStatus = ServiceRequestStatus.Rejected,    TransitionType = WorkflowTransitionType.Manual,    RequiredAction = "reject" },
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Approved,    ToStatus = ServiceRequestStatus.Completed,   TransitionType = WorkflowTransitionType.Automatic, RequiredAction = "" },
-            new() { WorkflowDefinitionId = multiStepWf.Id, FromStatus = ServiceRequestStatus.Draft,       ToStatus = ServiceRequestStatus.Cancelled,    TransitionType = WorkflowTransitionType.Student,   RequiredAction = "cancel" },
-        };
-        workflowRepo.Add(multiStepWf);
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] Workflows: 3 definitions created.");
-    }
-
-    private static async Task SeedStudentServicesAsync(CoreDbContext context)
-    {
-        if (await context.Set<StudentService>().AnyAsync()) return;
-
-        var workflows = await context.Set<WorkflowDefinition>().ToListAsync();
-        var simpleWfId = workflows.First(w => w.Code == "simple-approval").Id;
-        var paymentWfId = workflows.First(w => w.Code == "payment-approval").Id;
-        var multiWfId = workflows.First(w => w.Code == "multi-step").Id;
-
-        var roles = await context.Roles.ToListAsync();
-        var registrarRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Registrar").Id;
-        var facAdminRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Faculty Admin").Id;
-        var deptHeadRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Department Head").Id;
-        var staffRoleId = roles.First(r => LocalizedJson.Extract(r.Name, "en") == "Staff").Id;
-
-        var serviceRepo = context.Set<StudentService>();
-
-        var transcriptService = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "transcript-request",
-            Name = LocalizedJson.Of("طلب بيان درجات", "Transcript Request"),
-            Description = LocalizedJson.Of("طلب الحصول على بيان درجات رسمي معتمد من الكلية", "Request an official certified transcript from the faculty"),
-            IsActive = true,
-            RequiresPayment = true,
-            FeeType = "خدمة بيان درجات",
-            FeeAmount = 150.00m,
-            Currency = "EGP",
-            EstimatedProcessingDays = 5,
-            AllowedProcessingRoleIdsCsv = $"{registrarRoleId},{facAdminRoleId}",
-            WorkflowDefinitionId = paymentWfId,
-        };
-
-        transcriptService.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = transcriptService.Id, Name = "full_name",     Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),           FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = transcriptService.Id, Name = "student_id",    Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),          FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = transcriptService.Id, Name = "copies",        Label = LocalizedJson.Of("عدد النسخ", "Number of Copies"),        FieldType = DynamicFieldType.Number,    IsRequired = true,  DisplayOrder = 2, MinValue = 1, MaxValue = 10 },
-            new() { StudentServiceId = transcriptService.Id, Name = "language",      Label = LocalizedJson.Of("اللغة", "Language"),                    FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 3, DropdownValues = "arabic,english,both" },
-            new() { StudentServiceId = transcriptService.Id, Name = "delivery_method", Label = LocalizedJson.Of("طريقة الاستلام", "Delivery Method"),  FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 4, DropdownValues = "in_person,mail,courier" },
-            new() { StudentServiceId = transcriptService.Id, Name = "purpose",       Label = LocalizedJson.Of("الغرض من الطلب", "Purpose of Request"), FieldType = DynamicFieldType.MultilineText, IsRequired = false, DisplayOrder = 5, MaxLength = 500 },
-        };
-
-        transcriptService.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = transcriptService.Id, Name = "id_copy",  Label = LocalizedJson.Of("صورة بطاقة الرقم القومي", "National ID Copy"), IsRequired = true,  DisplayOrder = 0, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
-            new() { StudentServiceId = transcriptService.Id, Name = "payment_receipt", Label = LocalizedJson.Of("إيصال الدفع", "Payment Receipt"),      IsRequired = false, DisplayOrder = 1, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
-        };
-        serviceRepo.Add(transcriptService);
-
-        var enrollmentCert = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "enrollment-certificate",
-            Name = LocalizedJson.Of("شهادة قيد", "Enrollment Certificate"),
-            Description = LocalizedJson.Of("طلب شهادة قيد رسمية للطلبة المسجلين", "Request an official enrollment certificate for registered students"),
-            IsActive = true,
-            RequiresPayment = true,
-            FeeType = "خدمة شهادة قيد",
-            FeeAmount = 75.00m,
-            Currency = "EGP",
-            EstimatedProcessingDays = 3,
-            AllowedProcessingRoleIdsCsv = $"{registrarRoleId},{staffRoleId}",
-            WorkflowDefinitionId = paymentWfId,
-        };
-
-        enrollmentCert.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = enrollmentCert.Id, Name = "full_name",    Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),         FieldType = DynamicFieldType.Text,    IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = enrollmentCert.Id, Name = "student_id",   Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),        FieldType = DynamicFieldType.Text,    IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = enrollmentCert.Id, Name = "certificate_type", Label = LocalizedJson.Of("نوع الشهادة", "Certificate Type"), FieldType = DynamicFieldType.Dropdown, IsRequired = true,  DisplayOrder = 2, DropdownValues = "regular,stamped,english" },
-            new() { StudentServiceId = enrollmentCert.Id, Name = "quantity",     Label = LocalizedJson.Of("الكمية", "Quantity"),               FieldType = DynamicFieldType.Number,  IsRequired = true,  DisplayOrder = 3, MinValue = 1, MaxValue = 5 },
-        };
-        serviceRepo.Add(enrollmentCert);
-
-        var leaveRequest = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "leave-of-absence",
-            Name = LocalizedJson.Of("طلب إجازة دراسية", "Leave of Absence"),
-            Description = LocalizedJson.Of("تقديم طلب إجازة دراسية لفصل أو عام دراسي كامل", "Submit a leave of absence request for a semester or full academic year"),
-            IsActive = true,
-            RequiresPayment = false,
-            EstimatedProcessingDays = 10,
-            AllowedProcessingRoleIdsCsv = $"{facAdminRoleId},{deptHeadRoleId}",
-            WorkflowDefinitionId = multiWfId,
-        };
-
-        leaveRequest.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = leaveRequest.Id, Name = "full_name",     Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),           FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = leaveRequest.Id, Name = "student_id",    Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),          FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = leaveRequest.Id, Name = "leave_type",    Label = LocalizedJson.Of("نوع الإجازة", "Leave Type"),            FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 2, DropdownValues = "semester,full_year,medical" },
-            new() { StudentServiceId = leaveRequest.Id, Name = "semester",      Label = LocalizedJson.Of("الفصل الدراسي", "Semester"),            FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 3, DropdownValues = "fall,spring,summer" },
-            new() { StudentServiceId = leaveRequest.Id, Name = "academic_year", Label = LocalizedJson.Of("العام الدراسي", "Academic Year"),       FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 4 },
-            new() { StudentServiceId = leaveRequest.Id, Name = "reason",        Label = LocalizedJson.Of("سبب الإجازة", "Reason"),                FieldType = DynamicFieldType.MultilineText, IsRequired = true, DisplayOrder = 5, MaxLength = 1000 },
-        };
-
-        leaveRequest.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = leaveRequest.Id, Name = "supporting_docs", Label = LocalizedJson.Of("المستندات الداعمة", "Supporting Documents"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "pdf,jpg", MaxFileSizeBytes = 10_485_760 },
-        };
-        serviceRepo.Add(leaveRequest);
-
-        var docReplacement = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "document-replacement",
-            Name = LocalizedJson.Of("استبدال وثيقة", "Document Replacement"),
-            Description = LocalizedJson.Of("طلب استبدال وثيقة مفقودة أو تالفة (شهادة، كارنيه، إلخ)", "Request replacement of a lost or damaged document (certificate, ID card, etc.)"),
-            IsActive = true,
-            RequiresPayment = true,
-            FeeType = "خدمة استبدال وثائق",
-            FeeAmount = 200.00m,
-            Currency = "EGP",
-            EstimatedProcessingDays = 7,
-            AllowedProcessingRoleIdsCsv = $"{registrarRoleId}",
-            WorkflowDefinitionId = paymentWfId,
-        };
-
-        docReplacement.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = docReplacement.Id, Name = "full_name",       Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),          FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = docReplacement.Id, Name = "student_id",      Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),         FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = docReplacement.Id, Name = "document_type",   Label = LocalizedJson.Of("نوع الوثيقة", "Document Type"),        FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 2, DropdownValues = "transcript,certificate,student_id,temporary_id" },
-            new() { StudentServiceId = docReplacement.Id, Name = "reason",          Label = LocalizedJson.Of("سبب الاستبدال", "Replacement Reason"),  FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 3, DropdownValues = "lost,damaged,stolen,incorrect_info" },
-            new() { StudentServiceId = docReplacement.Id, Name = "police_report",   Label = LocalizedJson.Of("رقم محضر الشرطة", "Police Report No."), FieldType = DynamicFieldType.Text,      IsRequired = false, DisplayOrder = 4, MaxLength = 50 },
-            new() { StudentServiceId = docReplacement.Id, Name = "additional_notes", Label = LocalizedJson.Of("ملاحظات إضافية", "Additional Notes"), FieldType = DynamicFieldType.MultilineText, IsRequired = false, DisplayOrder = 5, MaxLength = 500 },
-        };
-
-        docReplacement.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = docReplacement.Id, Name = "police_report_file", Label = LocalizedJson.Of("محضر الشرطة", "Police Report"), IsRequired = false, DisplayOrder = 0, AllowedExtensions = "pdf,jpg", MaxFileSizeBytes = 5_242_880 },
-            new() { StudentServiceId = docReplacement.Id, Name = "payment_receipt",    Label = LocalizedJson.Of("إيصال الدفع", "Payment Receipt"), IsRequired = false, DisplayOrder = 1, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
-        };
-        serviceRepo.Add(docReplacement);
-
-        var grievance = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "academic-grievance",
-            Name = LocalizedJson.Of("تظلم أكاديمي", "Academic Grievance"),
-            Description = LocalizedJson.Of("تقديم تظلم بخصوص نتائج امتحان أو تقييم أكاديمي", "Submit a grievance regarding exam results or academic evaluation"),
-            IsActive = true,
-            RequiresPayment = false,
-            EstimatedProcessingDays = 14,
-            AllowedProcessingRoleIdsCsv = $"{facAdminRoleId},{deptHeadRoleId}",
-            WorkflowDefinitionId = multiWfId,
-        };
-
-        grievance.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = grievance.Id, Name = "full_name",      Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),             FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = grievance.Id, Name = "student_id",     Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),            FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = grievance.Id, Name = "course_code",    Label = LocalizedJson.Of("رمز المادة", "Course Code"),               FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 2 },
-            new() { StudentServiceId = grievance.Id, Name = "exam_type",      Label = LocalizedJson.Of("نوع الامتحان", "Exam Type"),               FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 3, DropdownValues = "final,midterm,project,oral,lab" },
-            new() { StudentServiceId = grievance.Id, Name = "grievance_reason", Label = LocalizedJson.Of("سبب التظلم", "Grievance Reason"),         FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 4, DropdownValues = "grading_error,missing_result,technical_issue,other" },
-            new() { StudentServiceId = grievance.Id, Name = "details",        Label = LocalizedJson.Of("تفاصيل التظلم", "Details"),               FieldType = DynamicFieldType.MultilineText, IsRequired = true, DisplayOrder = 5, MaxLength = 2000 },
-        };
-
-        grievance.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = grievance.Id, Name = "exam_copy", Label = LocalizedJson.Of("صورة ورقة الامتحان", "Exam Paper Copy"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "pdf,jpg", MaxFileSizeBytes = 10_485_760 },
-        };
-        serviceRepo.Add(grievance);
-
-        var idCard = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "student-id-card",
-            Name = LocalizedJson.Of("طلب كارنية طالب", "Student ID Card"),
-            Description = LocalizedJson.Of("طلب إصدار كارنية طالب جديد أو بدل فاقد", "Request a new or replacement student ID card"),
-            IsActive = true,
-            RequiresPayment = true,
-            FeeType = "خدمة كارنية طالب",
-            FeeAmount = 85.00m,
-            Currency = "EGP",
-            EstimatedProcessingDays = 5,
-            AllowedProcessingRoleIdsCsv = $"{staffRoleId},{registrarRoleId}",
-            WorkflowDefinitionId = simpleWfId,
-        };
-
-        idCard.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = idCard.Id, Name = "full_name",    Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),      FieldType = DynamicFieldType.Text,    IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = idCard.Id, Name = "student_id",   Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),     FieldType = DynamicFieldType.Text,    IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = idCard.Id, Name = "card_type",    Label = LocalizedJson.Of("نوع الكارنية", "Card Type"),       FieldType = DynamicFieldType.Dropdown, IsRequired = true,  DisplayOrder = 2, DropdownValues = "new,replacement" },
-            new() { StudentServiceId = idCard.Id, Name = "reason",       Label = LocalizedJson.Of("السبب", "Reason"),               FieldType = DynamicFieldType.Dropdown, IsRequired = false, DisplayOrder = 3, DropdownValues = "first_time,lost,damaged,update_info" },
-        };
-
-        idCard.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = idCard.Id, Name = "personal_photo", Label = LocalizedJson.Of("صورة شخصية", "Personal Photo"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "jpg,png", MaxFileSizeBytes = 2_097_152 },
-        };
-        serviceRepo.Add(idCard);
-
-        var withdrawal = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "course-withdrawal",
-            Name = LocalizedJson.Of("طلب حذف مادة", "Course Withdrawal"),
-            Description = LocalizedJson.Of("تقديم طلب حذف مادة دراسية مسجل بها خلال فترة الحذف والإضافة", "Submit a request to withdraw from a registered course during the add/drop period"),
-            IsActive = true,
-            RequiresPayment = false,
-            EstimatedProcessingDays = 3,
-            AllowedProcessingRoleIdsCsv = $"{facAdminRoleId},{deptHeadRoleId}",
-            WorkflowDefinitionId = simpleWfId,
-        };
-
-        withdrawal.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = withdrawal.Id, Name = "full_name",    Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),       FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = withdrawal.Id, Name = "student_id",   Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),      FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = withdrawal.Id, Name = "course_code",  Label = LocalizedJson.Of("رمز المادة", "Course Code"),        FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 2 },
-            new() { StudentServiceId = withdrawal.Id, Name = "section",      Label = LocalizedJson.Of("الشعبة", "Section"),               FieldType = DynamicFieldType.Text,      IsRequired = false, DisplayOrder = 3 },
-            new() { StudentServiceId = withdrawal.Id, Name = "reason",       Label = LocalizedJson.Of("سبب الحذف", "Withdrawal Reason"),   FieldType = DynamicFieldType.Dropdown,  IsRequired = true,  DisplayOrder = 4, DropdownValues = "academic_difficulty,schedule_conflict,health,personal,other" },
-            new() { StudentServiceId = withdrawal.Id, Name = "details",      Label = LocalizedJson.Of("تفاصيل", "Details"),                FieldType = DynamicFieldType.MultilineText, IsRequired = false, DisplayOrder = 5, MaxLength = 500 },
-        };
-        serviceRepo.Add(withdrawal);
-
-        var graduation = new StudentService
-        {
-            Id = Guid.NewGuid(),
-            Code = "graduation-application",
-            Name = LocalizedJson.Of("طلب التخرج", "Graduation Application"),
-            Description = LocalizedJson.Of("تقديم طلب التخرج للطلبة المتوقع تخرجهم", "Submit a graduation application for expected graduates"),
-            IsActive = true,
-            RequiresPayment = false,
-            EstimatedProcessingDays = 20,
-            AllowedProcessingRoleIdsCsv = $"{facAdminRoleId},{registrarRoleId},{deptHeadRoleId}",
-            WorkflowDefinitionId = multiWfId,
-        };
-
-        graduation.Fields = new List<ServiceFieldDefinition>
-        {
-            new() { StudentServiceId = graduation.Id, Name = "full_name",      Label = LocalizedJson.Of("الاسم الكامل", "Full Name"),           FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 0, MinLength = 5, MaxLength = 100 },
-            new() { StudentServiceId = graduation.Id, Name = "student_id",     Label = LocalizedJson.Of("الرقم الجامعي", "Student ID"),          FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 1, MinLength = 8, MaxLength = 20 },
-            new() { StudentServiceId = graduation.Id, Name = "graduation_semester", Label = LocalizedJson.Of("فصل التخرج", "Graduation Semester"), FieldType = DynamicFieldType.Dropdown, IsRequired = true, DisplayOrder = 2, DropdownValues = "fall,spring,summer" },
-            new() { StudentServiceId = graduation.Id, Name = "graduation_year", Label = LocalizedJson.Of("عام التخرج", "Graduation Year"),        FieldType = DynamicFieldType.Text,      IsRequired = true,  DisplayOrder = 3 },
-            new() { StudentServiceId = graduation.Id, Name = "honors",          Label = LocalizedJson.Of("رغبة في مرتبة الشرف", "Honors Request"), FieldType = DynamicFieldType.Boolean,   IsRequired = false, DisplayOrder = 4 },
-            new() { StudentServiceId = graduation.Id, Name = "notes",           Label = LocalizedJson.Of("ملاحظات", "Notes"),                     FieldType = DynamicFieldType.MultilineText, IsRequired = false, DisplayOrder = 5, MaxLength = 500 },
-        };
-
-        graduation.Documents = new List<ServiceDocumentDefinition>
-        {
-            new() { StudentServiceId = graduation.Id, Name = "clearance_form", Label = LocalizedJson.Of("نموذج البراءة", "Clearance Form"), IsRequired = true, DisplayOrder = 0, AllowedExtensions = "pdf", MaxFileSizeBytes = 5_242_880 },
-            new() { StudentServiceId = graduation.Id, Name = "fee_receipt",    Label = LocalizedJson.Of("إيصال رسوم التخرج", "Graduation Fee Receipt"), IsRequired = true, DisplayOrder = 1, AllowedExtensions = "pdf,jpg,png", MaxFileSizeBytes = 5_242_880 },
-        };
-        serviceRepo.Add(graduation);
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] StudentServices: 8 services created.");
-    }
-
-    private static async Task SeedStudentServiceRequestsAsync(CoreDbContext context)
-    {
-        if (await context.Set<StudentServiceRequest>().AnyAsync()) return;
-
-        var services = await context.Set<StudentService>().ToListAsync();
-        var students = await context.Students.Take(20).ToListAsync();
-        var staff = await context.Staffs.Take(3).ToListAsync();
-
-        var transcriptServiceId = services.First(s => s.Code == "transcript-request").Id;
-        var enrollmentServiceId = services.First(s => s.Code == "enrollment-certificate").Id;
-        var leaveServiceId = services.First(s => s.Code == "leave-of-absence").Id;
-        var grievanceServiceId = services.First(s => s.Code == "academic-grievance").Id;
-        var idCardServiceId = services.First(s => s.Code == "student-id-card").Id;
-        var withdrawalServiceId = services.First(s => s.Code == "course-withdrawal").Id;
-        var graduationServiceId = services.First(s => s.Code == "graduation-application").Id;
-
-        var requestRepo = context.Set<StudentServiceRequest>();
-        var now = DateTime.UtcNow;
-
-        StudentServiceRequest MakeRequest(Guid studentId, Guid serviceId, ServiceRequestStatus status,
-            Guid? staffId, DateTime? submitted, DateTime? processed, (string Name, string Value)[] fields)
-        {
-            var req = new StudentServiceRequest
-            {
-                Id = Guid.NewGuid(),
-                StudentId = studentId,
-                StudentServiceId = serviceId,
-                CurrentStatus = status,
-                SubmittedAt = submitted,
-                ProcessedAt = processed,
-                AssignedStaffId = staffId,
-                CreatedAt = submitted ?? now,
-            };
-
-            foreach (var (name, value) in fields)
-            {
-                req.FieldValues.Add(new ServiceFieldValue
-                {
-                    StudentServiceRequestId = req.Id,
-                    FieldDefinitionId = services.First(s => s.Id == serviceId).Fields
-                        .FirstOrDefault(f => f.Name == name)?.Id ?? Guid.NewGuid(),
-                    Value = value,
-                });
-            }
-
-            return req;
-        }
-
-        requestRepo.Add(MakeRequest(students[0].Id, transcriptServiceId, ServiceRequestStatus.Completed,
-            staff[0].Id,
-            now.AddDays(-10), now.AddDays(-5),
-            new[] {
-                ("full_name", "Ahmed Mohamed Ali"),
-                ("student_id", "20250001"),
-                ("copies", "3"),
-                ("language", "english"),
-                ("delivery_method", "in_person"),
-                ("purpose", "Graduate school application"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[1].Id, enrollmentServiceId, ServiceRequestStatus.UnderReview,
-            staff[1].Id,
-            now.AddDays(-3), null,
-            new[] {
-                ("full_name", "Sara Mahmoud Hassan"),
-                ("student_id", "20250002"),
-                ("certificate_type", "stamped"),
-                ("quantity", "2"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[2].Id, leaveServiceId, ServiceRequestStatus.Submitted,
-            null,
-            now.AddDays(-1), null,
-            new[] {
-                ("full_name", "Mohamed Khaled Ibrahim"),
-                ("student_id", "20250003"),
-                ("leave_type", "medical"),
-                ("semester", "spring"),
-                ("academic_year", "2025-2026"),
-                ("reason", "Medical treatment requiring extended recovery period as per doctor's recommendation."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[3].Id, grievanceServiceId, ServiceRequestStatus.Approved,
-            staff[2].Id,
-            now.AddDays(-7), now.AddDays(-4),
-            new[] {
-                ("full_name", "Nourhan Atef El-Sayed"),
-                ("student_id", "20250004"),
-                ("course_code", "MATH101"),
-                ("exam_type", "final"),
-                ("grievance_reason", "grading_error"),
-                ("details", "Requesting re-evaluation of Calculus I final exam. The total appears miscalculated."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[4].Id, idCardServiceId, ServiceRequestStatus.Draft,
-            null, null, null,
-            new[] {
-                ("full_name", "Mariam Tarek Fathy"),
-                ("student_id", "20250005"),
-                ("card_type", "replacement"),
-                ("reason", "lost"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[5].Id, withdrawalServiceId, ServiceRequestStatus.Rejected,
-            staff[0].Id,
-            now.AddDays(-15), now.AddDays(-12),
-            new[] {
-                ("full_name", "Youssef Gamal El-Din"),
-                ("student_id", "20250006"),
-                ("course_code", "TEX201"),
-                ("reason", "other"),
-                ("details", "Withdrawal period has passed."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[6].Id, enrollmentServiceId, ServiceRequestStatus.Completed,
-            staff[1].Id,
-            now.AddDays(-20), now.AddDays(-18),
-            new[] {
-                ("full_name", "Omar Hossam El-Din"),
-                ("student_id", "20250007"),
-                ("certificate_type", "regular"),
-                ("quantity", "1"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[7].Id, transcriptServiceId, ServiceRequestStatus.WaitingPayment,
-            null,
-            now.AddDays(-2), null,
-            new[] {
-                ("full_name", "Laila Sherif Kamal"),
-                ("student_id", "20250008"),
-                ("copies", "1"),
-                ("language", "arabic"),
-                ("delivery_method", "in_person"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[8].Id, leaveServiceId, ServiceRequestStatus.Cancelled,
-            null,
-            now.AddDays(-25), now.AddDays(-24),
-            new[] {
-                ("full_name", "Ali Hassan Mohamed"),
-                ("student_id", "20250009"),
-                ("leave_type", "semester"),
-                ("semester", "fall"),
-                ("academic_year", "2025-2026"),
-                ("reason", "No longer needed."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[9].Id, grievanceServiceId, ServiceRequestStatus.Submitted,
-            null,
-            now.AddHours(-6), null,
-            new[] {
-                ("full_name", "Hagar Mahmoud Ahmed"),
-                ("student_id", "20250010"),
-                ("course_code", "CS201"),
-                ("exam_type", "final"),
-                ("grievance_reason", "missing_result"),
-                ("details", "My Data Structures final exam result is not showing on the portal."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[10].Id, idCardServiceId, ServiceRequestStatus.Completed,
-            staff[2].Id,
-            now.AddDays(-30), now.AddDays(-28),
-            new[] {
-                ("full_name", "Karim Mostafa Abdel-Aziz"),
-                ("student_id", "20250011"),
-                ("card_type", "new"),
-                ("reason", "first_time"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[11].Id, graduationServiceId, ServiceRequestStatus.UnderReview,
-            staff[0].Id,
-            now.AddDays(-5), null,
-            new[] {
-                ("full_name", "Salma Adel Naguib"),
-                ("student_id", "20250012"),
-                ("graduation_semester", "spring"),
-                ("graduation_year", "2025-2026"),
-                ("honors", "true"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[12].Id, withdrawalServiceId, ServiceRequestStatus.Approved,
-            staff[1].Id,
-            now.AddDays(-8), now.AddDays(-6),
-            new[] {
-                ("full_name", "Hassan Emad El-Din"),
-                ("student_id", "20250013"),
-                ("course_code", "GEN150"),
-                ("section", "A"),
-                ("reason", "schedule_conflict"),
-                ("details", "Public Speaking clashes with my lab session."),
-            }));
-
-        requestRepo.Add(MakeRequest(students[13].Id, transcriptServiceId, ServiceRequestStatus.Rejected,
-            staff[0].Id,
-            now.AddDays(-12), now.AddDays(-10),
-            new[] {
-                ("full_name", "Dalia Samir Fawzy"),
-                ("student_id", "20250014"),
-                ("copies", "5"),
-                ("language", "both"),
-                ("delivery_method", "courier"),
-                ("purpose", "Multiple university applications"),
-            }));
-
-        requestRepo.Add(MakeRequest(students[14].Id, leaveServiceId, ServiceRequestStatus.Draft,
-            null, null, null,
-            new[] {
-                ("full_name", "Amr Khaled Youssef"),
-                ("student_id", "20250015"),
-                ("leave_type", "full_year"),
-                ("semester", "fall"),
-                ("academic_year", "2026-2027"),
-                ("reason", "Planning to take a gap year for professional internship."),
-            }));
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] StudentServiceRequests: 15 requests created.");
-    }
+    //private static async Task SeedStudentServiceRequestsAsync(CoreDbContext context)
+    //{
+    //    if (await context.Set<StudentServiceRequest>().AnyAsync()) return;
+    //
+    //    var services = await context.Set<StudentService>().ToListAsync();
+    //    var students = await context.Students.Take(20).ToListAsync();
+    //    var staff = await context.Staffs.Take(3).ToListAsync();
+    //
+    //    var transcriptServiceId = services.First(s => s.Code == "transcript-request").Id;
+    //    var enrollmentServiceId = services.First(s => s.Code == "enrollment-certificate").Id;
+    //    var leaveServiceId = services.First(s => s.Code == "leave-of-absence").Id;
+    //    var grievanceServiceId = services.First(s => s.Code == "academic-grievance").Id;
+    //    var idCardServiceId = services.First(s => s.Code == "student-id-card").Id;
+    //    var withdrawalServiceId = services.First(s => s.Code == "course-withdrawal").Id;
+    //    var graduationServiceId = services.First(s => s.Code == "graduation-application").Id;
+    //
+    //    var requestRepo = context.Set<StudentServiceRequest>();
+    //    var now = DateTime.UtcNow;
+    //
+    //    StudentServiceRequest MakeRequest(Guid studentId, Guid serviceId, ServiceRequestStatus status,
+    //        Guid? staffId, DateTime? submitted, DateTime? processed, (string Name, string Value)[] fields)
+    //    {
+    //        var req = new StudentServiceRequest
+    //        {
+    //            Id = Guid.NewGuid(),
+    //            StudentId = studentId,
+    //            StudentServiceId = serviceId,
+    //            CurrentStatus = status,
+    //            SubmittedAt = submitted,
+    //            ProcessedAt = processed,
+    //            AssignedStaffId = staffId,
+    //            CreatedAt = submitted ?? now,
+    //        };
+    //
+    //        foreach (var (name, value) in fields)
+    //        {
+    //            req.FieldValues.Add(new ServiceFieldValue
+    //            {
+    //                StudentServiceRequestId = req.Id,
+    //                FieldDefinitionId = services.First(s => s.Id == serviceId).Fields
+    //                    .FirstOrDefault(f => f.Name == name)?.Id ?? Guid.NewGuid(),
+    //                Value = value,
+    //            });
+    //        }
+    //
+    //        return req;
+    //    }
+    //
+    //    requestRepo.Add(MakeRequest(students[0].Id, transcriptServiceId, ServiceRequestStatus.Completed,
+    //        staff[0].Id,
+    //        now.AddDays(-10), now.AddDays(-5),
+    //        new[] {
+    //            ("full_name", "Ahmed Mohamed Ali"),
+    //            ("student_id", "20250001"),
+    //            ("copies", "3"),
+    //            ("language", "english"),
+    //            ("delivery_method", "in_person"),
+    //            ("purpose", "Graduate school application"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[1].Id, enrollmentServiceId, ServiceRequestStatus.UnderReview,
+    //        staff[1].Id,
+    //        now.AddDays(-3), null,
+    //        new[] {
+    //            ("full_name", "Sara Mahmoud Hassan"),
+    //            ("student_id", "20250002"),
+    //            ("certificate_type", "stamped"),
+    //            ("quantity", "2"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[2].Id, leaveServiceId, ServiceRequestStatus.Submitted,
+    //        null,
+    //        now.AddDays(-1), null,
+    //        new[] {
+    //            ("full_name", "Mohamed Khaled Ibrahim"),
+    //            ("student_id", "20250003"),
+    //            ("leave_type", "medical"),
+    //            ("semester", "spring"),
+    //            ("academic_year", "2025-2026"),
+    //            ("reason", "Medical treatment requiring extended recovery period as per doctor's recommendation."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[3].Id, grievanceServiceId, ServiceRequestStatus.Approved,
+    //        staff[2].Id,
+    //        now.AddDays(-7), now.AddDays(-4),
+    //        new[] {
+    //            ("full_name", "Nourhan Atef El-Sayed"),
+    //            ("student_id", "20250004"),
+    //            ("course_code", "MATH101"),
+    //            ("exam_type", "final"),
+    //            ("grievance_reason", "grading_error"),
+    //            ("details", "Requesting re-evaluation of Calculus I final exam. The total appears miscalculated."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[4].Id, idCardServiceId, ServiceRequestStatus.Draft,
+    //        null, null, null,
+    //        new[] {
+    //            ("full_name", "Mariam Tarek Fathy"),
+    //            ("student_id", "20250005"),
+    //            ("card_type", "replacement"),
+    //            ("reason", "lost"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[5].Id, withdrawalServiceId, ServiceRequestStatus.Rejected,
+    //        staff[0].Id,
+    //        now.AddDays(-15), now.AddDays(-12),
+    //        new[] {
+    //            ("full_name", "Youssef Gamal El-Din"),
+    //            ("student_id", "20250006"),
+    //            ("course_code", "TEX201"),
+    //            ("reason", "other"),
+    //            ("details", "Withdrawal period has passed."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[6].Id, enrollmentServiceId, ServiceRequestStatus.Completed,
+    //        staff[1].Id,
+    //        now.AddDays(-20), now.AddDays(-18),
+    //        new[] {
+    //            ("full_name", "Omar Hossam El-Din"),
+    //            ("student_id", "20250007"),
+    //            ("certificate_type", "regular"),
+    //            ("quantity", "1"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[7].Id, transcriptServiceId, ServiceRequestStatus.WaitingPayment,
+    //        null,
+    //        now.AddDays(-2), null,
+    //        new[] {
+    //            ("full_name", "Laila Sherif Kamal"),
+    //            ("student_id", "20250008"),
+    //            ("copies", "1"),
+    //            ("language", "arabic"),
+    //            ("delivery_method", "in_person"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[8].Id, leaveServiceId, ServiceRequestStatus.Cancelled,
+    //        null,
+    //        now.AddDays(-25), now.AddDays(-24),
+    //        new[] {
+    //            ("full_name", "Ali Hassan Mohamed"),
+    //            ("student_id", "20250009"),
+    //            ("leave_type", "semester"),
+    //            ("semester", "fall"),
+    //            ("academic_year", "2025-2026"),
+    //            ("reason", "No longer needed."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[9].Id, grievanceServiceId, ServiceRequestStatus.Submitted,
+    //        null,
+    //        now.AddHours(-6), null,
+    //        new[] {
+    //            ("full_name", "Hagar Mahmoud Ahmed"),
+    //            ("student_id", "20250010"),
+    //            ("course_code", "CS201"),
+    //            ("exam_type", "final"),
+    //            ("grievance_reason", "missing_result"),
+    //            ("details", "My Data Structures final exam result is not showing on the portal."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[10].Id, idCardServiceId, ServiceRequestStatus.Completed,
+    //        staff[2].Id,
+    //        now.AddDays(-30), now.AddDays(-28),
+    //        new[] {
+    //            ("full_name", "Karim Mostafa Abdel-Aziz"),
+    //            ("student_id", "20250011"),
+    //            ("card_type", "new"),
+    //            ("reason", "first_time"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[11].Id, graduationServiceId, ServiceRequestStatus.UnderReview,
+    //        staff[0].Id,
+    //        now.AddDays(-5), null,
+    //        new[] {
+    //            ("full_name", "Salma Adel Naguib"),
+    //            ("student_id", "20250012"),
+    //            ("graduation_semester", "spring"),
+    //            ("graduation_year", "2025-2026"),
+    //            ("honors", "true"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[12].Id, withdrawalServiceId, ServiceRequestStatus.Approved,
+    //        staff[1].Id,
+    //        now.AddDays(-8), now.AddDays(-6),
+    //        new[] {
+    //            ("full_name", "Hassan Emad El-Din"),
+    //            ("student_id", "20250013"),
+    //            ("course_code", "GEN150"),
+    //            ("section", "A"),
+    //            ("reason", "schedule_conflict"),
+    //            ("details", "Public Speaking clashes with my lab session."),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[13].Id, transcriptServiceId, ServiceRequestStatus.Rejected,
+    //        staff[0].Id,
+    //        now.AddDays(-12), now.AddDays(-10),
+    //        new[] {
+    //            ("full_name", "Dalia Samir Fawzy"),
+    //            ("student_id", "20250014"),
+    //            ("copies", "5"),
+    //            ("language", "both"),
+    //            ("delivery_method", "courier"),
+    //            ("purpose", "Multiple university applications"),
+    //        }));
+    //
+    //    requestRepo.Add(MakeRequest(students[14].Id, leaveServiceId, ServiceRequestStatus.Draft,
+    //        null, null, null,
+    //        new[] {
+    //            ("full_name", "Amr Khaled Youssef"),
+    //            ("student_id", "20250015"),
+    //            ("leave_type", "full_year"),
+    //            ("semester", "fall"),
+    //            ("academic_year", "2026-2027"),
+    //            ("reason", "Planning to take a gap year for professional internship."),
+    //        }));
+    //
+    //    await context.SaveChangesAsync();
+    //    Console.WriteLine($"[MassSeed] StudentServiceRequests: 15 requests created.");
+    //}
 
     private static async Task ExpandPaymentsAsync(CoreDbContext context)
     {
