@@ -42,3 +42,8 @@
 .breadcrumb-home-icon {
   opacity: 0.6;
 }
+
+/* RTL: flip the chevron separator so it points left */
+[dir="rtl"] .breadcrumb-separator {
+  transform: rotate(180deg);
+}

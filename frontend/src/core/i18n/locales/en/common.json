@@ -221,6 +221,8 @@
   "d_ago": "d ago",
   "all_scopes": "All Scopes",
   "viewing": "Viewing",
+  "all_years": "All Years",
+  "all_semesters": "All Semesters",
   "no_years_found": "No years found",
   "no_semesters": "No semesters",
   "no_unread_notifications": "No unread notifications",
@@ -229,5 +231,14 @@
   "change_password": "Change Password",
   "menu": "Menu",
   "guest": "Guest",
-  "search_ellipsis": "Search…"
+  "search_ellipsis": "Search…",
+  "clear_all_scope": "Clear All Scope",
+  "no_structure_selected": "No structure selected",
+  "all_scopes_active": "All Scopes — Full Access",
+  "current_badge": "Current",
+  "closed_badge": "Closed",
+  "select_academic_year": "Academic Year",
+  "select_semester": "Semester",
+  "scope_summary": "Active Scope",
+  "no_selection": "None"
 }

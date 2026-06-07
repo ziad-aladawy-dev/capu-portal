@@ -35,13 +35,25 @@ function PermissionProvider({ children }) {
     if (permissions && Array.isArray(permissions)) {
       for (const p of permissions) {
         map[p.resource] = p.level;
+        const dot = p.resource.lastIndexOf('.');
+        if (dot !== -1) {
+          const baseKey = p.resource.substring(0, dot);
+          map[baseKey] = Math.max(map[baseKey] || 0, p.level);
+        }
       }
     }
     return map;
   }, [permissions]);
 
   const getLevel = (resource) => {
-    return permissionMap[resource] || 0;
+    let level = permissionMap[resource] || 0;
+    if (level > 0) return level;
+    const dot = resource.lastIndexOf('.');
+    if (dot !== -1) {
+      const baseKey = resource.substring(0, dot);
+      level = permissionMap[baseKey] || 0;
+    }
+    return level;
   };
 
   const can = (resource, minLevel = 1) => {

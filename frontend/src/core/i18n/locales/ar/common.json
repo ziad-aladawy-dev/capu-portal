@@ -221,6 +221,8 @@
   "d_ago": "ي",
   "all_scopes": "جميع النطاقات",
   "viewing": "عرض",
+  "all_years": "كل السنوات",
+  "all_semesters": "كل الفصول",
   "no_years_found": "لم يتم العثور على سنوات",
   "no_semesters": "لا توجد فصول دراسية",
   "no_unread_notifications": "لا توجد إشعارات غير مقروءة",
@@ -229,5 +231,14 @@
   "change_password": "تغيير كلمة المرور",
   "menu": "القائمة",
   "guest": "زائر",
-  "search_ellipsis": "بحث…"
+  "search_ellipsis": "بحث…",
+  "clear_all_scope": "مسح جميع النطاقات",
+  "no_structure_selected": "لم يتم تحديد هيكل",
+  "all_scopes_active": "جميع النطاقات — وصول كامل",
+  "current_badge": "حالي",
+  "closed_badge": "مغلق",
+  "select_academic_year": "السنة الأكاديمية",
+  "select_semester": "الفصل الدراسي",
+  "scope_summary": "النطاق النشط",
+  "no_selection": "لا يوجد"
 }

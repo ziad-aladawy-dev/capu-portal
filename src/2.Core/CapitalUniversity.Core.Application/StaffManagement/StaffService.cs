@@ -353,31 +353,7 @@ public class StaffService : IStaffService
         GetStatisticsAsync(
             UserStatisticsRequest request)
     {
-        var result =
-            await SearchAsync(
-                new StaffQueryRequest
-                {
-                    ScopeNodeId =
-                        request.ScopeNodeId,
-
-                    Page = 1,
-
-                    PageSize = int.MaxValue
-                });
-
-        return new UserStatisticsDto
-        {
-            TotalStaff =
-                result.Items.Count,
-
-            ActiveStaff =
-                result.Items.Count(
-                    x => x.IsActive),
-
-            InactiveStaff =
-                result.Items.Count(
-                    x => !x.IsActive)
-        };
+        return await _repository.GetStatisticsAsync(request);
     }
 
     /// <summary>

@@ -41,6 +41,8 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
         builder.Property(x => x.Email)
             .HasMaxLength(200);
 
+        builder.HasIndex(x => x.Email);
+
         builder.Property(x => x.Role)
             .HasMaxLength(100)
             .IsRequired();
@@ -52,6 +54,8 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
             .WithMany()
             .HasForeignKey(x => x.StructureNodeId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => x.StructureNodeId);
 
         // ExternallySourced — composed data block flattened onto the table
         // via OwnsOne. See StudentConfiguration for rationale.

@@ -1,4 +1,9 @@
-function ErrorMessage({ message = "Something went wrong" }) {
+import { useTranslation } from "react-i18next";
+
+function ErrorMessage({ message }) {
+  const { t } = useTranslation();
+  const displayMessage = message || t("something_went_wrong");
+
   return (
     <div
       style={{
@@ -10,7 +15,7 @@ function ErrorMessage({ message = "Something went wrong" }) {
         fontWeight: 700,
       }}
     >
-      {message}
+      {displayMessage}
     </div>
   );
 }

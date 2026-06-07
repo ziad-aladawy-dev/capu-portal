@@ -10,7 +10,7 @@ const NotificationsCenter = lazy(() => import("./pages/admin/NotificationsCenter
 export default [
   {
     path: "/admin/student-services",
-    permission: "studentServices.dashboard.view",
+    permission: "student-services.services.view",
     pageType: "management",
     applicableTo: "admin",
     isRedirect: true,
@@ -19,7 +19,7 @@ export default [
   {
     path: "/admin/student-services/dashboard",
     component: StaffDashboard,
-    permission: "studentServices.dashboard.view",
+    permission: "student-services.services.view",
     pageType: "management",
     menuItem: {
       category: "Student Services",
@@ -30,7 +30,7 @@ export default [
   {
     path: "/admin/student-services/services",
     component: ServicesManagement,
-    permission: "studentServices.services.view",
+    permission: "student-services.services.view",
     pageType: "management",
     menuItem: {
       category: "Student Services",
@@ -41,19 +41,19 @@ export default [
   {
     path: "/admin/student-services/services/create",
     component: ServiceBuilder,
-    permission: "studentServices.services.insert",
+    permission: "student-services.services.insert",
     pageType: "entity",
   },
   {
     path: "/admin/student-services/services/:id/edit",
     component: ServiceBuilder,
-    permission: "studentServices.services.edit",
+    permission: "student-services.services.editclose",
     pageType: "entity",
   },
   {
     path: "/admin/student-services/requests",
     component: RequestsManagement,
-    permission: "studentServices.requests.view",
+    permission: "student-services.requests.view",
     pageType: "management",
     menuItem: {
       category: "Student Services",
@@ -64,13 +64,13 @@ export default [
   {
     path: "/admin/student-services/requests/:id",
     component: RequestReview,
-    permission: "studentServices.requests.review",
+    permission: "student-services.requests.open",
     pageType: "entity",
   },
   {
     path: "/admin/student-services/notifications",
     component: NotificationsCenter,
-    permission: "studentServices.notifications.view",
+    permission: "student-services.requests.view",
     pageType: "management",
   },
 ];

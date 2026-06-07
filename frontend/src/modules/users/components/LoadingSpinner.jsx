@@ -1,4 +1,9 @@
-function LoadingSpinner({ message = "Loading...", fullPage = false }) {
+import { useTranslation } from "react-i18next";
+
+function LoadingSpinner({ message, fullPage = false }) {
+  const { t } = useTranslation();
+  const displayMessage = message || t("loading");
+
   return (
     <div
       style={{
@@ -23,7 +28,7 @@ function LoadingSpinner({ message = "Loading...", fullPage = false }) {
         }}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <span>{message}</span>
+      <span>{displayMessage}</span>
     </div>
   );
 }

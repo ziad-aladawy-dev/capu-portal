@@ -38,11 +38,7 @@ public class StudentRepository : IStudentRepository
 
     public async Task<PagedResult<Student>> SearchAsync(StudentQueryRequest request)
     {
-        var query = _context.Students
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-            .AsQueryable();
+        var query = _context.Students.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -118,6 +114,11 @@ public class StudentRepository : IStudentRepository
 
         int totalCount =
             await query.CountAsync();
+
+        query = query
+            .Include(x => x.StructureNode)
+                .ThenInclude(x => x.Parent)
+                    .ThenInclude(x => x!.Parent);
 
         var items = await query
             .OrderBy(x => x.StudentCode)
@@ -214,6 +215,28 @@ public class StudentRepository : IStudentRepository
             .OrderByDescending(x => x.StudentCode)
             .Select(x => x.StudentCode)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
+    {
+        var query = _context.Students.AsQueryable();
+
+        if (request.ScopeNodeId.HasValue)
+        {
+            var scopeNode = await _context.StructureNodes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
+
+            if (scopeNode != null)
+                query = query.Where(x => x.StructureNode.Path.StartsWith(scopeNode.Path));
+        }
+
+        return new UserStatisticsDto
+        {
+            TotalStudents = await query.CountAsync(),
+            ActiveStudents = await query.CountAsync(x => x.IsActive),
+            InactiveStudents = await query.CountAsync(x => !x.IsActive)
+        };
     }
 
     public async Task SaveChangesAsync()

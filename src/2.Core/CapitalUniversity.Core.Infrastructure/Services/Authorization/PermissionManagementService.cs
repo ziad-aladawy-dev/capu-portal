@@ -582,25 +582,22 @@ public class PermissionManagementService : IPermissionManagementService
 
     public async Task<PermissionAssignmentResponse?> GetAssignmentAsync(GetPermissionAssignmentQueryDto query, CancellationToken cancellationToken = default)
     {
-        // Each null scope param is treated as a wildcard (no filter), so
-        // partial-scope queries return all matches for the specified dimensions.
-        // Only non-null params constrain the result.  When AlwaysActive is true,
-        // Year/Semester are pinned to "Global"/"Global" regardless of the ids.
-
-        var year = query.AlwaysActive ? ScopeKeys.Global : (query.AcademicYearId?.ToString() ?? ScopeKeys.Global);
-        var semester = query.AlwaysActive ? ScopeKeys.Global : (query.SemesterId?.ToString() ?? ScopeKeys.Global);
-
-        // Roles stay scope-keyed to the queried scope (roles are scope-atomic).
+        // Roles are returned across EVERY scope the user holds — matching the
+        // override behaviour below — so the permission-matrix UI can display all
+        // role assignments regardless of their structural or temporal scope.
+        // The effective-permission tree (GetEffectivePermissionsAsync) already
+        // loads roles without scope filtering; filtering here would hide assigned
+        // roles from the UI while still displaying their permission effects,
+        // creating a confusing mismatch where role chips appear unchecked despite
+        // the tree showing role-derived permissions.
         var roles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == query.UserId &&
-                         sr.StructureNodeId == query.StructureNodeId &&
-                         sr.Year == year && sr.Semester == semester)
+            .Where(sr => sr.StaffId == query.UserId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        // Overrides are returned across EVERY scope the user holds, each tagged with its
-        // own scope, so a permission re-scoped away from the role scope is visible from
-        // the assignment editor (not just the user permission tree).
+        // Overrides are returned across EVERY scope the user holds, each tagged with its own
+        // scope, so a permission re-scoped away from the role scope is visible from the
+        // assignment editor (not just the user permission tree).
         var overrides = await _dbContext.StaffPermissions
             .Where(sp => sp.StaffId == query.UserId)
             .AsNoTracking()

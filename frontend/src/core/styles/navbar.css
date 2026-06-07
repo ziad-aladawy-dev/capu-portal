@@ -1,23 +1,30 @@
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap");
 
+/* ══════════════════════════════════════════════════════════
+   NAVBAR — Top fixed header bar
+   Uses logical CSS properties for automatic LTR/RTL support
+   ══════════════════════════════════════════════════════════ */
+
 .navbar {
   height: 54px;
-  background: linear-gradient(135deg, #1a1f5e 0%, #2e3591 100%);
+  background: linear-gradient(135deg, #1a1f5e 0%, #232a74 40%, #2e3591 100%);
   border-bottom: 1px solid rgba(224, 192, 106, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 16px;
   gap: 10px;
-  position: fixed;
+  position: sticky;
   top: 0;
-  inset-inline-start: 0;
-  width: 100%;
   z-index: 250;
   font-family: "Outfit", sans-serif;
-  box-shadow: 0 8px 24px rgba(7, 9, 30, 0.25);
+  box-shadow:
+    0 1px 0 rgba(224, 192, 106, 0.06),
+    0 8px 24px rgba(7, 9, 30, 0.2);
   transition: all 0.3s ease;
 }
+
+/* ── Navbar Sections ── */
 
 .navbar-left,
 .navbar-right {
@@ -36,19 +43,22 @@
   flex-shrink: 0;
 }
 
+/* ── Icon Buttons ── */
+
 .nav-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
 .nav-icon-btn:hover {
@@ -56,6 +66,7 @@
   color: #e0c06a;
   border-color: rgba(224, 192, 106, 0.25);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(224, 192, 106, 0.1);
 }
 
 .nav-icon-btn.is-active {
@@ -64,20 +75,25 @@
   border-color: rgba(224, 192, 106, 0.3);
 }
 
+/* ── Divider ── */
+
 .nav-divider {
   width: 1px;
   height: 18px;
   background: rgba(224, 192, 106, 0.12);
+  flex-shrink: 0;
 }
 
+/* ── Dropdown Triggers ── */
+
 .nav-dropdown-trigger {
-  height: 30px;
-  min-width: 165px;
+  height: 32px;
+  min-width: 155px;
   max-width: 190px;
   padding: 0 10px;
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -85,17 +101,18 @@
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-dropdown-trigger:hover {
   background: rgba(224, 192, 106, 0.1);
   border-color: rgba(224, 192, 106, 0.25);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(7, 9, 30, 0.1);
 }
 
 .nav-dropdown-trigger.small {
-  min-width: 130px;
+  min-width: 125px;
   max-width: 150px;
 }
 
@@ -120,18 +137,96 @@
   text-overflow: ellipsis;
 }
 
+/* ── Scope Group — wraps Scope + Year + Semester ── */
+
+.nav-scope-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 11px;
+  min-width: 0;
+  flex: 1;
+  max-width: fit-content;
+}
+
+/* ── Active indicator dot on scope triggers ── */
+
+.scope-active-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(74, 222, 128, 0.5);
+  margin-inline-end: -2px;
+}
+
+.nav-dropdown-trigger.has-active {
+  border-color: rgba(74, 222, 128, 0.2);
+  background: rgba(74, 222, 128, 0.06);
+}
+
+.nav-dropdown-trigger.has-active:hover {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+/* ── Separator inside dropdown (All vs specific items) ── */
+
+.nav-dropdown-separator {
+  height: 1px;
+  background: rgba(26, 31, 94, 0.06);
+  margin: 2px 4px;
+}
+
+/* ── Scope Trigger (wider) ── */
+
+.scope-trigger {
+  min-width: 175px;
+  max-width: 220px;
+}
+
+.scope-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: start;
+}
+
+.scope-content strong {
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scope-content small {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.48);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Cmd+K Search Trigger ── */
+
 .nav-search {
   width: 170px;
-  height: 30px;
+  height: 32px;
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   gap: 7px;
   padding: 0 10px;
   color: rgba(255, 255, 255, 0.42);
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-search:hover,
@@ -140,23 +235,42 @@
   border-color: rgba(224, 192, 106, 0.24);
 }
 
-.nav-search input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 10.5px;
-  color: white;
+.nav-cmdk-trigger {
+  cursor: pointer;
+  justify-content: flex-start;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.nav-cmdk-trigger:hover {
+  background: rgba(224, 192, 106, 0.12);
+  border-color: rgba(224, 192, 106, 0.25);
+}
+
+.nav-cmdk-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  flex: 1;
+  text-align: start;
   font-family: "Outfit", sans-serif;
 }
 
-.nav-search input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+.nav-cmdk-kbd {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: "Space Mono", monospace;
+  line-height: 1.4;
 }
 
+/* ── Avatar ── */
+
 .topbar-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 9px;
   background: linear-gradient(135deg, #c9a84c, #e0c06a);
   color: #07091e;
@@ -167,13 +281,18 @@
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 6px 16px rgba(224, 192, 106, 0.22);
-  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(224, 192, 106, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .topbar-avatar:hover {
   transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 18px rgba(224, 192, 106, 0.28);
 }
+
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD LAYOUT — Shell wrapper
+   ══════════════════════════════════════════════════════════ */
 
 .dashboard-wrapper {
   min-height: 100vh;
@@ -182,8 +301,7 @@
 
 .dashboard-content {
   min-height: 100vh;
-  padding-top: 54px;
-  transition: margin-inline-start 0.3s ease;
+  transition: margin-inline-start 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   background: #f5f6fa;
 }
 
@@ -193,88 +311,9 @@
   background: #f5f6fa;
 }
 
-@keyframes pulseBadge {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.35);
-    opacity: 0.65;
-  }
-}
-
-@media (max-width: 1100px) {
-  .nav-dropdown-trigger.small {
-    display: none;
-  }
-
-  .nav-search {
-    width: 135px;
-  }
-}
-
-@media (max-width: 900px) {
-  .nav-search {
-    display: none;
-  }
-
-  .nav-dropdown-trigger {
-    min-width: 145px;
-    max-width: 160px;
-  }
-}
-
-@media (max-width: 768px) {
-  .navbar {
-    height: 52px;
-    padding: 0 12px;
-  }
-
-  .nav-dropdown-trigger,
-  .nav-divider,
-  .nav-search {
-    display: none;
-  }
-
-  .dashboard-page-content {
-    min-height: calc(100vh - 52px);
-    padding: 12px;
-  }
-}
-
-.scope-trigger {
-  min-width: 240px;
-  max-width: 280px;
-}
-
-.scope-content {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.scope-content strong {
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.scope-content small {
-  font-size: 8px;
-  color: rgba(255,255,255,0.48);
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Dropdown Menu ── */
+/* ══════════════════════════════════════════════════════════
+   DROPDOWN MENUS — Shared dropdown system
+   ══════════════════════════════════════════════════════════ */
 
 .nav-dropdown-wrapper {
   position: relative;
@@ -292,14 +331,16 @@
   min-width: 220px;
   background: #ffffff;
   border: 1px solid rgba(26, 31, 94, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 12px 40px rgba(7, 9, 30, 0.15);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px rgba(7, 9, 30, 0.04),
+    0 12px 40px rgba(7, 9, 30, 0.12);
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 1px;
   z-index: 500;
-  animation: dropdownFade 0.15s ease;
+  animation: dropdownFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-dropdown-item {
@@ -308,7 +349,7 @@
   gap: 8px;
   padding: 8px 10px;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   cursor: pointer;
   text-align: start;
@@ -338,6 +379,43 @@
   color: rgba(26, 31, 94, 0.45);
 }
 
+.nav-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-item-content strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1f5e;
+  line-height: 1.3;
+}
+
+.nav-item-sub {
+  display: block;
+  font-size: 8.5px;
+  color: rgba(26, 31, 94, 0.35);
+  line-height: 1.3;
+}
+
+.nav-current-tag {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-item.is-closed {
+  opacity: 0.5;
+}
+
 .nav-dropdown-check {
   margin-inline-start: auto;
   color: #c9a84c;
@@ -356,6 +434,17 @@
 }
 
 /* ── Badge counter ── */
+
+@keyframes pulseBadge {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.65;
+  }
+}
 
 .nav-icon-btn .badge {
   position: absolute;
@@ -377,7 +466,9 @@
   animation: pulseBadge 1.8s ease-in-out infinite;
 }
 
-/* ── Notification Dropdown ── */
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATION DROPDOWN
+   ══════════════════════════════════════════════════════════ */
 
 .notification-dropdown {
   inset-inline-end: 0;
@@ -466,7 +557,9 @@
   color: rgba(26, 31, 94, 0.4);
 }
 
-/* ── Profile Dropdown ── */
+/* ══════════════════════════════════════════════════════════
+   PROFILE DROPDOWN
+   ══════════════════════════════════════════════════════════ */
 
 .profile-dropdown {
   inset-inline-end: 0;
@@ -533,40 +626,9 @@
   background: rgba(185, 28, 28, 0.06);
 }
 
-/* ── Cmd+K Trigger ── */
-
-.nav-cmdk-trigger {
-  cursor: pointer;
-  justify-content: flex-start;
-  gap: 8px;
-  transition: all 0.25s ease;
-}
-
-.nav-cmdk-trigger:hover {
-  background: rgba(224, 192, 106, 0.12);
-  border-color: rgba(224, 192, 106, 0.25);
-}
-
-.nav-cmdk-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
-  flex: 1;
-  text-align: start;
-  font-family: "Outfit", sans-serif;
-}
-
-.nav-cmdk-kbd {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  padding: 1px 5px;
-  font-family: "Space Mono", monospace;
-  line-height: 1.4;
-}
-
-/* ── Scope Badge Summary ── */
+/* ══════════════════════════════════════════════════════════
+   SCOPE BADGE (right side summary pill)
+   ══════════════════════════════════════════════════════════ */
 
 .nav-scope-badge {
   display: flex;
@@ -578,14 +640,31 @@
   border-radius: 6px;
   max-width: 200px;
   overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-scope-badge:hover {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.22);
+}
+
+.nav-scope-badge.is-global {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .nav-scope-badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4ade80;
+  background: rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.nav-scope-badge-dot.is-filtered {
+  background: #4ade80;
   box-shadow: 0 0 4px rgba(74, 222, 128, 0.4);
 }
 
@@ -598,58 +677,137 @@
   font-family: "Outfit", sans-serif;
 }
 
-/* ── Language Selector ── */
+/* ══════════════════════════════════════════════════════════
+   LANGUAGE SELECTOR — uses logical properties, no RTL hacks
+   ══════════════════════════════════════════════════════════ */
 
 .language-selector {
-  margin-inline: 8px;
+  position: relative;
 }
 
-.lang-select {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 5px 10px;
-  color: white;
-  font-size: 12px;
+.lang-toggle {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
   font-family: "Outfit", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  white-space: nowrap;
 }
 
-.lang-select option {
-  background: #1a1f5e;
-  color: white;
+.lang-toggle:hover {
+  background: rgba(224, 192, 106, 0.12);
+  border-color: rgba(224, 192, 106, 0.3);
+  color: #e0c06a;
+  transform: translateY(-1px);
 }
 
-/* ── RTL Navbar Overrides ── */
-
-[dir="rtl"] .nav-icon-btn .badge {
-  inset-inline-end: auto;
-  inset-inline-start: 5px;
+.lang-code {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #e0c06a;
+  background: rgba(224, 192, 106, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  line-height: 1.4;
 }
 
-[dir="rtl"] .nav-search input {
-  text-align: end;
+.lang-label {
+  font-size: 11px;
+  font-weight: 500;
 }
 
-[dir="rtl"] .scope-content {
-  text-align: end;
+.lang-chevron {
+  opacity: 0.5;
+  transition: transform 0.2s ease;
 }
 
-@media (max-width: 1100px) {
+.lang-toggle:hover .lang-chevron {
+  opacity: 0.9;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1200px) {
+  .nav-scope-group .nav-dropdown-trigger.small:last-child {
+    display: none;
+  }
+
   .nav-scope-badge {
     display: none;
   }
+}
+
+@media (max-width: 1100px) {
+  .nav-scope-group .nav-dropdown-trigger.small {
+    display: none;
+  }
+
+  .nav-search {
+    width: 135px;
+  }
+
   .nav-cmdk-label {
     display: none;
   }
+
   .nav-cmdk-kbd {
     display: none;
   }
 }
 
+@media (max-width: 900px) {
+  .nav-search {
+    display: none;
+  }
+
+  .nav-scope-group .nav-dropdown-trigger {
+    min-width: 120px;
+    max-width: 140px;
+  }
+
+  .nav-scope-group .scope-trigger {
+    min-width: 150px;
+    max-width: 180px;
+  }
+}
+
 @media (max-width: 768px) {
+  .navbar {
+    height: 50px;
+    padding: 0 12px;
+  }
+
+  .nav-scope-group,
+  .nav-dropdown-trigger,
+  .nav-divider,
+  .nav-search,
   .nav-scope-badge,
   .nav-cmdk-trigger {
     display: none;
+  }
+
+  .lang-label {
+    display: none;
+  }
+
+  .dashboard-content {
+    padding-top: 50px;
+  }
+
+  .dashboard-page-content {
+    min-height: calc(100vh - 50px);
+    padding: 12px;
   }
 }

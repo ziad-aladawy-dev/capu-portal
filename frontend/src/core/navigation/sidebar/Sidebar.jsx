@@ -52,7 +52,6 @@ function Sidebar({ isOpen, isMobile, onClose }) {
   const { can } = usePermission();
   const { user, logout } = useAuth();
   const language = i18n.language;
-  const isRtl = language === "ar";
 
   const menu = buildMenu(can);
 
@@ -75,7 +74,6 @@ function Sidebar({ isOpen, isMobile, onClose }) {
   return (
     <aside
       className={`sidebar ${isOpen ? "is-open" : "is-closed"}`}
-      dir={isRtl ? "rtl" : "ltr"}
     >
       <svg className="sidebar-geo" viewBox="0 0 230 620" preserveAspectRatio="none">
         <circle cx="230" cy="0" r="140" fill="rgba(224,192,106,0.04)" />
@@ -126,7 +124,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
                   <CatIcon size={14} />
                 </div>
                 <span className="sidebar-category-title">
-                  {t(catKey)}
+                  {t(catKey) === catKey ? category.category : t(catKey)}
                 </span>
                 <ChevronRight size={11} className="sidebar-cat-arrow" />
               </button>
@@ -152,7 +150,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
                       >
                         <span className="sidebar-feature-dot" />
                         {ItemIcon && <ItemIcon size={13} />}
-                        <span>{t(itemKey)}</span>
+                        <span>{t(itemKey) === itemKey ? item.label : t(itemKey)}</span>
                       </NavLink>
                     );
                   })}

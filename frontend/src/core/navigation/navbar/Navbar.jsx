@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell, ChevronDown, Menu, Building2, CalendarRange,
-  BookOpen, HelpCircle, User, LogOut, Key, Settings, Search,
+  BookOpen, HelpCircle, User, LogOut, Key, Settings, Search, Globe,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -48,7 +48,7 @@ function getUserInitial(user, language) {
 function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenCommandPalette }) {
   const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
-  const { selectedYear, selectedSemester, academicYears = [], semesters = [], selectYear, selectSemester, loading: academicLoading } = useAcademic();
+  const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj, academicYears = [], semesters = [], selectYear, selectSemester, clearYear, clearSemester, loading: academicLoading } = useAcademic();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const language = i18n.language;
@@ -150,8 +150,8 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
 
   const scopeBadgeText = [
     scopeDisplayName,
-    selectedYear !== "—" ? selectedYear : null,
-    selectedSemester !== "—" ? selectedSemester : null,
+    selectedYearObj?.name || null,
+    selectedSemesterObj?.name || null,
   ].filter(Boolean).join(" | ") || t("all_scopes");
 
   return (
@@ -172,91 +172,124 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
 
           {!showSecondary && <div className="nav-divider" />}
 
-          <div className="nav-dropdown-wrapper" ref={scopeRef}>
-            <button
-              className="nav-dropdown-trigger scope-trigger"
-              onClick={() => setShowScopeModal(true)}
-            >
-              <Building2 size={15} />
-              <div className="scope-content">
-                <span className="nav-label">{t("current_scope")}</span>
-                <strong>{scopeDisplayName}</strong>
-                {scopeNode && <small>{scopeNode.type}</small>}
-              </div>
-              <ChevronDown size={13} />
-            </button>
-          </div>
+          <div className="nav-scope-group">
+            <div className="nav-dropdown-wrapper" ref={scopeRef}>
+              <button
+                className={`nav-dropdown-trigger scope-trigger${scopeNode ? " has-active" : ""}`}
+                onClick={() => setShowScopeModal(true)}
+              >
+                <Building2 size={15} />
+                <div className="scope-content">
+                  <span className="nav-label">{t("current_scope")}</span>
+                  <strong>{scopeDisplayName}</strong>
+                  {scopeNode && <small>{scopeNode.type}</small>}
+                </div>
+                {scopeNode && <span className="scope-active-indicator" />}
+                <ChevronDown size={13} />
+              </button>
+            </div>
 
-          <div className="nav-dropdown-wrapper" ref={yearRef}>
-            <button
-              className={`nav-dropdown-trigger small ${openDropdown === "year" ? "is-open" : ""}`}
-              onClick={() => toggleDropdown("year")}
-            >
-              <CalendarRange size={15} />
-              <div>
-                <span className="nav-label">{t("academic_year")}</span>
-                <strong>{selectedYear}</strong>
-              </div>
-              <ChevronDown size={13} />
-            </button>
-            {openDropdown === "year" && (
-              <div className="nav-dropdown-menu">
-                {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
-                ) : academicYears.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_years_found")}</div>
-                ) : academicYears.map((y) => (
+            <div className="nav-dropdown-wrapper" ref={yearRef}>
+              <button
+                className={`nav-dropdown-trigger small ${openDropdown === "year" ? "is-open" : ""}${selectedYearObj ? " has-active" : ""}`}
+                onClick={() => toggleDropdown("year")}
+              >
+                <CalendarRange size={15} />
+                <div>
+                  <span className="nav-label">{t("academic_year")}</span>
+                  <strong>{selectedYearObj?.name || t("all_years")}</strong>
+                </div>
+                <ChevronDown size={13} />
+              </button>
+              {openDropdown === "year" && (
+                <div className="nav-dropdown-menu">
                   <button
-                    key={y.id}
-                    className={`nav-dropdown-item ${selectedYear === y.name ? "is-selected" : ""}`}
-                    onClick={() => { selectYear(y.name); setOpenDropdown(null); }}
+                    className={`nav-dropdown-item ${!selectedYearObj ? "is-selected" : ""}`}
+                    onClick={() => { clearYear(); setOpenDropdown(null); }}
                   >
-                    <CalendarRange size={13} />
-                    <span>{y.name}</span>
-                    {selectedYear === y.name && <span className="nav-dropdown-check">✓</span>}
+                    <Globe size={13} />
+                    <span><strong>{t("all_years")}</strong></span>
+                    {!selectedYearObj && <span className="nav-dropdown-check">✓</span>}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="nav-dropdown-separator" />
+                  {academicLoading ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
+                  ) : academicYears.length === 0 ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_years_found")}</div>
+                  ) : academicYears.map((y) => (
+                    <button
+                      key={y.id}
+                      className={`nav-dropdown-item ${selectedYearObj?.id === y.id ? "is-selected" : ""} ${y.isClosed ? "is-closed" : ""}`}
+                      onClick={() => { selectYear(y); setOpenDropdown(null); }}
+                    >
+                      <CalendarRange size={13} />
+                      <div className="nav-item-content">
+                        <strong>{y.name}</strong>
+                        <span className="nav-item-sub">{y.startDate?.split("T")[0]} – {y.endDate?.split("T")[0]}</span>
+                      </div>
+                      {y.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
+                      {selectedYearObj?.id === y.id && <span className="nav-dropdown-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="nav-dropdown-wrapper" ref={semRef}>
-            <button
-              className={`nav-dropdown-trigger small ${openDropdown === "semester" ? "is-open" : ""}`}
-              onClick={() => toggleDropdown("semester")}
-            >
-              <BookOpen size={15} />
-              <div>
-                <span className="nav-label">{t("semester")}</span>
-                <strong>{selectedSemester}</strong>
-              </div>
-              <ChevronDown size={13} />
-            </button>
-            {openDropdown === "semester" && (
-              <div className="nav-dropdown-menu">
-                {academicLoading ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
-                ) : semesters.length === 0 ? (
-                  <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_semesters")}</div>
-                ) : semesters.map((s) => (
+            <div className="nav-dropdown-wrapper" ref={semRef}>
+              <button
+                className={`nav-dropdown-trigger small ${openDropdown === "semester" ? "is-open" : ""}${selectedSemesterObj ? " has-active" : ""}`}
+                onClick={() => toggleDropdown("semester")}
+              >
+                <BookOpen size={15} />
+                <div>
+                  <span className="nav-label">{t("semester")}</span>
+                  <strong>{selectedSemesterObj?.name || t("all_semesters")}</strong>
+                </div>
+                <ChevronDown size={13} />
+              </button>
+              {openDropdown === "semester" && (
+                <div className="nav-dropdown-menu">
                   <button
-                    key={s.id}
-                    className={`nav-dropdown-item ${selectedSemester === s.name ? "is-selected" : ""}`}
-                    onClick={() => { selectSemester(s.name); setOpenDropdown(null); }}
+                    className={`nav-dropdown-item ${!selectedSemesterObj ? "is-selected" : ""}`}
+                    onClick={() => { clearSemester(); setOpenDropdown(null); }}
                   >
-                    <BookOpen size={13} />
-                    <span>{s.name}</span>
-                    {selectedSemester === s.name && <span className="nav-dropdown-check">✓</span>}
+                    <Globe size={13} />
+                    <span><strong>{t("all_semesters")}</strong></span>
+                    {!selectedSemesterObj && <span className="nav-dropdown-check">✓</span>}
                   </button>
-                ))}
-              </div>
-            )}
+                  <div className="nav-dropdown-separator" />
+                  {academicLoading ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("loading")}…</div>
+                  ) : semesters.length === 0 ? (
+                    <div className="nav-dropdown-item" style={{ justifyContent: "center", opacity: 0.5 }}>{t("no_semesters")}</div>
+                  ) : semesters.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`nav-dropdown-item ${selectedSemesterObj?.id === s.id ? "is-selected" : ""} ${s.isClosed ? "is-closed" : ""}`}
+                      onClick={() => { selectSemester(s); setOpenDropdown(null); }}
+                    >
+                      <BookOpen size={13} />
+                      <div className="nav-item-content">
+                        <strong>{s.name}</strong>
+                        <span className="nav-item-sub">{s.startDate?.split("T")[0]} – {s.endDate?.split("T")[0]}</span>
+                      </div>
+                      {s.isCurrent && <span className="nav-current-tag">{t("current_badge")}</span>}
+                      {selectedSemesterObj?.id === s.id && <span className="nav-dropdown-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="navbar-right">
-          <div className="nav-scope-badge" title={`${t("viewing")}: ${scopeBadgeText}`}>
-            <span className="nav-scope-badge-dot" />
+          <div
+            className={`nav-scope-badge${!scopeNode ? " is-global" : ""}`}
+            title={`${t("viewing")}: ${scopeBadgeText}`}
+            onClick={() => setShowScopeModal(true)}
+          >
+            <span className={`nav-scope-badge-dot${selectedYearObj || selectedSemesterObj ? " is-filtered" : ""}`} />
             <span className="nav-scope-badge-text">{scopeBadgeText}</span>
           </div>
 
@@ -307,14 +340,16 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
           </button>
 
           <div className="language-selector">
-            <select
-              value={language.startsWith("ar") ? "ar" : "en"}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="lang-select"
+            <button
+              className="lang-toggle"
+              onClick={() => changeLanguage(language === "ar" ? "en" : "ar")}
+              title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
             >
-              <option value="ar">العربية</option>
-              <option value="en">English</option>
-            </select>
+              <Globe size={14} />
+              <span className="lang-code">{language === "ar" ? "AR" : "EN"}</span>
+              <span className="lang-label">{language === "ar" ? "العربية" : "English"}</span>
+              <ChevronDown size={10} className="lang-chevron" />
+            </button>
           </div>
 
           <div className="nav-dropdown-wrapper" ref={avatarRef}>

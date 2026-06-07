@@ -65,8 +65,12 @@ function StudentDirectory() {
         AcademicYearId: selectedYearObj?.id || undefined,
         SemesterId: selectedSemesterObj?.id || undefined,
         Search: appliedFilters.search || undefined,
-        IsActive: appliedFilters.isActive !== "" ? appliedFilters.isActive === "true" : undefined,
-        PasswordExpired: appliedFilters.passwordExpired !== "" ? appliedFilters.passwordExpired === "true" : undefined,
+        IsActive: appliedFilters.isActive !== undefined && appliedFilters.isActive !== ""
+          ? appliedFilters.isActive === "true"
+          : undefined,
+        PasswordExpired: appliedFilters.passwordExpired !== undefined && appliedFilters.passwordExpired !== ""
+          ? appliedFilters.passwordExpired === "true"
+          : undefined,
         FacultyId: appliedFilters.facultyId || undefined,
         ProgramId: appliedFilters.programId || undefined,
         LevelId: appliedFilters.levelId || undefined,
@@ -175,8 +179,12 @@ function StudentDirectory() {
       AcademicYearId: selectedYearObj?.id || undefined,
       SemesterId: selectedSemesterObj?.id || undefined,
       Search: appliedFilters.search || undefined,
-      IsActive: appliedFilters.isActive !== "" ? appliedFilters.isActive === "true" : undefined,
-      PasswordExpired: appliedFilters.passwordExpired !== "" ? appliedFilters.passwordExpired === "true" : undefined,
+      IsActive: appliedFilters.isActive !== undefined && appliedFilters.isActive !== ""
+        ? appliedFilters.isActive === "true"
+        : undefined,
+      PasswordExpired: appliedFilters.passwordExpired !== undefined && appliedFilters.passwordExpired !== ""
+        ? appliedFilters.passwordExpired === "true"
+        : undefined,
     };
     try {
       const blob = format === "csv"

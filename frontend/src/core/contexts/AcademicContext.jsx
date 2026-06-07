@@ -121,6 +121,11 @@ export const AcademicProvider = ({ children }) => {
 
   const selectYear = useCallback(
     (yearNameOrObj) => {
+      if (yearNameOrObj === null) {
+        setSelectedYear(null);
+        localStorage.removeItem(YEAR_STORAGE_KEY);
+        return;
+      }
       const found =
         typeof yearNameOrObj === "string"
           ? academicYears.find((y) => y.name === yearNameOrObj)
@@ -135,6 +140,11 @@ export const AcademicProvider = ({ children }) => {
 
   const selectSemester = useCallback(
     (semNameOrObj) => {
+      if (semNameOrObj === null) {
+        setSelectedSemester(null);
+        localStorage.removeItem(SEMESTER_STORAGE_KEY);
+        return;
+      }
       const found =
         typeof semNameOrObj === "string"
           ? semesters.find((s) => s.name === semNameOrObj)
@@ -158,6 +168,8 @@ export const AcademicProvider = ({ children }) => {
         selectedSemesterObj: selectedSemester,
         selectYear,
         selectSemester,
+        clearYear: () => selectYear(null),
+        clearSemester: () => selectSemester(null),
         loading,
       }}
     >

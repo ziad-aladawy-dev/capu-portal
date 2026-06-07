@@ -140,7 +140,11 @@ function DashboardLayout() {
             currentApplicableTo,
           }}
           sidebarOpen={sidebarOpen}
-          sidebarWidth={SIDEBAR_WIDTH}
+          sidebarWidth={
+            isMobile ? 0
+            : windowWidth <= 1024 ? 64
+            : SIDEBAR_WIDTH
+          }
         />
       )}
 

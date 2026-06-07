@@ -3,8 +3,8 @@
 .session-timeout-banner {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
   z-index: 9998;
   display: flex;
   justify-content: center;
@@ -42,7 +42,7 @@
 }
 
 .session-timeout-stay {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   padding: 5px 14px;
   background: rgba(201, 168, 76, 0.15);
   border: 1px solid rgba(201, 168, 76, 0.3);

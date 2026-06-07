@@ -213,7 +213,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
   return (
     <aside
       className="secondary-sidebar"
-      style={{ left: sidebarOpen ? sidebarWidth : 0 }}
+      style={{ insetInlineStart: sidebarOpen ? sidebarWidth : 0 }}
     >
       <div className="sec-dir-header">
         <span className="sec-dir-label">{meta.heading}</span>

@@ -57,14 +57,27 @@ apiClient.interceptors.request.use((config) => {
   const lang = localStorage.getItem("i18nextLng") || "ar";
   config.headers["Accept-Language"] = lang;
   // Auto-attach scope context from localStorage to every request
+  // Both query params AND headers are sent: query-params support existing
+  // backend DTOs (StudentQueryRequest.ScopeNodeId etc.), while headers
+  // support the IRequestContext interface (X-StructureNode-Id etc.) used
+  // by permission and effective-scope services.
   try {
     const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
     const academicYear = JSON.parse(localStorage.getItem("capu_selected_academic_year"));
     const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
     const params = {};
-    if (scopeNode?.id) params.ScopeNodeId = scopeNode.id;
-    if (academicYear?.id) params.AcademicYearId = academicYear.id;
-    if (semester?.id) params.SemesterId = semester.id;
+    if (scopeNode?.id) {
+      params.ScopeNodeId = scopeNode.id;
+      config.headers["X-StructureNode-Id"] = scopeNode.id;
+    }
+    if (academicYear?.id) {
+      params.AcademicYearId = academicYear.id;
+      config.headers["X-AcademicYear-Id"] = academicYear.id;
+    }
+    if (semester?.id) {
+      params.SemesterId = semester.id;
+      config.headers["X-Semester-Id"] = semester.id;
+    }
     if (Object.keys(params).length > 0) {
       config.params = { ...config.params, ...params };
     }
