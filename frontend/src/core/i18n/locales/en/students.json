@@ -33,5 +33,7 @@
   "redirecting_to_users_list": "Redirecting to users list...",
   "edit_student": "Edit Student",
   "update_student_information": "Update student information",
-  "level_required": "Level is required"
+  "level_required": "Level is required",
+  "student_directory": "Student Directory",
+  "manage_and_view_all_students": "Manage and view all students"
 }

@@ -1,11 +1,13 @@
 import { lazy } from "react";
+import { staffDirectoryConfig } from "../../core/components/directory/directoryConfigs";
 
-const StaffDirectory = lazy(() => import("./pages/StaffDirectory"));
+const DirectoryPage = lazy(() => import("../../core/components/directory/DirectoryPage"));
 
 export default [
   {
     path: "/admin/staff",
-    component: StaffDirectory,
+    component: DirectoryPage,
+    props: { config: staffDirectoryConfig },
     pageType: "management",
     applicableTo: "staff",
     menuItem: {

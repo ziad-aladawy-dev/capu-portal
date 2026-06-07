@@ -159,6 +159,26 @@ const userService = {
     ];
   },
 
+  // ---------------------- Bulk Actions ----------------------
+  bulkActivateUsers: async (ids, userType) => {
+    const toggle = userType === "Student" ? userService.toggleStudentStatus : userService.toggleStaffStatus;
+    const results = await Promise.allSettled(ids.map(id => toggle(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+  bulkDeactivateUsers: async (ids, userType) => {
+    const toggle = userType === "Student" ? userService.toggleStudentStatus : userService.toggleStaffStatus;
+    const results = await Promise.allSettled(ids.map(id => toggle(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+  bulkDeleteUsers: async (ids, userType) => {
+    const del = userType === "Student" ? userService.deleteStudent : userService.deleteStaff;
+    const results = await Promise.allSettled(ids.map(id => del(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+
   // ---------------------- Helpers (for UI) ----------------------
   checkEmailUnique: async (email, userType) => {
     return { isUnique: true };

@@ -9,7 +9,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
 import { useAuth } from "../auth/useAuth";
 import { getCurrentRouteInfo } from "../router/routeRegistry";
-import { PAGE_TYPES, APPLICABLE_TO } from "../manifests/manifestTypes";
+import { PAGE_TYPES } from "../manifests/manifestTypes";
 import "../components/shellComponents.css";
 
 const CommandPalette = lazy(() => import("../components/CommandPalette"));
@@ -32,19 +32,17 @@ function DashboardLayout() {
 
   const routeInfo = getCurrentRouteInfo(location.pathname);
   const currentPageType = routeInfo?.pageType || PAGE_TYPES.MANAGEMENT;
-  const currentApplicableTo = routeInfo?.applicableTo || APPLICABLE_TO.BOTH;
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setSidebarOpen(window.innerWidth > MOBILE_BREAKPOINT);
+    };
 
     window.addEventListener("resize", handleResize);
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    setSidebarOpen(!isMobile);
-  }, [isMobile]);
 
   // Global keyboard shortcuts: Cmd+K → Command Palette, ? → Shortcuts
   useEffect(() => {
@@ -132,13 +130,6 @@ function DashboardLayout() {
 
       {secondaryOpen && (
         <SecondarySidebar
-          config={{
-            directoryType: currentApplicableTo === APPLICABLE_TO.STAFF ? "staff"
-              : currentApplicableTo === APPLICABLE_TO.STUDENT ? "student"
-              : "all",
-            currentPageType,
-            currentApplicableTo,
-          }}
           sidebarOpen={sidebarOpen}
           sidebarWidth={
             isMobile ? 0

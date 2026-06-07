@@ -38,5 +38,7 @@
   "save_changes": "حفظ التغييرات",
   "job_title_placeholder": "مثال: رئيس قسم",
   "password_placeholder": "6 أحرف على الأقل",
-  "confirm_password_placeholder": "أعد إدخال كلمة المرور"
+  "confirm_password_placeholder": "أعد إدخال كلمة المرور",
+  "staff_directory": "دليل الموظفين",
+  "manage_and_view_all_staff": "إدارة وعرض جميع الموظفين"
 }
