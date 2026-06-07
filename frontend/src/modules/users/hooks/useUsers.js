@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import userService from '../services/userService';
 import { useScope } from '../../../core/contexts/ScopeContext';
+import { useAcademic } from '../../../core/contexts/AcademicContext';
 
-export const useUsers = () => {
-  const { selectedScope } = useScope();
+export const useUsers = ({ initialTab = 'students' } = {}) => {
+  const { scopeNode } = useScope();
+  const { selectedYearObj, selectedSemesterObj } = useAcademic();
 
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -33,7 +35,7 @@ export const useUsers = () => {
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [levels, setLevels] = useState([]);
-  const [activeTab, setActiveTab] = useState('students');
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const resetPagination = useCallback(() => {
     setPagination(prev => ({ ...prev, pageNumber: 1 }));
@@ -43,11 +45,13 @@ export const useUsers = () => {
     setLoading(true);
     setError(null);
     try {
-      const scopeNodeId = selectedScope?.id || null;
+      const scopeNodeId = scopeNode?.id || undefined;
       const baseParams = {
         Page: pagination.pageNumber,
         PageSize: pagination.pageSize,
-        ScopeNodeId: scopeNodeId
+        ScopeNodeId: scopeNodeId,
+        AcademicYearId: selectedYearObj?.id || undefined,
+        SemesterId: selectedSemesterObj?.id || undefined,
       };
 
       if (activeTab === 'students') {
@@ -104,7 +108,7 @@ export const useUsers = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, selectedScope]);
+  }, [activeTab, pagination.pageNumber, pagination.pageSize, filters, scopeNode, selectedYearObj, selectedSemesterObj]);
 
   useEffect(() => {
     loadData();
@@ -159,7 +163,7 @@ export const useUsers = () => {
   }, []);
 
   const exportToExcel = useCallback(async (format) => {
-    const scopeNodeId = selectedScope?.id || null;
+    const scopeNodeId = scopeNode?.id || undefined;
     const baseParams = {
       ScopeNodeId: scopeNodeId,
       Search: filters.search || undefined,
@@ -211,7 +215,7 @@ export const useUsers = () => {
       console.error('Export failed', error);
       return { success: false, error: error.message };
     }
-  }, [activeTab, filters, selectedScope]);
+  }, [activeTab, filters, scopeNode]);
 
   const importExcel = useCallback(async (file, userType) => {
     try {

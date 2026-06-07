@@ -18,7 +18,7 @@ const NotificationsCenter = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/api/notifications");
+      const response = await apiClient.get("/notifications");
       setNotifications(response.data.items || []);
     } catch (err) {
       console.error("Failed to load notifications", err);
@@ -29,7 +29,7 @@ const NotificationsCenter = () => {
 
   const markAsRead = async (id) => {
     try {
-      await apiClient.put(`/api/notifications/${id}/read`);
+      await apiClient.put(`/notifications/${id}/read`);
       await loadNotifications();
     } catch (err) {
       console.error("Failed to mark as read", err);
@@ -38,7 +38,7 @@ const NotificationsCenter = () => {
 
   const markAllAsRead = async () => {
     try {
-      await apiClient.put("/api/notifications/read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) });
+      await apiClient.put("/notifications/read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) });
       await loadNotifications();
     } catch (err) {
       console.error("Failed to mark all as read", err);
@@ -47,7 +47,7 @@ const NotificationsCenter = () => {
 
   const deleteNotification = async (id) => {
     try {
-      await apiClient.delete(`/api/notifications/${id}`);
+      await apiClient.delete(`/notifications/${id}`);
       await loadNotifications();
     } catch {
       setNotifications(prev => prev.filter(n => n.id !== id));

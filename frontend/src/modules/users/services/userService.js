@@ -1,8 +1,8 @@
 import apiClient from "../../../core/api/apiClient";
 
-const STUDENTS_BASE = "/api/students";
-const STAFF_BASE = "/api/staff";
-const STRUCTURE_LOOKUP_BASE = "/api/structure/lookups";
+const STUDENTS_BASE = "/students";
+const STAFF_BASE = "/staff";
+const STRUCTURE_LOOKUP_BASE = "/structure/lookups";
 
 const userService = {
   // ---------------------- Students ----------------------

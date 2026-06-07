@@ -239,8 +239,8 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    //await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await UniversityStructureSeeder.SeedAsync(db);
+    await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await IdentitySeeder.SeedAsync(db, passwordHasher);
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
     await PaymentsSeeder.SeedAsync(db);

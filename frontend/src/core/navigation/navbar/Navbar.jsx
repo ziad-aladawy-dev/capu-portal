@@ -5,6 +5,7 @@ import {
   BookOpen, HelpCircle, User, LogOut, Key, Settings, Search, Globe,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getLocalized } from "../../utils/getLocalized";
 
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
@@ -14,34 +15,9 @@ import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
 import ScopeModal from "../../components/ScopeModal";
 import "../../styles/navbar.css";
 
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
-};
-
 function getUserInitial(user, language) {
   if (!user) return "U";
-  let displayName = "";
-  const raw = user.name || user.fullName || "";
-  if (typeof raw === "object" && raw !== null) {
-    displayName = language === "ar"
-      ? (raw.ar || raw.en || "")
-      : (raw.en || raw.ar || "");
-  } else if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw);
-      displayName = language === "ar"
-        ? (parsed.ar || parsed.en || raw)
-        : (parsed.en || parsed.ar || raw);
-    } catch {
-      displayName = raw;
-    }
-  }
+  const displayName = getLocalized(user.name || user.fullName, language);
   return displayName?.charAt(0)?.toUpperCase() || "U";
 }
 
@@ -145,7 +121,7 @@ function Navbar({ onToggleSidebar, showSecondary, onToggleSecondary, onOpenComma
   };
 
   const scopeDisplayName = scopeNode
-    ? (scopeNode.localizedName || getLocalizedText(scopeNode.name, language) || scopeNode.name)
+    ? (scopeNode.localizedName || getLocalized(scopeNode.name, language))
     : t("all_scopes");
 
   const scopeBadgeText = [

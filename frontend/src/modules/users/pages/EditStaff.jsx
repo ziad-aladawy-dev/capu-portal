@@ -5,6 +5,7 @@ import {
   User, Mail, Phone, Shield, CheckCircle2, UserCircle2, Briefcase,
   Building2, XCircle, AlertCircle, Calendar, Lock, Globe
 } from "lucide-react";
+import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ScopeTreeModal } from "../../university/components/ScopeTreeModal";
@@ -50,17 +51,7 @@ const EditStaff = () => {
       try {
         const staff = await userService.getStaffById(id);
 
-        let nameAr = "", nameEn = "";
-        if (staff.name) {
-          try {
-            const parsed = JSON.parse(staff.name);
-            nameAr = parsed.ar || "";
-            nameEn = parsed.en || "";
-          } catch {
-            nameAr = staff.name;
-            nameEn = staff.name;
-          }
-        }
+        const { ar: nameAr, en: nameEn } = parseLocalizedValue(staff.name);
         setFormData({
           nameAr: nameAr,
           nameEn: nameEn,

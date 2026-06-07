@@ -35,7 +35,14 @@ public class AcademicTimelineBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error occurred while resolving academic timeline.");
             }
 
-            await Task.Delay(_checkInterval, stoppingToken);
+            try
+            {
+                await Task.Delay(_checkInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
 
         _logger.LogInformation("Academic Timeline Background Service is stopping.");

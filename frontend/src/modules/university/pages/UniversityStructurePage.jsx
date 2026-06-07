@@ -7,19 +7,10 @@ import { MoveNodeModal } from "../components/MoveNodeModal";
 import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { useUniversityStructure } from "../hooks/useUniversityStructure";
 import { universityStructureService } from "../services/universityStructureService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import { normalizeType, canMoveToParent } from "../utils/nodeTypeHelpers";
 import "../styles/universityStructure.css";
 import "../styles/scopeModal.css";
-
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
-};
 
 const UniversityStructurePage = () => {
   const { t, i18n } = useTranslation();
@@ -82,10 +73,9 @@ const UniversityStructurePage = () => {
     if (node?.id) {
       try {
         const bc = await universityStructureService.getBreadcrumb(node.id);
-        const currentLang = i18n.language === 'ar' ? 'ar' : 'en';
         const translatedBc = bc.map(item => ({
           ...item,
-          name: getLocalizedText(item.name, currentLang)
+          name: item.localizedName || getLocalized(item.name, i18n.language)
         }));
         setBreadcrumb(translatedBc);
       } catch (err) {
@@ -100,7 +90,7 @@ const UniversityStructurePage = () => {
   const displayNodeName = useMemo(() => {
     if (selectedNode?.localizedName) return selectedNode.localizedName;
     if (!selectedNode?.name) return "";
-    return getLocalizedText(selectedNode.name, i18n.language);
+    return getLocalized(selectedNode.name, i18n.language);
   }, [selectedNode, i18n.language]);
 
   const displayNodeType = useMemo(() => {

@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, LogOut } from "lucide-react";
 
+import { getLocalized } from "../../utils/getLocalized";
 import { buildMenu, getCategoryIcon } from "../menuAggregator";
 import { usePermission } from "../../auth/usePermission";
 import { useAuth } from "../../auth/useAuth";
@@ -12,23 +13,7 @@ const labelToKey = (label) => label.toLowerCase().replace(/\s+/g, "_");
 
 function getUserDisplayName(user, language) {
   if (!user) return "";
-  const raw = user.name || user.fullName || "";
-  if (typeof raw === "object" && raw !== null) {
-    return language === "ar"
-      ? (raw.ar || raw.en || "")
-      : (raw.en || raw.ar || "");
-  }
-  if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw);
-      return language === "ar"
-        ? (parsed.ar || parsed.en || raw)
-        : (parsed.en || parsed.ar || raw);
-    } catch {
-      return raw;
-    }
-  }
-  return String(raw);
+  return getLocalized(user.name || user.fullName, language);
 }
 
 function getUserAvatar(user, language) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ChevronRight, ChevronDown, Building2, GraduationCap, Layers, BookOpen, Award } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import "../styles/scopeModal.css";
 
 const typeIcons = {
@@ -14,23 +15,13 @@ const typeIcons = {
   Specialization: Award,
 };
 
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
-};
-
 function TreeNode({ node, onSelect, selectedId, level = 0 }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(level < 1);
   const hasChildren = node.children && node.children.length > 0;
   const Icon = typeIcons[node.type] || Building2;
   const isSelected = selectedId === node.id;
-  const displayName = node.localizedName || getLocalizedText(node.name, i18n.language);
+  const displayName = node.localizedName || getLocalized(node.name, i18n.language);
 
   return (
     <div className="scope-tree-node">
@@ -98,7 +89,7 @@ export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
 
   const handleSelect = (node) => {
     setSelectedId(node.id);
-    const localizedName = node.localizedName || getLocalizedText(node.name, i18n.language);
+    const localizedName = node.localizedName || getLocalized(node.name, i18n.language);
     onSelect({
       id: node.id,
       name: node.name,

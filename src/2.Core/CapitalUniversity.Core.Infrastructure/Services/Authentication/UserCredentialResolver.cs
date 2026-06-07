@@ -114,9 +114,9 @@ public class StaffUserCredential : IUserCredential
     public string Identifier => _staff.NationalId;
     public string PasswordHash => _staff.PasswordHash ?? string.Empty;
     public DateTime? PasswordExpiry => null;
-    public string Role => "Staff";
+    public string Role => _staff.Role;
     public string Name => _staff.Name;
     public string Email => _staff.Email ?? string.Empty;
-    public Guid? StructureNodeId => null;
+    public Guid? StructureNodeId => _staff.StructureNodeId;
     public int SessionVersion => _staff.SessionVersion;
 }

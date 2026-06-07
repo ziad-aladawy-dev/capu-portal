@@ -5,6 +5,7 @@ import {
   ArrowLeft, User, Mail, Phone, Calendar, Shield, BookOpen, Building2,
   Edit3, Key, Trash2, RefreshCw, Award, Hash, AtSign, CheckCircle, XCircle, Briefcase
 } from 'lucide-react';
+import { getLocalized } from '../../../core/utils/getLocalized';
 import userService from '../services/userService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -21,20 +22,9 @@ const UserDetails = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('personal');
 
-  const getLocalizedUserName = (userObj) => {
-    if (!userObj || !userObj.name) return '';
-    try {
-      const parsed = JSON.parse(userObj.name);
-      const lang = i18n.language === 'ar' ? 'ar' : 'en';
-      return parsed[lang] || parsed.ar || parsed.en || userObj.name;
-    } catch {
-      return userObj.name;
-    }
-  };
-
   const getAvatarInitial = () => {
     if (!user) return 'U';
-    const localizedName = getLocalizedUserName(user);
+    const localizedName = getLocalized(user.name, i18n.language);
     return localizedName.charAt(0).toUpperCase();
   };
 
@@ -122,7 +112,7 @@ const UserDetails = () => {
     </div>
   );
 
-  const localizedName = getLocalizedUserName(user);
+  const localizedName = getLocalized(user.name, i18n.language);
   const userRoleLabel = userType === 'student' ? t('student') : t('staff');
   const statusLabel = user.isActive ? t('active') : t('inactive');
   const passwordStatusLabel = isPasswordExpired ? t('expired') : t('valid');

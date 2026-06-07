@@ -13,6 +13,7 @@ import {
   Layers,
   BookOpen,
 } from "lucide-react";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import { getAllowedChildTypes, normalizeType } from "../utils/nodeTypeHelpers";
 
 const typeIcons = {
@@ -23,16 +24,6 @@ const typeIcons = {
   Level: BookOpen,
   System: Layers,
   Specialization: BookOpen,
-};
-
-const getLocalizedText = (text, lang) => {
-  if (!text) return "";
-  try {
-    const parsed = JSON.parse(text);
-    return parsed[lang] || parsed.ar || parsed.en || text;
-  } catch {
-    return text;
-  }
 };
 
 function TreeNode({
@@ -61,7 +52,7 @@ function TreeNode({
   const isSelected = selectedNode?.id === node.id;
   const isMatched = search && matchedIds.includes(node.id);
 
-  const displayName = node.localizedName || getLocalizedText(node.name, i18n.language);
+  const displayName = node.localizedName || getLocalized(node.name, i18n.language);
   const displayType = node.typeNameLocalized || normalizeType(node.type);
 
   const handleToggle = (e) => {

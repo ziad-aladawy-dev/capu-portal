@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import * as structureService from "../services/structureService";
+import { getLocalized } from "../utils/getLocalized";
 import { useDomain } from "../contexts/DomainContext";
 import { useAcademic } from "../contexts/AcademicContext";
 import "./scopeModal.css";
@@ -29,10 +30,12 @@ function formatDate(iso) {
 }
 
 function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth }) {
+  const { i18n } = useTranslation();
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = selectedId === node.id;
   const Icon = TYPE_ICONS[node.type] || Building2;
+  const displayName = node.localizedName || getLocalized(node.name, i18n.language);
 
   return (
     <div className="scope-tree-group">
@@ -52,7 +55,7 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth
           <span className="scope-tree-toggle scope-tree-toggle-placeholder" />
         )}
         <Icon size={14} className="scope-tree-type-icon" />
-        <span className="scope-tree-label">{node.name}</span>
+        <span className="scope-tree-label">{displayName}</span>
         <span className="scope-tree-type">{node.typeNameLocalized || node.type}</span>
         {isSelected && <Check size={12} className="scope-tree-check" />}
       </button>
@@ -76,7 +79,7 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth
 }
 
 function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, loading, emptyText, allLabel }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -90,9 +93,9 @@ function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, 
           className={`scope-temporal-trigger ${open ? "is-open" : ""} ${selected ? "has-active" : ""}`}
           onClick={() => setOpen(!open)}
         >
-          {selected ? (
+            {selected ? (
             <div className="scope-temporal-trigger-text">
-              <strong>{selected.name}</strong>
+              <strong>{getLocalized(selected.name, i18n.language)}</strong>
               <span className="scope-temporal-trigger-sub">
                 {formatDate(selected.startDate)} – {formatDate(selected.endDate)}
               </span>
@@ -131,7 +134,7 @@ function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, 
                 >
                   <Icon size={13} />
                   <div className="scope-temporal-item-text">
-                    <strong>{item.name}</strong>
+                    <strong>{getLocalized(item.name, i18n.language)}</strong>
                     <span className="scope-temporal-item-dates">
                       {formatDate(item.startDate)} – {formatDate(item.endDate)}
                     </span>
@@ -152,7 +155,7 @@ function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, 
 }
 
 function ScopeModal({ onClose }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { scopeNode, selectScopeNode } = useDomain();
   const {
     academicYears, semesters, selectedYearObj, selectedSemesterObj,
@@ -263,7 +266,7 @@ function ScopeModal({ onClose }) {
               {selectedNode ? (
                 <div className="scope-summary-chip structural">
                   <Building2 size={12} />
-                  <span className="scope-summary-chip-label">{selectedNode.name}</span>
+                  <span className="scope-summary-chip-label">{selectedNode.localizedName || getLocalized(selectedNode.name, i18n.language)}</span>
                   <button
                     className="scope-summary-chip-clear"
                     onClick={(e) => { e.stopPropagation(); setSelectedNode(null); }}
@@ -281,7 +284,7 @@ function ScopeModal({ onClose }) {
               {tempYear ? (
                 <div className="scope-summary-chip temporal">
                   <CalendarRange size={12} />
-                  <span className="scope-summary-chip-label">{tempYear.name}</span>
+                  <span className="scope-summary-chip-label">{getLocalized(tempYear.name, i18n.language)}</span>
                   <button
                     className="scope-summary-chip-clear"
                     onClick={(e) => { e.stopPropagation(); setTempYear(null); setTempSemester(null); }}
@@ -299,7 +302,7 @@ function ScopeModal({ onClose }) {
               {tempSemester ? (
                 <div className="scope-summary-chip temporal">
                   <BookOpen size={12} />
-                  <span className="scope-summary-chip-label">{tempSemester.name}</span>
+                  <span className="scope-summary-chip-label">{getLocalized(tempSemester.name, i18n.language)}</span>
                   <button
                     className="scope-summary-chip-clear"
                     onClick={(e) => { e.stopPropagation(); setTempSemester(null); }}

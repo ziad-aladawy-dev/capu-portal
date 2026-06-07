@@ -30,6 +30,7 @@ public static class DataSeeder
         await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
         await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
         await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
+        await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
         await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
         await RunOnceAsync("Courses",         context.Courses,         () => SeedCoursesAsync(context));
     }
@@ -385,12 +386,13 @@ public static class DataSeeder
         var nodes = await context.StructureNodes.ToListAsync();
         StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
-        var adminPwd = passwordHasher.HashPassword("admin123");
+        var adminPwd = passwordHasher.HashPassword("123456");
         // JobTitle values are bilingual JSON; the Name and Role columns stay
         // literal because they're personal names / unique role identifiers.
         var defs = new (string Emp, string Name, string NID, DateTime DOB, string Phone, string Email, string Role, string Job, string NodeName)[]
         {
             ("ADMIN-001", "Super Admin User",      "29801011234567", new(1985, 6, 15),  "01000000000", "superadmin@capital.edu.eg",        "Super Admin",      LocalizedJson.Of("مسؤول النظام",            "System Administrator"),           "Capital University"),
+            ("EMP001",    "Dr. Ibrahim Abdullah",  "27801011234567", new(1978, 1, 1),   "01111111111", "ibrahim@capital.edu.eg",           "Super Admin",      LocalizedJson.Of("مدير النظام",              "System Administrator"),           "Capital University"),
             ("FAC-001",   "Dr. Fatima Hassan",     "28501011234567", new(1978, 3, 20),  "01111111111", "fatima.hassan@capital.edu.eg",     "Faculty Admin",    LocalizedJson.Of("عميد الكلية",              "Faculty Dean"),                   "Home Economics"),
             ("HOD-001",   "Dr. Khaled Ibrahim",    "28102021234567", new(1975, 11, 5),  "01111111112", "khaled.ibrahim@capital.edu.eg",    "Department Head",  LocalizedJson.Of("رئيس قسم التغذية الإكلينيكية","Head of Clinical Nutrition"),     "Clinical Nutrition"),
             ("REG-001",   "Ms. Aisha Mahmoud",     "29003031234567", new(1985, 7, 12),  "01111111113", "aisha.mahmoud@capital.edu.eg",     "Registrar",        LocalizedJson.Of("مسؤول شؤون الطلاب الأقدم", "Senior Registrar Officer"),       "Capital University"),
@@ -466,9 +468,9 @@ public static class DataSeeder
         var defs = new (string Code, string Name, string NID, DateTime DOB, string Phone, string Email, string NodeName)[]
         {
             ("20250001", "Ahmed Mohamed Ali",        "30201011234567", new(2002, 1, 1),  "01000000001", "ahmed.mohamed@capital.edu.eg",   "Nutrition & Food Science"),
-            ("20250002", "Sara Mahmoud Hassan",      "30202021234567", new(2002, 2, 2),  "01000000002", "sara.hassan@capital.edu.eg",      "Level 4"),
-            ("20250003", "Mohamed Khaled Ibrahim",   "30203031234567", new(2003, 3, 3),  "01000000003", "mohamed.ibrahim@capital.edu.eg",  "Level 4"),
-            ("20250004", "Nourhan Atef El-Sayed",    "30204041234567", new(2001, 5, 15), "01000000004", "nourhan.atef@capital.edu.eg",     "Level 1"),
+            ("20250002", "Sara Mahmoud Hassan",      "30202021234567", new(2002, 2, 2),  "01000000002", "sara.hassan@capital.edu.eg",      "Nutrition & Food Science"),
+            ("20250003", "Mohamed Khaled Ibrahim",   "30203031234567", new(2003, 3, 3),  "01000000003", "mohamed.ibrahim@capital.edu.eg",  "Nutrition & Food Science"),
+            ("20250004", "Nourhan Atef El-Sayed",    "30204041234567", new(2001, 5, 15), "01000000004", "nourhan.atef@capital.edu.eg",     "Nutrition & Food Science"),
             ("20250005", "Mariam Tarek Fathy",       "30205051234567", new(2001, 8, 22), "01000000005", "mariam.tarek@capital.edu.eg",     "Textile & Clothing"),
             ("20250006", "Youssef Gamal El-Din",     "30206061234567", new(2004, 11, 2), "01000000006", "youssef.gamal@capital.edu.eg",    "Textile & Clothing"),
             ("20250007", "Omar Hossam El-Din",       "30207071234567", new(2003, 4, 10), "01000000007", "omar.hossam@capital.edu.eg",      "Civil Engineering"),
@@ -552,6 +554,7 @@ public static class DataSeeder
         var defs = new (string EmpCode, string RoleName, string Year, string Semester, string? NodeName)[]
         {
             ("ADMIN-001", "Super Admin",      ScopeKeys.Global, ScopeKeys.Global, null),
+            ("EMP001",    "Super Admin",      ScopeKeys.Global, ScopeKeys.Global, null),
             ("FAC-001",   "Faculty Admin",    ScopeKeys.Global, ScopeKeys.Global, "Home Economics"),
             ("HOD-001",   "Department Head",  ScopeKeys.Global, ScopeKeys.Global, "Clinical Nutrition"),
             ("REG-001",   "Registrar",        ScopeKeys.Global, ScopeKeys.Global, "Capital University"),
@@ -621,7 +624,69 @@ public static class DataSeeder
     }
 
     // ════════════════════════════════════════════════════════════════
-    // 11. NOTIFICATIONS
+    // 11. STAFF PERMISSION OVERRIDES
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedStaffPermissionOverridesAsync(CoreDbContext context)
+    {
+        var staff = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
+        var resources = await context.Resources.Include(r => r.Module).ToListAsync();
+
+        var resourceMap = resources.ToDictionary(r => (r.Module.ModuleKey, r.Key));
+
+        var existing = await context.StaffPermissions
+            .ToDictionaryAsync(sp => (sp.StaffId, sp.ResourceId, sp.Action));
+
+        var added = 0;
+
+        void AddOverride(string empCode, string moduleKey, string resourceKey, string action, OverrideType type, string? nodeName = null)
+        {
+            if (!staff.TryGetValue(empCode, out var s)) return;
+            if (!resourceMap.TryGetValue((moduleKey, resourceKey), out var res)) return;
+
+            if (existing.ContainsKey((s.Id, res.Id, action))) return;
+
+            var nodes = context.StructureNodes.IgnoreQueryFilters().ToList();
+            Guid? nodeId = null;
+            string? nodePath = null;
+            if (nodeName != null)
+            {
+                var node = nodes.FirstOrDefault(n => n.Name.Contains(nodeName));
+                if (node != null)
+                {
+                    nodeId = node.Id;
+                    nodePath = node.Path;
+                }
+            }
+
+            context.StaffPermissions.Add(new StaffPermissionOverride(s.Id, res.Id, action, type, ScopeKeys.Global, ScopeKeys.Global)
+            {
+                StructureNodeId = nodeId,
+                StructureNodePath = nodePath,
+            });
+            existing[(s.Id, res.Id, action)] = null!;
+            added++;
+        }
+
+        // STF-001 (Tamer Said – IT Support, role "Staff"): temporarily denied
+        // from editing users, but allowed to view notifications.
+        AddOverride("STF-001", "users",         "users",          "Edit",    OverrideType.Deny);
+        AddOverride("STF-001", "notifications", "notifications",  "View",    OverrideType.Allow);
+
+        // VWR-001 (Nadia Youssef – External Auditor, role "Viewer"): denied
+        // access to structure data, but allowed to view programs.
+        AddOverride("VWR-001", "structure", "structure", "View", OverrideType.Deny);
+
+        // FAC-002 (Ahmed Abdel-Rahman – Vice Dean, Mataria): explicitly denied
+        // from managing Home Economics resources (scoped to that faculty).
+        AddOverride("FAC-002", "programs", "programs", "Insert", OverrideType.Deny, "Mataria");
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] StaffPermissions: +{added} overrides created.");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // 12. NOTIFICATIONS
     // ════════════════════════════════════════════════════════════════
 
     private static async Task SeedNotificationsAsync(CoreDbContext context)

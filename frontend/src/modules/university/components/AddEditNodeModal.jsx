@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
+import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import { normalizeType, getAllowedChildTypes, getNodeTypeValue } from "../utils/nodeTypeHelpers";
 
 const ALL_NODE_TYPES = [
@@ -25,20 +26,10 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
 
   const isEditMode = !!node;
 
-  const parseNameFromJson = (nameJson) => {
-    if (!nameJson) return { ar: "", en: "" };
-    try {
-      const parsed = JSON.parse(nameJson);
-      return { ar: parsed.ar || "", en: parsed.en || "" };
-    } catch {
-      return { ar: nameJson, en: nameJson };
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
       if (isEditMode) {
-        const { ar, en } = parseNameFromJson(node.name);
+        const { ar, en } = parseLocalizedValue(node.name);
         setNameAr(ar);
         setNameEn(en);
         const currentType = node.type ? normalizeType(node.type) : "Department";
