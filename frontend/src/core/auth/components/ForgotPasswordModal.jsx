@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { forgotPassword } from "../../../core/auth/authService";
+import { forgotPassword } from "../authService";
 import "../styles/forgotPasswordModal.css";
 
 function ForgotPasswordModal({ onClose }) {
-  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     universityCode: "",
     nationalId: "",
@@ -12,7 +10,6 @@ function ForgotPasswordModal({ onClose }) {
   });
 
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -24,20 +21,16 @@ function ForgotPasswordModal({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setMessage("");
-    setError("");
 
     try {
-      await forgotPassword({
-        universityCode: formData.universityCode,
-        nationalId: formData.nationalId,
-        email: formData.email,
-      });
-      setMessage(t("reset_link_sent"));
+      await forgotPassword(formData);
+      setMessage("Reset link sent to your email. Please check your inbox.");
       setTimeout(onClose, 3000);
     } catch (err) {
-      setMessage(err.response?.data?.message || t("reset_link_failed"));
+      setMessage(err.message || "Failed to send reset link");
     } finally {
       setLoading(false);
     }
@@ -46,11 +39,11 @@ function ForgotPasswordModal({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h3>{t("reset_password")}</h3>
+        <h3>Reset Password</h3>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>{t("university_code")}</label>
+            <label>University Code</label>
             <input
               type="text"
               name="universityCode"
@@ -61,19 +54,18 @@ function ForgotPasswordModal({ onClose }) {
           </div>
 
           <div className="form-group">
-            <label>{t("national_id")}</label>
+            <label>National ID</label>
             <input
               type="text"
               name="nationalId"
               value={formData.nationalId}
               onChange={handleChange}
               required
-              maxLength="14"
             />
           </div>
 
           <div className="form-group">
-            <label>{t("email")}</label>
+            <label>Email</label>
             <input
               type="email"
               name="email"
@@ -85,16 +77,15 @@ function ForgotPasswordModal({ onClose }) {
 
           <div className="modal-actions">
             <button type="button" onClick={onClose}>
-              {t("cancel")}
+              Cancel
             </button>
 
             <button type="submit" disabled={loading}>
-              {loading ? t("sending") : t("send_reset_link")}
+              {loading ? "Sending..." : "Send Reset Link"}
             </button>
           </div>
 
           {message && <p className="message">{message}</p>}
-          {error && <p className="error-message">{error}</p>}
         </form>
       </div>
     </div>
