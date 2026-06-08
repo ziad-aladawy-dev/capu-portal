@@ -24,10 +24,7 @@ public class OrderResponse
     public Gateway Gateway { get; set; }
     public string MerchantOrderId { get; set; } = string.Empty;
     public string RedirectUrl { get; set; } = string.Empty;
-    public decimal BaseAmount { get; set; }
-    public decimal CollectionFees { get; set; }
     public decimal TotalAmount { get; set; }
-    public int ItemCount { get; set; }
     public string Currency { get; set; } = "EGP";
     public DateTime CreatedAt { get; set; }
     public List<StudentFeeResponse> Fees { get; set; } = new();

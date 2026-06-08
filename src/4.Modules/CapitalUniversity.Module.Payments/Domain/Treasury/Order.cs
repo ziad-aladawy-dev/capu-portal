@@ -24,21 +24,8 @@ public class Order : BaseEntity, ISoftDeletable
 
     public string GatewaySessionRef { get; set; } = string.Empty;
 
-    /// <summary>Σ of contained fee totals (before collection fees). decimal(18,2).</summary>
-    public decimal BaseAmount { get; set; }
-
-    /// <summary>
-    /// Collection / handling fees added on top of <see cref="BaseAmount"/>.
-    /// Defaults to 0; the field exists so collection fees can be applied without
-    /// a schema change. decimal(18,2).
-    /// </summary>
-    public decimal CollectionFees { get; set; }
-
-    /// <summary>Amount charged by Treasury = BaseAmount + CollectionFees. decimal(18,2).</summary>
+    /// <summary>Σ of contained fee totals. decimal(18,2).</summary>
     public decimal TotalAmount { get; set; }
-
-    /// <summary>Number of fee line items in the order (internal preference/reporting).</summary>
-    public int ItemCount { get; set; }
 
     public string Currency { get; set; } = "EGP";
 

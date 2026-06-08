@@ -767,7 +767,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[IsCurrent] = 1");
 
-                    b.ToTable("AcademicYears");
+                    b.ToTable("AcademicYears", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Semsters.Semester", b =>
@@ -817,7 +817,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[IsCurrent] = 1");
 
-                    b.ToTable("Semesters");
+                    b.ToTable("Semesters", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
@@ -956,12 +956,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("BaseAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CollectionFees")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -983,9 +977,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<int>("ItemCount")
-                        .HasColumnType("int");
 
                     b.Property<string>("MerchantOrderId")
                         .IsRequired()
@@ -1980,7 +1971,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("Courses");
+                            b1.ToTable("Courses", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("CourseId");
@@ -2032,7 +2023,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("Staffs");
+                            b1.ToTable("Staffs", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffId");
@@ -2086,7 +2077,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("Students");
+                            b1.ToTable("Students", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("StudentId");
@@ -2173,7 +2164,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("CourseOfferings");
+                            b1.ToTable("CourseOfferings", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("CourseOfferingId");
@@ -2285,7 +2276,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("TreasuryReceipts");
+                            b1.ToTable("TreasuryReceipts", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("TreasuryReceiptId");
@@ -2331,7 +2322,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                                 .IsUnique()
                                 .HasFilter("[ExternalId] IS NOT NULL");
 
-                            b1.ToTable("ScheduleSlots");
+                            b1.ToTable("ScheduleSlots", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("ScheduleSlotId");

@@ -6,32 +6,51 @@ This collection provides a comprehensive set of APIs for managing payment operat
 
 ---
 
-# Supported Payment Gateways
+## Supported Payment Gateways
 
 ### Mastercard
 
-Full-featured payment processing with initiation, status tracking, and refund capabilities.
+* Payment initiation
+* Payment status tracking
+* Refund processing
 
 ### Bank Misr (BM)
 
-Payment initiation and status tracking for the Bank Misr gateway.
+* Payment initiation
+* Payment status tracking
 
 ### eFinance
 
-Payment initiation and status tracking for the eFinance gateway.
+* Payment initiation
+* Payment status tracking
 
 ---
 
-# Main Capabilities
+## Main Capabilities
 
-* **Payment Initiation** — Start new payment transactions through Mastercard, Bank Misr, or eFinance.
-* **Status Checking** — Retrieve real-time payment status using merchant order IDs.
-* **Refund Processing** — Process refunds for completed Mastercard transactions.
-* **Webhook Handling** — Receive and process payment status notifications from payment gateways.
+### Payment Initiation
+
+Start new payment transactions through:
+
+* Mastercard
+* Bank Misr
+* eFinance
+
+### Status Checking
+
+Retrieve real-time payment status using merchant order IDs.
+
+### Refunds
+
+Process refunds for completed Mastercard transactions.
+
+### Webhook Handling
+
+Receive and process payment status notifications from supported payment gateways.
 
 ---
 
-# Authentication
+## Authentication
 
 > Coming soon.
 
@@ -40,10 +59,10 @@ Payment initiation and status tracking for the eFinance gateway.
 # Getting Started
 
 1. Configure the `baseUrl` variable to point to your HU Treasury System environment.
-2. Choose the appropriate payment gateway (Mastercard, Bank Misr, or eFinance).
-3. Use the payment initiation endpoints to start transactions.
+2. Choose the appropriate payment gateway.
+3. Use payment initiation endpoints to start transactions.
 4. Monitor payment status using status endpoints.
-5. Configure webhook endpoints to receive payment notifications.
+5. Configure webhook endpoints to receive real-time payment updates.
 
 ---
 
@@ -57,10 +76,10 @@ GET /api/payments/receipts
 
 ## Query Parameters
 
-| Parameter         | Type      | Required | Description                                                      |
-| ----------------- | --------- | -------- | ---------------------------------------------------------------- |
-| connectionTypeIds | Integer[] | ✅ Yes    | List of connection type IDs to filter by (at least one required) |
-| receiptTypeIds    | Integer[] | ❌ No     | List of receipt type IDs to filter by                            |
+| Parameter         | Type      | Required | Description                                         |
+| ----------------- | --------- | -------- | --------------------------------------------------- |
+| connectionTypeIds | Integer[] | ✅ Yes    | List of connection type IDs (at least one required) |
+| receiptTypeIds    | Integer[] | ❌ No     | List of receipt type IDs                            |
 
 ## Example Request
 
@@ -70,7 +89,7 @@ GET /api/payments/receipts?connectionTypeIds=1,2&receiptTypeIds=1,3
 
 ---
 
-# Bank Misr Gateway
+# Bank Misr (BM) Gateway
 
 ## Initiate Payment
 
@@ -82,30 +101,51 @@ POST /api/payments/bm/initiate
 
 ### Request Body
 
-| Field               | Type      | Required | Description                       |
-| ------------------- | --------- | -------- | --------------------------------- |
-| receiptIds          | Integer[] | ✅ Yes    | List of receipt IDs to pay for    |
-| studentReferenceId  | String    | ✅ Yes    | Student unique reference ID       |
-| billingDetails      | Object    | ✅ Yes    | Customer billing information      |
-| merchantRedirectUrl | String    | ✅ Yes    | Custom redirect URL after payment |
+| Field               | Type      | Required | Description                |
+| ------------------- | --------- | -------- | -------------------------- |
+| receiptIds          | Integer[] | ✅ Yes    | Receipt IDs to pay         |
+| studentReferenceId  | String    | ✅ Yes    | Student reference ID       |
+| billingDetails      | Object    | ✅ Yes    | Billing information        |
+| merchantRedirectUrl | String    | ✅ Yes    | Redirect URL after payment |
 
 ### Billing Details
 
-| Field        | Type   | Required | Description                       |
-| ------------ | ------ | -------- | --------------------------------- |
-| firstName    | String | ✅ Yes    | Customer first name               |
-| lastName     | String | ✅ Yes    | Customer last name                |
-| emailAddress | String | ✅ Yes    | Valid email address               |
-| mobileNumber | String | ✅ Yes    | Customer mobile number            |
-| state        | String | ❌ No     | State/Province                    |
-| city         | String | ❌ No     | City                              |
-| countryCode  | String | ❌ No     | Two-letter country code (e.g. EG) |
-| zipCode      | String | ❌ No     | Postal/ZIP code                   |
-| currency     | String | ❌ No     | Currency code (default: EGP)      |
+| Field        | Type   | Required | Description            |
+| ------------ | ------ | -------- | ---------------------- |
+| firstName    | String | ✅ Yes    | First name             |
+| lastName     | String | ✅ Yes    | Last name              |
+| emailAddress | String | ✅ Yes    | Email                  |
+| mobileNumber | String | ✅ Yes    | Mobile number          |
+| state        | String | ❌ No     | State/province         |
+| city         | String | ❌ No     | City                   |
+| countryCode  | String | ❌ No     | Country code (e.g. EG) |
+| zipCode      | String | ❌ No     | ZIP code               |
+| currency     | String | ❌ No     | Default: EGP           |
+
+### Response
+
+Returns `InitiateCheckoutResponse`.
+
+#### Response Fields
+
+| Field   | Type   | Description        |
+| ------- | ------ | ------------------ |
+| status  | String | success or failure |
+| message | String | Response message   |
+| data    | Object | Session data       |
+
+#### Session Data
+
+| Field       | Type   | Description   |
+| ----------- | ------ | ------------- |
+| sessionId   | String | BM Session ID |
+| checkoutUrl | String | Payment URL   |
+| token       | String | JWT token     |
+| bmmId       | String | Merchant ID   |
 
 ---
 
-## Status Check
+## Check Payment Status
 
 ### Endpoint
 
@@ -113,7 +153,9 @@ POST /api/payments/bm/initiate
 GET /api/payments/bm/status/{merchantOrderId}
 ```
 
-### Response (`PaymentTransactionResponse`)
+### Response
+
+Returns `PaymentTransactionResponse`.
 
 | Field           | Type     |
 | --------------- | -------- |
@@ -143,32 +185,36 @@ POST /api/payments/mastercard/initiate
 
 ### Request Body
 
-| Field               | Type      | Required | Description                    |
-| ------------------- | --------- | -------- | ------------------------------ |
-| receiptIds          | Integer[] | ✅ Yes    | List of receipt IDs to pay for |
-| studentReferenceId  | String    | ✅ Yes    | Student unique reference ID    |
-| merchantRedirectUrl | String    | ❌ No     | Redirect URL after payment     |
-| currency            | String    | ❌ No     | Currency code (default: EGP)   |
+| Field               | Type      | Required | Description          |
+| ------------------- | --------- | -------- | -------------------- |
+| receiptIds          | Integer[] | ✅ Yes    | Receipt IDs          |
+| studentReferenceId  | String    | ✅ Yes    | Student reference ID |
+| merchantRedirectUrl | String    | ❌ No     | Redirect URL         |
+| currency            | String    | ❌ No     | Default: EGP         |
 
-### Response (`MCPaymentInitiationResponse`)
+### Response
+
+Returns `MCPaymentInitiationResponse`.
 
 | Field            | Type   | Description              |
 | ---------------- | ------ | ------------------------ |
 | merchantOrderId  | String | Internal order reference |
-| gatewaySessionId | String | Session ID from bank     |
+| gatewaySessionId | String | Bank session ID          |
 | sessionVersion   | String | Session version          |
 | successIndicator | String | Security indicator       |
-| redirectUrl      | String | Payment page URL         |
+| redirectUrl      | String | Payment URL              |
 
 ---
 
-## Status Check
+## Check Payment Status
 
 ### Endpoint
 
 ```http
 GET /api/payments/mastercard/status/{merchantOrderId}
 ```
+
+### Response
 
 Returns `PaymentTransactionResponse`.
 
@@ -184,13 +230,15 @@ POST /api/payments/mastercard/refund
 
 ### Request Body
 
-| Field           | Type       | Required | Description                                                          |
-| --------------- | ---------- | -------- | -------------------------------------------------------------------- |
-| merchantOrderId | String     | ✅ Yes    | Original transaction order ID                                        |
-| amount          | BigDecimal | ❌ No     | Partial refund amount. If omitted, full remaining amount is refunded |
-| reason          | String     | ❌ No     | Refund reason                                                        |
+| Field           | Type       | Required | Description           |
+| --------------- | ---------- | -------- | --------------------- |
+| merchantOrderId | String     | ✅ Yes    | Original order ID     |
+| amount          | BigDecimal | ❌ No     | Partial refund amount |
+| reason          | String     | ❌ No     | Refund reason         |
 
-### Response (`MCRefundResponse`)
+### Response
+
+Returns `MCRefundResponse`.
 
 | Field                     | Type       |
 | ------------------------- | ---------- |
@@ -221,40 +269,42 @@ POST /api/payments/efinance/initiate
 
 ### Request Body
 
-| Field              | Type      | Required | Description                                                                  |
-| ------------------ | --------- | -------- | ---------------------------------------------------------------------------- |
-| receiptIds         | Integer[] | ✅ Yes    | List of receipt IDs to pay for                                               |
-| studentReferenceId | String    | ✅ Yes    | Student unique reference ID                                                  |
-| billingDetails     | Object    | ✅ Yes    | Customer billing information                                                 |
-| paymentMechanism   | String    | ❌ No     | `CARD`, `CHANNEL`, `MOBILE_WALLET`, `MEEZA`, or `NOT_SET` (customer chooses) |
-| description        | String    | ❌ No     | Payment description                                                          |
-| redirectUrl        | String    | ✅ Yes    | Redirect URL after payment                                                   |
+| Field              | Type      | Required | Description                                  |
+| ------------------ | --------- | -------- | -------------------------------------------- |
+| receiptIds         | Integer[] | ✅ Yes    | Receipt IDs                                  |
+| studentReferenceId | String    | ✅ Yes    | Student reference ID                         |
+| billingDetails     | Object    | ✅ Yes    | Billing details                              |
+| paymentMechanism   | String    | ❌ No     | CARD, CHANNEL, MOBILE_WALLET, MEEZA, NOT_SET |
+| description        | String    | ❌ No     | Payment description                          |
+| redirectUrl        | String    | ✅ Yes    | Redirect URL                                 |
 
 ### Billing Details
 
-| Field        | Type   | Required | Description                  |
-| ------------ | ------ | -------- | ---------------------------- |
-| firstName    | String | ✅ Yes    | Customer first name          |
-| lastName     | String | ✅ Yes    | Customer last name           |
-| emailAddress | String | ❌ No     | Customer email               |
-| mobileNumber | String | ❌ No     | Customer mobile number       |
-| currency     | String | ❌ No     | Currency code (default: EGP) |
+| Field        | Type   | Required |
+| ------------ | ------ | -------- |
+| firstName    | String | ✅ Yes    |
+| lastName     | String | ✅ Yes    |
+| emailAddress | String | ❌ No     |
+| mobileNumber | String | ❌ No     |
+| currency     | String | ❌ No     |
 
-### Response (`EFinancePaymentInitiationResponse`)
+### Response
 
-| Field               | Type       | Description                    |
-| ------------------- | ---------- | ------------------------------ |
-| merchantOrderId     | String     | Internal transaction reference |
-| senderRequestNumber | String     | eFinance request identifier    |
-| redirectUrl         | String     | Gateway redirect URL           |
-| formData            | Object     | Form data to submit            |
-| totalAmount         | BigDecimal | Total amount customer pays     |
-| baseAmount          | BigDecimal | Base amount before fees        |
-| collectionFees      | BigDecimal | Gateway fees                   |
-| currency            | String     | Currency code                  |
-| expiryDate          | String     | Payment expiry date            |
+Returns `EFinancePaymentInitiationResponse`.
 
-### FormData
+| Field               | Type       |
+| ------------------- | ---------- |
+| merchantOrderId     | String     |
+| senderRequestNumber | String     |
+| redirectUrl         | String     |
+| formData            | Object     |
+| totalAmount         | BigDecimal |
+| baseAmount          | BigDecimal |
+| collectionFees      | BigDecimal |
+| currency            | String     |
+| expiryDate          | String     |
+
+### Form Data
 
 | Field               | Type   |
 | ------------------- | ------ |
@@ -265,7 +315,7 @@ POST /api/payments/efinance/initiate
 
 ---
 
-## Status Check
+## Check Payment Status
 
 ### Endpoint
 
@@ -273,65 +323,188 @@ POST /api/payments/efinance/initiate
 GET /api/payments/efinance/status/{merchantOrderId}
 ```
 
+### Example
+
+```http
+GET /api/payments/efinance/status/EF-1-30311070201755-4b94f115
+```
+
+### Response
+
 Returns `PaymentTransactionResponse`.
 
----
-
-# Response Structures
-
-## BaseResponse
-
-All endpoints except `POST /api/payments/bm/initiate` return responses wrapped in a `BaseResponse`.
-
-### Structure
-
-| Field   | Type    | Description                     |
-| ------- | ------- | ------------------------------- |
-| success | Boolean | Indicates request success       |
-| message | String  | Human-readable response message |
-| data    | Object  | Endpoint-specific payload       |
+```json
+{
+  "success": false,
+  "message": "string",
+  "data": ""
+}
+```
 
 ---
 
-# Endpoint Response Models
+## Test Initiate Payment
 
-## GET /api/payments/receipts
+### Endpoint
 
-Returns an array of `ReceiptResponse`.
+```http
+POST /api/payments/test/eFinance/initiate-payment
+```
 
-| Field                  | Type       |
-| ---------------------- | ---------- |
-| id                     | Long       |
-| receiptSerialNumber    | String     |
-| receiptName            | String     |
-| description            | String     |
-| receiptTypeName        | String     |
-| receiptTypeDescription | String     |
-| active                 | String     |
-| connectionTypeName     | String     |
-| totalAmount            | BigDecimal |
+### Notes
+
+* Returns HTML redirect response.
+* Used for testing payment initiation.
+
+### Sample Request
+
+```json
+{
+  "billingDetails": {
+    "firstName": "string",
+    "lastName": "string",
+    "emailAddress": "string@gmail",
+    "mobileNumber": "string"
+  },
+  "receiptIds": [1],
+  "studentReferenceId": "30201901044528",
+  "paymentMechanism": "NOT_SET",
+  "description": "string",
+  "redirectUrl": "https://masarhnu.netlify.app/#/home/main",
+  "clientIp": "::1"
+}
+```
+
+---
+
+# Response Wrapper
+
+Most endpoints return responses wrapped in `BaseResponse`.
+
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "data": {}
+}
+```
+
+## BaseResponse Fields
+
+| Field   | Type    | Description      |
+| ------- | ------- | ---------------- |
+| success | Boolean | Request result   |
+| message | String  | Response message |
+| data    | Object  | Response payload |
 
 ---
 
-## POST /api/payments/bm/initiate
+# Webhook Integration
 
-Returns `InitiateCheckoutResponse` directly (not wrapped in `BaseResponse`).
+## Receive Treasury Webhook
 
-### Structure
+### Endpoint
 
-| Field   | Type   |
-| ------- | ------ |
-| status  | String |
-| message | String |
-| data    | Object |
+```http
+POST /your-webhook-endpoint
+```
 
-### Data Object
+### Authentication
 
-| Field       | Type   |
-| ----------- | ------ |
-| sessionId   | String |
-| checkoutUrl | String |
-| token       | String |
-| bmmId       | String |
+Header:
+
+```http
+X-Webhook-Signature: <apiKey>
+```
+
+### Purpose
+
+Receive transaction status updates from the HU Treasury System.
+
+You must:
+
+1. Implement this endpoint.
+2. Register the endpoint URL with the treasury system.
+
+### Example Webhook Payload
+
+```json
+{
+  "webhookId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "TRANSACTION_PAID",
+  "eventTimestamp": "2026-02-18T10:30:00.000Z",
+  "transaction": {
+    "transactionId": 12345,
+    "merchantOrderId": "ORDER-2026-001234",
+    "studentReferenceId": "STU-20210001",
+    "status": "PAID",
+    "previousStatus": "PENDING",
+    "gatewayType": "EFINANCE",
+    "gatewayTransactionId": "EF-TXN-789456",
+    "gatewayOrderId": "EF-ORD-123456",
+    "grossAmount": 5000,
+    "gatewayFee": 50,
+    "netAmount": 4950,
+    "currency": "EGP",
+    "gatewayResult": "SUCCESS",
+    "paymentDate": "2026-02-18T10:29:55.000Z",
+    "createdAt": "2026-02-18T10:00:00.000Z",
+    "billingDetails": {
+      "firstName": "Ahmed",
+      "lastName": "Mohamed",
+      "email": "ahmed.mohamed@example.com",
+      "mobileNumber": "01012345678"
+    },
+    "receipt": {
+      "receiptId": 789,
+      "receiptNumber": "RCP-2026-001234",
+      "receiptType": "Tuition Fees",
+      "totalAmount": 5000
+    }
+  },
+  "refund": null,
+  "metadata": null
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Webhook processed successfully"
+}
+```
 
 ---
+
+# Available Payment Gateways
+
+* Mastercard
+* Bank Misr (BM)
+* eFinance
+
+---
+
+# Common Payment Status Response
+
+Used by:
+
+* BM Status
+* Mastercard Status
+* eFinance Status
+
+| Field           | Type     |
+| --------------- | -------- |
+| transactionId   | Integer  |
+| merchantOrderId | String   |
+| gatewayResult   | String   |
+| status          | String   |
+| amount          | String   |
+| currency        | String   |
+| timestamp       | DateTime |
+| createdBy       | String   |
+| createdAt       | DateTime |
+| modifiedBy      | String   |
+| modifiedAt      | DateTime |
+|                 |          |

@@ -80,20 +80,13 @@ public sealed class OrderService : IOrderService
                 throw new ConflictException("Selected fees have mixed currencies.");
             }
 
-            var baseAmount = fees.Sum(f => f.TotalAmount);
-            // Collection fees default to 0; the field exists so they can be
-            // applied later without a schema change. Treasury is charged Total.
-            const decimal collectionFees = 0m;
             var order = new Order
             {
                 StudentId = studentId,
                 Gateway = gateway,
                 Status = OrderStatus.Created,
                 Currency = currencies[0],
-                BaseAmount = baseAmount,
-                CollectionFees = collectionFees,
-                TotalAmount = baseAmount + collectionFees,
-                ItemCount = fees.Count,
+                TotalAmount = fees.Sum(f => f.TotalAmount),
             };
             await _orders.AddAsync(order, ct);
 
@@ -162,10 +155,7 @@ public sealed class OrderService : IOrderService
         Gateway = o.Gateway,
         MerchantOrderId = o.MerchantOrderId,
         RedirectUrl = o.RedirectUrl,
-        BaseAmount = o.BaseAmount,
-        CollectionFees = o.CollectionFees,
         TotalAmount = o.TotalAmount,
-        ItemCount = o.ItemCount,
         Currency = o.Currency,
         CreatedAt = o.CreatedAt,
         Fees = fees.Select(ToFeeResponse).ToList(),
