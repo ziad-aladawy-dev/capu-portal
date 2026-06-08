@@ -7,11 +7,8 @@ using CoreCourse = CapitalUniversity.Core.Domain.Courses.Course;
 using StaffValidator = CapitalUniversity.Sync.Staff.Pull.StaffValidator;
 using StudentValidator = CapitalUniversity.Sync.Student.Pull.StudentValidator;
 using CourseValidator = CapitalUniversity.Sync.Courses.Pull.CourseValidator;
-using InvoiceValidator = CapitalUniversity.Sync.Finance.Pull.InvoiceValidator;
-using InvoiceSyncDispatch = CapitalUniversity.Sync.Finance.Pull.InvoiceSyncDispatch;
 using ScheduleSlotValidator = CapitalUniversity.Sync.Schedules.Pull.ScheduleSlotValidator;
 using ScheduleSlotSyncDispatch = CapitalUniversity.Sync.Schedules.Pull.ScheduleSlotSyncDispatch;
-using Invoice = CapitalUniversity.Modules.Payments.Domain.Invoice;
 using ScheduleSlot = CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot;
 
 namespace CapitalUniversity.Sync.Tests;
@@ -202,61 +199,6 @@ public class SyncPullValidatorTests
     {
         var c = ValidCourse(); c.CreditHours = 12;
         new CourseValidator().IsValid(c, out _).Should().BeTrue();
-    }
-
-    // ---------------- Invoice ----------------
-
-    private static InvoiceSyncDispatch ValidInvoice()
-    {
-        var inv = new Invoice { TotalAmount = 100m, Currency = "EGP" };
-        inv.ExternallySourced.ExternalId = "EXT-1";
-        return new InvoiceSyncDispatch { Entity = inv, ExternalStudentId = "STU-EXT-1" };
-    }
-
-    [Fact]
-    public void Invoice_Valid_ReturnsTrue()
-    {
-        new InvoiceValidator().IsValid(ValidInvoice(), out var err).Should().BeTrue();
-        err.Should().BeNull();
-    }
-
-    [Fact]
-    public void Invoice_BlankExternalId_Fails()
-    {
-        var d = ValidInvoice(); d.Entity.ExternallySourced.ExternalId = "";
-        new InvoiceValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("ExternalId is required (sync merge key).");
-    }
-
-    [Fact]
-    public void Invoice_BlankExternalStudentId_Fails()
-    {
-        var inv = new Invoice { TotalAmount = 100m, Currency = "EGP" };
-        inv.ExternallySourced.ExternalId = "EXT-1";
-        var d = new InvoiceSyncDispatch { Entity = inv, ExternalStudentId = "" };
-        new InvoiceValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("ExternalStudentId is required (every invoice attaches to a student).");
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-50)]
-    public void Invoice_NonPositiveTotal_Fails(int total)
-    {
-        var d = ValidInvoice(); d.Entity.TotalAmount = total;
-        new InvoiceValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("TotalAmount must be > 0.");
-    }
-
-    [Theory]
-    [InlineData("US")]
-    [InlineData("USDD")]
-    [InlineData("")]
-    public void Invoice_BadCurrency_Fails(string currency)
-    {
-        var d = ValidInvoice(); d.Entity.Currency = currency;
-        new InvoiceValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("Currency must be a 3-letter ISO 4217 code.");
     }
 
     // ---------------- ScheduleSlot ----------------

@@ -11,11 +11,6 @@ using CapitalUniversity.Core.Application.Semesters;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Domain.Semsters;
-using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
-using CapitalUniversity.Modules.Payments.Application;
-using CapitalUniversity.Modules.Payments.Application.Validators;
-using CapitalUniversity.Modules.Payments.Domain;
-using CapitalUniversity.Modules.Payments.Repositories;
 using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using FluentValidation;
@@ -121,39 +116,7 @@ public class OwnedModulesLocalizationTests
         LocalizedStrings.ContainsKey(ex.Message).Should().BeTrue();
     }
 
-    // ─── Payments ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task FeeCreationService_EmptyItems_MessageIsLocalizationKey()
-    {
-        var uow = new Mock<IUnitOfWork>();
-        var invoices = new Mock<IInvoiceRepository>();
-        var cache = new Mock<ICacheService>();
-        var sut = new FeeCreationService(uow.Object, invoices.Object, cache.Object);
-
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            sut.CreateFeesAsync(Guid.NewGuid(), "USD", Array.Empty<CreateInvoiceItemRequest>()));
-
-        // ArgumentException prepends "(Parameter ...)"; the leading text must be
-        // the localization key so the wire-level handler can resolve it.
-        ex.Message.Should().StartWith(LocalizedKeys.Payments.AtLeastOneItem);
-        LocalizedStrings.ContainsKey(LocalizedKeys.Payments.AtLeastOneItem).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InvoiceValidator_EmptyItems_MessageIsLocalizationKey()
-    {
-        var sut = new CreateInvoiceValidator();
-        var result = sut.Validate(new CreateInvoiceRequest
-        {
-            StudentId = Guid.NewGuid(),
-            Currency = "USD",
-            Items = new List<CreateInvoiceItemRequest>(),
-        });
-
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.ErrorMessage == LocalizedKeys.Payments.AtLeastOneItem);
-    }
+    // ─── Courses ───────────────────────────────────────────────────────────────
 
     [Fact]
     public void CourseValidator_OutOfRangeCreditHours_MessageIsLocalizationKey()

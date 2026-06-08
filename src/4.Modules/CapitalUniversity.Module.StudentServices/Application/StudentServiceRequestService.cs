@@ -8,8 +8,6 @@ using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
-using CapitalUniversity.Modules.Payments.Abstractions;
-using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Modules.StudentServices.Abstractions;
 using CapitalUniversity.Modules.StudentServices.Abstractions.DTOs;
@@ -62,7 +60,6 @@ public class StudentServiceRequestService : IStudentServiceRequestService
     private readonly IStudentServiceRequestRepository _requests;
     private readonly IStudentServiceRepository _services;
     private readonly IWorkflowService _workflows;
-    private readonly IFeeCreationService _feeCreation;
     private readonly IFeeGenerationService _feeGeneration;
     private readonly IEffectiveScope _scope;
     private readonly ICacheService _cache;
@@ -76,7 +73,6 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         IStudentServiceRequestRepository requests,
         IStudentServiceRepository services,
         IWorkflowService workflows,
-        IFeeCreationService feeCreation,
         IFeeGenerationService feeGeneration,
         IEffectiveScope scope,
         ICacheService cache,
@@ -89,7 +85,6 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         _requests = requests;
         _services = services;
         _workflows = workflows;
-        _feeCreation = feeCreation;
         _feeGeneration = feeGeneration;
         _scope = scope;
         _cache = cache;
@@ -323,11 +318,10 @@ public class StudentServiceRequestService : IStudentServiceRequestService
         // there.
         if (service.RequiresPayment)
         {
-            // Treasury fee path first: when the service is mapped to a Treasury
-            // receipt, generate a StudentFee (price snapshotted from the receipt).
-            // Returns null when no active mapping exists — then we fall back to the
-            // legacy invoice fee path, preserving existing behavior for unmapped
-            // services. Both paths are additive; neither is removed.
+            // Treasury fee path: generate a StudentFee from the service's receipt
+            // mapping (price snapshotted from the receipt). Returns null when the
+            // service has no active mapping — then no fee is raised and the
+            // request proceeds without a payment step.
             var treasuryFeeId = await _feeGeneration.GenerateFeeFromServiceAsync(
                 studentId,
                 service.Id,
@@ -339,30 +333,6 @@ public class StudentServiceRequestService : IStudentServiceRequestService
             if (treasuryFeeId is not null)
             {
                 entity.PaymentReferenceId = treasuryFeeId.Value;
-                entity.CurrentStatus = ServiceRequestStatus.WaitingPayment;
-                _requests.Update(entity);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-            }
-            else if (service.FeeAmount is > 0m && !string.IsNullOrWhiteSpace(service.FeeType))
-            {
-                var invoiceId = await _feeCreation.CreateFeesAsync(
-                    studentId,
-                    service.Currency,
-                    new[]
-                    {
-                        new CreateInvoiceItemRequest
-                        {
-                            Amount = service.FeeAmount.Value,
-                            FeeType = service.FeeType!,
-                            SourceModule = "student-services",
-                            ReferenceId = entity.Id,
-                            Description = $"{service.Code}",
-                        }
-                    },
-                    mergeWithPending: false,
-                    dueAt: null,
-                    cancellationToken);
-                entity.PaymentReferenceId = invoiceId;
                 entity.CurrentStatus = ServiceRequestStatus.WaitingPayment;
                 _requests.Update(entity);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);

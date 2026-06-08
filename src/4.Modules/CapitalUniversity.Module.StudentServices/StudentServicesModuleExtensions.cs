@@ -55,14 +55,8 @@ public static class StudentServicesModuleExtensions
 
         services.AddSingleton<IPermissionManifest, StudentServicesPermissionManifest>();
 
-        // Outbox consumer — picks up <c>payments.invoice.paid</c> rows from
-        // the Payments producer and auto-advances WaitingPayment requests.
-        // The dispatcher routes one handler per MessageType, so this is the
-        // sole consumer of the invoice-paid fact unless someone else
-        // explicitly opts in.
-        services.AddScoped<IOutboxMessageHandler, InvoicePaidEventHandler>();
-
-        // Treasury fee path: advance WaitingPayment requests on payments.fee.paid.
+        // Outbox consumer — advances WaitingPayment requests on
+        // <c>payments.fee.paid</c> from the Treasury settlement producer.
         services.AddScoped<IOutboxMessageHandler, FeePaidEventHandler>();
 
         var moduleAssembly = typeof(StudentServicesModuleExtensions).Assembly;

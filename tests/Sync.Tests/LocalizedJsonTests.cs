@@ -4,8 +4,6 @@ using CapitalUniversity.Modules.Schedule.Abstractions;
 using CapitalUniversity.Sync.Abstractions.Localization;
 using CapitalUniversity.Sync.Courses.Domain;
 using CapitalUniversity.Sync.Courses.Pull;
-using CapitalUniversity.Sync.Finance.Domain;
-using CapitalUniversity.Sync.Finance.Pull;
 using CapitalUniversity.Sync.Schedules.Domain;
 using CapitalUniversity.Sync.Schedules.Pull;
 using CapitalUniversity.Sync.Staff.Domain;
@@ -183,36 +181,6 @@ public class LocalizedJsonTests
         entity.IsActive.Should().BeTrue();
     }
 
-    [Fact]
-    public void InvoiceMapper_ProducesDispatchWithRawInvoice_AndUpstreamStudentKey()
-    {
-        // Invoice headers carry no localized text. The mapper returns a
-        // InvoiceSyncDispatch wrapper: the Core Invoice entity (with
-        // StudentId left at Guid.Empty for the writer to resolve) plus the
-        // upstream student key the writer feeds into ICoreWriteGateway.ResolveIdByExternalIdAsync.
-        var dispatch = new InvoiceMapper().Map(new ExternalInvoice
-        {
-            ExternalInvoiceId = "EXT-INV-000001",
-            ExternalStudentId = "EXT-S-0001",
-            Status = InvoiceStatus.PartiallyPaid,
-            TotalAmount = 1234.56m,
-            Currency = "egp",
-            DueAt = new DateTime(2026, 12, 31),
-            ExternalUpdatedAt = DateTimeOffset.UtcNow,
-            ExternalVersion = 1
-        });
-
-        // Wrapper carries the upstream student key so the writer can resolve it.
-        dispatch.ExternalStudentId.Should().Be("EXT-S-0001");
-
-        // Entity is the Core Invoice the gateway will upsert.
-        dispatch.Entity.ExternallySourced.ExternalId.Should().Be("EXT-INV-000001");
-        dispatch.Entity.StudentId.Should().Be(Guid.Empty, "writer rebinds this after gateway resolves the upstream key");
-        dispatch.Entity.Status.Should().Be(InvoiceStatus.PartiallyPaid);
-        dispatch.Entity.TotalAmount.Should().Be(1234.56m);
-        dispatch.Entity.Currency.Should().Be("EGP", "ISO codes stay raw + uppercase");
-        dispatch.Entity.DueAt.Should().Be(new DateTime(2026, 12, 31));
-    }
 
     [Fact]
     public void ScheduleSlotMapper_LocalizesLocationAndNotes_KeepsTimesRaw()

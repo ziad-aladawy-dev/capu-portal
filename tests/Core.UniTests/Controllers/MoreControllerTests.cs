@@ -4,8 +4,6 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.DTOs;
 using CapitalUniversity.Core.Abstractions.Semesters;
 using CapitalUniversity.Core.Abstractions.Semesters.DTOs;
-using CapitalUniversity.Modules.Payments.Abstractions;
-using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -118,79 +116,6 @@ public class AcademicYearsControllerTests
         var result = await ctrl.GetSemesters(id, sem.Object);
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Same(list, ok.Value);
-    }
-}
-
-public class InvoicesControllerTests
-{
-    private static InvoicesController Build(out Mock<IInvoiceService> svc)
-    {
-        svc = new Mock<IInvoiceService>(MockBehavior.Strict);
-        return new InvoicesController(svc.Object);
-    }
-
-    [Fact]
-    public async Task GetById_Found_ReturnsOk()
-    {
-        var ctrl = Build(out var svc);
-        var id = Guid.NewGuid();
-        var resp = new InvoiceResponse();
-        svc.Setup(s => s.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(resp);
-
-        var result = await ctrl.GetById(id, CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Same(resp, ok.Value);
-    }
-
-    [Fact]
-    public async Task GetById_NotFound_ReturnsNotFound()
-    {
-        var ctrl = Build(out var svc);
-        var id = Guid.NewGuid();
-        svc.Setup(s => s.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync((InvoiceResponse?)null);
-
-        var result = await ctrl.GetById(id, CancellationToken.None);
-        Assert.IsType<NotFoundResult>(result);
-    }
-
-    [Fact]
-    public async Task GetForStudent_ReturnsOk()
-    {
-        var ctrl = Build(out var svc);
-        var studentId = Guid.NewGuid();
-        var list = (IReadOnlyList<InvoiceResponse>)new List<InvoiceResponse> { new() };
-        svc.Setup(s => s.GetForStudentAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(list);
-
-        var result = await ctrl.GetForStudent(studentId, CancellationToken.None);
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Same(list, ok.Value);
-    }
-
-    [Fact]
-    public async Task Create_ReturnsCreatedAtAction()
-    {
-        var ctrl = Build(out var svc);
-        var req = new CreateInvoiceRequest();
-        var newId = Guid.NewGuid();
-        svc.Setup(s => s.CreateAsync(req, It.IsAny<CancellationToken>())).ReturnsAsync(newId);
-
-        var result = await ctrl.Create(req, CancellationToken.None);
-        var created = Assert.IsType<CreatedAtActionResult>(result);
-        Assert.Equal(nameof(ctrl.GetById), created.ActionName);
-        Assert.Equal(newId, created.RouteValues!["id"]);
-    }
-
-    [Fact]
-    public async Task Cancel_DelegatesAndReturnsOk()
-    {
-        var ctrl = Build(out var svc);
-        var id = Guid.NewGuid();
-        var req = new CancelInvoiceRequest();
-        svc.Setup(s => s.CancelAsync(id, req, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
-
-        var result = await ctrl.Cancel(id, req, CancellationToken.None);
-        Assert.IsType<OkObjectResult>(result);
-        svc.Verify();
     }
 }
 

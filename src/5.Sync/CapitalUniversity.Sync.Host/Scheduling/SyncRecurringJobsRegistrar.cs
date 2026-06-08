@@ -1,6 +1,5 @@
 using CapitalUniversity.Sync.Abstractions.Enums;
 using CapitalUniversity.Sync.Courses;
-using CapitalUniversity.Sync.Finance;
 using CapitalUniversity.Sync.Infrastructure.Configuration;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Sync.Infrastructure.Scheduling;
@@ -8,6 +7,7 @@ using CapitalUniversity.Sync.Schedules;
 using CapitalUniversity.Sync.Staff;
 using CapitalUniversity.Sync.Student;
 using Hangfire;
+// Sync.Finance removed (Treasury is the source of truth for fees).
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -86,17 +86,10 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             methodCall: trigger => trigger.TriggerAsync(CoursesSyncModule.Name, SyncDirection.Push),
             cronExpression: Cron.Minutely());
 
-        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
-            recurringJobId: "finance-sync-pull",
-            queue: triggerQueue,
-            methodCall: trigger => trigger.TriggerAsync(FinanceSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
-
-        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
-            recurringJobId: "finance-sync-push",
-            queue: triggerQueue,
-            methodCall: trigger => trigger.TriggerAsync(FinanceSyncModule.Name, SyncDirection.Push),
-            cronExpression: Cron.Minutely());
+        // finance-sync removed (Treasury owns fees). Drop any previously
+        // installed finance recurring entries so they stop firing.
+        _recurringJobManager.RemoveIfExists("finance-sync-pull");
+        _recurringJobManager.RemoveIfExists("finance-sync-push");
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "schedules-sync-pull",

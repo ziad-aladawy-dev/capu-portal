@@ -5,8 +5,6 @@ using StaffOpts = CapitalUniversity.Sync.Staff.Configuration.StaffSyncOptions;
 using StaffVal = CapitalUniversity.Sync.Staff.Configuration.StaffSyncOptionsValidator;
 using CoursesOpts = CapitalUniversity.Sync.Courses.Configuration.CoursesSyncOptions;
 using CoursesVal = CapitalUniversity.Sync.Courses.Configuration.CoursesSyncOptionsValidator;
-using FinanceOpts = CapitalUniversity.Sync.Finance.Configuration.FinanceSyncOptions;
-using FinanceVal = CapitalUniversity.Sync.Finance.Configuration.FinanceSyncOptionsValidator;
 using SchedulesOpts = CapitalUniversity.Sync.Schedules.Configuration.SchedulesSyncOptions;
 using SchedulesVal = CapitalUniversity.Sync.Schedules.Configuration.SchedulesSyncOptionsValidator;
 using StudentOpts = CapitalUniversity.Sync.Student.Configuration.StudentSyncOptions;
@@ -140,52 +138,6 @@ public class SyncOptionsValidatorTests
         var o = ValidCourses(); o.ExtractorSafetyBufferSeconds = -2;
         new CoursesVal().Validate(null, o).FailureMessage
             .Should().Be("Sync:Courses:ExtractorSafetyBufferSeconds must be >= 0 (was -2).");
-    }
-
-    // ---------------- Finance ----------------
-
-    private static FinanceOpts ValidFinance() => new()
-    {
-        ConnectionString = "Server=.;Database=x;",
-        BatchSize = 50,
-        PushBatchSize = 50,
-        ExtractorSafetyBufferSeconds = 60,
-    };
-
-    [Fact]
-    public void Finance_Valid_Succeeds() =>
-        new FinanceVal().Validate(null, ValidFinance()).Succeeded.Should().BeTrue();
-
-    [Fact]
-    public void Finance_BlankConnectionString_Fails()
-    {
-        var o = ValidFinance(); o.ConnectionString = "  ";
-        new FinanceVal().Validate(null, o).FailureMessage
-            .Should().Be("Sync:Finance:ConnectionString is required.");
-    }
-
-    [Fact]
-    public void Finance_BatchSizeOutOfRange_Fails()
-    {
-        var o = ValidFinance(); o.BatchSize = -1;
-        new FinanceVal().Validate(null, o).FailureMessage
-            .Should().Be($"Sync:Finance:BatchSize must be in (0, {Max}] (was -1).");
-    }
-
-    [Fact]
-    public void Finance_PushBatchSizeOutOfRange_Fails()
-    {
-        var o = ValidFinance(); o.PushBatchSize = 0;
-        new FinanceVal().Validate(null, o).FailureMessage
-            .Should().Be($"Sync:Finance:PushBatchSize must be in (0, {Max}] (was 0).");
-    }
-
-    [Fact]
-    public void Finance_NegativeBuffer_Fails()
-    {
-        var o = ValidFinance(); o.ExtractorSafetyBufferSeconds = -1;
-        new FinanceVal().Validate(null, o).FailureMessage
-            .Should().Be("Sync:Finance:ExtractorSafetyBufferSeconds must be >= 0 (was -1).");
     }
 
     // ---------------- Schedules ----------------
