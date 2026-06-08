@@ -63,4 +63,12 @@ public class OutboxOptions
     /// <summary>Maximum dispatch attempts before a message is considered poison
     /// and parked (left in the DB with <c>AttemptCount &gt;= MaxAttempts</c>).</summary>
     public int MaxAttempts { get; set; } = 5;
+
+    /// <summary>
+    /// How long a dispatcher's lease on a claimed batch lasts (C1). Must comfortably
+    /// exceed the time to process one BatchSize so a slow-but-alive dispatcher
+    /// doesn't have its rows stolen mid-flight; a crashed dispatcher's rows become
+    /// claimable again once the lease expires. Default 60s.
+    /// </summary>
+    public int LeaseSeconds { get; set; } = 60;
 }

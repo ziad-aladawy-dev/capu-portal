@@ -62,10 +62,33 @@ public class OutboxPoisonQueue : IOutboxPoisonQueue
         var hasHandler = _handlers.Any(h => string.Equals(h.MessageType, row.MessageType, StringComparison.Ordinal));
         if (!hasHandler) return false;
 
+        if (_dbContext.Database.IsRelational())
+        {
+            // E1 — reset the poison flags with a guarded UPDATE so we never clobber
+            // a row the dispatcher stamped ProcessedAt on between the read above and
+            // this write. WHERE ProcessedAt IS NULL makes the requeue a no-op (and
+            // returns false) when the row was processed in that window. Also clears
+            // any stale lease so the row is immediately claimable again.
+            var affected = await _dbContext.OutboxMessages
+                .Where(m => m.Id == messageId && m.ProcessedAt == null)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(m => m.AttemptCount, 0)
+                        .SetProperty(m => m.IsPoisoned, false)
+                        .SetProperty(m => m.PoisonedAt, (DateTime?)null)
+                        .SetProperty(m => m.LastError, (string?)null)
+                        .SetProperty(m => m.LockedBy, (Guid?)null)
+                        .SetProperty(m => m.LockedUntil, (DateTime?)null),
+                    cancellationToken);
+            return affected > 0;
+        }
+
         row.AttemptCount = 0;
         row.IsPoisoned = false;
         row.PoisonedAt = null;
         row.LastError = null;
+        row.LockedBy = null;
+        row.LockedUntil = null;
         // Force-mark modified so the row is persisted even when EF's auto
         // change-detection misses the property diffs (notably when the entity
         // was first written by a different DbContext, which the EF Core

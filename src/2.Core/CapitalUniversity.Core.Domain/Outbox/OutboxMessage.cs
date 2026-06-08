@@ -57,4 +57,19 @@ public class OutboxMessage : BaseEntity
     /// consistent with the user's intent.
     /// </summary>
     public string? Culture { get; set; }
+
+    /// <summary>
+    /// Lease token (C1). A dispatcher instance stamps its own <see cref="Guid"/>
+    /// here when it atomically claims the row, then loads back only the rows
+    /// carrying its token — so two dispatchers scaling horizontally can never
+    /// both process the same message. Null while unclaimed.
+    /// </summary>
+    public Guid? LockedBy { get; set; }
+
+    /// <summary>
+    /// UTC instant the current lease expires. A row is claimable again once
+    /// this passes, which prevents a crashed dispatcher from parking a row
+    /// forever. Null while unclaimed.
+    /// </summary>
+    public DateTime? LockedUntil { get; set; }
 }
