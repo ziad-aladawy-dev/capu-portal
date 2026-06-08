@@ -37,6 +37,7 @@
     <ProjectReference Include="..\..\src\5.Sync\CapitalUniversity.Sync.Staff\CapitalUniversity.Sync.Staff.csproj" />
     <ProjectReference Include="..\..\src\5.Sync\CapitalUniversity.Sync.Courses\CapitalUniversity.Sync.Courses.csproj" />
     <ProjectReference Include="..\..\src\5.Sync\CapitalUniversity.Sync.Schedules\CapitalUniversity.Sync.Schedules.csproj" />
+    <ProjectReference Include="..\..\src\5.Sync\CapitalUniversity.Sync.Registration\CapitalUniversity.Sync.Registration.csproj" />
     <ProjectReference Include="..\..\src\5.Sync\CapitalUniversity.Sync.Host\CapitalUniversity.Sync.Host.csproj" />
   </ItemGroup>
 

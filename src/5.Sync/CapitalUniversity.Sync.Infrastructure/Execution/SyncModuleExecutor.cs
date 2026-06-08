@@ -22,17 +22,20 @@ public sealed class SyncModuleExecutor
     private readonly ISyncModuleRegistry _registry;
     private readonly ISyncLogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly SyncRunContextAccessor _runContext;
     private readonly ISyncAlertingHook? _alertingHook;
 
     public SyncModuleExecutor(
         ISyncModuleRegistry registry,
         ISyncLogger logger,
         IServiceScopeFactory scopeFactory,
+        SyncRunContextAccessor runContext,
         ISyncAlertingHook? alertingHook = null)
     {
         _registry = registry;
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _runContext = runContext;
         _alertingHook = alertingHook;
     }
 
@@ -148,6 +151,11 @@ public sealed class SyncModuleExecutor
             Metadata = metadata,
             Attempt = attempt
         };
+
+        // Pin the context on the ambient accessor so scope-resolved writers can
+        // read CorrelationId / Attempt (e.g. to dead-letter an unresolvable row).
+        // AsyncLocal flows into the pipeline's child scope below.
+        _runContext.Set(context);
 
         var stopwatch = Stopwatch.StartNew();
         SyncResult result;

@@ -3,6 +3,7 @@ using CapitalUniversity.Sync.Courses;
 using CapitalUniversity.Sync.Infrastructure.Configuration;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Sync.Infrastructure.Scheduling;
+using CapitalUniversity.Sync.Registration;
 using CapitalUniversity.Sync.Schedules;
 using CapitalUniversity.Sync.Staff;
 using CapitalUniversity.Sync.Student;
@@ -102,6 +103,16 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(SchedulesSyncModule.Name, SyncDirection.Push),
             cronExpression: Cron.Minutely());
+
+        // Registration is pull-only — the portal never originates registration
+        // changes, so there is no matching '-push' job. Drop any push entry a
+        // prior build may have installed.
+        _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
+            recurringJobId: "registration-sync-pull",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.TriggerAsync(RegistrationSyncModule.Name, SyncDirection.Pull),
+            cronExpression: Cron.Minutely());
+        _recurringJobManager.RemoveIfExists("registration-sync-push");
 
         // Phase 9: retention sweeper. Always registered so its cron is observable in
         // the Hangfire dashboard; the service itself short-circuits if

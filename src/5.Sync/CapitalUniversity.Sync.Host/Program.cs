@@ -102,6 +102,9 @@ if (string.IsNullOrWhiteSpace(coreConnectionString))
 CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt).Assembly);
 CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(ScheduleSlot).Assembly);
 CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CourseOffering).Assembly);
+// Registration read-model lives in Core's StudentRegisteredCourses table; the
+// gateway needs its EF configuration to upsert synced rows.
+CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(StudentRegisteredCourse).Assembly);
 
 builder.Services.AddDbContext<CoreDbContext>(opts => opts.UseSqlServer(coreConnectionString));
 builder.Services.AddScoped<ICoreWriteGateway, CoreWriteGateway>();
@@ -131,6 +134,9 @@ builder.Services.AddStudentSync(builder.Configuration);
 builder.Services.AddStaffSync(builder.Configuration);
 builder.Services.AddCoursesSync(builder.Configuration);
 builder.Services.AddSchedulesSync(builder.Configuration);
+// Pull-only: registrations flow in from the external academic system and are
+// never modified locally, so there is no push/outbox/DbContext to wire.
+builder.Services.AddRegistrationSync(builder.Configuration);
 
 // HTTP-adapter override. When Sync:Integration:UseHttpAdapters is true, HTTP
 // implementations replace the per-module in-memory ones via DI last-wins.

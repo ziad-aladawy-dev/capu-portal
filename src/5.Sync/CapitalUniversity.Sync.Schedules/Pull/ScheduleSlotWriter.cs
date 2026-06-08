@@ -2,6 +2,7 @@ using CapitalUniversity.Core.Abstractions.Sync;
 using CapitalUniversity.Modules.CourseOffering.Domain;
 using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Sync.Abstractions.Contracts;
+using CapitalUniversity.Sync.Abstractions.Models;
 using Microsoft.Extensions.Logging;
 
 namespace CapitalUniversity.Sync.Schedules.Pull;
@@ -11,15 +12,32 @@ namespace CapitalUniversity.Sync.Schedules.Pull;
 /// <c>ExternalCourseOfferingId</c> to a Core <c>CourseOffering.Id</c> via
 /// <see cref="ICoreWriteGateway.ResolveIdByExternalIdAsync"/>, sets it on the
 /// <see cref="ScheduleSlot"/>, then upserts through the gateway.
+///
+/// <para>
+/// A slot whose offering hasn't synced yet is recorded to the failure repository
+/// as an <c>UnresolvedDependency</c> dead-letter (visible in <c>sync.failures</c>
+/// and replayable from the admin surface) before being skipped — rather than
+/// silently dropped, which the high-water-mark cursor would never re-present
+/// once it advanced past the row in a mixed batch. See <c>RegistrationWriter</c>
+/// for the full rationale and the zero-progress-replay caveat.
+/// </para>
 /// </summary>
 public sealed class ScheduleSlotWriter : IRecordWriter<ScheduleSlotSyncDispatch>
 {
     private readonly ICoreWriteGateway _gateway;
+    private readonly IFailureRepository _failures;
+    private readonly ISyncRunContextAccessor _runContext;
     private readonly ILogger<ScheduleSlotWriter> _logger;
 
-    public ScheduleSlotWriter(ICoreWriteGateway gateway, ILogger<ScheduleSlotWriter> logger)
+    public ScheduleSlotWriter(
+        ICoreWriteGateway gateway,
+        IFailureRepository failures,
+        ISyncRunContextAccessor runContext,
+        ILogger<ScheduleSlotWriter> logger)
     {
         _gateway = gateway;
+        _failures = failures;
+        _runContext = runContext;
         _logger = logger;
     }
 
@@ -40,8 +58,12 @@ public sealed class ScheduleSlotWriter : IRecordWriter<ScheduleSlotSyncDispatch>
             if (offeringId is null)
             {
                 _logger.LogInformation(
-                    "Sync.Schedules: skipping ScheduleSlot ExternalId={ExternalSlotId} — upstream offering key {ExternalOfferingId} has no matching Core CourseOffering yet.",
+                    "Sync.Schedules: dead-lettering ScheduleSlot ExternalId={ExternalSlotId} — upstream offering key {ExternalOfferingId} has no matching Core CourseOffering yet.",
                     dispatch.Entity.ExternallySourced.ExternalId, dispatch.ExternalCourseOfferingId);
+                await DeadLetterAsync(
+                    dispatch.Entity.ExternallySourced.ExternalId,
+                    $"Unresolved course-offering dependency: upstream offering '{dispatch.ExternalCourseOfferingId}' is not yet in Core.",
+                    cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
@@ -71,5 +93,32 @@ public sealed class ScheduleSlotWriter : IRecordWriter<ScheduleSlotSyncDispatch>
             cancellationToken).ConfigureAwait(false);
 
         return result.Persisted;
+    }
+
+    /// <summary>
+    /// Records an unresolvable schedule slot to <c>sync.failures</c> for visibility
+    /// and admin replay. Run context supplies correlation/attempt; outside a run it
+    /// falls back to <see cref="Guid.Empty"/> / attempt 1. Best-effort — a
+    /// failure-store hiccup must not abort the batch of good rows.
+    /// </summary>
+    private async Task DeadLetterAsync(string? externalSlotId, string reason, CancellationToken cancellationToken)
+    {
+        var context = _runContext.Current;
+        try
+        {
+            await _failures.RecordAsync(new SyncFailureRecord
+            {
+                CorrelationId = context?.CorrelationId ?? Guid.Empty,
+                Attempt = context?.Attempt ?? 1,
+                ErrorType = "UnresolvedDependency",
+                ErrorMessage = $"ScheduleSlot '{externalSlotId}' dead-lettered. {reason}",
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Sync.Schedules: failed to dead-letter unresolved ScheduleSlot ExternalId={ExternalSlotId}. The row will be retried on the next tick.",
+                externalSlotId);
+        }
     }
 }

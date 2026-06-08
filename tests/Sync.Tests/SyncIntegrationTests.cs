@@ -113,6 +113,10 @@ public class SyncIntegrationTests
         services.AddSingleton<ISyncPipeline, SyncPipeline>();
         services.Configure<SyncOptions>(o => { o.Pipeline.PerBatchWriterRetryAttempts = 0; });
 
+        // Ambient run-context accessor the executor pins per run (AsyncLocal).
+        services.AddSingleton<SyncRunContextAccessor>();
+        services.AddSingleton<ISyncRunContextAccessor>(sp => sp.GetRequiredService<SyncRunContextAccessor>());
+
         services.AddScoped<SyncModuleExecutor>();
         services.AddSingleton<ISyncModuleRegistry>(sp =>
         {

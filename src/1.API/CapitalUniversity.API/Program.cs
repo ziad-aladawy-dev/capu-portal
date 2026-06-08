@@ -3,6 +3,7 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Modules.AcademicRecords;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Registration;
@@ -81,6 +82,11 @@ builder.Services.AddScheduleModule();
 // Registration is a read-only module over sync-sourced registration data; it
 // depends only on Core (scope service + DbContext), so order is unconstrained.
 builder.Services.AddRegistrationModule();
+// Academic Records (Grades / Transcript) is read-only over sync-sourced academic
+// outcomes; it reads registration data (StudentRegisteredCourse) and the active
+// academic plan, so it is registered AFTER Registration. Depends only on Core +
+// Registration types, no construction-time service dependency on either.
+builder.Services.AddAcademicRecordsModule();
 // Student Services depends on IFeeCreationService (Payments) for fee
 // authoring on submit — registered AFTER Payments so the resolver finds
 // the dependency at construction time.
