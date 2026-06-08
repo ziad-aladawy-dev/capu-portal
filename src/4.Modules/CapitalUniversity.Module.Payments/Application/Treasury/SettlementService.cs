@@ -51,6 +51,7 @@ public sealed class SettlementService : ISettlementService
         SettlementOutcome outcome,
         TransactionType source,
         string rawPayload,
+        decimal? reportedAmount = null,
         CancellationToken cancellationToken = default)
     {
         var order = await _orders.GetByMerchantOrderIdAsync(merchantOrderId, includeFees: true, cancellationToken: cancellationToken);
@@ -98,6 +99,15 @@ public sealed class SettlementService : ISettlementService
             _logger.LogWarning(
                 "Settlement: Paid notification for order {MerchantOrderId} in non-settleable state {Status}; ignored (idempotent).",
                 merchantOrderId, order.Status);
+        }
+        else if (outcome == SettlementOutcome.Paid && reportedAmount.HasValue && reportedAmount.Value != order.TotalAmount)
+        {
+            // D9 — amount verification. A Paid notification whose reported amount
+            // does not match the order total is NOT settled; raise an alert for
+            // manual reconciliation (no Payment is created, order left as-is).
+            _logger.LogWarning(
+                "Settlement: reported paid amount {Reported} != order {MerchantOrderId} total {Total}; settlement blocked, manual reconciliation required.",
+                reportedAmount.Value, merchantOrderId, order.TotalAmount);
         }
         else if (outcome == SettlementOutcome.Paid)
         {

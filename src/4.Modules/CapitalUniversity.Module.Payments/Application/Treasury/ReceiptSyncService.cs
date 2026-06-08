@@ -52,20 +52,24 @@ public sealed class ReceiptSyncService : IReceiptSyncService
         return result.Persisted;
     }
 
-    private static TreasuryReceipt MapToEntity(TreasuryReceiptDto d) => new()
+    private static TreasuryReceipt MapToEntity(TreasuryReceiptDto d)
     {
-        ExternalReceiptId = d.Id,
-        ConnectionTypeId = d.ConnectionTypeId,
-        Name = d.Name,
-        UnitAmount = d.Amount,
-        Currency = d.Currency,
-        IsActive = d.IsActive,
-        ExternallySourced = new ExternallySourcedData
+        var externalId = d.ReceiptId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return new TreasuryReceipt
         {
-            ExternalId = d.Id,
-            ExternalUpdatedAt = d.UpdatedAt,
-        },
-    };
+            ExternalReceiptId = externalId,
+            ConnectionTypeId = d.ConnectionTypeId,
+            Name = d.Name,
+            UnitAmount = d.Amount,
+            Currency = d.Currency,
+            IsActive = d.IsActive,
+            ExternallySourced = new ExternallySourcedData
+            {
+                ExternalId = externalId,
+                ExternalUpdatedAt = d.UpdatedAt,
+            },
+        };
+    }
 
     private static void ApplyUpdate(TreasuryReceipt existing, TreasuryReceipt incoming)
     {

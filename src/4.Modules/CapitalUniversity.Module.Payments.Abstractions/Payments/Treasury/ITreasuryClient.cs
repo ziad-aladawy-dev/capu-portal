@@ -3,27 +3,26 @@ using CapitalUniversity.Modules.Payments.Abstractions.Treasury.DTOs;
 namespace CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 
 /// <summary>
-/// Outbound client for the HU Treasury payment system. Status / refund methods
-/// are added in later phases.
+/// Outbound client for the HU Treasury payment system. Speaks the per-gateway
+/// wire contracts internally and exposes normalized results to the Portal.
 /// </summary>
 public interface ITreasuryClient
 {
     /// <summary>
-    /// Fetches receipts from <c>GET /api/payments/receipts</c>, returning only
-    /// those whose <c>ConnectionTypeId</c> matches the configured value (6).
+    /// Fetches receipts via <c>GET /api/payments/receipts?connectionTypeIds=...</c>
+    /// (unwrapping the Treasury BaseResponse) for the configured connection type.
     /// </summary>
     Task<IReadOnlyList<TreasuryReceiptDto>> GetReceiptsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates a payment session via the gateway-specific initiate endpoint
-    /// (<c>POST /api/payments/{gateway}/initiate</c>) and returns the
-    /// MerchantOrderId + redirect URL.
+    /// Creates a payment session via the gateway-specific initiate endpoint and
+    /// returns the normalized MerchantOrderId + redirect URL.
     /// </summary>
-    Task<TreasuryInitiateResponse> InitiateAsync(Gateway gateway, TreasuryInitiateRequest request, CancellationToken cancellationToken = default);
+    Task<TreasuryInitiateResult> InitiateAsync(Gateway gateway, TreasuryInitiateRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Queries payment status via the gateway-specific status endpoint
-    /// (<c>GET /api/payments/{gateway}/status/{merchantOrderId}</c>).
+    /// Queries payment status via the gateway-specific status endpoint, returning
+    /// the normalized status + settled amount.
     /// </summary>
-    Task<TreasuryStatusResponse> GetStatusAsync(Gateway gateway, string merchantOrderId, CancellationToken cancellationToken = default);
+    Task<TreasuryStatusResult> GetStatusAsync(Gateway gateway, string merchantOrderId, CancellationToken cancellationToken = default);
 }

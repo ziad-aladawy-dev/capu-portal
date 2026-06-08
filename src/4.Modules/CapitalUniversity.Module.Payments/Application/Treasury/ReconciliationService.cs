@@ -40,10 +40,12 @@ public sealed class ReconciliationService : IReconciliationService
 
             SettlementOutcome outcome;
             string raw;
+            decimal? reportedAmount;
             try
             {
                 var status = await _treasury.GetStatusAsync(order.Gateway, order.MerchantOrderId, cancellationToken);
                 outcome = TreasuryStatusMapper.Map(status.Status);
+                reportedAmount = status.Amount;
                 raw = JsonSerializer.Serialize(status);
             }
             catch (Exception ex)
@@ -54,17 +56,17 @@ public sealed class ReconciliationService : IReconciliationService
 
             if (outcome == SettlementOutcome.Paid)
             {
-                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Paid, TransactionType.StatusCheck, raw, cancellationToken);
+                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Paid, TransactionType.StatusCheck, raw, reportedAmount, cancellationToken);
                 processed++;
             }
             else if (outcome == SettlementOutcome.Failed)
             {
-                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Failed, TransactionType.StatusCheck, raw, cancellationToken);
+                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Failed, TransactionType.StatusCheck, raw, null, cancellationToken);
                 processed++;
             }
             else if (order.ExpiresAt.HasValue && order.ExpiresAt.Value < DateTime.UtcNow)
             {
-                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, cancellationToken);
+                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, null, cancellationToken);
                 processed++;
             }
             // else still genuinely pending — leave for the next tick.

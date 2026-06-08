@@ -20,7 +20,7 @@ namespace CapitalUniversity.API.Controllers;
 [AllowAnonymous]
 public class PaymentsWebhookController : ControllerBase
 {
-    private const string SignatureHeader = "X-Treasury-Signature";
+    private const string SignatureHeader = "X-Webhook-Signature";
 
     private readonly ISettlementService _settlement;
     private readonly TreasuryOptions _options;
@@ -68,19 +68,21 @@ public class PaymentsWebhookController : ControllerBase
             }
         }
 
-        if (notification is null || string.IsNullOrWhiteSpace(notification.MerchantOrderId))
+        var tx = notification?.Transaction;
+        if (tx is null || string.IsNullOrWhiteSpace(tx.MerchantOrderId))
         {
-            return BadRequest(new { error = "MerchantOrderId is required." });
+            return BadRequest(new { error = "transaction.merchantOrderId is required." });
         }
 
-        var outcome = TreasuryStatusMapper.Map(notification.Status);
+        var outcome = TreasuryStatusMapper.Map(tx.Status);
         var raw = JsonSerializer.Serialize(notification);
 
         await _settlement.SettleAsync(
-            notification.MerchantOrderId,
+            tx.MerchantOrderId,
             outcome,
             TransactionType.Webhook,
             raw,
+            tx.GrossAmount,
             cancellationToken);
 
         // Always 200 once accepted+audited so Treasury does not hammer retries.

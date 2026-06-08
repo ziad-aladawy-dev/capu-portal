@@ -10,10 +10,10 @@ using Microsoft.Extensions.Options;
 namespace CapitalUniversity.Modules.Payments.Application.Treasury;
 
 /// <summary>
-/// Drives the Created → PendingPayment transition: calls the gateway initiate
-/// endpoint, persists the MerchantOrderId + redirect + session, and records an
-/// Initiate audit transaction. Re-initiation of an already-PendingPayment order
-/// is idempotent (returns the stored session).
+/// Drives Created → PendingPayment via the gateway-specific Treasury initiate.
+/// Builds the receipt-id list expanded per fee quantity, sources billing details
+/// from the student profile, persists an initiation intent before the external
+/// call (so a crash is recoverable), then stores the MerchantOrderId + redirect.
 /// </summary>
 public sealed class PaymentInitiationService : IPaymentInitiationService
 {
@@ -21,6 +21,7 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
     private readonly ITreasuryReceiptRepository _receipts;
     private readonly IPaymentTransactionRepository _transactions;
     private readonly ITreasuryClient _treasury;
+    private readonly IStudentRepository _students;
     private readonly IEffectiveScope _scope;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TreasuryOptions _options;
@@ -30,6 +31,7 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
         ITreasuryReceiptRepository receipts,
         IPaymentTransactionRepository transactions,
         ITreasuryClient treasury,
+        IStudentRepository students,
         IEffectiveScope scope,
         IUnitOfWork unitOfWork,
         IOptions<TreasuryOptions> options)
@@ -38,6 +40,7 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
         _receipts = receipts;
         _transactions = transactions;
         _treasury = treasury;
+        _students = students;
         _scope = scope;
         _unitOfWork = unitOfWork;
         _options = options.Value;
@@ -53,7 +56,7 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
             throw new NotFoundException("Order not found.");
         }
 
-        // Idempotent re-initiation: already has a session.
+        // Idempotent re-initiation.
         if (order.Status == OrderStatus.PendingPayment && !string.IsNullOrEmpty(order.MerchantOrderId))
         {
             return new OrderInitiationResponse
@@ -71,51 +74,77 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
 
         var returnUrl = string.IsNullOrWhiteSpace(redirectUrl) ? _options.RedirectUrl : redirectUrl;
 
-        // Resolve external (Treasury) receipt ids for the order's fees.
-        var receiptIds = new List<string>(order.Fees.Count);
+        // D7 — resolve every receipt; fail initiation if any is unresolved. The
+        // id list is expanded per quantity (a quantity-N fee adds its id N times).
+        var receiptIds = new List<int>();
         foreach (var fee in order.Fees)
         {
-            var receipt = await _receipts.GetByIdAsync(fee.ReceiptId, cancellationToken);
-            if (receipt is not null && !string.IsNullOrEmpty(receipt.ExternalReceiptId))
+            var receipt = await _receipts.GetByIdAsync(fee.ReceiptId, cancellationToken)
+                ?? throw new ConflictException($"Treasury receipt for fee {fee.Id} could not be resolved; initiation aborted.");
+            if (!int.TryParse(receipt.ExternalReceiptId, out var externalId))
             {
-                receiptIds.Add(receipt.ExternalReceiptId);
+                throw new ConflictException($"Treasury receipt {receipt.Id} has a non-numeric external id; initiation aborted.");
+            }
+            for (var i = 0; i < Math.Max(1, fee.Quantity); i++)
+            {
+                receiptIds.Add(externalId);
             }
         }
+
+        // Billing details from the student profile (required by BM + eFinance).
+        var student = await _students.GetByIdAsync(order.StudentId)
+            ?? throw new NotFoundException("Student not found for order.");
+        var (firstName, lastName) = SplitName(student.Name);
 
         var request = new TreasuryInitiateRequest
         {
             ReceiptIds = receiptIds,
-            StudentReferenceId = order.StudentId.ToString(),
+            StudentReferenceId = student.NationalId,
             RedirectUrl = returnUrl,
-            Amount = order.TotalAmount,
             Currency = order.Currency,
+            Billing = new TreasuryBillingDetails
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                EmailAddress = student.Email,
+                MobileNumber = student.PhoneNumber,
+                Currency = order.Currency,
+            },
         };
 
-        TreasuryInitiateResponse resp;
+        // D4 — persist an initiation intent BEFORE the external call so a crash
+        // between the gateway session creation and our commit is recoverable.
+        await _transactions.AddAsync(new PaymentTransaction
+        {
+            OrderId = order.Id,
+            MerchantOrderId = string.Empty,
+            Gateway = order.Gateway,
+            Type = TransactionType.Initiate,
+            Status = GatewayTransactionStatus.Pending,
+            Amount = order.TotalAmount,
+            IdempotencyKey = $"initiate-intent:{Guid.NewGuid():N}",
+        }, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        TreasuryInitiateResult result;
         try
         {
-            resp = await _treasury.InitiateAsync(order.Gateway, request, cancellationToken);
+            result = await _treasury.InitiateAsync(order.Gateway, request, cancellationToken);
         }
         catch
         {
-            // Record the failed attempt for audit, leaving the order Created.
-            await _transactions.AddAsync(new PaymentTransaction
-            {
-                OrderId = order.Id,
-                MerchantOrderId = string.Empty,
-                Gateway = order.Gateway,
-                Type = TransactionType.Initiate,
-                Status = GatewayTransactionStatus.Failed,
-                Amount = order.TotalAmount,
-                IdempotencyKey = $"initiate-failed:{order.Id:N}",
-            }, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await RecordFailedAsync(order, cancellationToken);
             throw;
         }
 
-        order.MerchantOrderId = resp.MerchantOrderId;
-        order.RedirectUrl = resp.RedirectUrl;
-        order.GatewaySessionRef = resp.SessionReference ?? string.Empty;
+        if (string.IsNullOrEmpty(result.MerchantOrderId))
+        {
+            await RecordFailedAsync(order, cancellationToken);
+            throw new InvalidOperationException("Treasury did not return a MerchantOrderId for the order.");
+        }
+
+        order.MerchantOrderId = result.MerchantOrderId;
+        order.RedirectUrl = result.RedirectUrl;
         order.Status = OrderStatus.PendingPayment;
         order.ExpiresAt = DateTime.UtcNow.AddMinutes(_options.OrderTtlMinutes);
         order.UpdatedAt = DateTime.UtcNow;
@@ -124,7 +153,7 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
         await _transactions.AddAsync(new PaymentTransaction
         {
             OrderId = order.Id,
-            MerchantOrderId = resp.MerchantOrderId,
+            MerchantOrderId = result.MerchantOrderId,
             Gateway = order.Gateway,
             Type = TransactionType.Initiate,
             Status = GatewayTransactionStatus.Succeeded,
@@ -140,5 +169,28 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
             MerchantOrderId = order.MerchantOrderId,
             RedirectUrl = order.RedirectUrl,
         };
+    }
+
+    private async Task RecordFailedAsync(Order order, CancellationToken cancellationToken)
+    {
+        await _transactions.AddAsync(new PaymentTransaction
+        {
+            OrderId = order.Id,
+            MerchantOrderId = string.Empty,
+            Gateway = order.Gateway,
+            Type = TransactionType.Initiate,
+            Status = GatewayTransactionStatus.Failed,
+            Amount = order.TotalAmount,
+            IdempotencyKey = $"initiate-failed:{Guid.NewGuid():N}",
+        }, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private static (string First, string Last) SplitName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return (string.Empty, string.Empty);
+        var trimmed = name.Trim();
+        var idx = trimmed.IndexOf(' ');
+        return idx < 0 ? (trimmed, string.Empty) : (trimmed[..idx], trimmed[(idx + 1)..].Trim());
     }
 }

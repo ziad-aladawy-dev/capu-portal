@@ -1,31 +1,45 @@
 namespace CapitalUniversity.Modules.Payments.Abstractions.Treasury.DTOs;
 
-/// <summary>
-/// Request body for the gateway initiate endpoints. ASSUMPTION: Treasury accepts
-/// receipt identifiers + a student reference + redirect URL and creates a payment
-/// session. Exact field shape unconfirmed — adjust once the Treasury contract is
-/// available.
-/// </summary>
-public class TreasuryInitiateRequest
+/// <summary>Billing details required by BM and eFinance initiation.</summary>
+public sealed class TreasuryBillingDetails
 {
-    /// <summary>External (Treasury) receipt identifiers for the order's fees.</summary>
-    public List<string> ReceiptIds { get; set; } = new();
-
-    public string StudentReferenceId { get; set; } = string.Empty;
-
-    public string RedirectUrl { get; set; } = string.Empty;
-
-    public decimal Amount { get; set; }
-
-    public string Currency { get; set; } = "EGP";
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string EmailAddress { get; set; } = string.Empty;
+    public string MobileNumber { get; set; } = string.Empty;
+    public string? Currency { get; set; }
 }
 
-/// <summary>Response from the gateway initiate endpoints.</summary>
-public class TreasuryInitiateResponse
+/// <summary>
+/// Normalized initiation input. The client maps this to the gateway-specific
+/// wire request (BM/Mastercard/eFinance). <see cref="ReceiptIds"/> is already
+/// expanded per quantity (a quantity-N fee contributes its receipt id N times).
+/// </summary>
+public sealed class TreasuryInitiateRequest
+{
+    public List<int> ReceiptIds { get; set; } = new();
+    public string StudentReferenceId { get; set; } = string.Empty;
+    public string RedirectUrl { get; set; } = string.Empty;
+    public string Currency { get; set; } = "EGP";
+
+    /// <summary>Required for BM and eFinance; ignored by Mastercard.</summary>
+    public TreasuryBillingDetails? Billing { get; set; }
+
+    /// <summary>eFinance only: CARD, CHANNEL, MOBILE_WALLET, MEEZA, NOT_SET.</summary>
+    public string? PaymentMechanism { get; set; }
+
+    public string? Description { get; set; }
+}
+
+/// <summary>
+/// Normalized initiation result. Each gateway response is mapped to this:
+/// BM → MerchantOrderId = bmmId, RedirectUrl = checkoutUrl; Mastercard/eFinance
+/// → their merchantOrderId + redirectUrl.
+/// </summary>
+public sealed class TreasuryInitiateResult
 {
     public string MerchantOrderId { get; set; } = string.Empty;
     public string RedirectUrl { get; set; } = string.Empty;
-    public string? SessionReference { get; set; }
 }
 
 /// <summary>Portal-facing result of initiating payment for an order.</summary>

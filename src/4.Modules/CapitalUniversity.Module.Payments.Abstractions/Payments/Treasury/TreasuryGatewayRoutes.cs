@@ -1,22 +1,13 @@
 namespace CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 
 /// <summary>
-/// Maps a <see cref="Gateway"/> to its HU Treasury route segments. NOTE: the
-/// Treasury spec uses <c>eFinance</c> for initiate but <c>efinance</c> for
-/// status — the casing genuinely differs, so initiate and status segments are
-/// resolved separately.
+/// Maps a <see cref="Gateway"/> to its HU Treasury route segment. Per the
+/// Treasury API contract the segments are <c>mastercard</c>, <c>bm</c>, and
+/// <c>efinance</c> (lowercase) for both initiate and status.
 /// </summary>
 public static class TreasuryGatewayRoutes
 {
-    public static string InitiateSegment(Gateway gateway) => gateway switch
-    {
-        Gateway.Mastercard => "mastercard",
-        Gateway.BankMisr => "bm",
-        Gateway.EFinance => "eFinance",
-        _ => throw new ArgumentOutOfRangeException(nameof(gateway), gateway, "Unsupported gateway."),
-    };
-
-    public static string StatusSegment(Gateway gateway) => gateway switch
+    public static string Segment(Gateway gateway) => gateway switch
     {
         Gateway.Mastercard => "mastercard",
         Gateway.BankMisr => "bm",
@@ -24,8 +15,8 @@ public static class TreasuryGatewayRoutes
         _ => throw new ArgumentOutOfRangeException(nameof(gateway), gateway, "Unsupported gateway."),
     };
 
-    public static string InitiatePath(Gateway gateway) => $"api/payments/{InitiateSegment(gateway)}/initiate";
+    public static string InitiatePath(Gateway gateway) => $"api/payments/{Segment(gateway)}/initiate";
 
     public static string StatusPath(Gateway gateway, string merchantOrderId) =>
-        $"api/payments/{StatusSegment(gateway)}/status/{merchantOrderId}";
+        $"api/payments/{Segment(gateway)}/status/{merchantOrderId}";
 }
