@@ -20,4 +20,10 @@ public interface ITreasuryClient
     /// MerchantOrderId + redirect URL.
     /// </summary>
     Task<TreasuryInitiateResponse> InitiateAsync(Gateway gateway, TreasuryInitiateRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Queries payment status via the gateway-specific status endpoint
+    /// (<c>GET /api/payments/{gateway}/status/{merchantOrderId}</c>).
+    /// </summary>
+    Task<TreasuryStatusResponse> GetStatusAsync(Gateway gateway, string merchantOrderId, CancellationToken cancellationToken = default);
 }

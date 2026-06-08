@@ -31,4 +31,10 @@ public sealed class TreasuryOptions
 
     /// <summary>Minutes until a PendingPayment order is considered expired (reconciliation TTL).</summary>
     public int OrderTtlMinutes { get; set; } = 30;
+
+    /// <summary>Cron for the recurring reconciliation job (Hangfire, Sync host). Default every 10 min.</summary>
+    public string ReconciliationCron { get; set; } = "*/10 * * * *";
+
+    /// <summary>Shared secret expected on the webhook (X-Treasury-Signature). Empty disables the check (dev).</summary>
+    public string WebhookSecret { get; set; } = string.Empty;
 }

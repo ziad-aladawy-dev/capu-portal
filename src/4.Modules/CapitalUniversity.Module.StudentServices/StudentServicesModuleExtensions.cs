@@ -62,6 +62,9 @@ public static class StudentServicesModuleExtensions
         // explicitly opts in.
         services.AddScoped<IOutboxMessageHandler, InvoicePaidEventHandler>();
 
+        // Treasury fee path: advance WaitingPayment requests on payments.fee.paid.
+        services.AddScoped<IOutboxMessageHandler, FeePaidEventHandler>();
+
         var moduleAssembly = typeof(StudentServicesModuleExtensions).Assembly;
         if (!CoreDbContext.ModuleConfigurationAssemblies.Contains(moduleAssembly))
         {

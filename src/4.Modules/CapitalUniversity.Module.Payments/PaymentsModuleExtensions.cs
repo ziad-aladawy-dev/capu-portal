@@ -57,6 +57,10 @@ public static class PaymentsModuleExtensions
         // Treasury payment initiation (Phase 6).
         services.AddScoped<Abstractions.Treasury.IPaymentInitiationService, Application.Treasury.PaymentInitiationService>();
 
+        // Treasury settlement + reconciliation (Phase 7).
+        services.AddScoped<Abstractions.Treasury.ISettlementService, Application.Treasury.SettlementService>();
+        services.AddScoped<Abstractions.Treasury.IReconciliationService, Application.Treasury.ReconciliationService>();
+
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IFeeCreationService, FeeCreationService>();
         services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();

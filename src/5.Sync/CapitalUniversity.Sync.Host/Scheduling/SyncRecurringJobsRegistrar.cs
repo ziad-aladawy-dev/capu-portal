@@ -135,6 +135,14 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             methodCall: trigger => trigger.RunAsync(CancellationToken.None),
             cronExpression: _treasuryOptions.Value.ReceiptPullCron);
 
+        // Treasury reconciliation (Phase 7). Polls PendingPayment orders and
+        // settles/expires them via the shared idempotent settlement path.
+        _recurringJobManager.AddOrUpdate<TreasuryReconciliationTrigger>(
+            recurringJobId: "treasury-reconciliation",
+            queue: triggerQueue,
+            methodCall: trigger => trigger.RunAsync(CancellationToken.None),
+            cronExpression: _treasuryOptions.Value.ReconciliationCron);
+
         _logger.LogInformation(
             "Recurring jobs registered: 'student-sync-pull', 'student-sync-push', 'staff-sync-pull', 'staff-sync-push', 'courses-sync-pull', 'courses-sync-push', 'finance-sync-pull', 'finance-sync-push', 'schedules-sync-pull', 'schedules-sync-push', 'sync-retention', 'sync-orphan-reaper' (trigger queue: {Queue}; per-module dispatch queues resolved via Sync:ModuleQueues; retention enabled={RetentionEnabled} cron={RetentionCron}; reaper enabled={ReaperEnabled} cron={ReaperCron} grace={ReaperGrace}min).",
             triggerQueue,

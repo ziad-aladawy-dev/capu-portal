@@ -46,4 +46,11 @@ public sealed class TreasuryClient : ITreasuryClient
         var body = await response.Content.ReadFromJsonAsync<TreasuryInitiateResponse>(Json, cancellationToken);
         return body ?? throw new InvalidOperationException("Treasury returned an empty initiate response.");
     }
+
+    public async Task<TreasuryStatusResponse> GetStatusAsync(Gateway gateway, string merchantOrderId, CancellationToken cancellationToken = default)
+    {
+        var path = TreasuryGatewayRoutes.StatusPath(gateway, merchantOrderId);
+        var body = await _http.GetFromJsonAsync<TreasuryStatusResponse>(path, Json, cancellationToken);
+        return body ?? throw new InvalidOperationException("Treasury returned an empty status response.");
+    }
 }

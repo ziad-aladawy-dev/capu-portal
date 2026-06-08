@@ -52,4 +52,21 @@ public static class TreasuryServiceCollectionExtensions
         services.AddScoped<IReceiptSyncService, ReceiptSyncService>();
         return services;
     }
+
+    /// <summary>
+    /// Registers settlement + reconciliation and the repositories they need, for
+    /// a host that runs the reconciliation job but does not call AddPaymentsModule
+    /// (e.g. the Sync host). IOutbox is optional and stays unregistered there;
+    /// the webhook path in the API host drives event delivery.
+    /// </summary>
+    public static IServiceCollection AddTreasuryReconciliation(this IServiceCollection services)
+    {
+        services.AddScoped<Repositories.Treasury.IOrderRepository, Core.Infrastructure.Repositories.Treasury.OrderRepository>();
+        services.AddScoped<Repositories.Treasury.IStudentFeeRepository, Core.Infrastructure.Repositories.Treasury.StudentFeeRepository>();
+        services.AddScoped<Repositories.Treasury.IPaymentRepository, Core.Infrastructure.Repositories.Treasury.PaymentRepository>();
+        services.AddScoped<Repositories.Treasury.IPaymentTransactionRepository, Core.Infrastructure.Repositories.Treasury.PaymentTransactionRepository>();
+        services.AddScoped<Abstractions.Treasury.ISettlementService, Application.Treasury.SettlementService>();
+        services.AddScoped<Abstractions.Treasury.IReconciliationService, Application.Treasury.ReconciliationService>();
+        return services;
+    }
 }

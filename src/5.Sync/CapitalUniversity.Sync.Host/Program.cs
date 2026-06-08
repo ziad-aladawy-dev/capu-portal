@@ -146,6 +146,12 @@ builder.Services.AddTreasuryIntegration(builder.Configuration);
 builder.Services.AddTreasuryReceiptSync();
 builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReceiptPullTrigger>();
 
+// Treasury settlement + reconciliation (Phase 7). IOutbox is not wired in this
+// host, so settlement here records payments/state; the API webhook path drives
+// FeePaidEvent delivery.
+builder.Services.AddTreasuryReconciliation();
+builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReconciliationTrigger>();
+
 builder.Services.AddHangfire(cfg => cfg
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
