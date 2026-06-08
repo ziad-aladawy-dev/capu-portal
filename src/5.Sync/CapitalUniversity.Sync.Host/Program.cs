@@ -38,6 +38,7 @@ using CapitalUniversity.Core.Abstractions.Sync;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Infrastructure.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Outbox;
 using CapitalUniversity.Core.Infrastructure.Sync;
 using CapitalUniversity.Modules.CourseOffering.Domain;
 using CapitalUniversity.Modules.Payments;
@@ -146,9 +147,12 @@ builder.Services.AddTreasuryIntegration(builder.Configuration);
 builder.Services.AddTreasuryReceiptSync();
 builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReceiptPullTrigger>();
 
-// Treasury settlement + reconciliation (Phase 7). IOutbox is not wired in this
-// host, so settlement here records payments/state; the API webhook path drives
-// FeePaidEvent delivery.
+// Treasury settlement + reconciliation (Phase 7). Wire the transactional outbox
+// into this host so reconciliation-driven settlements emit FeePaidEvent exactly
+// like the webhook path. Rows are staged on the shared CoreDbContext and drained
+// by the API host's OutboxDispatcher (same database).
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddOutboxForBackgroundHost();
 builder.Services.AddTreasuryReconciliation();
 builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReconciliationTrigger>();
 
