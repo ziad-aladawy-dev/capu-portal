@@ -86,7 +86,17 @@ public sealed class SettlementService : ISettlementService
 
         var paidFees = new List<StudentFee>();
 
-        if (outcome == SettlementOutcome.Paid && order.Status != OrderStatus.Paid)
+        if (outcome == SettlementOutcome.Paid && order.Status != OrderStatus.PendingPayment)
+        {
+            // A Paid notification is only valid for an order awaiting payment.
+            // Anything else (already Paid, Failed, Expired, Cancelled, Refunded)
+            // is treated as an idempotent no-op — never create payments for an
+            // order whose fees may have been released or re-ordered.
+            _logger.LogWarning(
+                "Settlement: Paid notification for order {MerchantOrderId} in non-PendingPayment state {Status}; ignored (idempotent).",
+                merchantOrderId, order.Status);
+        }
+        else if (outcome == SettlementOutcome.Paid)
         {
             foreach (var fee in order.Fees)
             {
