@@ -19,6 +19,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(x => x.RedirectUrl).HasMaxLength(2048);
         builder.Property(x => x.GatewaySessionRef).HasMaxLength(512);
         builder.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)").IsRequired();
+        builder.Property(x => x.ReconciliationAttempts).IsRequired();
         builder.Property(x => x.Currency).IsRequired().HasMaxLength(3);
         builder.Property(x => x.RowVersion).IsRowVersion();
 

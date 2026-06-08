@@ -31,6 +31,9 @@ public class Order : BaseEntity, ISoftDeletable
 
     public DateTime? ExpiresAt { get; set; }
 
+    /// <summary>Consecutive failed reconciliation status checks; reset to 0 on a successful check.</summary>
+    public int ReconciliationAttempts { get; set; }
+
     public ICollection<StudentFee> Fees { get; set; } = new List<StudentFee>();
     public ICollection<PaymentTransaction> Transactions { get; set; } = new List<PaymentTransaction>();
 
