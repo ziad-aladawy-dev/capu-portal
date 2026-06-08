@@ -136,9 +136,6 @@ public class StudentServiceRequestServiceTests
         Name = LocalizedJson.Of("خدمة", "Service"),
         IsActive = isActive,
         RequiresPayment = requiresPayment,
-        FeeType = requiresPayment ? "fee" : null,
-        FeeAmount = requiresPayment ? 50m : null,
-        Currency = "EGP",
         WorkflowDefinitionId = workflowId,
     };
 

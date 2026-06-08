@@ -19,18 +19,6 @@ public class CreateStudentServiceValidator : AbstractValidator<CreateStudentServ
 
         RuleFor(x => x.Description).MaximumLength(2048);
 
-        RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required)
-            .Length(3).WithMessage(LocalizedKeys.Infrastructure.Invalid);
-
-        RuleFor(x => x.FeeAmount)
-            .GreaterThan(0m).WithMessage(LocalizedKeys.Infrastructure.Invalid)
-            .When(x => x.RequiresPayment);
-
-        RuleFor(x => x.FeeType)
-            .NotEmpty().WithMessage(LocalizedKeys.Infrastructure.Required)
-            .When(x => x.RequiresPayment);
-
         RuleFor(x => x.EstimatedProcessingDays)
             .GreaterThanOrEqualTo(0).When(x => x.EstimatedProcessingDays.HasValue);
 
@@ -45,8 +33,6 @@ public class UpdateStudentServiceValidator : AbstractValidator<UpdateStudentServ
     {
         RuleFor(x => x.Name!).MaximumLength(512).When(x => x.Name is not null);
         RuleFor(x => x.Description!).MaximumLength(2048).When(x => x.Description is not null);
-        RuleFor(x => x.Currency!).Length(3).When(x => !string.IsNullOrEmpty(x.Currency));
-        RuleFor(x => x.FeeAmount!.Value).GreaterThan(0m).When(x => x.FeeAmount.HasValue);
         RuleFor(x => x.EstimatedProcessingDays!.Value).GreaterThanOrEqualTo(0).When(x => x.EstimatedProcessingDays.HasValue);
 
         When(x => x.Fields is not null, () =>

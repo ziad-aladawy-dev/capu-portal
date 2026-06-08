@@ -142,9 +142,6 @@ public class StudentServiceService : IStudentServiceService
         Description = string.IsNullOrEmpty(response.Description) ? string.Empty : _localization.Get<string>(response.Description),
         IsActive = response.IsActive,
         RequiresPayment = response.RequiresPayment,
-        FeeType = response.FeeType,
-        FeeAmount = response.FeeAmount,
-        Currency = response.Currency,
         EstimatedProcessingDays = response.EstimatedProcessingDays,
         AllowedProcessingRoleIds = response.AllowedProcessingRoleIds,
         WorkflowDefinitionId = response.WorkflowDefinitionId,
@@ -190,8 +187,6 @@ public class StudentServiceService : IStudentServiceService
         Name = _localization.Get<string>(s.Name),
         IsActive = s.IsActive,
         RequiresPayment = s.RequiresPayment,
-        FeeAmount = s.FeeAmount,
-        Currency = s.Currency,
         EstimatedProcessingDays = s.EstimatedProcessingDays,
     };
 
@@ -223,9 +218,6 @@ public class StudentServiceService : IStudentServiceService
             Description = LocalizedJson.Normalize(request.Description),
             IsActive = true,
             RequiresPayment = request.RequiresPayment,
-            FeeType = request.FeeType,
-            FeeAmount = request.FeeAmount,
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "EGP" : request.Currency,
             EstimatedProcessingDays = request.EstimatedProcessingDays,
             AllowedProcessingRoleIdsCsv = JoinRoleIds(request.AllowedProcessingRoleIds),
             WorkflowDefinitionId = request.WorkflowDefinitionId,
@@ -266,9 +258,6 @@ public class StudentServiceService : IStudentServiceService
         if (request.Name is not null) service.Name = LocalizedJson.Normalize(request.Name);
         if (request.Description is not null) service.Description = LocalizedJson.Normalize(request.Description);
         if (request.RequiresPayment.HasValue) service.RequiresPayment = request.RequiresPayment.Value;
-        if (request.FeeType is not null) service.FeeType = request.FeeType;
-        if (request.FeeAmount.HasValue) service.FeeAmount = request.FeeAmount.Value;
-        if (!string.IsNullOrWhiteSpace(request.Currency)) service.Currency = request.Currency;
         if (request.EstimatedProcessingDays.HasValue) service.EstimatedProcessingDays = request.EstimatedProcessingDays.Value;
         if (request.AllowedProcessingRoleIds is not null) service.AllowedProcessingRoleIdsCsv = JoinRoleIds(request.AllowedProcessingRoleIds);
         if (request.WorkflowDefinitionId.HasValue) service.WorkflowDefinitionId = request.WorkflowDefinitionId.Value;
@@ -355,9 +344,6 @@ public class StudentServiceService : IStudentServiceService
         Description = s.Description,
         IsActive = s.IsActive,
         RequiresPayment = s.RequiresPayment,
-        FeeType = s.FeeType,
-        FeeAmount = s.FeeAmount,
-        Currency = s.Currency,
         EstimatedProcessingDays = s.EstimatedProcessingDays,
         AllowedProcessingRoleIds = SplitRoleIds(s.AllowedProcessingRoleIdsCsv),
         WorkflowDefinitionId = s.WorkflowDefinitionId,
@@ -374,8 +360,6 @@ public class StudentServiceService : IStudentServiceService
         Name = s.Name,
         IsActive = s.IsActive,
         RequiresPayment = s.RequiresPayment,
-        FeeAmount = s.FeeAmount,
-        Currency = s.Currency,
         EstimatedProcessingDays = s.EstimatedProcessingDays,
     };
 

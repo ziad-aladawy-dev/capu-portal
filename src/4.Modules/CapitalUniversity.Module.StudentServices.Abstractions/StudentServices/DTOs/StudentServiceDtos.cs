@@ -19,15 +19,9 @@ public class StudentServiceResponse
     public string Description { get; set; } = string.Empty;
 
     public bool IsActive { get; set; }
+
+    /// <summary>Whether the service raises a fee. Amount/currency come from the Treasury receipt.</summary>
     public bool RequiresPayment { get; set; }
-
-    /// <summary>Free-text fee classifier passed to the Payments module (<c>InvoiceItem.FeeType</c>).</summary>
-    public string? FeeType { get; set; }
-
-    /// <summary>Fee amount in <see cref="Currency"/>. Required when <see cref="RequiresPayment"/> is true.</summary>
-    public decimal? FeeAmount { get; set; }
-
-    public string Currency { get; set; } = "EGP";
 
     /// <summary>SLA hint surfaced to students. Service-level — not enforced.</summary>
     public int? EstimatedProcessingDays { get; set; }
@@ -55,8 +49,6 @@ public class StudentServiceSummaryResponse
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool RequiresPayment { get; set; }
-    public decimal? FeeAmount { get; set; }
-    public string Currency { get; set; } = "EGP";
     public int? EstimatedProcessingDays { get; set; }
 }
 
@@ -94,9 +86,6 @@ public class CreateStudentServiceRequest
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool RequiresPayment { get; set; }
-    public string? FeeType { get; set; }
-    public decimal? FeeAmount { get; set; }
-    public string Currency { get; set; } = "EGP";
     public int? EstimatedProcessingDays { get; set; }
     public IReadOnlyList<Guid> AllowedProcessingRoleIds { get; set; } = Array.Empty<Guid>();
     public Guid? WorkflowDefinitionId { get; set; }
@@ -114,9 +103,6 @@ public class UpdateStudentServiceRequest
     public string? Name { get; set; }
     public string? Description { get; set; }
     public bool? RequiresPayment { get; set; }
-    public string? FeeType { get; set; }
-    public decimal? FeeAmount { get; set; }
-    public string? Currency { get; set; }
     public int? EstimatedProcessingDays { get; set; }
     public IReadOnlyList<Guid>? AllowedProcessingRoleIds { get; set; }
     public Guid? WorkflowDefinitionId { get; set; }

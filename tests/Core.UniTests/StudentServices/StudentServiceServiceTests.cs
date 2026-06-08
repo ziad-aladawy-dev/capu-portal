@@ -82,9 +82,6 @@ public class StudentServiceServiceTests
         Name = "Transcript",
         Description = "Official transcript",
         RequiresPayment = requiresPayment,
-        FeeType = requiresPayment ? "transcript" : null,
-        FeeAmount = requiresPayment ? 50m : null,
-        Currency = "USD",
         EstimatedProcessingDays = 3,
         AllowedProcessingRoleIds = roleIds ?? Array.Empty<Guid>(),
         Fields = Array.Empty<CreateServiceFieldDefinitionRequest>(),
@@ -99,9 +96,6 @@ public class StudentServiceServiceTests
         Description = LocalizedJson.Of("وصف", "Description"),
         IsActive = isActive,
         RequiresPayment = true,
-        FeeType = "transcript",
-        FeeAmount = 50m,
-        Currency = "USD",
         EstimatedProcessingDays = 3,
         AllowedProcessingRoleIdsCsv = string.Empty,
     };
@@ -125,7 +119,6 @@ public class StudentServiceServiceTests
         captured.Name.Should().Be(LocalizedJson.Of("Transcript", "Transcript"));
         captured.Description.Should().Be(LocalizedJson.Of("Official transcript", "Official transcript"));
         captured.IsActive.Should().BeTrue();
-        captured.Currency.Should().Be("USD");
         id.Should().Be(captured.Id);
         repo.Verify(r => r.AddAsync(captured, It.IsAny<CancellationToken>()), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -381,14 +374,12 @@ public class StudentServiceServiceTests
         var id = Guid.NewGuid();
         var entity = ExistingService(id);
         entity.RequiresPayment = true;
-        entity.FeeType = "original";
         repo.Setup(r => r.GetByIdAsync(id, true, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
 
         await sut.UpdateAsync(id, new UpdateStudentServiceRequest { Name = "Updated" });
 
         entity.Name.Should().Be(LocalizedJson.Of("Updated", "Updated"));
         entity.RequiresPayment.Should().BeTrue();   // untouched
-        entity.FeeType.Should().Be("original");      // untouched
         entity.UpdatedAt.Should().NotBeNull();
         repo.Verify(r => r.Update(entity), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);

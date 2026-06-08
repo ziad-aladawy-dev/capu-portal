@@ -17,9 +17,6 @@ public class StudentServiceConfiguration : IEntityTypeConfiguration<StudentServi
         builder.Property(x => x.Description).HasMaxLength(2048);
         builder.Property(x => x.IsActive).IsRequired();
         builder.Property(x => x.RequiresPayment).IsRequired();
-        builder.Property(x => x.FeeType).HasMaxLength(64);
-        builder.Property(x => x.FeeAmount).HasColumnType("decimal(18,2)");
-        builder.Property(x => x.Currency).HasMaxLength(8).IsRequired();
         builder.Property(x => x.AllowedProcessingRoleIdsCsv).HasMaxLength(2048);
 
         builder.Property(x => x.RowVersion).IsRowVersion();

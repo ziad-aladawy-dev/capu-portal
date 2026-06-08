@@ -33,14 +33,12 @@ public class StudentService : BaseEntity, ISoftDeletable
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Whether requesting this service raises a fee. Pricing itself is owned by
+    /// HU Treasury — the amount comes from the Treasury receipt resolved via the
+    /// service's ServiceReceiptMapping at fee-generation time.
+    /// </summary>
     public bool RequiresPayment { get; set; }
-
-    /// <summary>Free-text fee classifier passed to the Payments module on invoice creation.</summary>
-    public string? FeeType { get; set; }
-
-    public decimal? FeeAmount { get; set; }
-
-    public string Currency { get; set; } = "EGP";
 
     public int? EstimatedProcessingDays { get; set; }
 
