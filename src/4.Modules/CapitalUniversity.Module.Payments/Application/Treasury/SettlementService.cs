@@ -86,20 +86,29 @@ public sealed class SettlementService : ISettlementService
 
         var paidFees = new List<StudentFee>();
 
-        if (outcome == SettlementOutcome.Paid && order.Status != OrderStatus.PendingPayment)
+        // D5 — a Paid notification settles an order awaiting payment OR one already
+        // released (Failed/Expired): a late Paid is authoritative and re-opens the
+        // order. Already Paid / Cancelled / Refunded are an idempotent no-op.
+        var canSettlePaid = order.Status is OrderStatus.PendingPayment
+                                          or OrderStatus.Failed
+                                          or OrderStatus.Expired;
+
+        if (outcome == SettlementOutcome.Paid && !canSettlePaid)
         {
-            // A Paid notification is only valid for an order awaiting payment.
-            // Anything else (already Paid, Failed, Expired, Cancelled, Refunded)
-            // is treated as an idempotent no-op — never create payments for an
-            // order whose fees may have been released or re-ordered.
             _logger.LogWarning(
-                "Settlement: Paid notification for order {MerchantOrderId} in non-PendingPayment state {Status}; ignored (idempotent).",
+                "Settlement: Paid notification for order {MerchantOrderId} in non-settleable state {Status}; ignored (idempotent).",
                 merchantOrderId, order.Status);
         }
         else if (outcome == SettlementOutcome.Paid)
         {
+            var wasReleased = order.Status != OrderStatus.PendingPayment;
             foreach (var fee in order.Fees)
             {
+                // Guard: only settle fees still attached to THIS order. A released
+                // fee that was re-claimed by a newer order now points elsewhere and
+                // must not be paid twice (unique Payment.FeeId is the backstop).
+                if (fee.OrderId != order.Id) continue;
+
                 var existing = await _payments.GetByFeeIdAsync(fee.Id, cancellationToken);
                 if (existing is null)
                 {
@@ -123,6 +132,13 @@ public sealed class SettlementService : ISettlementService
             order.UpdatedAt = DateTime.UtcNow;
             _orders.Update(order);
 
+            if (wasReleased)
+            {
+                _logger.LogWarning(
+                    "Settlement: order {MerchantOrderId} re-opened from a released state and settled {Count} fee(s) on a late Paid.",
+                    merchantOrderId, paidFees.Count);
+            }
+
             if (_outbox is not null)
             {
                 foreach (var fee in paidFees)
@@ -143,8 +159,10 @@ public sealed class SettlementService : ISettlementService
             order.UpdatedAt = DateTime.UtcNow;
             foreach (var fee in order.Fees)
             {
+                // Keep fee.OrderId so a late Paid can re-open and settle this order
+                // (D5). The fee is released for re-ordering via its status; if it is
+                // selected into a new order, OrderService reassigns OrderId.
                 fee.Status = FeeStatus.Pending;
-                fee.OrderId = null;
                 _fees.Update(fee);
             }
             _orders.Update(order);
