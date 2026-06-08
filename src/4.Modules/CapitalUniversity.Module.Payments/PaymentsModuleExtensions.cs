@@ -54,6 +54,9 @@ public static class PaymentsModuleExtensions
         services.AddScoped<Abstractions.Treasury.IOrderService, Application.Treasury.OrderService>();
         services.AddScoped<Abstractions.Treasury.IStudentFeeQueryService, Application.Treasury.StudentFeeQueryService>();
 
+        // Treasury payment initiation (Phase 6).
+        services.AddScoped<Abstractions.Treasury.IPaymentInitiationService, Application.Treasury.PaymentInitiationService>();
+
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IFeeCreationService, FeeCreationService>();
         services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();

@@ -15,10 +15,12 @@ namespace CapitalUniversity.API.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orders;
+    private readonly IPaymentInitiationService _initiation;
 
-    public OrdersController(IOrderService orders)
+    public OrdersController(IOrderService orders, IPaymentInitiationService initiation)
     {
         _orders = orders;
+        _initiation = initiation;
     }
 
     [HttpPost]
@@ -52,5 +54,13 @@ public class OrdersController : ControllerBase
     {
         await _orders.CancelAsync(id, cancellationToken);
         return Ok(new { Message = "Order cancelled" });
+    }
+
+    [HttpPost("{id:guid}/initiate")]
+    [HasPermission(PermissionNames.PaymentTransactions.Insert)]
+    public async Task<IActionResult> Initiate(Guid id, [FromQuery] string? redirectUrl, CancellationToken cancellationToken)
+    {
+        var result = await _initiation.InitiateAsync(id, redirectUrl, cancellationToken);
+        return Ok(result);
     }
 }

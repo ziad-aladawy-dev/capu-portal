@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
+using CapitalUniversity.Modules.Payments.Abstractions.Treasury.DTOs;
 using Microsoft.Extensions.Options;
 
 namespace CapitalUniversity.Modules.Payments.Infrastructure.Treasury;
@@ -35,5 +36,14 @@ public sealed class TreasuryClient : ITreasuryClient
 
         // Only ConnectionTypeId == configured (6) receipts are relevant to the Portal.
         return all.Where(r => r.ConnectionTypeId == _options.ConnectionTypeId).ToList();
+    }
+
+    public async Task<TreasuryInitiateResponse> InitiateAsync(Gateway gateway, TreasuryInitiateRequest request, CancellationToken cancellationToken = default)
+    {
+        var path = TreasuryGatewayRoutes.InitiatePath(gateway);
+        var response = await _http.PostAsJsonAsync(path, request, Json, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<TreasuryInitiateResponse>(Json, cancellationToken);
+        return body ?? throw new InvalidOperationException("Treasury returned an empty initiate response.");
     }
 }

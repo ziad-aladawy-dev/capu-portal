@@ -25,4 +25,10 @@ public sealed class TreasuryOptions
 
     /// <summary>Cron for the recurring receipt-pull job (Hangfire, Sync host). Default every 6h.</summary>
     public string ReceiptPullCron { get; set; } = "0 */6 * * *";
+
+    /// <summary>Return URL handed to Treasury at initiation when the caller supplies none.</summary>
+    public string RedirectUrl { get; set; } = string.Empty;
+
+    /// <summary>Minutes until a PendingPayment order is considered expired (reconciliation TTL).</summary>
+    public int OrderTtlMinutes { get; set; } = 30;
 }
