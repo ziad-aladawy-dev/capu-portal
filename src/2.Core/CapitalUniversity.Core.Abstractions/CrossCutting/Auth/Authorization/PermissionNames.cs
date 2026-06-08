@@ -144,6 +144,23 @@ public static class PermissionNames
         public const string Delete    = "course-offerings.course-offerings.Delete";
     }
 
+    /// <summary>
+    /// Registered Courses — read-only access to course registrations synced from
+    /// external academic systems. Students hold View (own-row scope enforced in
+    /// the service layer via <c>IEffectiveScope</c>); staff read within their
+    /// structure-node scope. Module = <c>registered-courses</c>, Resource =
+    /// <c>registered-courses</c>. Bound by <see cref="RegisteredCoursesController"/>;
+    /// declared by <c>RegistrationPermissionManifest</c>.
+    /// </summary>
+    public static class RegisteredCourses
+    {
+        public const string View      = "registered-courses.registered-courses.View";
+        public const string Insert    = "registered-courses.registered-courses.Insert";
+        public const string EditClose = "registered-courses.registered-courses.EditClose";
+        public const string Open      = "registered-courses.registered-courses.Open";
+        public const string Delete    = "registered-courses.registered-courses.Delete";
+    }
+
     public static class Schedule
     {
         public const string View      = "schedule.schedule-slots.View";

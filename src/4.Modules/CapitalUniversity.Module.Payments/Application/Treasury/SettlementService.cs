@@ -14,9 +14,9 @@ namespace CapitalUniversity.Modules.Payments.Application.Treasury;
 /// Idempotency is schema-enforced: the unique index on <c>Payment.FeeId</c>
 /// makes a duplicate notification structurally unable to create a second
 /// payment for a fee. The audit-row unique <c>(MerchantOrderId, IdempotencyKey)</c>
-/// dedups repeated identical outcomes. <see cref="IOutbox"/> is optional so the
-/// service also resolves in hosts that do not wire the outbox (reconciliation
-/// host); the webhook path always has it and drives FeePaidEvent delivery.
+/// dedups repeated identical outcomes. <see cref="IOutbox"/> is mandatory: every
+/// host that runs settlement (API webhook + Sync reconciliation) must wire it so
+/// FeePaidEvent is always delivered.
 /// </summary>
 public sealed class SettlementService : ISettlementService
 {
@@ -26,7 +26,7 @@ public sealed class SettlementService : ISettlementService
     private readonly IPaymentTransactionRepository _transactions;
     private readonly CoreDbContext _db;
     private readonly ILogger<SettlementService> _logger;
-    private readonly IOutbox? _outbox;
+    private readonly IOutbox _outbox;
 
     public SettlementService(
         IOrderRepository orders,
@@ -35,7 +35,7 @@ public sealed class SettlementService : ISettlementService
         IPaymentTransactionRepository transactions,
         CoreDbContext db,
         ILogger<SettlementService> logger,
-        IOutbox? outbox = null)
+        IOutbox outbox)
     {
         _orders = orders;
         _fees = fees;
@@ -149,18 +149,15 @@ public sealed class SettlementService : ISettlementService
                     merchantOrderId, paidFees.Count);
             }
 
-            if (_outbox is not null)
+            foreach (var fee in paidFees)
             {
-                foreach (var fee in paidFees)
-                {
-                    await _outbox.EnqueueAsync(
-                        FeePaidEvent.TypeKey,
-                        new FeePaidFact(
-                            fee.Id, order.Id, order.StudentId,
-                            fee.SourceModule, fee.SourceReferenceId,
-                            fee.TotalAmount, DateTime.UtcNow),
-                        cancellationToken);
-                }
+                await _outbox.EnqueueAsync(
+                    FeePaidEvent.TypeKey,
+                    new FeePaidFact(
+                        fee.Id, order.Id, order.StudentId,
+                        fee.SourceModule, fee.SourceReferenceId,
+                        fee.TotalAmount, DateTime.UtcNow),
+                    cancellationToken);
             }
         }
         else if (outcome is SettlementOutcome.Failed or SettlementOutcome.Expired && order.Status == OrderStatus.PendingPayment)

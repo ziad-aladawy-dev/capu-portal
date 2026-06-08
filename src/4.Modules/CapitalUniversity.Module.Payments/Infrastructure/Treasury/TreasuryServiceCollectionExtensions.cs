@@ -67,6 +67,17 @@ public static class TreasuryServiceCollectionExtensions
         services.AddScoped<Repositories.Treasury.IPaymentTransactionRepository, Core.Infrastructure.Repositories.Treasury.PaymentTransactionRepository>();
         services.AddScoped<Abstractions.Treasury.ISettlementService, Application.Treasury.SettlementService>();
         services.AddScoped<Abstractions.Treasury.IReconciliationService, Application.Treasury.ReconciliationService>();
+
+        // C2 — settlement requires IOutbox (now mandatory). Wire the outbox stack
+        // for the background host so reconciliation-driven settlements publish
+        // FeePaidEvent. All three depend only on IHttpContextAccessor (registered
+        // by the host) and CoreDbContext, with safe no-HttpContext fallbacks.
+        services.AddScoped<Core.Abstractions.CrossCutting.Outbox.IOutbox,
+            Core.Infrastructure.Services.Outbox.OutboxService>();
+        services.AddScoped<Core.Abstractions.CrossCutting.Execution.IExecutionContext,
+            Core.Application.CrossCutting.Auth.Authentication.ExecutionContext>();
+        services.AddScoped<Core.Abstractions.CrossCutting.Localization.ICurrentCultureService,
+            Core.Application.CrossCutting.Localization.CurrentCultureService>();
         return services;
     }
 }

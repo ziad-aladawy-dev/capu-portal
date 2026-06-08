@@ -18,6 +18,7 @@
     <ProjectReference Include="..\CapitalUniversity.Sync.Staff\CapitalUniversity.Sync.Staff.csproj" />
     <ProjectReference Include="..\CapitalUniversity.Sync.Courses\CapitalUniversity.Sync.Courses.csproj" />
     <ProjectReference Include="..\CapitalUniversity.Sync.Schedules\CapitalUniversity.Sync.Schedules.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Sync.Registration\CapitalUniversity.Sync.Registration.csproj" />
     <!-- Core.Infrastructure is needed for the CoreDbContext + CoreWriteGateway
          registration at composition time. Sync.Host is the only sync-side place
          that touches Core.Infrastructure; per-module sync projects must not. -->

@@ -100,6 +100,13 @@ public sealed class ReconciliationService : IReconciliationService
                 await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Failed, TransactionType.StatusCheck, raw, null, cancellationToken);
                 processed++;
             }
+            else if (outcome == SettlementOutcome.Expired)
+            {
+                // Treasury reported expired/timeout — release the order's fees now
+                // rather than waiting for the Portal TTL.
+                await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, null, cancellationToken);
+                processed++;
+            }
             else if (order.ExpiresAt.HasValue && order.ExpiresAt.Value < DateTime.UtcNow)
             {
                 await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, null, cancellationToken);

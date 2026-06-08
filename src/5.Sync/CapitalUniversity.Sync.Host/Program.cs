@@ -27,6 +27,8 @@ using CapitalUniversity.Sync.Schedules.Domain;
 using CapitalUniversity.Sync.Schedules.Persistence;
 using CapitalUniversity.Sync.Schedules.Push;
 using CapitalUniversity.Sync.Schedules.Sources;
+using CapitalUniversity.Sync.Registration.DependencyInjection;
+using CapitalUniversity.Modules.Registration.Domain;
 // Enums used by the admin-seed endpoints now live on the operational sides
 // (Core / module abstractions) since the sync layer no longer duplicates them.
 using CapitalUniversity.Core.Abstractions.Sync;

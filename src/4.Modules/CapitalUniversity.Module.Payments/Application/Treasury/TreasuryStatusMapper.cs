@@ -18,6 +18,7 @@ public static class TreasuryStatusMapper
         {
             "paid" or "success" or "succeeded" or "completed" or "captured" => SettlementOutcome.Paid,
             "failed" or "declined" or "cancelled" or "canceled" or "rejected" => SettlementOutcome.Failed,
+            "expired" or "timeout" or "timedout" or "timed_out" => SettlementOutcome.Expired,
             _ => SettlementOutcome.Pending,
         };
     }

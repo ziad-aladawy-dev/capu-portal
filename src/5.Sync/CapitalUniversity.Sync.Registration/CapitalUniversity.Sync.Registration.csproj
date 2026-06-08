@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CapitalUniversity.Sync.Registration</RootNamespace>
+    <AssemblyName>CapitalUniversity.Sync.Registration</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
+    Pull-only module: course registrations flow INTO the portal from the
+    external academic system and are never modified locally, so — unlike the
+    Student/Staff/Courses/Schedules modules — there is no push outbox, no
+    per-module DbContext, and no migration here. The pull checkpoint lives in
+    the shared SyncDbContext (sync.checkpoints) and writes land in Core's
+    StudentRegisteredCourses table through ICoreWriteGateway. That is why this
+    project references no EF packages directly.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\CapitalUniversity.Sync.Abstractions\CapitalUniversity.Sync.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Registration\CapitalUniversity.Module.Registration.csproj" />
+    <ProjectReference Include="..\..\4.Modules\CapitalUniversity.Module.Registration.Abstractions\CapitalUniversity.Module.Registration.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

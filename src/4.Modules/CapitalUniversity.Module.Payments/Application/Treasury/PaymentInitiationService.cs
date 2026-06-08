@@ -188,9 +188,15 @@ public sealed class PaymentInitiationService : IPaymentInitiationService
 
     private static (string First, string Last) SplitName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return (string.Empty, string.Empty);
-        var trimmed = name.Trim();
-        var idx = trimmed.IndexOf(' ');
-        return idx < 0 ? (trimmed, string.Empty) : (trimmed[..idx], trimmed[(idx + 1)..].Trim());
+        // Gateways (BM/eFinance) require non-empty first AND last names. Split on
+        // whitespace: first token is the first name, the remainder is the last
+        // name. A single-token name is used for both so neither field is blank.
+        var parts = (name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => (string.Empty, string.Empty),
+            1 => (parts[0], parts[0]),
+            _ => (parts[0], string.Join(' ', parts[1..])),
+        };
     }
 }

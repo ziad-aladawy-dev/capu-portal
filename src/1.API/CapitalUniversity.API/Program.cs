@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Registration;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
 using CapitalUniversity.Modules.StudentServices;
@@ -77,6 +78,9 @@ builder.Services.AddCourseOfferingModule();
 // checks — registered AFTER CourseOffering so the resolver finds the
 // dependency at construction time.
 builder.Services.AddScheduleModule();
+// Registration is a read-only module over sync-sourced registration data; it
+// depends only on Core (scope service + DbContext), so order is unconstrained.
+builder.Services.AddRegistrationModule();
 // Student Services depends on IFeeCreationService (Payments) for fee
 // authoring on submit — registered AFTER Payments so the resolver finds
 // the dependency at construction time.

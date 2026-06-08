@@ -109,9 +109,16 @@ public sealed class TreasuryClient : ITreasuryClient
     public async Task<TreasuryStatusResult> GetStatusAsync(Gateway gateway, string merchantOrderId, CancellationToken cancellationToken = default)
     {
         var path = TreasuryGatewayRoutes.StatusPath(gateway, merchantOrderId);
-        var envelope = await _http.GetFromJsonAsync<BaseResponse<StatusData>>(path, Json, cancellationToken);
-        var data = envelope?.Data
-            ?? throw new InvalidOperationException("Treasury returned an empty status response.");
+        // Some gateways (e.g. eFinance) return data as an empty string / non-object
+        // when there is nothing to report. Parse defensively: a non-object data is
+        // treated as "not yet resolved" (empty status → Pending), never an exception.
+        var envelope = await _http.GetFromJsonAsync<BaseResponse<JsonElement>>(path, Json, cancellationToken);
+        if (envelope is null || envelope.Data.ValueKind != JsonValueKind.Object)
+        {
+            return new TreasuryStatusResult { MerchantOrderId = merchantOrderId, Status = string.Empty, Currency = "EGP" };
+        }
+
+        var data = envelope.Data.Deserialize<StatusData>(Json) ?? new StatusData();
         return new TreasuryStatusResult
         {
             MerchantOrderId = string.IsNullOrEmpty(data.MerchantOrderId) ? merchantOrderId : data.MerchantOrderId,

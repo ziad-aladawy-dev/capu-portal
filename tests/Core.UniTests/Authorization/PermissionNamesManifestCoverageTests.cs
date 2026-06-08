@@ -105,6 +105,7 @@ public class PermissionNamesManifestCoverageTests
     {
         _ = (
             typeof(CapitalUniversity.Modules.CourseOffering.Abstractions.Manifest.CourseOfferingPermissionManifest).Assembly,
+            typeof(CapitalUniversity.Modules.Registration.Abstractions.Manifest.RegistrationPermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly,
