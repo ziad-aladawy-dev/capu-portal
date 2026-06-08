@@ -154,13 +154,22 @@ public sealed class SettlementService : ISettlementService
         {
             await _db.SaveChangesAsync(cancellationToken);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A concurrent webhook/reconciliation updated the order or fees first
+            // (RowVersion mismatch). The winner already settled — drop our staged
+            // changes and treat this as an idempotent success rather than failing
+            // the caller (no 500, no Hangfire poison, no duplicate payments).
+            _db.ChangeTracker.Clear();
+            _logger.LogInformation("Settlement: concurrent settle (RowVersion) for {MerchantOrderId}; treated as idempotent no-op.", merchantOrderId);
+        }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            // Another writer (concurrent webhook/reconciliation) settled first.
-            // The unique Payment.FeeId / audit index rejected our duplicate —
-            // treat as already-settled and drop our staged changes.
+            // Unique Payment.FeeId / audit index rejected our duplicate — the
+            // winner already created the payment(s). Drop staged changes and
+            // treat as already-settled.
             _db.ChangeTracker.Clear();
-            _logger.LogInformation("Settlement: concurrent settle detected for {MerchantOrderId}; treated as idempotent no-op.", merchantOrderId);
+            _logger.LogInformation("Settlement: concurrent settle (unique index) for {MerchantOrderId}; treated as idempotent no-op.", merchantOrderId);
         }
     }
 
