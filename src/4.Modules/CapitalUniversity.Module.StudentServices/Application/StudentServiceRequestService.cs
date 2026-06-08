@@ -309,35 +309,37 @@ public class StudentServiceRequestService : IStudentServiceRequestService
             });
         }
 
-        await _requests.AddAsync(entity, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Fee integration — only the Payments module owns invoice authoring;
-        // we drop a fee through IFeeCreationService and stash the invoice id
-        // on the request. Status is moved to WaitingPayment if not already
-        // there.
-        if (service.RequiresPayment)
+        // D2 — request creation and fee generation must be atomic. Both run in a
+        // single transaction so a failure mid-way cannot leave an orphaned fee or
+        // a request stranded out of WaitingPayment. On the in-memory provider this
+        // runs the action directly (no relational transaction).
+        await _unitOfWork.ExecuteInSerializableTransactionAsync(async tx =>
         {
-            // Treasury fee path: generate a StudentFee from the service's receipt
-            // mapping (price snapshotted from the receipt). Returns null when the
-            // service has no active mapping — then no fee is raised and the
-            // request proceeds without a payment step.
-            var treasuryFeeId = await _feeGeneration.GenerateFeeFromServiceAsync(
-                studentId,
-                service.Id,
-                request.Quantity,
-                "student-services",
-                entity.Id,
-                cancellationToken);
+            await _requests.AddAsync(entity, tx);
+            await _unitOfWork.SaveChangesAsync(tx);
 
-            if (treasuryFeeId is not null)
+            if (service.RequiresPayment)
             {
-                entity.PaymentReferenceId = treasuryFeeId.Value;
-                entity.CurrentStatus = ServiceRequestStatus.WaitingPayment;
-                _requests.Update(entity);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                // Treasury fee path: generate a StudentFee from the service's
+                // receipt mapping (price snapshotted from the receipt). Returns
+                // null when the service has no active mapping.
+                var treasuryFeeId = await _feeGeneration.GenerateFeeFromServiceAsync(
+                    studentId,
+                    service.Id,
+                    request.Quantity,
+                    "student-services",
+                    entity.Id,
+                    tx);
+
+                if (treasuryFeeId is not null)
+                {
+                    entity.PaymentReferenceId = treasuryFeeId.Value;
+                    entity.CurrentStatus = ServiceRequestStatus.WaitingPayment;
+                    _requests.Update(entity);
+                    await _unitOfWork.SaveChangesAsync(tx);
+                }
             }
-        }
+        }, cancellationToken);
 
         await _logger.LogInfoAsync(
             $"student-service.request submitted id={entity.Id} service={service.Code}",

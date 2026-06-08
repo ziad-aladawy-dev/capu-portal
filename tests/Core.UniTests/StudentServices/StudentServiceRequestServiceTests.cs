@@ -48,6 +48,11 @@ public class StudentServiceRequestServiceTests
     private static Ctx Build()
     {
         var uow = new Mock<IUnitOfWork>();
+        // Run the transactional critical section inline so the wrapped submit
+        // logic executes under test (mirrors the in-memory provider behaviour).
+        uow.Setup(u => u.ExecuteInSerializableTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
         var requests = new Mock<IStudentServiceRequestRepository>();
         var services = new Mock<IStudentServiceRepository>();
         var workflows = new Mock<IWorkflowService>();
