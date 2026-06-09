@@ -31,7 +31,7 @@ function AcademicTimeline({ years, onSetCurrent, onCloseYear, onReopenYear, onDe
         {sorted.map((year) => {
           const { left, width } = getBarWidth(year.startDate, year.endDate);
           const isCurrent = year.isCurrent;
-          const isClosed = year.status === "Closed" || year.status === "closed";
+          const isClosed = year.isClosed;
 
           return (
             <div key={year.id} className={`ay-timeline-year ${isCurrent ? "is-current" : ""}`}>

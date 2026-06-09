@@ -21,41 +21,113 @@ public static class DataSeeder
         // Tables that are "one-shot" (skip if any rows exist).
         await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
         await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
-        await RunOnceAsync("Modules",         context.Modules,         () => SeedAuthModulesAsync(context));
-        await RunOnceAsync("Resources",       context.Resources,       () => SeedAuthResourcesAsync(context));
-        await RunOnceAsync("Roles",           context.Roles,           () => SeedRolesAsync(context));
+        await RunOnceAsync("Roles", context.Roles, () => SeedRolesAsync(context));
 
         // Idempotent / self-healing: always run, upsert by natural key so stale state converges.
+        await RunStepAsync("Modules",   () => SeedAuthModulesAsync(context));
+        await RunStepAsync("Resources", () => SeedAuthResourcesAsync(context));
         await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context, actionExpander));
         await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
         await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
         await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
         await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
         await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
-        await RunOnceAsync("Courses",         context.Courses,         () => SeedCoursesAsync(context));
+        await RunStepAsync("Courses", () => SeedCoursesAsync(context));
+        await RunOnceAsync("AcademicPlans", context.AcademicPlans, () => SeedAcademicPlansAsync(context));
     }
 
     /// <summary>
-    /// Seeds a small representative catalog so authorization, scope, localization,
-    /// and caching tests have realistic data per the platform plan's seeder
-    /// requirements. One-shot — skipped if any course rows exist.
+    /// Seeds the full course catalog with upsert-by-code idempotency so new
+    /// courses can be added on subsequent seed runs without duplicating existing
+    /// rows. Bilingual titles per the localization convention.
     /// </summary>
     private static async Task SeedCoursesAsync(CoreDbContext context)
     {
-        // Titles are bilingual — stored as {"ar":"…","en":"…"} JSON. Reads
-        // flow through ILocalizationService.Get<string>(json) in CourseService.
         var seedCourses = new (string Code, string TitleAr, string TitleEn, int CreditHours, CourseCategory Category)[]
         {
+            // ── Computer Science & Engineering ──
             ("CS101",   "مقدمة في علوم الحاسب",          "Introduction to Computer Science", 3, CourseCategory.ProgramRequirement),
+            ("CS102",   "برمجة حاسبات (2)",               "Computer Programming II",          3, CourseCategory.ProgramRequirement),
             ("CS201",   "هياكل البيانات والخوارزميات",   "Data Structures and Algorithms",   3, CourseCategory.ProgramRequirement),
-            ("MATH101", "تفاضل وتكامل (1)",              "Calculus I",                       4, CourseCategory.FacultyRequirement),
-            ("UNIV100", "التفكير الناقد",                 "Critical Thinking",                2, CourseCategory.UniversityRequirement),
-            ("GEN150",  "مهارات الإلقاء",                 "Public Speaking",                  2, CourseCategory.GeneralEducation),
+            ("CS202",   "تصميم قواعد البيانات",           "Database Design",                  3, CourseCategory.ProgramRequirement),
+            ("CS301",   "هندسة البرمجيات",                "Software Engineering",             3, CourseCategory.ProgramRequirement),
+            ("CS401",   "التعلم الآلي",                   "Machine Learning",                 3, CourseCategory.ProgramRequirement),
+            ("CS402",   "تأمين المعلومات",                "Information Security",             3, CourseCategory.ProgramRequirement),
             ("CS-ELC1", "موضوعات في الذكاء الاصطناعي",   "Topics in AI",                     3, CourseCategory.Elective),
+
+            // ── Mathematics ──
+            ("MATH101", "تفاضل وتكامل (1)",              "Calculus I",                       4, CourseCategory.FacultyRequirement),
+            ("MATH102", "تفاضل وتكامل (2)",              "Calculus II",                      4, CourseCategory.FacultyRequirement),
+            ("MATH201", "المعادلات التفاضلية",           "Differential Equations",           3, CourseCategory.FacultyRequirement),
+            ("MATH301", "الاحتمالات والإحصاء",           "Probability & Statistics",         3, CourseCategory.FacultyRequirement),
+
+            // ── Sciences ──
+            ("PHYS101", "الفيزياء (1)",                  "Physics I",                        4, CourseCategory.FacultyRequirement),
+            ("PHYS102", "الفيزياء (2)",                  "Physics II",                       4, CourseCategory.FacultyRequirement),
+            ("CHEM101", "الكيمياء العامة",               "General Chemistry",                3, CourseCategory.FacultyRequirement),
+
+            // ── Civil Engineering ──
+            ("CE201",   "ميكانيكا الهندسة",              "Engineering Mechanics",            3, CourseCategory.ProgramRequirement),
+            ("CE202",   "مقاومة المواد",                 "Strength of Materials",            3, CourseCategory.ProgramRequirement),
+            ("CE301",   "تحليل الإنشاءات",               "Structural Analysis",              3, CourseCategory.ProgramRequirement),
+            ("CE302",   "هندسة الأساسات",                "Foundation Engineering",           3, CourseCategory.ProgramRequirement),
+            ("CE401",   "هندسة النقل",                   "Transportation Engineering",       3, CourseCategory.ProgramRequirement),
+
+            // ── Architectural Engineering ──
+            ("ARCH201", "تاريخ العمارة",                 "History of Architecture",          2, CourseCategory.ProgramRequirement),
+            ("ARCH202", "الرسم المعماري",                "Architectural Drawing",            3, CourseCategory.ProgramRequirement),
+            ("ARCH301", "التصميم المعماري (1)",          "Architectural Design I",           4, CourseCategory.ProgramRequirement),
+            ("ARCH401", "التخطيط العمراني",              "Urban Planning",                   3, CourseCategory.ProgramRequirement),
+
+            // ── Mechanical Engineering ──
+            ("ME201",   "الديناميكا الحرارية",           "Thermodynamics",                   3, CourseCategory.ProgramRequirement),
+            ("ME202",   "ميكانيكا الموائع",              "Fluid Mechanics",                  3, CourseCategory.ProgramRequirement),
+            ("ME301",   "انتقال الحرارة",                "Heat Transfer",                    3, CourseCategory.ProgramRequirement),
+            ("ME302",   "هندسة التصنيع",                 "Manufacturing Engineering",        3, CourseCategory.ProgramRequirement),
+
+            // ── Electrical Engineering ──
+            ("EE201",   "الدوائر الكهربائية",            "Electric Circuits",                3, CourseCategory.ProgramRequirement),
+            ("EE202",   "الإلكترونيات",                  "Electronics",                      3, CourseCategory.ProgramRequirement),
+            ("EE301",   "أنظمة التحكم",                  "Control Systems",                  3, CourseCategory.ProgramRequirement),
+            ("EE302",   "الاتصالات التناظرية",           "Analog Communications",            3, CourseCategory.ProgramRequirement),
+
+            // ── Home Economics / Nutrition ──
+            ("HE101",   "التغذية الأساسية",              "Basic Nutrition",                  3, CourseCategory.ProgramRequirement),
+            ("HE102",   "علوم الأطعمة",                  "Food Science",                     3, CourseCategory.ProgramRequirement),
+            ("HE201",   "التغذية العلاجية",              "Clinical Nutrition",               3, CourseCategory.ProgramRequirement),
+            ("HE202",   "إدارة المؤسسات الغذائية",       "Food Service Management",          3, CourseCategory.ProgramRequirement),
+            ("HE301",   "التغذية المجتمعية",             "Community Nutrition",              3, CourseCategory.ProgramRequirement),
+
+            // ── Textiles ──
+            ("TEX101",  "المنسوجات والملابس",            "Textiles & Clothing",              3, CourseCategory.ProgramRequirement),
+            ("TEX201",  "تصميم الأزياء",                 "Fashion Design",                   3, CourseCategory.ProgramRequirement),
+            ("TEX301",  "تكنولوجيا الملابس",             "Apparel Technology",               3, CourseCategory.ProgramRequirement),
+
+            // ── Child & Family ──
+            ("CHLD101", "تنمية الطفل",                   "Child Development",                3, CourseCategory.ProgramRequirement),
+            ("CHLD201", "إدارة رياض الأطفال",            "Kindergarten Management",          3, CourseCategory.ProgramRequirement),
+
+            // ── Biomedical Engineering ──
+            ("BME201",  "الموائع الحيوية",               "Biofluid Mechanics",               3, CourseCategory.ProgramRequirement),
+            ("BME202",  "الإشارات الحيوية",              "Biosignals",                       3, CourseCategory.ProgramRequirement),
+            ("BME301",  "الأجهزة الطبية",                "Medical Devices",                  3, CourseCategory.ProgramRequirement),
+
+            // ── General / University Requirements ──
+            ("UNIV100", "التفكير الناقد",                 "Critical Thinking",                2, CourseCategory.UniversityRequirement),
+            ("GEN101",  "مهارات الحاسب",                 "Computer Skills",                  2, CourseCategory.GeneralEducation),
+            ("GEN102",  "اللغة العربية",                 "Arabic Language",                  2, CourseCategory.UniversityRequirement),
+            ("GEN103",  "اللغة الإنجليزية",              "English Language",                 2, CourseCategory.UniversityRequirement),
+            ("GEN150",  "مهارات الإلقاء",                 "Public Speaking",                  2, CourseCategory.GeneralEducation),
+            ("GEN201",  "تاريخ مصر الحديث",              "Modern Egyptian History",          2, CourseCategory.GeneralEducation),
+            ("GEN202",  "التربية البيئية",               "Environmental Education",          2, CourseCategory.GeneralEducation),
         };
+
+        var existingCodes = await context.Courses.Select(c => c.Code).ToHashSetAsync();
+        var added = 0;
 
         foreach (var (code, titleAr, titleEn, hours, category) in seedCourses)
         {
+            if (existingCodes.Contains(code)) continue;
             context.Courses.Add(new Course
             {
                 Id = Guid.NewGuid(),
@@ -65,8 +137,220 @@ public static class DataSeeder
                 Category = category,
                 IsActive = true,
             });
+            added++;
         }
+
+        if (added > 0)
+            await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] Courses: +{added} added (catalog now has {existingCodes.Count + added} courses).");
+    }
+
+    /// <summary>
+    /// Seeds academic plans for each program with course-to-level-semester mappings.
+    /// One-shot — skipped if any plans exist. Plans reference the StructureNode
+    /// (program) and Course tables, so this runs after both are populated.
+    /// Plan names and course IDs are cross-referenced at seed time so data is
+    /// always consistent with the current catalog and structure.
+    /// </summary>
+    private static async Task SeedAcademicPlansAsync(CoreDbContext context)
+    {
+        var nodes = await context.StructureNodes.ToListAsync();
+        var courses = await context.Courses.ToDictionaryAsync(c => c.Code);
+        var years = await context.AcademicYears.OrderBy(y => y.Name).ToListAsync();
+        var effectiveFrom = years.FirstOrDefault()?.StartDate ?? new DateTime(2023, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var programs = nodes.Where(n => n.Type == StructureNodeType.Program).ToList();
+
+        StructureNode? GetProgram(string name) =>
+            programs.FirstOrDefault(n => n.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+        Guid? MakePlan(string name, string programName, (string Code, int Level, int Semester, bool Mandatory)[] planCourses)
+        {
+            var prog = GetProgram(programName);
+            if (prog == null)
+            {
+                Console.WriteLine($"[Seed] AcademicPlans: program '{programName}' not found — skipping plan '{name}'.");
+                return null;
+            }
+
+            var plan = new AcademicPlan
+            {
+                Id = Guid.NewGuid(),
+                StructureNodeId = prog.Id,
+                Name = name,
+                EffectiveFrom = effectiveFrom,
+                IsActive = true,
+            };
+
+            foreach (var (code, level, sem, mandatory) in planCourses)
+            {
+                if (!courses.TryGetValue(code, out var course))
+                {
+                    Console.WriteLine($"[Seed] AcademicPlans: plan '{name}' — course '{code}' not found, skipping.");
+                    continue;
+                }
+                plan.PlanCourses.Add(new AcademicPlanCourse
+                {
+                    Id = Guid.NewGuid(),
+                    AcademicPlanId = plan.Id,
+                    CourseId = course.Id,
+                    Level = level,
+                    Semester = sem,
+                    IsMandatory = mandatory,
+                });
+            }
+
+            context.AcademicPlans.Add(plan);
+            return plan.Id;
+        }
+
+        // ── Faculty of Engineering – Helwan (Computer & Systems) ──
+        MakePlan("BSc Computer & Systems Engineering 2025",
+            "Computer & Systems Engineering", new[]
+            {
+                ("CS101", 1, 1, true), ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true),
+                ("CS102", 1, 2, true), ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
+                ("CS201", 2, 1, true), ("MATH201", 2, 1, true), ("EE201",   2, 1, true), ("GEN103", 2, 1, true), ("GEN201",  2, 1, false),
+                ("CS202", 2, 2, true), ("MATH301", 2, 2, true), ("EE202",   2, 2, true), ("GEN202", 2, 2, false), ("CS-ELC1", 2, 2, false),
+                ("CS301", 3, 1, true), ("CE201",   3, 1, false), ("ME201",  3, 1, false), ("EE301",  3, 1, false),
+                ("CS401", 3, 2, true), ("CS402",   3, 2, true),
+                ("CE301", 4, 1, false), ("CE401",  4, 1, false), ("BME201", 4, 1, false),
+            });
+
+        // ── Faculty of Engineering – Helwan (Communications) ──
+        MakePlan("BSc Communications Engineering 2025",
+            "Communications & Information Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("CS102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("MATH201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103", 2, 1, true),
+                ("EE202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
+                ("EE301",   3, 1, true), ("EE302",  3, 1, true), ("GEN202", 3, 1, false),
+                ("CS402",   4, 1, true), ("CS301",  4, 1, true),
+            });
+
+        // ── Faculty of Engineering – Helwan (Biomedical) ──
+        MakePlan("BSc Biomedical Engineering 2025",
+            "Biomedical Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CHEM101",1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
+                ("MATH201", 2, 1, true), ("BME201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103",  2, 1, true),
+                ("BME202", 2, 2, true), ("MATH301",2, 2, true), ("EE202",  2, 2, true), ("GEN201",  2, 2, false),
+                ("BME301", 3, 1, true), ("ME201",  3, 1, true), ("GEN202", 3, 1, false),
+                ("CS401",  4, 1, false),
+            });
+
+        // ── Faculty of Engineering – Mataria (Civil) ──
+        MakePlan("BSc Civil Engineering 2025",
+            "Civil Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true), ("CHEM101", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
+                ("MATH201", 2, 1, true), ("CE201",   2, 1, true), ("CS101",  2, 1, false), ("GEN103",  2, 1, true),
+                ("CE202",   2, 2, true), ("MATH301", 2, 2, true), ("GEN201", 2, 2, false), ("GEN202",  2, 2, false),
+                ("CE301",   3, 1, true), ("ME201",   3, 1, true), ("EE201",  3, 1, false),
+                ("CE302",   3, 2, true), ("ME202",   3, 2, false),
+                ("CE401",   4, 1, true), ("ARCH201", 4, 1, false),
+            });
+
+        // ── Faculty of Engineering – Mataria (Architecture) ──
+        MakePlan("BSc Architecture 2025",
+            "Architectural Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("ARCH201",1, 1, true), ("UNIV100", 1, 1, true), ("GEN101", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("ARCH202",1, 2, true), ("GEN102",  1, 2, true), ("GEN150", 1, 2, true),
+                ("ARCH301", 2, 1, true), ("CS101",   2, 1, false), ("GEN103", 2, 1, true),
+                ("CE201",   2, 2, true), ("GEN202",  2, 2, false),
+                ("ARCH401", 3, 1, true), ("CE301",   3, 1, true),
+                ("CE302",   4, 1, false),
+            });
+
+        // ── Faculty of Engineering – Mataria (Mechanical) ──
+        MakePlan("BSc Mechanical Engineering 2025",
+            "Mechanical Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("MATH201", 2, 1, true), ("ME201",  2, 1, true), ("CE201",  2, 1, true), ("GEN103", 2, 1, true),
+                ("ME202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
+                ("ME301",   3, 1, true), ("ME302",  3, 1, true), ("EE201",  3, 1, false), ("GEN202", 3, 1, false),
+                ("CE301",   4, 1, false),
+            });
+
+        // ── Faculty of Engineering – Mataria (Electrical) ──
+        MakePlan("BSc Electrical Engineering 2025",
+            "Electrical Engineering", new[]
+            {
+                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("CS102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("MATH201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103", 2, 1, true),
+                ("EE202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
+                ("EE301",   3, 1, true), ("EE302",  3, 1, true), ("ME201",  3, 1, false), ("GEN202", 3, 1, false),
+                ("CS402",   4, 1, true),
+            });
+
+        // ── Faculty of Home Economics (Clinical Nutrition) ──
+        MakePlan("BSc Clinical Nutrition 2025",
+            "Clinical Nutrition", new[]
+            {
+                ("HE101",  1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("HE201",  2, 1, true), ("HE202",  2, 1, true), ("GEN103", 2, 1, true),
+                ("HE301",  2, 2, true), ("CHLD101",2, 2, false), ("GEN201", 2, 2, false),
+                ("CHLD201",3, 1, false), ("GEN202", 3, 1, false),
+                ("CS101",  4, 1, false),
+            });
+
+        // ── Faculty of Home Economics (Nutrition & Food Science) ──
+        MakePlan("BSc Nutrition & Food Science 2025",
+            "Nutrition & Food Science", new[]
+            {
+                ("HE101",  1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("HE201",  2, 1, true), ("HE202",  2, 1, true), ("GEN103", 2, 1, true),
+                ("HE301",  2, 2, true), ("GEN201", 2, 2, false),
+                ("GEN202", 3, 1, false),
+                ("CS101",  4, 1, false),
+            });
+
+        // ── Faculty of Home Economics (Textiles) ──
+        MakePlan("BSc Textiles & Clothing 2025",
+            "Textile & Clothing", new[]
+            {
+                ("TEX101", 1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("TEX201", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("TEX301", 2, 1, true), ("HE202",  2, 1, false), ("GEN103", 2, 1, true),
+                ("HE102",  2, 2, true), ("GEN201", 2, 2, false),
+                ("GEN202", 3, 1, false),
+                ("CS101",  4, 1, false),
+            });
+
+        // ── Faculty of Home Economics (Family & Childhood) ──
+        MakePlan("BSc Family & Childhood Management 2025",
+            "Family & Childhood Institution Management", new[]
+            {
+                ("CHLD101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("CHLD201",1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("HE202",  2, 1, false), ("GEN103", 2, 1, true),
+                ("GEN201", 2, 2, false),
+                ("GEN202", 3, 1, false),
+                ("CS101",  4, 1, false),
+            });
+
+        // ── Faculty of Home Economics (General Stream) ──
+        MakePlan("BSc General Stream 2025",
+            "General Stream", new[]
+            {
+                ("HE101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
+                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
+                ("CS101",  2, 1, false), ("GEN103", 2, 1, true),
+                ("HE202",  2, 2, false), ("GEN201", 2, 2, false),
+                ("GEN202", 3, 1, false),
+            });
+
         await context.SaveChangesAsync();
+        Console.WriteLine($"[Seed] AcademicPlans: {context.AcademicPlans.Local.Count} plans created.");
     }
 
     private static async Task RunOnceAsync<T>(string name, DbSet<T> set, Func<Task> seed) where T : class
@@ -214,11 +498,26 @@ public static class DataSeeder
             ("permissions",  LocalizedJson.Of("الصلاحيات والأدوار", "Permissions & Roles"),  "Shield",          4),
             ("sync",         LocalizedJson.Of("تكامل النظام",       "SIS Integration"),      "RefreshCw",       5),
             ("academics",    LocalizedJson.Of("الجدول الأكاديمي",   "Academic Timeline"),    "Calendar",        6),
-            ("notifications",LocalizedJson.Of("الإشعارات",          "Notifications"),        "Bell",            7),
+            ("notifications",LocalizedJson.Of("الإشعرات",            "Notifications"),        "Bell",            7),
             ("system",       LocalizedJson.Of("النظام",             "System"),               "ShieldCheck",     9),
+            ("courses",          LocalizedJson.Of("كتالوج المقررات",    "Course Catalog"),     "BookOpen",      8),
+            ("course-offerings", LocalizedJson.Of("طرح المقررات",       "Course Offerings"),   "CalendarCheck", 10),
+            ("schedule",         LocalizedJson.Of("الجدول الدراسي",     "Schedule"),           "Clock",         11),
         };
+        var existing = await context.Modules.ToDictionaryAsync(m => m.ModuleKey);
         foreach (var (key, display, icon, order) in modules)
-            context.Modules.Add(new Module { Id = Guid.NewGuid(), ModuleKey = key, DisplayName = display, Icon = icon, OrderNumber = order });
+        {
+            if (existing.TryGetValue(key, out var mod))
+            {
+                mod.DisplayName = display;
+                mod.Icon = icon;
+                mod.OrderNumber = order;
+            }
+            else
+            {
+                context.Modules.Add(new Module { Id = Guid.NewGuid(), ModuleKey = key, DisplayName = display, Icon = icon, OrderNumber = order });
+            }
+        }
         await context.SaveChangesAsync();
     }
 
@@ -229,18 +528,27 @@ public static class DataSeeder
     private static async Task SeedAuthResourcesAsync(CoreDbContext context)
     {
         var modules = await context.Modules.ToListAsync();
+        var existing = await context.Resources.ToDictionaryAsync(r => (r.ModuleId, r.Key));
 
         void AddRes(string moduleKey, string key, string displayName, int order)
         {
             var modId = modules.First(m => m.ModuleKey == moduleKey).Id;
-            context.Resources.Add(new Resource
+            if (existing.TryGetValue((modId, key), out var res))
             {
-                Id = Guid.NewGuid(),
-                ModuleId = modId,
-                Key = key,
-                DisplayName = displayName,
-                OrderNumber = order
-            });
+                res.DisplayName = displayName;
+                res.OrderNumber = order;
+            }
+            else
+            {
+                context.Resources.Add(new Resource
+                {
+                    Id = Guid.NewGuid(),
+                    ModuleId = modId,
+                    Key = key,
+                    DisplayName = displayName,
+                    OrderNumber = order
+                });
+            }
         }
 
         // One Resource per (module, key) — action verbs are per-row on
@@ -260,6 +568,14 @@ public static class DataSeeder
         AddRes("academics",    "academic-years", LocalizedJson.Of("الجدول الأكاديمي",  "Academic Timeline"), 0);
         AddRes("notifications","notifications",  LocalizedJson.Of("الإشعارات",         "Notifications"),     0);
         AddRes("system",       "audit-logs",     LocalizedJson.Of("سجل التدقيق",       "Audit Log"),         0);
+
+        // Resources declared by manifest assemblies — seeded here so role
+        // permission grants below can reference them. The PermissionManifestSynchronizer
+        // reconciles metadata (DisplayName, Icon, OrderNumber) from manifests at startup.
+        AddRes("courses",          "courses",         LocalizedJson.Of("كتالوج المقررات",  "Course Catalog"),     0);
+        AddRes("courses",          "academic-plans",  LocalizedJson.Of("الخطط الدراسية",   "Academic Plans"),     1);
+        AddRes("course-offerings", "course-offerings",LocalizedJson.Of("طرح المقررات",     "Course Offerings"),   0);
+        AddRes("schedule",         "schedule-slots",  LocalizedJson.Of("مواعيد الجدول",    "Schedule Slots"),     0);
 
         await context.SaveChangesAsync();
     }
@@ -342,6 +658,10 @@ public static class DataSeeder
         Grant("Faculty Admin", "permissions",   "roles",          "View");
         Grant("Faculty Admin", "academics",     "academic-years", "View");
         Grant("Faculty Admin", "notifications", "notifications",  "Insert");
+        Grant("Faculty Admin", "courses",          "courses",         "EditClose");
+        Grant("Faculty Admin", "courses",          "academic-plans",  "EditClose");
+        Grant("Faculty Admin", "course-offerings", "course-offerings","EditClose");
+        Grant("Faculty Admin", "schedule",         "schedule-slots",  "EditClose");
 
         // Department Head
         Grant("Department Head", "dashboard",     "dashboard",      "View");
@@ -350,6 +670,10 @@ public static class DataSeeder
         Grant("Department Head", "programs",      "programs",       "View");
         Grant("Department Head", "academics",     "academic-years", "View");
         Grant("Department Head", "notifications", "notifications",  "View");
+        Grant("Department Head", "courses",          "courses",         "EditClose");
+        Grant("Department Head", "courses",          "academic-plans",  "EditClose");
+        Grant("Department Head", "course-offerings", "course-offerings","EditClose");
+        Grant("Department Head", "schedule",         "schedule-slots",  "EditClose");
 
         // Registrar
         Grant("Registrar", "dashboard", "dashboard",      "View");
@@ -357,6 +681,9 @@ public static class DataSeeder
         Grant("Registrar", "structure", "structure",      "View");
         Grant("Registrar", "programs",  "programs",       "Insert");
         Grant("Registrar", "academics", "academic-years", "View");
+        Grant("Registrar", "courses",       "courses",         "Insert");
+        Grant("Registrar", "courses",       "academic-plans",  "View");
+        Grant("Registrar", "course-offerings", "course-offerings", "Insert");
 
         // Academic Advisor
         Grant("Academic Advisor", "dashboard",     "dashboard",     "View");
@@ -364,11 +691,17 @@ public static class DataSeeder
         Grant("Academic Advisor", "structure",     "structure",     "View");
         Grant("Academic Advisor", "programs",      "programs",      "View");
         Grant("Academic Advisor", "notifications", "notifications", "View");
+        Grant("Academic Advisor", "courses",          "courses",         "View");
+        Grant("Academic Advisor", "courses",          "academic-plans",  "View");
+        Grant("Academic Advisor", "course-offerings", "course-offerings","View");
+        Grant("Academic Advisor", "schedule",         "schedule-slots",  "View");
 
         // Staff (basic)
         Grant("Staff", "dashboard",     "dashboard",     "View");
         Grant("Staff", "users",         "users",         "View");
         Grant("Staff", "notifications", "notifications", "View");
+        Grant("Staff", "course-offerings", "course-offerings", "View");
+        Grant("Staff", "schedule",         "schedule-slots",  "View");
 
         // Viewer
         Grant("Viewer", "dashboard", "dashboard", "View");

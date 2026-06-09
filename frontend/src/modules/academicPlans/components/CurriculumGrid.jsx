@@ -91,7 +91,7 @@ function CurriculumGrid({
   return (
     <div className="aplans-curriculum">
       <div className="aplans-curriculum-grid-wrap">
-        <table className="aplans-grid-table">
+        <table className="aplans-grid-table" aria-label="Curriculum grid">
           <thead>
             <tr>
               <th className="aplans-grid-corner">Level</th>
@@ -173,6 +173,7 @@ function CurriculumGrid({
                             );
                           }}
                           title="Add course here"
+                          aria-label={`Add course to Level ${level}, Semester ${semester}`}
                         >
                           <Plus size={12} />
                         </button>
@@ -257,6 +258,13 @@ function CurriculumGrid({
           </tbody>
         </table>
       </div>
+
+      {planCourses && planCourses.length > 0 && (
+        <div style={{ marginTop: 12, padding: "10px 16px", background: "#f8f9fc", borderRadius: 8, border: "1px solid #e5e7eb", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", fontSize: 13 }}>
+          <span><strong>{planCourses.length}</strong> courses</span>
+          <span><strong>{planCourses.reduce((sum, pc) => sum + (courseMap[pc.courseId]?.creditHours || 0), 0)}</strong> total credits</span>
+        </div>
+      )}
 
       {!planCourses || planCourses.length === 0 ? (
         <div className="aplans-curriculum-empty">

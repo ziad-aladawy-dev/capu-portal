@@ -434,6 +434,128 @@
   justify-content: flex-end;
 }
 
+/* ── Drag-and-drop grid layout ── */
+.sch-drag-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.sch-unscheduled-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.sch-unscheduled-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1f5e;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sch-unscheduled-empty {
+  padding: 20px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.sch-unscheduled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sch-unscheduled-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  cursor: grab;
+  transition: all 0.15s;
+  font-size: 11px;
+}
+
+.sch-unscheduled-card:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  transform: translateX(2px);
+}
+
+.sch-unscheduled-card:active {
+  cursor: grabbing;
+}
+
+.sch-unscheduled-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sch-unscheduled-info strong {
+  font-size: 11px;
+  color: #1a1f5e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sch-unscheduled-info span {
+  font-size: 9px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Droppable cell */
+.sch-drop-cell {
+  border-right: 1px solid #f0f1f8;
+  border-bottom: 1px solid #f0f1f8;
+  height: 28px;
+  transition: background 0.15s;
+}
+
+.sch-drop-cell.is-over {
+  background: rgba(201, 168, 76, 0.15) !important;
+  border-color: #c9a84c !important;
+  outline: 2px solid #c9a84c;
+  z-index: 5;
+}
+
+.sch-timetable-wrap {
+  flex: 1;
+}
+
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 768px) {
   .sch-form-grid {
     grid-template-columns: 1fr;

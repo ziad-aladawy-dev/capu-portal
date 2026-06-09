@@ -16,6 +16,7 @@ public class CourseResponse
     public int CreditHours { get; set; }
     public CourseCategory Category { get; set; }
     public bool IsActive { get; set; }
+    public bool IsClosed { get; set; }
 }
 
 /// <summary>

@@ -5,7 +5,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: capitalportal-sqlserver
     ports:
-      - "1433:1433"
+      - "14333:1433"
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
@@ -24,7 +24,7 @@ services:
     image: redis:alpine
     container_name: capitalportal-redis
     ports:
-      - "6379:6379"
+      - "63790:6379"
     restart: unless-stopped
     volumes:
       - redis_data:/data

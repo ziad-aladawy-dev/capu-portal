@@ -239,20 +239,19 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
+    // Reconcile manifest-declared permissions against the DB first, so that
+    // SeedRolePermissionsAsync can reference all resources including those
+    // declared only in manifests (not in the one-shot SeedAuthResourcesAsync).
+    var manifestSync = scope.ServiceProvider
+        .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
+    await manifestSync.SynchronizeAsync();
+
     await UniversityStructureSeeder.SeedAsync(db);
     await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await IdentitySeeder.SeedAsync(db, passwordHasher);
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
     await PaymentsSeeder.SeedAsync(db);
     await MassiveDataSeeder.SeedAsync(db, passwordHasher);
-
-    // Reconcile manifest-declared permissions against the DB. Additive only —
-    // every module owns its permissions through IPermissionManifest, and the
-    // synchroniser fills in any missing Module/Service rows without touching
-    // teammate-seeded ones. Safe on every startup.
-    var manifestSync = scope.ServiceProvider
-        .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
-    await manifestSync.SynchronizeAsync();
 }
 
 if (app.Environment.IsDevelopment())

@@ -29,6 +29,7 @@ export const AcademicProvider = ({ children }) => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const savedYearRef = useRef(null);
   const savedSemRef = useRef(null);
 
@@ -105,7 +106,7 @@ export const AcademicProvider = ({ children }) => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [saveYear, i18n.language]);
+  }, [saveYear, i18n.language, refreshCounter]);
 
   useEffect(() => {
     if (!selectedYear?.id) {
@@ -197,6 +198,7 @@ export const AcademicProvider = ({ children }) => {
         selectSemester,
         clearYear: () => selectYear(null),
         clearSemester: () => selectSemester(null),
+        refreshAcademicYears: () => setRefreshCounter(c => c + 1),
         loading,
       }}
     >

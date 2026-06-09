@@ -108,6 +108,17 @@
   box-shadow: 0 5px 18px rgba(201, 168, 76, 0.4);
 }
 
+.co-btn-outline {
+  background: transparent;
+  color: #1a1f5e;
+  border: 1.5px solid #e5e7eb;
+}
+
+.co-btn-outline:hover:not(:disabled) {
+  border-color: #1a1f5e;
+  background: #f8f9fc;
+}
+
 .co-alert {
   padding: 10px 14px;
   border-radius: 8px;
@@ -445,6 +456,100 @@
   border: 1px solid #fecaca;
   border-radius: 6px;
   font-size: 12px;
+}
+
+/* ── Drawer Form ── */
+.co-drawer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.co-drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.co-drawer-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1f5e;
+}
+
+.co-drawer-field input,
+.co-drawer-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: "Outfit", sans-serif;
+  color: #1a1f5e;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.co-drawer-field input:focus,
+.co-drawer-field select:focus {
+  outline: none;
+  border-color: #1a1f5e;
+  box-shadow: 0 0 0 2px rgba(26, 31, 94, 0.1);
+}
+
+.co-drawer-field.has-error input,
+.co-drawer-field.has-error select {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.co-drawer-field.has-error input:focus,
+.co-drawer-field.has-error select:focus {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.co-field-error-msg {
+  font-size: 11px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.co-drawer-error {
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Result info line ── */
+.co-result-info {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+/* ── Ghost button ── */
+.co-btn-ghost {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid transparent;
+}
+
+.co-btn-ghost:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/* ── Enrolled fraction ── */
+.co-enrolled-sep {
+  font-weight: 400;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 2px;
 }
 
 @media (max-width: 768px) {

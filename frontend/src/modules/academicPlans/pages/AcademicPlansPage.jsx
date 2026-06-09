@@ -2,17 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClipboardList, Plus, Trash2, X, AlertTriangle, RefreshCw, BookOpen,
-  Edit2, Calendar, Search, Lock, Unlock, ChevronLeft, ChevronRight,
-  Grid3X3, Table2,
+  Edit2, Search, Lock, Unlock, Grid3X3, Table2, Save,
 } from "lucide-react";
 import * as academicPlanService from "../../../core/services/academicPlanService";
 import * as courseService from "../../../core/services/courseService";
 import * as structureService from "../../../core/services/structureService";
+import { useDomain } from "../../../core/contexts/DomainContext";
 import PermissionGate from "../../../core/auth/PermissionGate";
 import { useToast } from "../../../core/components/Toast";
-import { SkeletonTable } from "../../../core/components/Skeleton";
-import EmptyState from "../../../core/components/EmptyState";
-import BulkActionBar from "../../../core/components/BulkActionBar";
+import StatusBadge from "../../../core/components/StatusBadge";
+import ConfirmDialog from "../../../core/components/ConfirmDialog";
+import DataTable from "../../../core/components/DataTable";
+import Drawer from "../../../core/components/Drawer";
+import { useAcademicPlans, useAcademicPlan, useCreateAcademicPlan, useUpdateAcademicPlan, useDeleteAcademicPlan, useCloseAcademicPlan, useOpenAcademicPlan, useAddPlanCourse, useRemovePlanCourse, useBulkDeleteAcademicPlans } from "../../../core/query/useAcademicPlans";
 import CurriculumGrid from "../components/CurriculumGrid";
 import "../styles/academicPlans.css";
 
@@ -26,51 +28,62 @@ const EMPTY_PLAN_FORM = {
   isActive: true,
 };
 
-const EMPTY_COURSE_FORM = {
-  courseId: "",
-  level: 1,
-  semester: 1,
-  isMandatory: true,
-};
-
 function AcademicPlansPage() {
   const { t } = useTranslation();
   const { addToast } = useToast();
+
+  // Structure + courses lookup data
   const [structureNodes, setStructureNodes] = useState([]);
   const [structureLoading, setStructureLoading] = useState(false);
-  const [selectedStructureId, setSelectedStructureId] = useState("");
-
-  const [plans, setPlans] = useState([]);
-  const [plansLoading, setPlansLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [planLoading, setPlanLoading] = useState(false);
-
+  const { scopeNode } = useDomain();
+  const selectedStructureId = scopeNode?.id || "";
   const [courses, setCourses] = useState([]);
-
   const [error, setError] = useState(null);
 
+  // Search & pagination
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Selected plan detail
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
+
+  // View mode
+  const [curriculumView, setCurriculumView] = useState("grid");
+  const [compact, setCompact] = useState(false);
+
+  // Queries
+  const queryParams = useMemo(() => ({
+    page, pageSize: PAGE_SIZE,
+    structureNodeId: selectedStructureId,
+    search,
+  }), [page, selectedStructureId, search]);
+
+  const { data: planData, isLoading: plansLoading, refetch: refetchPlans } = useAcademicPlans(queryParams);
+  const plans = planData?.items || [];
+  const totalPages = planData?.totalPages || 1;
+
+  const { data: selectedPlan, isLoading: planLoading } = useAcademicPlan(selectedPlanId);
+
+  // Mutations
+  const createPlan = useCreateAcademicPlan();
+  const updatePlan = useUpdateAcademicPlan();
+  const deletePlan = useDeleteAcademicPlan();
+  const closePlan = useCloseAcademicPlan();
+  const openPlan = useOpenAcademicPlan();
+  const addPlanCourse = useAddPlanCourse();
+  const removePlanCourse = useRemovePlanCourse();
+  const bulkDeletePlans = useBulkDeleteAcademicPlans();
+
+  // Modal state
   const [planModal, setPlanModal] = useState(null);
   const [planForm, setPlanForm] = useState(EMPTY_PLAN_FORM);
   const [planFormError, setPlanFormError] = useState("");
-  const [planSaving, setPlanSaving] = useState(false);
-
-  const [courseModal, setCourseModal] = useState(false);
-  const [courseForm, setCourseForm] = useState(EMPTY_COURSE_FORM);
-  const [courseFormError, setCourseFormError] = useState("");
-  const [courseSaving, setCourseSaving] = useState(false);
-
-  const [deletePlan, setDeletePlan] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletePlanCourse, setDeletePlanCourse] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [lifecycleLoading, setLifecycleLoading] = useState(null);
-  const [curriculumView, setCurriculumView] = useState("grid");
-
+  // Load lookup data
   useEffect(() => {
     let cancelled = false;
     async function loadLookups() {
@@ -100,65 +113,11 @@ function AcademicPlansPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const loadPlans = useCallback(async (p = 1) => {
-    if (!selectedStructureId) {
-      setPlans([]);
-      return;
-    }
-    setPlansLoading(true);
-    setError(null);
-    try {
-      const params = {
-        Page: p,
-        PageSize: PAGE_SIZE,
-        StructureNodeId: selectedStructureId,
-        Search: search.trim() || undefined,
-      };
-      const result = await academicPlanService.searchAcademicPlans(params);
-      setPlans(Array.isArray(result?.items) ? result.items : []);
-      setTotalCount(result?.totalCount || 0);
-      setPage(p);
-    } catch (err) {
-      setError(err.message || "Failed to load plans");
-      setPlans([]);
-    } finally {
-      setPlansLoading(false);
-    }
-  }, [selectedStructureId, search]);
-
+  // Reset selection when structure changes
   useEffect(() => {
-    loadPlans(1);
-    setSelectedPlan(null);
+    setSelectedPlanId(null);
     setSelectedIds(new Set());
-  }, [refreshKey, selectedStructureId]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  const handleSearch = () => {
-    setPage(1);
-    setSelectedIds(new Set());
-    loadPlans(1);
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") handleSearch();
-  };
-
-  const reloadSelectedPlan = useCallback(async () => {
-    if (!selectedPlan?.id) return;
-    setPlanLoading(true);
-    try {
-      const data = await academicPlanService.fetchAcademicPlan(selectedPlan.id);
-      setSelectedPlan(data);
-      setPlans((prev) =>
-        prev.map((p) => (p.id === data.id ? { ...p, ...data } : p))
-      );
-    } catch (err) {
-      setError(err.message || "Failed to load plan details");
-    } finally {
-      setPlanLoading(false);
-    }
-  }, [selectedPlan?.id]);
+  }, [selectedStructureId]);
 
   const courseById = useMemo(() => {
     const map = {};
@@ -166,62 +125,26 @@ function AcademicPlansPage() {
     return map;
   }, [courses]);
 
-  const allSelected = plans.length > 0 && plans.every(p => selectedIds.has(p.id));
-  const someSelected = plans.some(p => selectedIds.has(p.id));
-
-  const handleSelectAll = () => {
-    if (allSelected) setSelectedIds(new Set());
-    else setSelectedIds(new Set(plans.map(p => p.id)));
-  };
-
-  const handleSelectOne = (id, e) => {
-    if (e) e.stopPropagation();
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const handleClose = async (plan) => {
-    setLifecycleLoading(plan.id);
-    try {
-      await academicPlanService.closeAcademicPlan(plan.id);
-      addToast(`${plan.name} closed`, "success");
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      addToast(err.message || "Failed to close plan", "error");
-    } finally {
-      setLifecycleLoading(null);
+  // Credit summary
+  const planCreditSummary = useMemo(() => {
+    if (!selectedPlan?.planCourses) return null;
+    const pcs = selectedPlan.planCourses;
+    const byLevel = {};
+    let total = 0;
+    for (const pc of pcs) {
+      const course = courseById[pc.courseId];
+      const credits = course?.creditHours || 0;
+      if (!byLevel[pc.level]) byLevel[pc.level] = { count: 0, credits: 0 };
+      byLevel[pc.level].count++;
+      byLevel[pc.level].credits += credits;
+      total += credits;
     }
-  };
+    return { byLevel, total, courseCount: pcs.length };
+  }, [selectedPlan, courseById]);
 
-  const handleOpen = async (plan) => {
-    setLifecycleLoading(plan.id);
-    try {
-      await academicPlanService.openAcademicPlan(plan.id);
-      addToast(`${plan.name} reopened`, "success");
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      addToast(err.message || "Failed to reopen plan", "error");
-    } finally {
-      setLifecycleLoading(null);
-    }
-  };
+  const handleSearch = () => { setPage(1); setSelectedIds(new Set()); };
 
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    if (!ids.length) return;
-    try {
-      await academicPlanService.bulkDeleteAcademicPlans(ids);
-      addToast(`${ids.length} plan(s) deleted`, "success");
-      setSelectedIds(new Set());
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      addToast(`Bulk delete failed: ${err.message}`, "error");
-    }
-  };
-
+  // Plan CRUD
   const openCreatePlan = () => {
     if (!selectedStructureId) {
       setError(t("select_node_first"));
@@ -232,14 +155,15 @@ function AcademicPlansPage() {
     setPlanFormError("");
   };
 
-  const openEditPlan = (plan) => {
+  const openEditPlan = () => {
+    if (!selectedPlan) return;
     setPlanModal("edit");
     setPlanForm({
-      structureNodeId: plan.structureNodeId,
-      name: plan.name,
-      effectiveFrom: plan.effectiveFrom ? plan.effectiveFrom.slice(0, 10) : "",
-      effectiveTo: plan.effectiveTo ? plan.effectiveTo.slice(0, 10) : "",
-      isActive: plan.isActive,
+      structureNodeId: selectedPlan.structureNodeId,
+      name: selectedPlan.name,
+      effectiveFrom: selectedPlan.effectiveFrom ? selectedPlan.effectiveFrom.slice(0, 10) : "",
+      effectiveTo: selectedPlan.effectiveTo ? selectedPlan.effectiveTo.slice(0, 10) : "",
+      isActive: selectedPlan.isActive,
     });
     setPlanFormError("");
   };
@@ -252,18 +176,11 @@ function AcademicPlansPage() {
 
   const handlePlanSubmit = async (e) => {
     e.preventDefault();
-    if (!planForm.name.trim()) {
-      setPlanFormError(t("plan_name_required"));
-      return;
-    }
-    if (!planForm.effectiveFrom) {
-      setPlanFormError(t("effective_from_required"));
-      return;
-    }
-    setPlanSaving(true);
+    if (!planForm.name.trim()) { setPlanFormError(t("plan_name_required")); return; }
+    if (!planForm.effectiveFrom) { setPlanFormError(t("effective_from_required")); return; }
     try {
       if (planModal === "create") {
-        await academicPlanService.createAcademicPlan({
+        await createPlan.mutateAsync({
           structureNodeId: planForm.structureNodeId,
           name: planForm.name.trim(),
           effectiveFrom: planForm.effectiveFrom,
@@ -271,7 +188,8 @@ function AcademicPlansPage() {
         });
         addToast("Plan created", "success");
       } else if (planModal === "edit" && selectedPlan) {
-        await academicPlanService.updateAcademicPlan(selectedPlan.id, {
+        await updatePlan.mutateAsync({
+          id: selectedPlan.id,
           name: planForm.name.trim(),
           effectiveFrom: planForm.effectiveFrom || null,
           effectiveTo: planForm.effectiveTo || null,
@@ -280,69 +198,79 @@ function AcademicPlansPage() {
         addToast("Plan updated", "success");
       }
       closePlanModal();
-      setRefreshKey(k => k + 1);
-      if (planModal === "edit") await reloadSelectedPlan();
     } catch (err) {
       setPlanFormError(err.message || "Failed to save plan");
-    } finally {
-      setPlanSaving(false);
     }
   };
 
   const handleDeletePlan = async () => {
-    if (!deletePlan) return;
+    if (!deleteTarget) return;
     try {
-      await academicPlanService.deleteAcademicPlan(deletePlan.id);
+      await deletePlan.mutateAsync(deleteTarget.id);
       addToast("Plan deleted", "success");
-      if (selectedPlan?.id === deletePlan.id) setSelectedPlan(null);
-      setDeletePlan(null);
-      setRefreshKey(k => k + 1);
+      if (selectedPlanId === deleteTarget.id) setSelectedPlanId(null);
+      setDeleteTarget(null);
     } catch (err) {
       addToast(err.message || "Failed to delete plan", "error");
-      setDeletePlan(null);
+      setDeleteTarget(null);
     }
   };
 
-  const openAddCourse = () => {
-    setCourseModal(true);
-    setCourseForm(EMPTY_COURSE_FORM);
-    setCourseFormError("");
-  };
-
-  const handleAddCourse = async (e) => {
-    e.preventDefault();
-    if (!courseForm.courseId) {
-      setCourseFormError(t("pick_course"));
-      return;
-    }
-    setCourseSaving(true);
+  const handleClose = async () => {
+    if (!confirmAction?.plan) return;
     try {
-      await academicPlanService.addPlanCourse(selectedPlan.id, {
-        courseId: courseForm.courseId,
-        level: Number(courseForm.level),
-        semester: Number(courseForm.semester),
-        isMandatory: courseForm.isMandatory,
-      });
-      addToast("Course added", "success");
-      setCourseModal(false);
-      await reloadSelectedPlan();
+      await closePlan.mutateAsync(confirmAction.plan.id);
+      addToast("Plan closed", "success");
+      setConfirmAction(null);
     } catch (err) {
-      setCourseFormError(err.message || "Failed to add course");
-    } finally {
-      setCourseSaving(false);
+      addToast(err.message || "Failed to close plan", "error");
+      setConfirmAction(null);
+    }
+  };
+
+  const handleOpen = async () => {
+    if (!confirmAction?.plan) return;
+    try {
+      await openPlan.mutateAsync(confirmAction.plan.id);
+      addToast("Plan reopened", "success");
+      setConfirmAction(null);
+    } catch (err) {
+      addToast(err.message || "Failed to reopen plan", "error");
+      setConfirmAction(null);
+    }
+  };
+
+  const handleAddCourse = async (data) => {
+    if (!selectedPlanId) return;
+    try {
+      await addPlanCourse.mutateAsync({ planId: selectedPlanId, ...data });
+      addToast("Course added to plan", "success");
+    } catch (err) {
+      addToast(err.message || "Failed to add course", "error");
     }
   };
 
   const handleRemoveCourse = async () => {
-    if (!deletePlanCourse) return;
+    if (!deletePlanCourse || !selectedPlanId) return;
     try {
-      await academicPlanService.removePlanCourse(selectedPlan.id, deletePlanCourse.id);
-      addToast("Course removed", "success");
+      await removePlanCourse.mutateAsync({ planId: selectedPlanId, courseId: deletePlanCourse.id });
+      addToast("Course removed from plan", "success");
       setDeletePlanCourse(null);
-      await reloadSelectedPlan();
     } catch (err) {
       addToast(err.message || "Failed to remove course", "error");
       setDeletePlanCourse(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    try {
+      await bulkDeletePlans.mutateAsync(ids);
+      addToast(`${ids.length} plan(s) deleted`, "success");
+      setSelectedIds(new Set());
+    } catch (err) {
+      addToast(`Bulk delete failed: ${err.message}`, "error");
     }
   };
 
@@ -363,81 +291,50 @@ function AcademicPlansPage() {
         </div>
         <div>
           <PermissionGate resource="courses.academic-plans" minLevel={2}>
-            <button
-              className="aplans-btn aplans-btn-primary"
-              onClick={openCreatePlan}
-              disabled={!selectedStructureId}
-            >
-              <Plus size={14} />
-              {t("new_plan")}
+            <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan} disabled={!selectedStructureId} title={!selectedStructureId ? "Select a specific node to create a plan" : ""}>
+              <Plus size={14} /> {t("new_plan")}
             </button>
           </PermissionGate>
         </div>
       </div>
 
       {error && (
-        <div className="aplans-error-banner">
+        <div className="aplans-error-banner" role="alert">
           <AlertTriangle size={16} />
           <span>{error}</span>
-          <button
-            style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c" }}
-            onClick={() => setError(null)}
-          >
+          <button style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c" }}
+            onClick={() => setError(null)}>
             <X size={14} />
           </button>
         </div>
       )}
 
       <div className="aplans-toolbar">
-        <span className="label">{t("structure_node")}</span>
-        <select
-          value={selectedStructureId}
-          onChange={(e) => setSelectedStructureId(e.target.value)}
-          disabled={structureLoading}
-        >
-          <option value="">{t("select_structure_node")}</option>
-          {structureNodes.map((n) => (
-            <option key={n.id} value={n.id}>
-              [{n._type}] {n.name}
-            </option>
-          ))}
-        </select>
-        {selectedStructureId && (
-          <button className="aplans-btn aplans-btn-outline" onClick={() => setRefreshKey(k => k + 1)}>
-            <RefreshCw size={12} />
-            {t("refresh")}
-          </button>
-        )}
+        <span className="label">
+          {scopeNode ? `Scope: ${scopeNode.name}` : "All Nodes (Global Scope)"}
+        </span>
+        <button className="aplans-btn aplans-btn-outline" onClick={() => refetchPlans()}>
+          <RefreshCw size={12} /> {t("refresh")}
+        </button>
       </div>
 
       <div className="aplans-grid">
+        {/* Left panel: plan list */}
         <div className="aplans-list-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <h3 style={{ margin: 0 }}><ClipboardList size={15} /> {t("plans")}</h3>
-            {plans.length > 0 && (
-              <input type="checkbox"
-                checked={allSelected}
-                ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
-                onChange={handleSelectAll}
-                style={{ marginRight: 4 }}
-              />
-            )}
           </div>
 
           <div className="aplans-toolbar" style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: "5px 10px", flex: 1 }}>
               <Search size={13} style={{ color: "#6b7280" }} />
-              <input
-                type="text"
-                placeholder="Search plans…"
-                value={search}
+              <input type="text" placeholder="Search plans…" value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                style={{ border: "none", outline: "none", flex: 1, fontSize: 13, fontFamily: "inherit", color: "#1a1f5e" }}
-              />
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                style={{ border: "none", outline: "none", flex: 1, fontSize: 13, fontFamily: "inherit", color: "#1a1f5e" }} />
               {search && (
                 <button style={{ background: "transparent", border: "none", cursor: "pointer", color: "#6b7280", padding: 2, display: "flex" }}
-                  onClick={() => { setSearch(""); setRefreshKey(k => k + 1); }}>
+                  onClick={() => { setSearch(""); setPage(1); }}>
                   <X size={13} />
                 </button>
               )}
@@ -448,62 +345,49 @@ function AcademicPlansPage() {
           </div>
 
           {plansLoading ? (
-            <SkeletonTable rows={5} cols={3} />
-          ) : !selectedStructureId ? (
+            <div className="aplans-empty"><RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} /></div>
+          ) : plans.length === 0 ? (
             <div className="aplans-empty" style={{ padding: "32px 16px" }}>
               <ClipboardList size={28} />
-              <p style={{ fontSize: 12, color: "#6b7280" }}>{t("pick_structure_node")}</p>
+              <p>{t("create_plan_for_node")}</p>
+              <PermissionGate resource="courses.academic-plans" minLevel={2}>
+                <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan} disabled={!selectedStructureId} title={!selectedStructureId ? "Select a specific node to create a plan" : ""}>
+                  <Plus size={14} /> {t("new_plan")}
+                </button>
+              </PermissionGate>
             </div>
-          ) : plans.length === 0 ? (
-            <EmptyState
-              icon={ClipboardList}
-              title="No plans found"
-              message={totalCount === 0 ? t("create_plan_for_node") : "Try adjusting your search."}
-              actionLabel={totalCount === 0 ? t("new_plan") : undefined}
-              onAction={totalCount === 0 ? openCreatePlan : undefined}
-            />
           ) : (
             <>
               {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`aplans-plan-row ${selectedPlan?.id === plan.id ? "active" : ""}`}
-                  onClick={() => {
-                    setSelectedPlan(plan);
-                    setPlanLoading(true);
-                    academicPlanService.fetchAcademicPlan(plan.id)
-                      .then((d) => setSelectedPlan(d))
-                      .catch((err) => setError(err.message))
-                      .finally(() => setPlanLoading(false));
-                  }}
+                <div key={plan.id}
+                  className={`aplans-plan-row ${selectedPlanId === plan.id ? "active" : ""}`}
+                  onClick={() => setSelectedPlanId(plan.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && setSelectedPlanId(plan.id)}
+                  aria-selected={selectedPlanId === plan.id}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <input type="checkbox"
-                      checked={selectedIds.has(plan.id)}
-                      onChange={(e) => handleSelectOne(plan.id, e)}
+                    <input type="checkbox" checked={selectedIds.has(plan.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setSelectedIds((prev) => { const n = new Set(prev); if (n.has(plan.id)) n.delete(plan.id); else n.add(plan.id); return n; });
+                      }}
                       onClick={(e) => e.stopPropagation()}
-                    />
+                      aria-label={`Select ${plan.name}`} />
                     <span className="plan-name" style={{ flex: 1 }}>{plan.name}</span>
                     <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
                       {plan.isClosed ? (
                         <PermissionGate resource="courses.academic-plans" minLevel={4}>
-                          <button className="aplans-action-btn edit"
-                            onClick={(e) => { e.stopPropagation(); handleOpen(plan); }}
-                            disabled={lifecycleLoading === plan.id}
-                            title="Reopen"
-                            style={{ padding: "3px 5px" }}
-                          >
+                          <button className="aplans-action-btn edit" onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "open", plan }); }}
+                            disabled={openPlan.isPending} title="Reopen" style={{ padding: "3px 5px" }}>
                             <Unlock size={11} />
                           </button>
                         </PermissionGate>
                       ) : (
                         <PermissionGate resource="courses.academic-plans" minLevel={3}>
-                          <button className="aplans-action-btn edit"
-                            onClick={(e) => { e.stopPropagation(); handleClose(plan); }}
-                            disabled={lifecycleLoading === plan.id}
-                            title="Close"
-                            style={{ padding: "3px 5px" }}
-                          >
+                          <button className="aplans-action-btn edit" onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: "close", plan }); }}
+                            disabled={closePlan.isPending} title="Close" style={{ padding: "3px 5px" }}>
                             <Lock size={11} />
                           </button>
                         </PermissionGate>
@@ -516,42 +400,23 @@ function AcademicPlansPage() {
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-                    <span className={`aplans-badge ${plan.isActive ? "aplans-badge-active" : "aplans-badge-inactive"}`}>
-                      {plan.isActive ? t("active") : t("inactive")}
-                    </span>
-                    <span className={`aplans-badge ${plan.isClosed ? "aplans-badge-inactive" : "aplans-badge-active"}`}
-                      style={{ fontSize: 10 }}>
-                      {plan.isClosed ? "Closed" : "Open"}
-                    </span>
+                    <StatusBadge status={plan.isActive ? "active" : "inactive"} label={plan.isActive ? t("active") : t("inactive")} style={{ fontSize: 10 }} />
+                    <StatusBadge status={plan.isClosed ? "closed" : "open"} label={plan.isClosed ? "Closed" : "Open"} style={{ fontSize: 10 }} />
                   </div>
                 </div>
               ))}
               {totalPages > 1 && (
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 12 }}>
+                <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 12 }}>
                   <button className="aplans-btn aplans-btn-outline" style={{ padding: "4px 10px", fontSize: 12 }}
-                    disabled={page <= 1} onClick={() => loadPlans(page - 1)}>
-                    <ChevronLeft size={12} />
+                    disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    Previous
                   </button>
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pn;
-                    if (totalPages <= 5) pn = i + 1;
-                    else {
-                      const mid = Math.floor(5 / 2);
-                      if (page <= mid + 1) pn = i + 1;
-                      else if (page >= totalPages - mid) pn = totalPages - 5 + i + 1;
-                      else pn = page - mid + i;
-                    }
-                    return (
-                      <button key={pn} className={`aplans-btn ${pn === page ? "aplans-btn-primary" : "aplans-btn-outline"}`}
-                        style={{ minWidth: 32, justifyContent: "center", padding: "4px 8px", fontSize: 12 }}
-                        onClick={() => loadPlans(pn)}>
-                        {pn}
-                      </button>
-                    );
-                  })}
+                  <span style={{ fontSize: 12, color: "#6b7280", padding: "4px 8px" }}>
+                    {page} / {totalPages}
+                  </span>
                   <button className="aplans-btn aplans-btn-outline" style={{ padding: "4px 10px", fontSize: 12 }}
-                    disabled={page >= totalPages} onClick={() => loadPlans(page + 1)}>
-                    <ChevronRight size={12} />
+                    disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                    Next
                   </button>
                 </div>
               )}
@@ -559,6 +424,7 @@ function AcademicPlansPage() {
           )}
         </div>
 
+        {/* Right panel: plan detail */}
         <div className="aplans-detail-card">
           {!selectedPlan ? (
             <div className="aplans-empty">
@@ -575,19 +441,16 @@ function AcademicPlansPage() {
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
                 <div>
-                  <h3 style={{ margin: 0 }}>
-                    <Calendar size={15} />
-                    {selectedPlan.name}
-                  </h3>
+                  <h3 style={{ margin: 0 }}>{selectedPlan.name}</h3>
                 </div>
                 <div className="aplans-detail-actions">
                   <PermissionGate resource="courses.academic-plans" minLevel={3}>
-                    <button className="aplans-btn aplans-btn-outline" onClick={() => openEditPlan(selectedPlan)}>
+                    <button className="aplans-btn aplans-btn-outline" onClick={openEditPlan}>
                       <Edit2 size={13} /> {t("edit")}
                     </button>
                   </PermissionGate>
                   <PermissionGate resource="courses.academic-plans" minLevel={5}>
-                    <button className="aplans-btn aplans-btn-danger" onClick={() => setDeletePlan(selectedPlan)}>
+                    <button className="aplans-btn aplans-btn-danger" onClick={() => setDeleteTarget(selectedPlan)}>
                       <Trash2 size={13} /> {t("delete")}
                     </button>
                   </PermissionGate>
@@ -595,54 +458,25 @@ function AcademicPlansPage() {
               </div>
 
               <div className="aplans-detail-meta">
-                <div>
-                  <span>{t("effective_from")}</span>
-                  <strong>{formatDate(selectedPlan.effectiveFrom)}</strong>
-                </div>
-                <div>
-                  <span>{t("effective_to")}</span>
-                  <strong>{selectedPlan.effectiveTo ? formatDate(selectedPlan.effectiveTo) : t("open")}</strong>
-                </div>
-                <div>
-                  <span>{t("status")}</span>
-                  <strong>{selectedPlan.isActive ? t("active") : t("inactive")}</strong>
-                </div>
-                <div>
-                  <span>Record</span>
-                  <strong>{selectedPlan.isClosed ? "Closed" : "Open"}</strong>
-                </div>
-                <div>
-                  <span>{t("structure_node")}</span>
-                  <strong style={{ fontFamily: "Space Mono, monospace", fontSize: 11 }}>
-                    {selectedPlan.structureNodeId}
-                  </strong>
-                </div>
+                <div><span>{t("effective_from")}</span><strong>{formatDate(selectedPlan.effectiveFrom)}</strong></div>
+                <div><span>{t("effective_to")}</span><strong>{selectedPlan.effectiveTo ? formatDate(selectedPlan.effectiveTo) : t("open")}</strong></div>
+                <div><span>{t("status")}</span><strong><StatusBadge status={selectedPlan.isActive ? "active" : "inactive"} label={selectedPlan.isActive ? t("active") : t("inactive")} /></strong></div>
+                <div><span>Record</span><strong><StatusBadge status={selectedPlan.isClosed ? "closed" : "open"} label={selectedPlan.isClosed ? "Closed" : "Open"} /></strong></div>
               </div>
 
               <div className="aplans-section-title" style={{ justifyContent: "space-between" }}>
                 <span><BookOpen size={13} /> {t("plan_courses")}</span>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <div className="aplans-view-toggle">
-                    <button
-                      className={curriculumView === "grid" ? "active" : ""}
-                      onClick={() => setCurriculumView("grid")}
-                      title="Visual curriculum grid"
-                    >
+                    <button className={curriculumView === "grid" ? "active" : ""}
+                      onClick={() => setCurriculumView("grid")} title="Visual curriculum grid">
                       <Grid3X3 size={13} /> Grid
                     </button>
-                    <button
-                      className={curriculumView === "table" ? "active" : ""}
-                      onClick={() => setCurriculumView("table")}
-                      title="Table view"
-                    >
+                    <button className={curriculumView === "table" ? "active" : ""}
+                      onClick={() => setCurriculumView("table")} title="Table view">
                       <Table2 size={13} /> Table
                     </button>
                   </div>
-                  <PermissionGate resource="courses.academic-plans" minLevel={2}>
-                    <button className="aplans-btn aplans-btn-primary" onClick={openAddCourse}>
-                      <Plus size={13} /> {t("add_course")}
-                    </button>
-                  </PermissionGate>
                 </div>
               </div>
 
@@ -650,81 +484,49 @@ function AcademicPlansPage() {
                 <CurriculumGrid
                   planCourses={selectedPlan.planCourses}
                   courseCatalog={courses}
-                  onAddCourse={(data) => {
-                    academicPlanService.addPlanCourse(selectedPlan.id, {
-                      courseId: data.courseId,
-                      level: data.level,
-                      semester: data.semester,
-                      isMandatory: data.isMandatory,
-                    })
-                      .then(() => {
-                        addToast("Course added to plan", "success");
-                        reloadSelectedPlan();
-                      })
-                      .catch((err) => addToast(err.message || "Failed to add course", "error"));
-                  }}
-                  onRemoveCourse={(pc) => {
-                    academicPlanService.removePlanCourse(selectedPlan.id, pc.id)
-                      .then(() => {
-                        addToast("Course removed from plan", "success");
-                        reloadSelectedPlan();
-                      })
-                      .catch((err) => addToast(err.message || "Failed to remove course", "error"));
-                  }}
+                  onAddCourse={handleAddCourse}
+                  onRemoveCourse={(pc) => setDeletePlanCourse(pc)}
                 />
               ) : (
                 <>
-                  {!selectedPlan.planCourses || selectedPlan.planCourses.length === 0 ? (
-                    <div className="aplans-empty" style={{ marginTop: 0 }}>
-                      <BookOpen size={32} />
-                      <p>{t("no_courses_plan")}</p>
+                  <DataTable
+                    columns={[
+                      { key: "code", label: t("code"), render: (_, row) => {
+                        const course = courseById[row.courseId];
+                        return <strong style={{ fontFamily: "Space Mono, monospace" }}>{course?.code || "—"}</strong>;
+                      }},
+                      { key: "title", label: t("title"), render: (_, row) => courseById[row.courseId]?.title || "—" },
+                      { key: "credits", label: "Credits", render: (_, row) => courseById[row.courseId]?.creditHours || "—", align: "center" },
+                      { key: "level", label: t("level"), align: "center" },
+                      { key: "semester", label: t("semester"), align: "center" },
+                      { key: "isMandatory", label: t("type"), render: (v) => (
+                        <StatusBadge status={v ? "active" : "draft"} label={v ? t("mandatory") : t("elective")} />
+                      )},
+                      { key: "actions", label: "", render: (_, row) => (
+                        <PermissionGate resource="courses.academic-plans" minLevel={5}>
+                          <button className="aplans-action-btn delete" onClick={(e) => { e.stopPropagation(); setDeletePlanCourse(row); }} title={t("remove")}>
+                            <Trash2 size={13} />
+                          </button>
+                        </PermissionGate>
+                      ), nowrap: true },
+                    ]}
+                    data={selectedPlan.planCourses || []}
+                    emptyIcon={BookOpen}
+                    emptyTitle={t("no_courses_plan")}
+                    emptyMessage="Click a cell in Grid view to add courses."
+                    compact={compact}
+                    onCompactToggle={() => setCompact((c) => !c)}
+                  />
+                  {planCreditSummary && (
+                    <div style={{ marginTop: 12, padding: "10px 16px", background: "#f8f9fc", borderRadius: 8, border: "1px solid #e5e7eb", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", fontSize: 13 }}>
+                      <span><strong>{planCreditSummary.courseCount}</strong> courses</span>
+                      <span><strong>{planCreditSummary.total}</strong> total credits</span>
+                      {Object.entries(planCreditSummary.byLevel).sort(([a], [b]) => Number(a) - Number(b)).map(([level, info]) => (
+                        <span key={level} style={{ color: "#6b7280" }}>
+                          Level {level}: <strong>{info.credits}</strong> cr ({info.count} courses)
+                        </span>
+                      ))}
                     </div>
-                  ) : (
-                    <table className="aplans-table">
-                      <thead>
-                        <tr>
-                          <th>{t("code")}</th>
-                          <th>{t("title")}</th>
-                          <th>{t("level")}</th>
-                          <th>{t("semester")}</th>
-                          <th>{t("type")}</th>
-                          <th className="col-actions" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedPlan.planCourses.map((pc) => {
-                          const course = courseById[pc.courseId];
-                          return (
-                            <tr key={pc.id}>
-                              <td>
-                                <strong style={{ fontFamily: "Space Mono, monospace" }}>
-                                  {course?.code || pc.courseId.slice(0, 8)}
-                                </strong>
-                              </td>
-                              <td>{course?.title || "—"}</td>
-                              <td>{pc.level}</td>
-                              <td>{pc.semester}</td>
-                              <td>
-                                <span className="aplans-badge aplans-badge-active">
-                                  {pc.isMandatory ? t("mandatory") : t("elective")}
-                                </span>
-                              </td>
-                              <td className="col-actions">
-                                <PermissionGate resource="courses.academic-plans" minLevel={5}>
-                                  <button
-                                    className="aplans-action-btn delete"
-                                    onClick={() => setDeletePlanCourse(pc)}
-                                    title={t("remove")}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </PermissionGate>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
                   )}
                 </>
               )}
@@ -733,210 +535,107 @@ function AcademicPlansPage() {
         </div>
       </div>
 
-      {planModal && (
-        <div className="aplans-modal-overlay" onClick={closePlanModal}>
-          <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="aplans-modal-header">
-              <h2>{planModal === "create" ? t("new_academic_plan") : t("edit_academic_plan")}</h2>
-              <button className="aplans-modal-close" onClick={closePlanModal}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handlePlanSubmit}>
-              <div className="aplans-modal-body">
-                <div className="aplans-form-group">
-                  <label>{t("plan_name")}</label>
-                  <input
-                    type="text"
-                    className="aplans-form-input"
-                    value={planForm.name}
-                    onChange={(e) => setPlanForm((p) => ({ ...p, name: e.target.value }))}
-                    placeholder={t("plan_name_placeholder")}
-                    autoFocus
-                  />
-                </div>
-                <div className="aplans-form-row">
-                  <div className="aplans-form-group">
-                    <label>{t("effective_from")}</label>
-                    <input
-                      type="date"
-                      className="aplans-form-input"
-                      value={planForm.effectiveFrom}
-                      onChange={(e) => setPlanForm((p) => ({ ...p, effectiveFrom: e.target.value }))}
-                    />
-                  </div>
-                  <div className="aplans-form-group">
-                    <label>{t("effective_to_optional")}</label>
-                    <input
-                      type="date"
-                      className="aplans-form-input"
-                      value={planForm.effectiveTo}
-                      onChange={(e) => setPlanForm((p) => ({ ...p, effectiveTo: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                {planModal === "edit" && (
-                  <label className="aplans-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={planForm.isActive}
-                      onChange={(e) => setPlanForm((p) => ({ ...p, isActive: e.target.checked }))}
-                    />
-                    {t("active")}
-                  </label>
-                )}
-                {planFormError && <span className="aplans-form-error">{planFormError}</span>}
-              </div>
-              <div className="aplans-modal-footer">
-                <button type="button" className="aplans-btn aplans-btn-outline" onClick={closePlanModal}>
-                  {t("cancel")}
-                </button>
-                <button type="submit" className="aplans-btn aplans-btn-primary" disabled={planSaving}>
-                  {planSaving ? t("saving") : planModal === "create" ? t("create") : t("save")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Plan Create/Edit Drawer */}
+      <Drawer
+        open={!!planModal}
+        onClose={closePlanModal}
+        title={planModal === "create" ? t("new_academic_plan") : t("edit_academic_plan")}
+        width={440}
+        loading={createPlan.isPending || updatePlan.isPending}
+        footer={
+          <>
+            <button className="btn-cancel" onClick={closePlanModal}>{t("cancel")}</button>
+            <button className="btn-primary" onClick={handlePlanSubmit} disabled={createPlan.isPending || updatePlan.isPending}>
+              {createPlan.isPending || updatePlan.isPending ? t("saving") : planModal === "create" ? t("create") : t("save")}
+            </button>
+          </>
+        }
+      >
+        {planFormError && <span className="aplans-form-error" role="alert" style={{ display: "block", marginBottom: 16 }}>{planFormError}</span>}
 
-      {courseModal && (
-        <div className="aplans-modal-overlay" onClick={() => setCourseModal(false)}>
-          <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="aplans-modal-header">
-              <h2>{t("add_course_to_plan")}</h2>
-              <button className="aplans-modal-close" onClick={() => setCourseModal(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleAddCourse}>
-              <div className="aplans-modal-body">
-                <div className="aplans-form-group">
-                  <label>{t("course")}</label>
-                  <select
-                    className="aplans-form-select"
-                    value={courseForm.courseId}
-                    onChange={(e) => setCourseForm((p) => ({ ...p, courseId: e.target.value }))}
-                  >
-                    <option value="">{t("select_course")}</option>
-                    {courses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.code} — {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="aplans-form-row">
-                  <div className="aplans-form-group">
-                    <label>{t("level")}</label>
-                    <input
-                      type="number"
-                      className="aplans-form-input"
-                      min={1}
-                      max={10}
-                      value={courseForm.level}
-                      onChange={(e) => setCourseForm((p) => ({ ...p, level: e.target.value }))}
-                    />
-                  </div>
-                  <div className="aplans-form-group">
-                    <label>{t("semester")}</label>
-                    <input
-                      type="number"
-                      className="aplans-form-input"
-                      min={1}
-                      max={4}
-                      value={courseForm.semester}
-                      onChange={(e) => setCourseForm((p) => ({ ...p, semester: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <label className="aplans-checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={courseForm.isMandatory}
-                    onChange={(e) => setCourseForm((p) => ({ ...p, isMandatory: e.target.checked }))}
-                  />
-                  {t("mandatory")}
-                </label>
-                {courseFormError && <span className="aplans-form-error">{courseFormError}</span>}
-              </div>
-              <div className="aplans-modal-footer">
-                <button type="button" className="aplans-btn aplans-btn-outline" onClick={() => setCourseModal(false)}>
-                  {t("cancel")}
-                </button>
-                <button type="submit" className="aplans-btn aplans-btn-primary" disabled={courseSaving}>
-                  {courseSaving ? t("adding") : t("add_course")}
-                </button>
-              </div>
-            </form>
+        <form onSubmit={handlePlanSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="form-group">
+            <label htmlFor="plan-name">{t("plan_name")}</label>
+            <input id="plan-name" type="text" value={planForm.name}
+              onChange={(e) => setPlanForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder={t("plan_name_placeholder")} autoFocus
+              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
           </div>
-        </div>
-      )}
-
-      {(deletePlan || deletePlanCourse) && (
-        <div
-          className="aplans-modal-overlay"
-          onClick={() => {
-            setDeletePlan(null);
-            setDeletePlanCourse(null);
-          }}
-        >
-          <div className="aplans-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="aplans-modal-header">
-              <h2>{deletePlan ? t("delete_plan_title") : t("remove_course_plan")}</h2>
-              <button
-                className="aplans-modal-close"
-                onClick={() => {
-                  setDeletePlan(null);
-                  setDeletePlanCourse(null);
-                }}
-              >
-                <X size={16} />
-              </button>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="plan-eff-from">{t("effective_from")}</label>
+              <input id="plan-eff-from" type="date" value={planForm.effectiveFrom}
+                onChange={(e) => setPlanForm((p) => ({ ...p, effectiveFrom: e.target.value }))}
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
             </div>
-            <div style={{ padding: "20px 22px", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-              <AlertTriangle size={32} color="#dc2626" />
-              <p style={{ margin: 0 }}>
-                {deletePlan
-                  ? t("delete_plan_confirm", { name: deletePlan.name })
-                  : t("remove_course_confirm")}
-              </p>
-              <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
-                {t("cannot_undo")}
-              </p>
-            </div>
-            <div className="aplans-modal-footer">
-              <button
-                className="aplans-btn aplans-btn-outline"
-                onClick={() => {
-                  setDeletePlan(null);
-                  setDeletePlanCourse(null);
-                }}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                className="aplans-btn aplans-btn-danger"
-                onClick={deletePlan ? handleDeletePlan : handleRemoveCourse}
-              >
-                {t("confirm")}
-              </button>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="plan-eff-to">{t("effective_to_optional")}</label>
+              <input id="plan-eff-to" type="date" value={planForm.effectiveTo}
+                onChange={(e) => setPlanForm((p) => ({ ...p, effectiveTo: e.target.value }))}
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
             </div>
           </div>
-        </div>
-      )}
+          {planModal === "edit" && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={planForm.isActive}
+                onChange={(e) => setPlanForm((p) => ({ ...p, isActive: e.target.checked }))}
+                style={{ accentColor: "#1a1f5e" }} />
+              {t("active")}
+            </label>
+          )}
+        </form>
+      </Drawer>
 
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onClear={() => setSelectedIds(new Set())}
-        actions={[
-          {
-            label: "Delete", icon: <Trash2 size={13} />, variant: "danger",
-            onClick: handleBulkDelete, requiresPermission: true,
-            permissionResource: "courses.academic-plans", permissionLevel: 5,
-          },
-        ]}
+      {/* Delete Plan Confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget && !deletePlanCourse}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeletePlan}
+        title={t("delete_plan_title")}
+        message={t("delete_plan_confirm", { name: deleteTarget?.name })}
+        detail={t("cannot_undo")}
+        confirmLabel={t("confirm")}
+        variant="danger"
+        loading={deletePlan.isPending}
       />
+
+      {/* Remove Course Confirmation */}
+      <ConfirmDialog
+        open={!!deletePlanCourse}
+        onClose={() => setDeletePlanCourse(null)}
+        onConfirm={handleRemoveCourse}
+        title={t("remove_course_plan")}
+        message={`Remove ${courseById[deletePlanCourse?.courseId]?.code || "this course"} from the plan?`}
+        detail={t("cannot_undo")}
+        confirmLabel={t("confirm")}
+        variant="danger"
+      />
+
+      {/* Close/Reopen Confirmation */}
+      <ConfirmDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={confirmAction?.type === "close" ? handleClose : handleOpen}
+        title={confirmAction?.type === "close" ? "Close Plan Record" : "Reopen Plan Record"}
+        message={`${confirmAction?.type === "close" ? "Close" : "Reopen"} ${confirmAction?.plan?.name}?`}
+        detail={confirmAction?.type === "close" ? "A closed plan cannot be edited." : "A reopened plan will be editable again."}
+        confirmLabel={confirmAction?.type === "close" ? "Yes, Close" : "Yes, Reopen"}
+        variant={confirmAction?.type === "close" ? "warning" : "default"}
+        loading={closePlan.isPending || openPlan.isPending}
+      />
+
+      {/* Bulk actions */}
+      {selectedIds.size > 0 && (
+        <div className="bulk-bar">
+          <span>{selectedIds.size} selected</span>
+          <button onClick={() => setSelectedIds(new Set())}>Clear</button>
+          <PermissionGate resource="courses.academic-plans" minLevel={5}>
+            <button className="bulk-danger" onClick={handleBulkDelete} disabled={bulkDeletePlans.isPending}>
+              <Trash2 size={13} /> Delete Selected
+            </button>
+          </PermissionGate>
+        </div>
+      )}
     </div>
   );
 }

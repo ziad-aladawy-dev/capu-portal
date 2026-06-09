@@ -178,6 +178,7 @@ public class CourseService : ICourseService
         CreditHours = source.CreditHours,
         Category = source.Category,
         IsActive = source.IsActive,
+        IsClosed = source.IsClosed,
     };
 
     /// <summary>

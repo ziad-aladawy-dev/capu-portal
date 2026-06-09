@@ -623,6 +623,147 @@
   }
 }
 
+/* ── Context Selectors (inline year/semester dropdown) ── */
+
+.nav-context-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(224, 192, 106, 0.2);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.nav-context-selectors {
+  position: relative;
+}
+
+.nav-context-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(224, 192, 106, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.nav-context-dropdown:hover,
+.nav-context-dropdown.is-open {
+  background: rgba(224, 192, 106, 0.12);
+  border-color: rgba(224, 192, 106, 0.3);
+  color: #fff;
+}
+
+.nav-context-icon {
+  flex-shrink: 0;
+  color: #e0c06a;
+}
+
+.nav-context-label {
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-context-sep {
+  opacity: 0.5;
+  margin: 0 2px;
+}
+
+.nav-context-chevron {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.4);
+  transition: transform 0.2s;
+}
+
+.nav-context-dropdown.is-open .nav-context-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-context-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  background: #ffffff;
+  border: 1px solid rgba(26, 31, 94, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(7, 9, 30, 0.04), 0 16px 48px rgba(7, 9, 30, 0.14);
+  z-index: 500;
+  padding: 4px;
+  animation: dropdownFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-context-section {
+  padding: 4px 0;
+}
+
+.nav-context-section + .nav-context-section {
+  border-top: 1px solid rgba(26, 31, 94, 0.06);
+}
+
+.nav-context-section-title {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(26, 31, 94, 0.35);
+}
+
+.nav-context-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 12px;
+  color: #374151;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.nav-context-item:hover {
+  background: rgba(26, 31, 94, 0.04);
+}
+
+.nav-context-item.is-selected {
+  background: rgba(201, 168, 76, 0.1);
+  color: #1a1f5e;
+  font-weight: 600;
+}
+
+.nav-context-check {
+  margin-left: auto;
+  color: #c9a84c;
+  font-size: 8px;
+}
+
+.nav-context-empty {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: rgba(26, 31, 94, 0.35);
+}
+
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 @media (max-width: 768px) {
   .navbar {
     height: 50px;

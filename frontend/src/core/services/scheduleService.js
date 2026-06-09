@@ -1,4 +1,5 @@
 import api from "../api/apiClient";
+import * as courseOfferingService from "./courseOfferingService";
 
 export const SLOT_KINDS = {
   Lecture: 0,
@@ -71,4 +72,8 @@ export async function closeSlot(id) {
 export async function openSlot(id) {
   const { data } = await api.post(`/schedule-slots/${id}/open-record`);
   return data;
+}
+
+export async function fetchOfferingsForSchedule(structureNodeId, semesterId) {
+  return courseOfferingService.fetchOfferingsForNodeSemester(structureNodeId, semesterId);
 }

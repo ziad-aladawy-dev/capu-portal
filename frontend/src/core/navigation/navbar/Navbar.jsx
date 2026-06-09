@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell, ChevronDown, Menu, Building2,
-  LogOut, Key, Search, Globe,
+  LogOut, Key, Search, Globe, Calendar,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -11,6 +11,8 @@ import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeReg
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useAuth } from "../../auth/useAuth";
+import useAcademicStore from "../../stores/useAcademicStore";
+import useScopeStore from "../../stores/useScopeStore";
 import * as notificationService from "../../services/notificationService";
 import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
 import ScopeModal from "../../components/ScopeModal";
@@ -30,9 +32,15 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
   const navigate = useNavigate();
   const language = i18n.language;
 
+  const academicYears = useAcademicStore((s) => s.academicYears);
+  const semesters = useAcademicStore((s) => s.semesters);
+  const selectYear = useAcademicStore((s) => s.selectYear);
+  const selectSemester = useAcademicStore((s) => s.selectSemester);
+
   const [openDropdown, setOpenDropdown] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showScopeModal, setShowScopeModal] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
@@ -40,14 +48,17 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
 
   const bellRef = useRef(null);
   const avatarRef = useRef(null);
+  const contextRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         !bellRef.current?.contains(e.target) &&
-        !avatarRef.current?.contains(e.target)
+        !avatarRef.current?.contains(e.target) &&
+        !contextRef.current?.contains(e.target)
       ) {
         setOpenDropdown(null);
+        setContextOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -113,8 +124,6 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
   const yearLabel = selectedYearObj ? getLocalized(selectedYearObj.name, language) : null;
   const semesterLabel = selectedSemesterObj ? getLocalized(selectedSemesterObj.name, language) : null;
 
-  const showTemporal = yearLabel || semesterLabel;
-
   return (
     <>
       <header className="navbar" style={style} data-secondary-open={secondaryOpen || undefined}>
@@ -131,7 +140,7 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
           </button>
         </div>
 
-        <div className="navbar-center">
+        <div className="navbar-center" ref={contextRef}>
           <button
             className={`nav-scope-pill${scopeNode || selectedYearObj || selectedSemesterObj ? " has-scope" : ""}`}
             onClick={() => setShowScopeModal(true)}
@@ -147,18 +156,71 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
                 <Globe size={15} className="nav-scope-icon" />
               )}
               <span className="nav-scope-pill-main">{scopeDisplayName}</span>
-              
-              {showTemporal && (
-                <>
-                  <span className="nav-scope-divider" />
-                  <span className="nav-scope-pill-temporal">
-                    {yearLabel} <span className="temporal-dot">•</span> {semesterLabel}
-                  </span>
-                </>
-              )}
             </div>
             <ChevronDown size={14} className="nav-scope-pill-chevron" />
           </button>
+
+          <div className="nav-context-divider" />
+
+          <div className="nav-context-selectors">
+            <div
+              className={`nav-context-dropdown ${contextOpen ? "is-open" : ""}`}
+              onClick={() => setContextOpen((p) => !p)}
+              role="combobox"
+              aria-expanded={contextOpen}
+              aria-haspopup="listbox"
+              aria-label="Select academic year and semester"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setContextOpen((p) => !p); } }}
+            >
+              <Calendar size={13} className="nav-context-icon" />
+              <span className="nav-context-label">
+                {yearLabel || t("select_year")}
+                {semesterLabel && <><span className="nav-context-sep"> / </span>{semesterLabel}</>}
+              </span>
+              <ChevronDown size={11} className="nav-context-chevron" />
+            </div>
+
+            {contextOpen && (
+              <div className="nav-context-menu" role="listbox" aria-label="Context selector">
+                <div className="nav-context-section">
+                  <div className="nav-context-section-title">{t("academic_year")}</div>
+                  {academicYears.length === 0 ? (
+                    <div className="nav-context-empty">No years available</div>
+                  ) : (
+                    academicYears.map((y) => (
+                      <button
+                        key={y.id}
+                        className={`nav-context-item ${selectedYearObj?.id === y.id ? "is-selected" : ""}`}
+                        onClick={() => { selectYear(y); setContextOpen(false); }}
+                        role="option"
+                        aria-selected={selectedYearObj?.id === y.id}
+                      >
+                        {y.name}
+                        {y.isCurrent && <span className="nav-context-check">●</span>}
+                      </button>
+                    ))
+                  )}
+                </div>
+                {semesters.length > 0 && (
+                  <div className="nav-context-section">
+                    <div className="nav-context-section-title">{t("semester")}</div>
+                    {semesters.map((s) => (
+                      <button
+                        key={s.id}
+                        className={`nav-context-item ${selectedSemesterObj?.id === s.id ? "is-selected" : ""}`}
+                        onClick={() => { selectSemester(s); setContextOpen(false); }}
+                        role="option"
+                        aria-selected={selectedSemesterObj?.id === s.id}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="navbar-right">
