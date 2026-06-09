@@ -18,6 +18,14 @@ public class StudentDto
 
     public string Email { get; set; } = string.Empty;
 
+    public string? PhotoUrl { get; set; }
+
+    public string? Gender { get; set; }
+
+    public string? GuardianName { get; set; }
+
+    public string? GuardianPhone { get; set; }
+
     public Guid StructureNodeId { get; set; }
 
     public string StructureNodeName { get; set; } = string.Empty;

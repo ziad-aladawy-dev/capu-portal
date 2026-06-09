@@ -6,6 +6,7 @@ export default [
   {
     path: "/admin/notifications",
     component: NotificationsPage,
+    permission: "notifications.notifications.view",
     pageType: "management",
     applicableTo: "both",
     menuItem: {

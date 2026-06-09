@@ -103,6 +103,12 @@ public class StaffService : IStaffService
 
             JobTitle = request.JobTitle,
 
+            PhotoUrl = request.PhotoUrl,
+
+            Gender = request.Gender,
+
+            Qualification = request.Qualification,
+
             StructureNodeId = request.StructureNodeId,
 
             PasswordExpiry = request.PasswordExpiry,
@@ -178,6 +184,12 @@ public class StaffService : IStaffService
         staff.Role = request.Role;
 
         staff.JobTitle = request.JobTitle;
+
+        staff.PhotoUrl = request.PhotoUrl ?? staff.PhotoUrl;
+
+        staff.Gender = request.Gender ?? staff.Gender;
+
+        staff.Qualification = request.Qualification ?? staff.Qualification;
 
         staff.StructureNodeId = request.StructureNodeId;
 
@@ -311,6 +323,18 @@ public class StaffService : IStaffService
         };
     }
 
+    public async Task UpdatePhotoAsync(Guid id, string photoUrl)
+    {
+        var staff = await _repository.GetByIdAsync(id);
+        if (staff == null)
+            throw new Exception("Staff not found");
+
+        staff.PhotoUrl = photoUrl;
+        staff.UpdatedAt = DateTime.UtcNow;
+        await _repository.UpdateAsync(staff);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
         return await _repository.GetStatisticsAsync(request);
@@ -358,6 +382,12 @@ public class StaffService : IStaffService
             Role = staff.Role,
 
             JobTitle = _localizationService.GetLocalizedString(staff.JobTitle),
+
+            PhotoUrl = staff.PhotoUrl,
+
+            Gender = staff.Gender,
+
+            Qualification = staff.Qualification,
 
             StructureNodeId = staff.StructureNodeId,
 

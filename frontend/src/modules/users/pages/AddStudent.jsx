@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, Mail, Lock, Phone, CheckCircle2, UserPlus, KeyRound, BookOpen,
-  Building2, Calendar, Award, Hash, Globe
+  Building2, Calendar, Award, Hash, Globe, Users, Camera, RefreshCw
 } from "lucide-react";
 import userService from "../services/userService";
 import "../styles/userForms.css";
@@ -34,7 +34,15 @@ const AddStudent = () => {
     levelId: "",
     phone: "",
     dateOfBirth: "",
+    gender: "",
+    guardianName: "",
+    guardianPhone: "",
   });
+
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [errors, setErrors] = useState({});
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -180,9 +188,17 @@ const AddStudent = () => {
       password: formData.password,
       confirmPassword: formData.confirmPassword,
       structureNodeId: formData.levelId,
+      gender: formData.gender || null,
+      guardianName: formData.guardianName || null,
+      guardianPhone: formData.guardianPhone || null,
     };
     try {
-      await userService.createStudent(payload);
+      const result = await userService.createStudent(payload);
+      if (photoFile && result?.id) {
+        setUploadingPhoto(true);
+        await userService.uploadStudentPhoto(result.id, photoFile);
+        setUploadingPhoto(false);
+      }
       setShowSuccess(true);
       setTimeout(() => navigate("/admin/users"), 1600);
     } catch (err) {
@@ -197,14 +213,11 @@ const AddStudent = () => {
   return (
     <div className="add-user-page">
       <div className="page-container compact-wizard">
-        <div className="page-header compact-header">
-          <div className="header-content">
-            <div className="header-icon"><UserPlus size={22} /></div>
-            <div className="header-text">
-              <h1>{t("add_new_student")}</h1>
-              <div className="gold-line" />
-              <p>{t("create_student_step_by_step")}</p>
-            </div>
+        <div className="uf-hero">
+          <div className="uf-hero-avatar"><UserPlus size={24} /></div>
+          <div className="uf-hero-body">
+            <h1>{t("add_new_student")}</h1>
+            <p className="uf-hero-subtitle">{t("create_student_step_by_step")}</p>
           </div>
         </div>
 
@@ -330,6 +343,18 @@ const AddStudent = () => {
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label">{t("gender")}</label>
+                    <div className="input-wrapper">
+                      <select name="gender" value={formData.gender} onChange={handleChange} className="form-select">
+                        <option value="">{t("select_gender")}</option>
+                        <option value="Male">{t("male")}</option>
+                        <option value="Female">{t("female")}</option>
+                      </select>
+                      <Users size={15} className="input-icon" />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
                     <label className="form-label">{t("phone")}</label>
                     <div className="input-wrapper">
                       <input
@@ -342,6 +367,75 @@ const AddStudent = () => {
                       />
                       <Phone size={15} className="input-icon" />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("guardian_name")}</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        name="guardianName"
+                        value={formData.guardianName}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder={t("guardian_name_placeholder")}
+                      />
+                      <Users size={15} className="input-icon" />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("guardian_phone")}</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="tel"
+                        name="guardianPhone"
+                        value={formData.guardianPhone}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder={t("guardian_phone_placeholder")}
+                      />
+                      <Phone size={15} className="input-icon" />
+                    </div>
+                  </div>
+                </div>
+                <div className="photo-upload-section">
+                  <div className="photo-upload-label">{t("profile_photo")}</div>
+                  <div className="photo-upload-area">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="preview" className="photo-preview" />
+                    ) : (
+                      <div className="photo-placeholder">
+                        <Camera size={32} />
+                        <span>{t("click_to_upload")}</span>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="photo-file-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                            alert(t('invalid_image_type'));
+                            return;
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert(t('image_too_large'));
+                            return;
+                          }
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                    {photoPreview && (
+                      <button type="button" className="photo-remove-btn" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
+                        {t("remove")}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

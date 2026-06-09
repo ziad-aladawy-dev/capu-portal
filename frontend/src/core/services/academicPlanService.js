@@ -34,3 +34,28 @@ export async function removePlanCourse(planId, planCourseId) {
   const { data } = await api.delete(`/academic-plans/${planId}/courses/${planCourseId}`);
   return data;
 }
+
+export async function batchUpdatePlanCourses(planId, body) {
+  const { data } = await api.post(`/academic-plans/${planId}/courses/batch`, body);
+  return data;
+}
+
+export async function searchAcademicPlans(params = {}) {
+  const { data } = await api.get("/academic-plans/search", { params });
+  return data;
+}
+
+export async function closeAcademicPlan(id) {
+  const { data } = await api.post(`/academic-plans/${id}/close-record`);
+  return data;
+}
+
+export async function openAcademicPlan(id) {
+  const { data } = await api.post(`/academic-plans/${id}/open-record`);
+  return data;
+}
+
+export async function bulkDeleteAcademicPlans(ids) {
+  const { data } = await api.post("/academic-plans/delete", { ids });
+  return data;
+}

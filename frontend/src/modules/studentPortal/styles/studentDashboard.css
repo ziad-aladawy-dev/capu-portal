@@ -259,10 +259,16 @@
   font-size: 13px;
 }
 
+@media (max-width: 1024px) {
+  .sd-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 768px) {
+  .sd-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .sd-request-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 640px) {
+  .sd-stats-grid { grid-template-columns: 1fr; }
   .sd-request-stats-grid { grid-template-columns: 1fr; }
 }

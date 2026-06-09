@@ -20,6 +20,10 @@ import authorizationRoutes from "../../modules/authorization/routes";
 import courseOfferingsRoutes from "../../modules/courseOfferings/routes";
 import scheduleRoutes from "../../modules/schedule/routes";
 import invoicesRoutes from "../../modules/invoices/routes";
+import programsRoutes from "../../modules/programs/routes";
+import syncRoutes from "../../modules/sync/routes";
+import auditLogsRoutes from "../../modules/auditLogs/routes";
+import transactionsRoutes from "../../modules/transactions/routes";
 
 const ALL_ROUTES = [
   ...adminRoutes,
@@ -40,6 +44,10 @@ const ALL_ROUTES = [
   ...courseOfferingsRoutes,
   ...scheduleRoutes,
   ...invoicesRoutes,
+  ...programsRoutes,
+  ...syncRoutes,
+  ...auditLogsRoutes,
+  ...transactionsRoutes,
 ];
 
 const LOADING_FALLBACK = createElement(

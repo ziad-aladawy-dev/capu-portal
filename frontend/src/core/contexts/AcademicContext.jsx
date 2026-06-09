@@ -7,6 +7,21 @@ const AcademicContext = createContext();
 const YEAR_STORAGE_KEY = "capu_selected_academic_year";
 const SEMESTER_STORAGE_KEY = "capu_selected_semester";
 
+async function fetchWithRetry(fn, maxRetries = 2, baseDelay = 600) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, baseDelay * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export const AcademicProvider = ({ children }) => {
   const { i18n } = useTranslation();
   const [academicYears, setAcademicYears] = useState([]);
@@ -60,8 +75,7 @@ export const AcademicProvider = ({ children }) => {
     }
     let cancelled = false;
     setLoading(true);
-    academicService
-      .fetchAcademicYears()
+    fetchWithRetry(() => academicService.fetchAcademicYears())
       .then((years) => {
         if (cancelled) return;
         const list = Array.isArray(years) ? years : [];
@@ -101,8 +115,7 @@ export const AcademicProvider = ({ children }) => {
       return;
     }
     let cancelled = false;
-    academicService
-      .fetchSemesters(selectedYear.id)
+    fetchWithRetry(() => academicService.fetchSemesters(selectedYear.id))
       .then((sems) => {
         if (cancelled) return;
         const list = Array.isArray(sems) ? sems : [];

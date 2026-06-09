@@ -10,12 +10,11 @@ import {
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useToast } from "../Toast";
-import { useUserScope } from "../../hooks/useUserScope";
 import { useColumnVisibility } from "../../hooks/useColumnVisibility";
 import { getLocalized } from "../../utils/getLocalized";
-import UserDetailView from "../UserDetailView";
 import { SkeletonTable } from "../Skeleton";
 import EmptyState from "../EmptyState";
+import PermissionGate from "../../auth/PermissionGate";
 import userService from "../../../modules/users/services/userService";
 import "./directory.css";
 
@@ -70,7 +69,6 @@ function DirectoryPage({ config }) {
   const { addToast } = useToast();
   const { scopeNode } = useDomain();
   const { selectedYearObj, selectedSemesterObj, selectedYear, selectedSemester } = useAcademic();
-  const { scopedUser, isScoped, clearScope, scopeToUser } = useUserScope();
   const searchRef = useRef(null);
   const exportRef = useRef(null);
   const colVisRef = useRef(null);
@@ -185,10 +183,6 @@ function DirectoryPage({ config }) {
     const q = colVisSearch.toLowerCase();
     return toggleableCols.filter(col => t(col.labelKey).toLowerCase().includes(q));
   }, [toggleableCols, colVisSearch, t]);
-
-  if (isScoped && scopedUser?.type === config.userType) {
-    return <UserDetailView userId={scopedUser.id} userType={config.userType} onBack={clearScope} />;
-  }
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -428,17 +422,19 @@ function DirectoryPage({ config }) {
             {item.passwordStatus || t("valid")}
           </span>
         );
-      case "actions":
-        return (
-          <div className="dir-action-btns" onClick={e => e.stopPropagation()}>
-            <button className="dir-action-btn dir-action-btn-info" onClick={() => scopeToUser({ id: item.id, name: item.name, code: item[config.codeField], type: config.userType })} title={t("details")}>
-              <Eye size={15} />
-            </button>
-            <button className="dir-action-btn dir-action-btn-edit" onClick={() => navigate(config.routes.edit(item.id))} title={t("edit")}>
-              <Edit3 size={15} />
-            </button>
-          </div>
-        );
+        case "actions":
+          return (
+            <div className="dir-action-btns" onClick={e => e.stopPropagation()}>
+              <button className="dir-action-btn dir-action-btn-info" onClick={() => navigate(`/admin/users/${item.id}`)} title={t("details")}>
+                <Eye size={15} />
+              </button>
+              <PermissionGate resource={config.permissionResource} minLevel={3}>
+                <button className="dir-action-btn dir-action-btn-edit" onClick={() => navigate(config.routes.edit(item.id))} title={t("edit")}>
+                  <Edit3 size={15} />
+                </button>
+              </PermissionGate>
+            </div>
+          );
       default:
         return null;
     }
@@ -469,12 +465,16 @@ function DirectoryPage({ config }) {
           </div>
         </div>
         <div className="dir-header-actions">
-          <button className="dir-btn dir-btn-ghost" onClick={openExportMenu} ref={exportRef}>
-            <Download size={14} /> {t("export")}
-          </button>
-          <button className="dir-btn dir-btn-primary" onClick={() => navigate(config.routes.add)}>
-            <Upload size={14} /> {t("add")}
-          </button>
+          <PermissionGate resource={config.permissionResource} minLevel={2}>
+            <button className="dir-btn dir-btn-ghost" onClick={openExportMenu} ref={exportRef}>
+              <Download size={14} /> {t("export")}
+            </button>
+          </PermissionGate>
+          <PermissionGate resource={config.permissionResource} minLevel={2}>
+            <button className="dir-btn dir-btn-primary" onClick={() => navigate(config.routes.add)}>
+              <Upload size={14} /> {t("add")}
+            </button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -652,7 +652,7 @@ function DirectoryPage({ config }) {
                     key={item.id}
                     className={selectedIds.has(item.id) ? "selected-row" : ""}
                     style={{ cursor: "pointer" }}
-                    onClick={() => scopeToUser({ id: item.id, name: item.name, code: item[config.codeField], type: config.userType })}
+                    onClick={() => navigate(`/admin/users/${item.id}`)}
                   >
                     <td className="dir-bulk-cell" onClick={e => e.stopPropagation()}>
                       <input
@@ -738,22 +738,30 @@ function DirectoryPage({ config }) {
           <span className="dir-bulk-count">{selectedIds.size} {t("selected")}</span>
           <div className="dir-bulk-actions">
             {config.bulkActions?.activate !== false && (
-              <button className="dir-bulk-btn dir-bulk-btn-activate" onClick={() => handleBulkAction("activate")}>
-                <CheckCircle size={13} /> {t("activate")}
-              </button>
+              <PermissionGate resource={config.permissionResource} minLevel={3}>
+                <button className="dir-bulk-btn dir-bulk-btn-activate" onClick={() => handleBulkAction("activate")}>
+                  <CheckCircle size={13} /> {t("activate")}
+                </button>
+              </PermissionGate>
             )}
             {config.bulkActions?.deactivate !== false && (
-              <button className="dir-bulk-btn dir-bulk-btn-deactivate" onClick={() => handleBulkAction("deactivate")}>
-                <XCircle size={13} /> {t("deactivate")}
-              </button>
+              <PermissionGate resource={config.permissionResource} minLevel={3}>
+                <button className="dir-bulk-btn dir-bulk-btn-deactivate" onClick={() => handleBulkAction("deactivate")}>
+                  <XCircle size={13} /> {t("deactivate")}
+                </button>
+              </PermissionGate>
             )}
-            <button className="dir-bulk-btn dir-bulk-btn-export" onClick={() => handleExport("excel")}>
-              <Download size={13} /> {t("export")}
-            </button>
-            {config.bulkActions?.delete !== false && (
-              <button className="dir-bulk-btn dir-bulk-btn-delete" onClick={() => handleBulkAction("delete")}>
-                <XCircle size={13} /> {t("delete")}
+            <PermissionGate resource={config.permissionResource} minLevel={2}>
+              <button className="dir-bulk-btn dir-bulk-btn-export" onClick={() => handleExport("excel")}>
+                <Download size={13} /> {t("export")}
               </button>
+            </PermissionGate>
+            {config.bulkActions?.delete !== false && (
+              <PermissionGate resource={config.permissionResource} minLevel={5}>
+                <button className="dir-bulk-btn dir-bulk-btn-delete" onClick={() => handleBulkAction("delete")}>
+                  <XCircle size={13} /> {t("delete")}
+                </button>
+              </PermissionGate>
             )}
           </div>
         </div>

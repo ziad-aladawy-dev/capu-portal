@@ -24,6 +24,8 @@ public class RolesController : ControllerBase
     private readonly GetRoleByIdQueryHandler _getRoleByIdHandler;
     private readonly GetRolesQueryHandler _getRolesHandler;
     private readonly GetRoleMembersQueryHandler _getRoleMembersHandler;
+    private readonly AddRoleMemberCommandHandler _addRoleMemberHandler;
+    private readonly RemoveRoleMemberCommandHandler _removeRoleMemberHandler;
 
     public RolesController(
         CreateRoleCommandHandler createRoleHandler,
@@ -31,7 +33,9 @@ public class RolesController : ControllerBase
         DeleteRoleCommandHandler deleteRoleHandler,
         GetRoleByIdQueryHandler getRoleByIdHandler,
         GetRolesQueryHandler getRolesHandler,
-        GetRoleMembersQueryHandler getRoleMembersHandler)
+        GetRoleMembersQueryHandler getRoleMembersHandler,
+        AddRoleMemberCommandHandler addRoleMemberHandler,
+        RemoveRoleMemberCommandHandler removeRoleMemberHandler)
     {
         _createRoleHandler = createRoleHandler;
         _updateRoleHandler = updateRoleHandler;
@@ -39,6 +43,8 @@ public class RolesController : ControllerBase
         _getRoleByIdHandler = getRoleByIdHandler;
         _getRolesHandler = getRolesHandler;
         _getRoleMembersHandler = getRoleMembersHandler;
+        _addRoleMemberHandler = addRoleMemberHandler;
+        _removeRoleMemberHandler = removeRoleMemberHandler;
     }
 
     [HttpGet]
@@ -82,6 +88,25 @@ public class RolesController : ControllerBase
     {
         var members = await _getRoleMembersHandler.Handle(new GetRoleMembersRequest { RoleId = id }, cancellationToken);
         return Ok(members);
+    }
+
+    [HttpPost("{id:guid}/members")]
+    [HasPermission(PermissionNames.Roles.EditClose)]
+    public async Task<ActionResult> AddRoleMember(Guid id, [FromBody] AddRoleMemberRequest request, CancellationToken cancellationToken)
+    {
+        if (id != request.RoleId) return BadRequest();
+        var result = await _addRoleMemberHandler.Handle(request, cancellationToken);
+        if (!result) return NotFound();
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/members/{staffId:guid}")]
+    [HasPermission(PermissionNames.Roles.EditClose)]
+    public async Task<ActionResult> RemoveRoleMember(Guid id, Guid staffId, CancellationToken cancellationToken)
+    {
+        var result = await _removeRoleMemberHandler.Handle(new RemoveRoleMemberRequest { RoleId = id, StaffId = staffId }, cancellationToken);
+        if (!result) return NotFound();
+        return NoContent();
     }
 
     [HttpDelete("{id:guid}")]

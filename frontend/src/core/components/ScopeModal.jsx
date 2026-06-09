@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   X, ChevronRight, ChevronDown, Building2, Check,
-  CalendarRange, BookOpen, Globe, Trash2
+  CalendarRange, BookOpen, Globe, Trash2, Search
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import * as structureService from "../services/structureService";
@@ -72,9 +72,25 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedId, onSelect, depth
   );
 }
 
-function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, loading, emptyText, allLabel }) {
+function TemporalDropdown({ label, icon: Icon, items, selected, onSelect, onClear, loading, emptyText, allLabel }) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    if (open && searchRef.current) {
+      searchRef.current.focus();
+      setSearchQuery("");
+    }
+  }, [open]);
+
+  const filteredItems = items.filter((item) => {
+    if (!searchQuery) return true;
+    const name = getLocalized(item.name, i18n.language).toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return name.includes(query);
+  });
 
   return (
     <div className="scope-temporal-group">
@@ -87,7 +103,7 @@ function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, 
           className={`scope-temporal-trigger ${open ? "is-open" : ""} ${selected ? "has-active" : ""}`}
           onClick={() => setOpen(!open)}
         >
-            {selected ? (
+          {selected ? (
             <div className="scope-temporal-trigger-text">
               <strong>{getLocalized(selected.name, i18n.language)}</strong>
               <span className="scope-temporal-trigger-sub">
@@ -103,24 +119,42 @@ function ScopeDropdown({ label, icon: Icon, items, selected, onSelect, onClear, 
           <>
             <div className="scope-temporal-backdrop" onClick={() => setOpen(false)} />
             <div className="scope-temporal-dropdown">
-              <button
-                className={`scope-temporal-item ${!selected ? "is-selected" : ""}`}
-                onClick={() => { onClear(); setOpen(false); }}
-              >
-                <Globe size={13} />
-                <span>{allLabel || t("all_scopes")}</span>
-                {!selected && <Check size={11} className="scope-temporal-check" />}
-              </button>
+              <div className="scope-temporal-search">
+                <Search size={13} />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  placeholder={t("search") + "..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {searchQuery && (
+                  <button className="scope-temporal-search-clear" onClick={() => setSearchQuery("")}>
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
               <div className="scope-temporal-divider" />
+              {!searchQuery && (
+                <button
+                  className={`scope-temporal-item ${!selected ? "is-selected" : ""}`}
+                  onClick={() => { onClear(); setOpen(false); }}
+                >
+                  <Globe size={13} />
+                  <span>{allLabel || t("all_scopes")}</span>
+                  {!selected && <Check size={11} className="scope-temporal-check" />}
+                </button>
+              )}
               {loading ? (
                 <div className="scope-temporal-item" style={{ justifyContent: "center", opacity: 0.5 }}>
                   {t("loading")}…
                 </div>
-              ) : items.length === 0 ? (
+              ) : filteredItems.length === 0 ? (
                 <div className="scope-temporal-item" style={{ justifyContent: "center", opacity: 0.5 }}>
-                  {emptyText}
+                  {searchQuery ? t("no_results") : emptyText}
                 </div>
-              ) : items.map((item) => (
+              ) : filteredItems.map((item) => (
                 <button
                   key={item.id}
                   className={`scope-temporal-item ${selected?.id === item.id ? "is-selected" : ""} ${item.isClosed ? "is-closed" : ""}`}
@@ -220,7 +254,7 @@ function ScopeModal({ onClose }) {
 
   return (
     <div className="scope-modal-overlay" onClick={onClose}>
-      <div className="scope-modal wide" onClick={(e) => e.stopPropagation()}>
+      <div className="scope-modal" onClick={(e) => e.stopPropagation()}>
         <div className="scope-modal-header">
           <h2>{t("select_scope")}</h2>
           <button className="scope-modal-close" onClick={onClose}>
@@ -252,98 +286,32 @@ function ScopeModal({ onClose }) {
             )}
           </div>
 
-          <div className="scope-modal-detail-panel">
-            <div className="scope-modal-panel-label">{t("scope_summary")}</div>
+          <div className="scope-modal-temporal-panel">
+            <div className="scope-modal-panel-label">{t("temporal_scope")}</div>
 
-            {/* Summary chips */}
-            <div className="scope-summary">
-              {selectedNode ? (
-                <div className="scope-summary-chip structural">
-                  {(() => {
-                    const SelIcon = getNodeTypeConfig(selectedNode.type)?.icon || Building2;
-                    const selColor = getNodeTypeConfig(selectedNode.type)?.color || "#1a1f5e";
-                    return <SelIcon size={12} style={{ color: selColor }} />;
-                  })()}
-                  <span className="scope-summary-chip-label">{selectedNode.localizedName || getLocalized(selectedNode.name, i18n.language)}</span>
-                  <button
-                    className="scope-summary-chip-clear"
-                    onClick={(e) => { e.stopPropagation(); setSelectedNode(null); }}
-                    title={t("clear")}
-                  >
-                    <X size={10} />
-                  </button>
-                </div>
-              ) : (
-                <div className="scope-summary-chip empty">
-                  <Building2 size={12} />
-                  <span className="scope-summary-chip-label">{t("no_structure_selected")}</span>
-                </div>
-              )}
-              {tempYear ? (
-                <div className="scope-summary-chip temporal">
-                  <CalendarRange size={12} />
-                  <span className="scope-summary-chip-label">{getLocalized(tempYear.name, i18n.language)}</span>
-                  <button
-                    className="scope-summary-chip-clear"
-                    onClick={(e) => { e.stopPropagation(); setTempYear(null); setTempSemester(null); }}
-                    title={t("clear")}
-                  >
-                    <X size={10} />
-                  </button>
-                </div>
-              ) : (
-                <div className="scope-summary-chip empty">
-                  <CalendarRange size={12} />
-                  <span className="scope-summary-chip-label">{t("all_years")}</span>
-                </div>
-              )}
-              {tempSemester ? (
-                <div className="scope-summary-chip temporal">
-                  <BookOpen size={12} />
-                  <span className="scope-summary-chip-label">{getLocalized(tempSemester.name, i18n.language)}</span>
-                  <button
-                    className="scope-summary-chip-clear"
-                    onClick={(e) => { e.stopPropagation(); setTempSemester(null); }}
-                    title={t("clear")}
-                  >
-                    <X size={10} />
-                  </button>
-                </div>
-              ) : (
-                <div className="scope-summary-chip empty">
-                  <BookOpen size={12} />
-                  <span className="scope-summary-chip-label">{t("all_semesters")}</span>
-                </div>
-              )}
-            </div>
+            <TemporalDropdown
+              label={t("academic_year_scope")}
+              icon={CalendarRange}
+              items={academicYears}
+              selected={tempYear}
+              onSelect={setTempYear}
+              onClear={() => { setTempYear(null); setTempSemester(null); }}
+              loading={academicLoading}
+              emptyText={t("no_years_found")}
+              allLabel={t("all_years")}
+            />
+            <TemporalDropdown
+              label={t("semester_scope")}
+              icon={BookOpen}
+              items={semesters}
+              selected={tempSemester}
+              onSelect={setTempSemester}
+              onClear={() => setTempSemester(null)}
+              loading={academicLoading}
+              emptyText={t("no_semesters")}
+              allLabel={t("all_semesters")}
+            />
 
-            {/* Temporal selection */}
-            <div className="scope-temporal-section">
-              <ScopeDropdown
-                label={t("select_academic_year")}
-                icon={CalendarRange}
-                items={academicYears}
-                selected={tempYear}
-                onSelect={setTempYear}
-                onClear={() => { setTempYear(null); setTempSemester(null); }}
-                loading={academicLoading}
-                emptyText={t("no_years_found")}
-                allLabel={t("all_years")}
-              />
-              <ScopeDropdown
-                label={t("select_semester")}
-                icon={BookOpen}
-                items={semesters}
-                selected={tempSemester}
-                onSelect={setTempSemester}
-                onClear={() => setTempSemester(null)}
-                loading={academicLoading}
-                emptyText={t("no_semesters")}
-                allLabel={t("all_semesters")}
-              />
-            </div>
-
-            {/* Clear all */}
             <button
               className={`scope-clear-all ${!hasAnySelection ? "is-disabled" : ""}`}
               onClick={handleClearAll}

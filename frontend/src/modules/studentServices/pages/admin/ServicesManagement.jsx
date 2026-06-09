@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Plus, Edit3, Copy, Trash2, Power, Search } from "lucide-react";
 import { useServices } from "../../hooks/useServices";
 import { createService } from "../../services/studentServicesService";
+import PermissionGate from "../../../../core/auth/PermissionGate";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import StatusBadge from "../../components/StatusBadge";
@@ -37,9 +38,11 @@ const ServicesManagement = () => {
     <div className="services-management-page">
       <div className="services-header">
         <h1>{t("services_management")}</h1>
-        <button className="btn-create" onClick={() => navigate("/admin/student-services/services/create")}>
-          <Plus size={16} /> {t("create_service")}
-        </button>
+        <PermissionGate resource="student-services.services" minLevel={2}>
+          <button className="btn-create" onClick={() => navigate("/admin/student-services/services/create")}>
+            <Plus size={16} /> {t("create_service")}
+          </button>
+        </PermissionGate>
       </div>
       <div className="services-filters">
         <div className="search-box">
@@ -66,10 +69,24 @@ const ServicesManagement = () => {
                   <td><StatusBadge status={s.isActive ? "active" : "inactive"} type="service" /></td>
                   <td>{s.isPaid ? `$${s.price}` : t("free")}</td>
                   <td className="actions-cell">
-                    <button className="action-btn edit" onClick={() => navigate(`/admin/student-services/services/edit/${s.id}`)}><Edit3 size={16} /></button>
-                    <button className="action-btn duplicate" onClick={() => handleDuplicate(s)}><Copy size={16} /></button>
-                    <button className="action-btn toggle" onClick={() => toggleStatus(s.id)}><Power size={16} /></button>
-                    <button className="action-btn delete" onClick={() => removeService(s.id)}><Trash2 size={16} /></button>
+                    <PermissionGate resource="student-services.services" minLevel={3}>
+                      <button className="action-btn edit" onClick={() => navigate(`/admin/student-services/services/edit/${s.id}`)} title="Edit"><Edit3 size={16} /></button>
+                    </PermissionGate>
+                    <PermissionGate resource="student-services.services" minLevel={2}>
+                      <button className="action-btn duplicate" onClick={() => handleDuplicate(s)} title="Duplicate"><Copy size={16} /></button>
+                    </PermissionGate>
+                    {s.isActive ? (
+                      <PermissionGate resource="student-services.services" minLevel={3}>
+                        <button className="action-btn toggle" onClick={() => toggleStatus(s.id)} title="Deactivate"><Power size={16} /></button>
+                      </PermissionGate>
+                    ) : (
+                      <PermissionGate resource="student-services.services" minLevel={4}>
+                        <button className="action-btn toggle inactive" onClick={() => toggleStatus(s.id)} title="Activate"><Power size={16} /></button>
+                      </PermissionGate>
+                    )}
+                    <PermissionGate resource="student-services.services" minLevel={5}>
+                      <button className="action-btn delete" onClick={() => removeService(s.id)} title="Delete"><Trash2 size={16} /></button>
+                    </PermissionGate>
                   </td>
                 </tr>
               ))}

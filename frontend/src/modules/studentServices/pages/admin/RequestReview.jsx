@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useStaffRequests } from "../../hooks/useStaffRequests";
 import RequestTimeline from "../../components/RequestTimeline";
 import StatusBadge from "../../components/StatusBadge";
+import PermissionGate from "../../../../core/auth/PermissionGate";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import "../../styles/admin/RequestReview.css";
 
@@ -64,16 +65,18 @@ const RequestReview = () => {
         <button className="rr-back-btn" onClick={() => navigate("/admin/student-services/requests")}>
           ← {t("back")}
         </button>
-        <h1>{t("request_details")} #{currentRequest.id}</h1>
-        <div className="rr-assign">
-          <input
-            type="text"
-            placeholder={t("staff_id")}
-            value={staffId}
-            onChange={e => setStaffId(e.target.value)}
-          />
-          <button onClick={handleAssign}>{t("assign")}</button>
-        </div>
+          <h1>{t("request_details")} #{currentRequest.id}</h1>
+          <PermissionGate resource="student-services.requests" minLevel={4}>
+            <div className="rr-assign">
+              <input
+                type="text"
+                placeholder={t("staff_id")}
+                value={staffId}
+                onChange={e => setStaffId(e.target.value)}
+              />
+              <button onClick={handleAssign}>{t("assign")}</button>
+            </div>
+          </PermissionGate>
       </div>
       <div className="rr-layout">
         <div className="rr-left">
@@ -98,27 +101,29 @@ const RequestReview = () => {
           <div className="rr-timeline-card">
             <RequestTimeline timeline={currentRequest.history} />
           </div>
-          <div className="rr-actions-card">
-            <h3>{t("actions")}</h3>
-            <select onChange={e => handleStatusChange(e.target.value)} defaultValue="">
-              <option disabled value="">{t("change_status")}</option>
-              <option value="UnderReview">Under Review</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Completed">Completed</option>
-              <option value="MoreInfoRequired">More Info Required</option>
-            </select>
-            <textarea
-              className="rr-comment-textarea"
-              placeholder={t("add_comment")}
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              rows="3"
-            />
-            <button className="rr-comment-btn" onClick={handleAddComment} disabled={updating}>
-              {t("add_comment")}
-            </button>
-          </div>
+          <PermissionGate resource="student-services.requests" minLevel={3}>
+            <div className="rr-actions-card">
+              <h3>{t("actions")}</h3>
+              <select onChange={e => handleStatusChange(e.target.value)} defaultValue="">
+                <option disabled value="">{t("change_status")}</option>
+                <option value="UnderReview">Under Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Completed">Completed</option>
+                <option value="MoreInfoRequired">More Info Required</option>
+              </select>
+              <textarea
+                className="rr-comment-textarea"
+                placeholder={t("add_comment")}
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                rows="3"
+              />
+              <button className="rr-comment-btn" onClick={handleAddComment} disabled={updating}>
+                {t("add_comment")}
+              </button>
+            </div>
+          </PermissionGate>
         </div>
       </div>
     </div>

@@ -18,6 +18,12 @@ public class UpdateStaffRequest
 
     public string JobTitle { get; set; } = string.Empty;
 
+    public string? PhotoUrl { get; set; }
+
+    public string? Gender { get; set; }
+
+    public string? Qualification { get; set; }
+
     public Guid StructureNodeId { get; set; }
 
     public bool IsActive { get; set; }

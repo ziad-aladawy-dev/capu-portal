@@ -1,4 +1,5 @@
 import { CheckCircle, Lock, Unlock, Trash2, Clock } from "lucide-react";
+import PermissionGate from "../../../core/auth/PermissionGate";
 
 function AcademicTimeline({ years, onSetCurrent, onCloseYear, onReopenYear, onDeleteYear, onManageSemesters, lifecycleLoading }) {
   if (!years || years.length === 0) {
@@ -54,48 +55,58 @@ function AcademicTimeline({ years, onSetCurrent, onCloseYear, onReopenYear, onDe
 
               <div className="ay-timeline-year-actions">
                 {!isCurrent && !isClosed && (
-                  <button
-                    className="ay-timeline-action-btn set-current"
-                    onClick={() => onSetCurrent(year)}
-                    disabled={lifecycleLoading === year.id}
-                    title="Set as Current Year"
-                  >
-                    <CheckCircle size={14} />
-                  </button>
+                  <PermissionGate resource="academics.academic-years" minLevel={3}>
+                    <button
+                      className="ay-timeline-action-btn set-current"
+                      onClick={() => onSetCurrent(year)}
+                      disabled={lifecycleLoading === year.id}
+                      title="Set as Current Year"
+                    >
+                      <CheckCircle size={14} />
+                    </button>
+                  </PermissionGate>
                 )}
-                <button
-                  className="ay-timeline-action-btn"
-                  onClick={() => onManageSemesters?.(year)}
-                  title="Manage Semesters"
-                >
-                  <Clock size={14} />
-                </button>
+                <PermissionGate resource="academics.academic-years" minLevel={3}>
+                  <button
+                    className="ay-timeline-action-btn"
+                    onClick={() => onManageSemesters?.(year)}
+                    title="Manage Semesters"
+                  >
+                    <Clock size={14} />
+                  </button>
+                </PermissionGate>
                 {isCurrent ? (
-                  <button
-                    className="ay-timeline-action-btn close"
-                    onClick={() => onCloseYear(year)}
-                    disabled={lifecycleLoading === year.id}
-                    title="Close Year"
-                  >
-                    <Lock size={14} />
-                  </button>
+                  <PermissionGate resource="academics.academic-years" minLevel={3}>
+                    <button
+                      className="ay-timeline-action-btn close"
+                      onClick={() => onCloseYear(year)}
+                      disabled={lifecycleLoading === year.id}
+                      title="Close Year"
+                    >
+                      <Lock size={14} />
+                    </button>
+                  </PermissionGate>
                 ) : isClosed ? (
-                  <button
-                    className="ay-timeline-action-btn reopen"
-                    onClick={() => onReopenYear(year)}
-                    disabled={lifecycleLoading === year.id}
-                    title="Reopen Year"
-                  >
-                    <Unlock size={14} />
-                  </button>
+                  <PermissionGate resource="academics.academic-years" minLevel={4}>
+                    <button
+                      className="ay-timeline-action-btn reopen"
+                      onClick={() => onReopenYear(year)}
+                      disabled={lifecycleLoading === year.id}
+                      title="Reopen Year"
+                    >
+                      <Unlock size={14} />
+                    </button>
+                  </PermissionGate>
                 ) : null}
-                <button
-                  className="ay-timeline-action-btn delete"
-                  onClick={() => onDeleteYear?.(year)}
-                  title="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <PermissionGate resource="academics.academic-years" minLevel={5}>
+                  <button
+                    className="ay-timeline-action-btn delete"
+                    onClick={() => onDeleteYear?.(year)}
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </PermissionGate>
               </div>
             </div>
           );

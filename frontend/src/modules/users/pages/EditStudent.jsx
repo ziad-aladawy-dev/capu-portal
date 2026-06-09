@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, Mail, Phone, CheckCircle2, UserCircle2, BookOpen, Building2,
-  Calendar, XCircle, AlertCircle, Award, Lock, Globe
+  Calendar, XCircle, AlertCircle, Award, Lock, Globe, Users, Camera
 } from "lucide-react";
 import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../services/userService";
@@ -32,7 +32,21 @@ const EditStudent = () => {
     isActive: true,
     password: "",
     confirmPassword: "",
+    gender: "",
+    guardianName: "",
+    guardianPhone: "",
   });
+
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5256';
+  const getPhotoUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `${apiBaseUrl}${url}`;
+  };
 
   const [faculties, setFaculties] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -62,7 +76,13 @@ const EditStudent = () => {
           isActive: student.isActive !== undefined ? student.isActive : true,
           password: "",
           confirmPassword: "",
+          gender: student.gender || "",
+          guardianName: student.guardianName || "",
+          guardianPhone: student.guardianPhone || "",
         });
+        if (student.photoUrl) {
+          setPhotoPreview(getPhotoUrl(student.photoUrl));
+        }
 
         const facultiesData = await userService.getFaculties();
         setFaculties(facultiesData);
@@ -163,9 +183,17 @@ const EditStudent = () => {
       isActive: formData.isActive,
       password: formData.password || null,
       confirmPassword: formData.confirmPassword || null,
+      gender: formData.gender || null,
+      guardianName: formData.guardianName || null,
+      guardianPhone: formData.guardianPhone || null,
     };
     try {
       await userService.updateStudent(id, updateData);
+      if (photoFile) {
+        setUploadingPhoto(true);
+        await userService.uploadStudentPhoto(id, photoFile);
+        setUploadingPhoto(false);
+      }
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
@@ -186,24 +214,23 @@ const EditStudent = () => {
   return (
     <div className="edit-user-page add-user-page">
       <div className="page-container compact-wizard">
-        <div className="page-header compact-header wizard-header-with-status">
-          <div className="header-content">
-            <div className="header-icon"><UserCircle2 size={22} /></div>
-            <div className="header-text">
-              <h1>{t("edit_student")}</h1>
-              <div className="gold-line" />
-              <p>{t("update_student_information")}</p>
-            </div>
+        <div className="uf-hero">
+          <div className="uf-hero-avatar"><UserCircle2 size={24} /></div>
+          <div className="uf-hero-body">
+            <h1>{t("edit_student")}</h1>
+            <p className="uf-hero-subtitle">{t("update_student_information")}</p>
           </div>
-          <label className="account-status-toggle">
-            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
-            <span className="account-status-switch">
-              <span className="account-status-dot">
-                {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+          <div className="uf-hero-actions">
+            <label className="account-status-toggle">
+              <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
+              <span className="account-status-switch">
+                <span className="account-status-dot">
+                  {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                </span>
               </span>
-            </span>
-            <span>{formData.isActive ? t("active_account") : t("inactive_account")}</span>
-          </label>
+              <span>{formData.isActive ? t("active_account") : t("inactive_account")}</span>
+            </label>
+          </div>
         </div>
 
         <div className="wizard-steps">
@@ -306,6 +333,18 @@ const EditStudent = () => {
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label">{t("gender")}</label>
+                    <div className="input-wrapper">
+                      <select name="gender" value={formData.gender} onChange={handleChange} className="form-select">
+                        <option value="">{t("select_gender")}</option>
+                        <option value="Male">{t("male")}</option>
+                        <option value="Female">{t("female")}</option>
+                      </select>
+                      <Users size={15} className="input-icon" />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
                     <label className="form-label">{t("phone")}</label>
                     <div className="input-wrapper">
                       <input
@@ -317,6 +356,75 @@ const EditStudent = () => {
                       />
                       <Phone size={15} className="input-icon" />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("guardian_name")}</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        name="guardianName"
+                        value={formData.guardianName}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder={t("guardian_name_placeholder")}
+                      />
+                      <Users size={15} className="input-icon" />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("guardian_phone")}</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="tel"
+                        name="guardianPhone"
+                        value={formData.guardianPhone}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder={t("guardian_phone_placeholder")}
+                      />
+                      <Phone size={15} className="input-icon" />
+                    </div>
+                  </div>
+                </div>
+                <div className="photo-upload-section">
+                  <div className="photo-upload-label">{t("profile_photo")}</div>
+                  <div className="photo-upload-area">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="preview" className="photo-preview" />
+                    ) : (
+                      <div className="photo-placeholder">
+                        <Camera size={32} />
+                        <span>{t("click_to_upload")}</span>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="photo-file-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                            alert(t('invalid_image_type'));
+                            return;
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert(t('image_too_large'));
+                            return;
+                          }
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                    {photoPreview && (
+                      <button type="button" className="photo-remove-btn" onClick={() => setPhotoFile(null)}>
+                        {t("remove")}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

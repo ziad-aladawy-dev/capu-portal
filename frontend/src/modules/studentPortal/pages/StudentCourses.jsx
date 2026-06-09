@@ -1,107 +1,206 @@
-import { useState } from "react";
-import { BookOpen, Users, Clock, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, MapPin, AlertCircle } from "lucide-react";
+import { useAuth } from "../../../core/auth/useAuth";
+import * as scheduleService from "../../../core/services/scheduleService";
+import * as courseService from "../../../core/services/courseService";
+import api from "../../../core/api/apiClient";
 import "../styles/studentCourses.css";
 
+const DAY_SHORT = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri" };
+
+function formatTime(timeStr) {
+  const parts = timeStr.split(":");
+  return `${parseInt(parts[0], 10)}:${parts[1] || "00"}`;
+}
+
+function buildScheduleString(slots) {
+  const byTime = {};
+  slots.forEach(s => {
+    const key = `${s.start}-${s.end}`;
+    if (!byTime[key]) byTime[key] = { start: s.start, end: s.end, days: [] };
+    const dayNum = typeof s.day === "number" ? s.day : parseInt(s.day, 10);
+    const label = DAY_SHORT[dayNum];
+    if (label && !byTime[key].days.includes(label)) byTime[key].days.push(label);
+  });
+  return Object.values(byTime)
+    .map(g => `${g.days.join("/")} ${g.start}-${g.end}`)
+    .join(", ");
+}
+
+function buildLocations(slots) {
+  const locs = [...new Set(slots.map(s => s.location).filter(Boolean))];
+  return locs.join(", ") || "TBD";
+}
+
 function StudentCourses() {
-  // Mock course data - in production, this would come from the backend
-  const [courses] = useState([
-    {
-      id: 1,
-      code: "CS101",
-      title: "Introduction to Programming",
-      instructor: "Dr. Smith",
-      credits: 3,
-      grade: "A-",
-      status: "Completed",
-      schedule: "MWF 10:00 AM - 11:30 AM",
-      location: "Building A, Room 101",
-      students: 35,
-    },
-    {
-      id: 2,
-      code: "CS201",
-      title: "Data Structures",
-      instructor: "Dr. Johnson",
-      credits: 4,
-      grade: "B+",
-      status: "In Progress",
-      schedule: "TTh 1:00 PM - 2:30 PM",
-      location: "Building B, Room 205",
-      students: 28,
-    },
-    {
-      id: 3,
-      code: "MATH201",
-      title: "Calculus II",
-      instructor: "Prof. Williams",
-      credits: 4,
-      grade: "A",
-      status: "In Progress",
-      schedule: "MWF 2:00 PM - 3:30 PM",
-      location: "Building C, Room 115",
-      students: 42,
-    },
-    {
-      id: 4,
-      code: "ENG101",
-      title: "English Composition",
-      instructor: "Dr. Brown",
-      credits: 3,
-      grade: "A-",
-      status: "Completed",
-      schedule: "TTh 10:00 AM - 11:30 AM",
-      location: "Building A, Room 201",
-      students: 22,
-    },
-    {
-      id: 5,
-      code: "PHYS201",
-      title: "Physics II",
-      instructor: "Dr. Miller",
-      credits: 4,
-      grade: null,
-      status: "In Progress",
-      schedule: "MWF 1:00 PM - 2:30 PM",
-      location: "Building D, Room 301",
-      students: 31,
-    },
-  ]);
+  const { activeScope } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const completedCourses = courses.filter((c) => c.status === "Completed");
-  const activeCourses = courses.filter((c) => c.status === "In Progress");
+  useEffect(() => {
+    let cancelled = false;
 
-  const GRADE_POINTS = {
-    "A": 4.0, "A-": 3.7,
-    "B+": 3.3, "B": 3.0, "B-": 2.7,
-    "C+": 2.3, "C": 2.0, "C-": 1.7,
-    "D+": 1.3, "D": 1.0,
-    "F": 0.0
-  };
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
 
-  const getGradeColor = (grade) => {
-    if (!grade) return "";
-    const firstChar = grade.charAt(0);
-    if (firstChar === "A") return "grade-a";
-    if (firstChar === "B") return "grade-b";
-    if (firstChar === "C") return "grade-c";
-    if (firstChar === "D") return "grade-d";
-    return "grade-f";
-  };
+      let nodeId = activeScope?.structural?.nodeId;
+      let semesterId = activeScope?.temporal?.semesterId;
 
-  const gradeToPoint = (grade) => GRADE_POINTS[grade] ?? 0;
+      if (!nodeId || !semesterId) {
+        try {
+          const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
+          const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
+          if (!nodeId && scopeNode?.id) nodeId = scopeNode.id;
+          if (!semesterId && semester?.id) semesterId = semester.id;
+        } catch { }
+      }
+
+      if (!nodeId || !semesterId) {
+        if (!cancelled) { setError("Academic scope not configured"); setLoading(false); }
+        return;
+      }
+
+      try {
+        const resp = await api.get(`/course-offerings/node/${nodeId}/semester/${semesterId}`);
+        const offerings = Array.isArray(resp.data) ? resp.data : [];
+
+        if (offerings.length === 0) {
+          if (!cancelled) { setCourses([]); setLoading(false); }
+          return;
+        }
+
+        const slotResults = await Promise.allSettled(
+          offerings.map(o =>
+            scheduleService.fetchSlotsForOffering(o.id)
+              .then(slots => ({ offeringId: o.id, slots: Array.isArray(slots) ? slots : [] }))
+          )
+        );
+
+        const slotsByOffering = {};
+        slotResults.forEach(r => {
+          if (r.status === "fulfilled") {
+            slotsByOffering[r.value.offeringId] = r.value.slots;
+          }
+        });
+
+        const courseIds = [...new Set(offerings.map(o => o.courseId))];
+        const courseResults = await Promise.allSettled(
+          courseIds.map(id => courseService.fetchCourse(id))
+        );
+        const courseMap = {};
+        courseIds.forEach((id, i) => {
+          if (courseResults[i].status === "fulfilled" && courseResults[i].value) {
+            courseMap[id] = courseResults[i].value;
+          }
+        });
+
+        const data = [];
+        offerings.forEach(o => {
+          const course = courseMap[o.courseId];
+          if (!course) return;
+          const slots = (slotsByOffering[o.id] || []).map(s => ({
+            start: formatTime(s.startTime),
+            end: formatTime(s.endTime),
+            day: s.dayOfWeek,
+            location: s.location,
+          }));
+
+          data.push({
+            id: o.id,
+            code: course.code || "?",
+            title: course.title || "Unknown",
+            credits: course.creditHours || 0,
+            sectionCode: o.sectionCode,
+            schedule: slots.length > 0 ? buildScheduleString(slots) : "No schedule",
+            location: slots.length > 0 ? buildLocations(slots) : "TBD",
+            registeredCount: o.registeredCount,
+            capacity: o.capacity,
+            registrationState: o.registrationState,
+            slots,
+          });
+        });
+
+        if (!cancelled) {
+          setCourses(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Failed to load courses");
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [activeScope]);
+
+  const totalCredits = courses.reduce((sum, c) => sum + (c.credits || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="student-courses-container">
+        <div className="sc-header">
+          <h1>My Courses</h1>
+          <p>Loading your courses...</p>
+        </div>
+        <div className="sc-status">
+          <div className="sc-spinner" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="student-courses-container">
+        <div className="sc-header">
+          <h1>My Courses</h1>
+          <p>Course offerings and schedules</p>
+        </div>
+        <div className="sc-status">
+          <AlertCircle size={48} color="#dc2626" />
+          <h3>Unable to load courses</h3>
+          <p className="sc-status-text">{error}</p>
+          <button className="sc-retry-btn" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="student-courses-container">
+        <div className="sc-header">
+          <h1>My Courses</h1>
+          <p>Course offerings and schedules</p>
+        </div>
+        <div className="sc-status">
+          <h3>No courses available</h3>
+          <p className="sc-status-text">
+            There are no course offerings for your current academic scope.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="student-courses-container">
       <div className="sc-header">
         <h1>My Courses</h1>
-        <p>Enrolled courses and grades</p>
+        <p>Course offerings and schedules</p>
       </div>
 
-      {/* Active Courses */}
       <div className="sc-section">
-        <h2>Current Courses ({activeCourses.length})</h2>
+        <h2>Course Offerings ({courses.length})</h2>
         <div className="sc-courses-grid">
-          {activeCourses.map((course) => (
+          {courses.map(course => (
             <div key={course.id} className="sc-course-card active">
               <div className="card-header">
                 <h3>{course.title}</h3>
@@ -110,13 +209,21 @@ function StudentCourses() {
 
               <div className="card-info">
                 <div className="info-row">
-                  <span className="label">Instructor:</span>
-                  <span>{course.instructor}</span>
-                </div>
-                <div className="info-row">
                   <span className="label">Credits:</span>
                   <span>{course.credits}</span>
                 </div>
+                {course.sectionCode && (
+                  <div className="info-row">
+                    <span className="label">Section:</span>
+                    <span>{course.sectionCode}</span>
+                  </div>
+                )}
+                {course.capacity > 0 && (
+                  <div className="info-row">
+                    <span className="label">Enrolled:</span>
+                    <span>{course.registeredCount}/{course.capacity}</span>
+                  </div>
+                )}
               </div>
 
               <div className="card-schedule">
@@ -128,76 +235,30 @@ function StudentCourses() {
                   <MapPin size={14} />
                   <span>{course.location}</span>
                 </div>
-                <div className="schedule-item">
-                  <Users size={14} />
-                  <span>{course.students} students</span>
-                </div>
-              </div>
-
-              <div className="card-status">
-                <span className="status-badge in-progress">In Progress</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Completed Courses */}
-      <div className="sc-section">
-        <h2>Completed Courses ({completedCourses.length})</h2>
-        <div className="sc-courses-list">
-          {completedCourses.map((course) => (
-            <div key={course.id} className="sc-course-row">
-              <div className="row-left">
-                <div>
-                  <h4>{course.title}</h4>
-                  <p>{course.code}</p>
-                </div>
-              </div>
-              <div className="row-right">
-                <div className="row-info">
-                  <span className="label">Instructor:</span>
-                  <span>{course.instructor}</span>
-                </div>
-                <div className="row-info">
-                  <span className="label">Credits:</span>
-                  <span>{course.credits}</span>
-                </div>
-                <div className={`row-grade ${getGradeColor(course.grade)}`}>
-                  {course.grade}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Course Statistics */}
       <div className="sc-section">
         <h2>Academic Summary</h2>
         <div className="sc-stats">
           <div className="stat">
             <div className="stat-value">{courses.length}</div>
-            <div className="stat-label">Total Courses</div>
+            <div className="stat-label">Total Offerings</div>
           </div>
           <div className="stat">
-            <div className="stat-value">
-              {courses.reduce((sum, c) => sum + c.credits, 0)}
-            </div>
+            <div className="stat-value">{totalCredits}</div>
             <div className="stat-label">Total Credits</div>
           </div>
           <div className="stat">
-            <div className="stat-value">{activeCourses.length}</div>
-            <div className="stat-label">Active Courses</div>
+            <div className="stat-value">{courses.filter(c => c.slots.length > 0).length}</div>
+            <div className="stat-label">With Schedule</div>
           </div>
           <div className="stat">
-            <div className="stat-value">
-              {courses
-                .filter((c) => c.grade)
-                .reduce((sum, c) => sum + gradeToPoint(c.grade), 0)
-                .toFixed(1)}
-            </div>
-            <div className="stat-label">Average Grade (Numeric)</div>
+            <div className="stat-value">{courses.filter(c => c.registrationState === 1).length}</div>
+            <div className="stat-label">Registration Open</div>
           </div>
         </div>
       </div>

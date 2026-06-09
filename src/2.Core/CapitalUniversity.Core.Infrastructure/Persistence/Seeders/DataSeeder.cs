@@ -462,7 +462,7 @@ public static class DataSeeder
     private static async Task SeedStudentsAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
         var nodes = await context.StructureNodes.ToListAsync();
-        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
+        StructureNode? FindProgram(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name) && n.Type == StructureNodeType.Program);
 
         var pwd = passwordHasher.HashPassword("123456");
         var defs = new (string Code, string Name, string NID, DateTime DOB, string Phone, string Email, string NodeName)[]
@@ -489,45 +489,65 @@ public static class DataSeeder
         var existing = await context.Students.ToDictionaryAsync(s => s.StudentCode);
         var added = 0;
         var updated = 0;
-        foreach (var d in defs)
+
+        // Group students by program so we can distribute them across actual Level nodes
+        foreach (var group in defs.GroupBy(d => d.NodeName))
         {
-            var node = FindNode(d.NodeName);
-            if (node == null)
+            var programNode = FindProgram(group.Key);
+            if (programNode == null)
             {
-                Console.WriteLine($"[Seed] Students: skipping {d.Code} — structure node '{d.NodeName}' not found.");
+                Console.WriteLine($"[Seed] Students: skipping program '{group.Key}' — node not found.");
                 continue;
             }
 
-            if (existing.TryGetValue(d.Code, out var current))
+            var levelNodes = nodes
+                .Where(n => n.ParentId == programNode.Id && n.Type == StructureNodeType.Level)
+                .OrderBy(n => n.Order)
+                .ToArray();
+
+            if (levelNodes.Length == 0)
             {
-                current.Name = d.Name;
-                current.NationalId = d.NID;
-                current.BirthDate = d.DOB;
-                current.PhoneNumber = d.Phone;
-                current.Email = d.Email;
-                current.StructureNodeId = node.Id;
-                current.PasswordHash = pwd;
-                current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
-                current.IsActive = true;
-                updated++;
+                Console.WriteLine($"[Seed] Students: skipping program '{group.Key}' — no Level children found.");
+                continue;
             }
-            else
+
+            var levelIdx = 0;
+            foreach (var d in group)
             {
-                context.Students.Add(new Student
+                var node = levelNodes[levelIdx % levelNodes.Length];
+                levelIdx++;
+
+                if (existing.TryGetValue(d.Code, out var current))
                 {
-                    Id = Guid.NewGuid(),
-                    StudentCode = d.Code,
-                    Name = d.Name,
-                    NationalId = d.NID,
-                    BirthDate = d.DOB,
-                    PhoneNumber = d.Phone,
-                    Email = d.Email,
-                    StructureNodeId = node.Id,
-                    PasswordHash = pwd,
-                    PasswordExpiry = DateTime.UtcNow.AddYears(5),
-                    IsActive = true,
-                });
-                added++;
+                    current.Name = d.Name;
+                    current.NationalId = d.NID;
+                    current.BirthDate = d.DOB;
+                    current.PhoneNumber = d.Phone;
+                    current.Email = d.Email;
+                    current.StructureNodeId = node.Id;
+                    current.PasswordHash = pwd;
+                    current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
+                    current.IsActive = true;
+                    updated++;
+                }
+                else
+                {
+                    context.Students.Add(new Student
+                    {
+                        Id = Guid.NewGuid(),
+                        StudentCode = d.Code,
+                        Name = d.Name,
+                        NationalId = d.NID,
+                        BirthDate = d.DOB,
+                        PhoneNumber = d.Phone,
+                        Email = d.Email,
+                        StructureNodeId = node.Id,
+                        PasswordHash = pwd,
+                        PasswordExpiry = DateTime.UtcNow.AddYears(5),
+                        IsActive = true,
+                    });
+                    added++;
+                }
             }
         }
 

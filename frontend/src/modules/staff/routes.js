@@ -8,6 +8,7 @@ export default [
     path: "/admin/staff",
     component: DirectoryPage,
     props: { config: staffDirectoryConfig },
+    permission: "users.users.view",
     pageType: "management",
     applicableTo: "staff",
     menuItem: {

@@ -16,6 +16,7 @@ import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
 import "../styles/permissions.css";
 import "../styles/roles.css";
 import { useTranslation } from "react-i18next";
+import PermissionGate from "../../../core/auth/PermissionGate";
 
 const ACTION_VALUES = { View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5 };
 const LEVEL_TO_ACTION = { 1: "View", 2: "Insert", 3: "EditClose", 4: "Open", 5: "Delete" };
@@ -652,17 +653,21 @@ function PermissionsPage() {
         </div>
         <div className="perm-header-actions">
           {dirty && (
-            <button className="perm-btn perm-btn-outline" onClick={handleReset}>
-              <RotateCcw size={13} /> {t("reset")}
-            </button>
+            <PermissionGate resource="permissions.permissions" minLevel={3}>
+              <button className="perm-btn perm-btn-outline" onClick={handleReset}>
+                <RotateCcw size={13} /> {t("reset")}
+              </button>
+            </PermissionGate>
           )}
-          <button
-            className={`perm-btn perm-btn-primary ${!dirty || saving ? "disabled" : ""}`}
-            onClick={handleSave}
-            disabled={!dirty || saving || !selectedUser}
-          >
-            {saving ? t("saving") : <><Save size={13} /> {t("save_changes")}</>}
-          </button>
+          <PermissionGate resource="permissions.permissions" minLevel={3}>
+            <button
+              className={`perm-btn perm-btn-primary ${!dirty || saving ? "disabled" : ""}`}
+              onClick={handleSave}
+              disabled={!dirty || saving || !selectedUser}
+            >
+              {saving ? t("saving") : <><Save size={13} /> {t("save_changes")}</>}
+            </button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -799,13 +804,15 @@ function PermissionsPage() {
                             <span className="perm-assigned-role-name">{role.name}</span>
                             {role.isSystemRole && <span className="perm-assigned-role-badge">{t("system_role_badge")}</span>}
                           </div>
-                          <button
-                            className="perm-assigned-role-remove"
-                            onClick={() => removeAllRoleScopes(roleId)}
-                            title={t("remove_role") || "Remove role"}
-                          >
-                            <X size={12} />
-                          </button>
+                          <PermissionGate resource="permissions.permissions" minLevel={3}>
+                            <button
+                              className="perm-assigned-role-remove"
+                              onClick={() => removeAllRoleScopes(roleId)}
+                              title={t("remove_role") || "Remove role"}
+                            >
+                              <X size={12} />
+                            </button>
+                          </PermissionGate>
                         </div>
                         <div className="perm-assigned-scopes">
                           {scopes.map((scope, idx) => {
@@ -824,21 +831,25 @@ function PermissionsPage() {
                                 <span className="perm-assigned-scope-label">
                                   {nodeName || (nodeId ? t("scope_structural") : t("scope_global"))}
                                 </span>
-                                <X
-                                  size={8}
-                                  className="perm-assigned-scope-remove"
-                                  onClick={(e) => { e.stopPropagation(); removeRoleScope(roleId, idx); }}
-                                />
+                                <PermissionGate resource="permissions.permissions" minLevel={3}>
+                                  <X
+                                    size={8}
+                                    className="perm-assigned-scope-remove"
+                                    onClick={(e) => { e.stopPropagation(); removeRoleScope(roleId, idx); }}
+                                  />
+                                </PermissionGate>
                               </span>
                             );
                           })}
-                          <button
-                            className="perm-assigned-scope-add"
-                            onClick={() => openRoleScope(roleId, null)}
-                            title={t("add_scope") || "Add scope"}
-                          >
-                            <Plus size={10} />
-                          </button>
+                          <PermissionGate resource="permissions.permissions" minLevel={3}>
+                            <button
+                              className="perm-assigned-scope-add"
+                              onClick={() => openRoleScope(roleId, null)}
+                              title={t("add_scope") || "Add scope"}
+                            >
+                              <Plus size={10} />
+                            </button>
+                          </PermissionGate>
                         </div>
                       </div>
                     );
@@ -882,17 +893,18 @@ function PermissionsPage() {
                       return (
                         <div className="perm-picker-items">
                           {filtered.map((role) => (
-                            <button
-                              key={role.id}
-                              className="perm-picker-item"
-                              onClick={() => handleAddRole(role.id)}
-                            >
-                              <div className="perm-picker-item-left">
-                                <Plus size={12} className="perm-picker-item-plus" />
-                                <span className="perm-picker-item-name">{role.name}</span>
-                              </div>
-                              {role.isSystemRole && <span className="perm-picker-item-badge">{t("system_role_badge")}</span>}
-                            </button>
+                            <PermissionGate key={role.id} resource="permissions.permissions" minLevel={3}>
+                              <button
+                                className="perm-picker-item"
+                                onClick={() => handleAddRole(role.id)}
+                              >
+                                <div className="perm-picker-item-left">
+                                  <Plus size={12} className="perm-picker-item-plus" />
+                                  <span className="perm-picker-item-name">{role.name}</span>
+                                </div>
+                                {role.isSystemRole && <span className="perm-picker-item-badge">{t("system_role_badge")}</span>}
+                              </button>
+                            </PermissionGate>
                           ))}
                         </div>
                       );
@@ -970,13 +982,15 @@ function PermissionsPage() {
                                       </span>
                                     );
                                   })}
-                                  <span
-                                    className="perm-res-scope-add-btn"
-                                    onClick={() => openOverrideScope(rid, null)}
-                                    title={t("add_scope") || "Add scope"}
-                                  >
-                                    <Plus size={10} />
-                                  </span>
+                                  <PermissionGate resource="permissions.permissions" minLevel={3}>
+                                    <span
+                                      className="perm-res-scope-add-btn"
+                                      onClick={() => openOverrideScope(rid, null)}
+                                      title={t("add_scope") || "Add scope"}
+                                    >
+                                      <Plus size={10} />
+                                    </span>
+                                  </PermissionGate>
                                 </>
                               )}
                               {levels.roleBasedLevel > 0 && (
@@ -1004,15 +1018,16 @@ function PermissionsPage() {
                                   const isAvailable = isLevelZero || (backendAction && resourceActions[rid]?.has(backendAction));
                                   const active = isLevelZero ? displayLevel === 0 : displayLevel >= lvl.value;
                                   return (
-                                    <button
-                                      key={lvl.value}
-                                      className={`perm-pill ${active ? "filled" : ""} ${displayLevel === lvl.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${!isAvailable ? " disabled" : ""}`}
-                                      onClick={() => isAvailable && setLevel(rid, lvl.value, levels.roleBasedLevel)}
-                                      title={t("set_effective_level", { level: levelLabels[lvl.value] })}
-                                      disabled={!isAvailable}
-                                    >
-                                      {levelLabels[lvl.value]}
-                                    </button>
+                                    <PermissionGate key={lvl.value} resource="permissions.permissions" minLevel={3}>
+                                      <button
+                                        className={`perm-pill ${active ? "filled" : ""} ${displayLevel === lvl.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${!isAvailable ? " disabled" : ""}`}
+                                        onClick={() => isAvailable && setLevel(rid, lvl.value, levels.roleBasedLevel)}
+                                        title={t("set_effective_level", { level: levelLabels[lvl.value] })}
+                                        disabled={!isAvailable}
+                                      >
+                                        {levelLabels[lvl.value]}
+                                      </button>
+                                    </PermissionGate>
                                   );
                                 })}
                               </div>
@@ -1029,13 +1044,15 @@ function PermissionsPage() {
                                         : t("override_deny", { level: levelLabels[displayLevel] })
                                       : ""}
                                 </span>
-                                <button
-                                  className="perm-ovr-revert"
-                                  onClick={() => handleRevert(rid)}
-                                  title={t("remove_override")}
-                                >
-                                  <Undo2 size={12} /> {t("revert")}
-                                </button>
+                                <PermissionGate resource="permissions.permissions" minLevel={3}>
+                                  <button
+                                    className="perm-ovr-revert"
+                                    onClick={() => handleRevert(rid)}
+                                    title={t("remove_override")}
+                                  >
+                                    <Undo2 size={12} /> {t("revert")}
+                                  </button>
+                                </PermissionGate>
                               </div>
                             )}
                           </div>

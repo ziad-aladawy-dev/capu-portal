@@ -40,12 +40,41 @@ export async function fetchStudentStatistics(params = {}) {
   return data;
 }
 
+export async function uploadStudentPhoto(id, file) {
+  const form = new FormData();
+  form.append("file", file);
+  const { data } = await api.post(`/students/${id}/photo`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 export async function exportStudentCsv(params = {}) {
-  const { data } = await api.get("/students/export/csv", { params });
+  const { data } = await api.get("/students/export/csv", {
+    params,
+    responseType: "blob",
+  });
   return data;
 }
 
 export async function exportStudentExcel(params = {}) {
-  const { data } = await api.get("/students/export-excel", { params });
+  const { data } = await api.get("/students/export-excel", {
+    params,
+    responseType: "blob",
+  });
+  return data;
+}
+
+export async function importStudentsExcel(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const { data } = await api.post("/students/import-excel", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function bulkImportStudents(requests) {
+  const { data } = await api.post("/students/bulk-import", requests);
   return data;
 }

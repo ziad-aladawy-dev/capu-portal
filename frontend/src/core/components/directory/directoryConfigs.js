@@ -4,6 +4,7 @@ import userService from "../../../modules/users/services/userService";
 
 export const studentDirectoryConfig = {
   id: "student-directory",
+  permissionResource: "users.users",
   userType: "student",
   icon: GraduationCap,
   titleKey: "student_directory",
@@ -25,6 +26,7 @@ export const studentDirectoryConfig = {
 
 export const staffDirectoryConfig = {
   id: "staff-directory",
+  permissionResource: "users.users",
   userType: "staff",
   icon: Users,
   titleKey: "staff_directory",

@@ -159,6 +159,24 @@ const userService = {
     ];
   },
 
+  // ---------------------- Photo Upload ----------------------
+  uploadStudentPhoto: async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(`${STUDENTS_BASE}/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+  uploadStaffPhoto: async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(`${STAFF_BASE}/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
   // ---------------------- Bulk Actions ----------------------
   bulkActivateUsers: async (ids, userType) => {
     const toggle = userType === "Student" ? userService.toggleStudentStatus : userService.toggleStaffStatus;

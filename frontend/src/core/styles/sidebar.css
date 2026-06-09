@@ -3,7 +3,6 @@
 /* ══════════════════════════════════════════════════════════
    PRIMARY SIDEBAR — Left navigation panel
    Uses logical CSS properties for automatic LTR/RTL support.
-   NO [dir="rtl"] overrides needed.
    ══════════════════════════════════════════════════════════ */
 
 .sidebar {
@@ -12,24 +11,52 @@
   position: fixed;
   inset-inline-start: 0;
   top: 0;
+  padding-top: 54px;
 
-  background: linear-gradient(165deg, #1a1f5e 0%, #232a74 40%, #2e3591 100%);
-  border-inline-end: 1px solid rgba(224, 192, 106, 0.12);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='620'%3E%3Ccircle cx='230' cy='0' r='140' fill='rgba(224,192,106,0.04)' /%3E%3Ccircle cx='0' cy='460' r='110' fill='rgba(35,42,116,0.35)' /%3E%3Cline x1='115' y1='80' x2='230' y2='200' stroke='rgba(224,192,106,0.06)' stroke-width='1' /%3E%3Cline x1='0' y1='300' x2='115' y2='180' stroke='rgba(224,192,106,0.04)' stroke-width='1' /%3E%3C/svg%3E"),
+    linear-gradient(135deg, #1a1f5e 0%, #232a74 40%, #2e3591 100%);
+  background-attachment: fixed;
+  background-position: top left;
+  background-repeat: no-repeat;
+  background-size: 1000px 100vh, auto;
 
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-
   z-index: 300;
   font-family: "Outfit", sans-serif;
-  padding-top: 54px;
-
-  box-shadow: 8px 0 30px rgba(7, 9, 30, 0.22);
-
   transition:
     width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s ease;
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  box-shadow: 8px 0 30px rgba(7, 9, 30, 0.22);
+  pointer-events: none;
+  z-index: -1;
+  transition: box-shadow 0.3s ease;
+}
+
+[dir="rtl"] .sidebar::before {
+  box-shadow: -8px 0 30px rgba(7, 9, 30, 0.22);
+}
+
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(224, 192, 106, 0.18) 0%, rgba(224, 192, 106, 0.12) 56px, rgba(224, 192, 106, 0.12) 100%);
+  pointer-events: none;
+  z-index: 10;
 }
 
 /* ── OPEN & CLOSE ── */
@@ -44,15 +71,10 @@
   overflow: hidden;
   transform: translateX(0);
   border-inline-end: none;
-  box-shadow: none;
 }
 
-/* ── Geometric background decoration ── */
-
-.sidebar-geo {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+.sidebar.is-closed::before {
+  box-shadow: none;
 }
 
 /* ── Brand / Logo section ── */
@@ -64,7 +86,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px 12px 12px;
+  padding: 22px 12px 14px;
   text-align: center;
 }
 
@@ -116,24 +138,25 @@
 }
 
 .sidebar-user-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(224, 192, 106, 0.14);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(224, 192, 106, 0.02));
+  border: 1px solid rgba(224, 192, 106, 0.16);
   border-radius: 12px;
   padding: 10px;
   display: flex;
   align-items: center;
   gap: 9px;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-user-card:hover {
-  background: rgba(224, 192, 106, 0.07);
-  border-color: rgba(224, 192, 106, 0.25);
+  background: linear-gradient(135deg, rgba(224, 192, 106, 0.07), rgba(224, 192, 106, 0.03));
+  border-color: rgba(224, 192, 106, 0.3);
+  transform: translateY(-1px);
 }
 
 .sidebar-avatar {
-  width: 31px;
-  height: 31px;
+  width: 32px;
+  height: 32px;
   border-radius: 9px;
   background: linear-gradient(135deg, #c9a84c, #e0c06a);
   color: #07091e;
@@ -143,6 +166,7 @@
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(224, 192, 106, 0.15);
 }
 
 .sidebar-user-info {
@@ -216,18 +240,21 @@
   gap: 9px;
   color: rgba(255, 255, 255, 0.48);
   cursor: pointer;
-  transition: all 0.22s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-category-header:hover {
   background: rgba(255, 255, 255, 0.055);
   color: rgba(255, 255, 255, 0.82);
-  /* Use logical translateX via padding trick for LTR/RTL-safe hover */
 }
 
 .sidebar-category-header.is-open {
   background: rgba(224, 192, 106, 0.1);
   color: #e0c06a;
+}
+
+.sidebar-category-header.has-active-feature {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .sidebar-cat-icon {
@@ -239,12 +266,16 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.22s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-category-header.is-open .sidebar-cat-icon {
   background: rgba(224, 192, 106, 0.14);
   color: #e0c06a;
+}
+
+.sidebar-category-header.has-active-feature .sidebar-cat-icon {
+  color: rgba(224, 192, 106, 0.6);
 }
 
 .sidebar-category-title {
@@ -258,14 +289,7 @@
 
 .sidebar-cat-arrow {
   opacity: 0.45;
-  transition: transform 0.22s ease, opacity 0.22s ease;
-  /* In RTL, the chevron-right icon naturally points left when
-     the parent flex container reverses via dir="rtl".
-     We only need rotate on open. */
-}
-
-[dir="ltr"] .sidebar-cat-arrow {
-  /* default, no rotation needed */
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
 }
 
 [dir="rtl"] .sidebar-cat-arrow {
@@ -277,6 +301,10 @@
   opacity: 0.9;
 }
 
+[dir="rtl"] .sidebar-category-header.is-open .sidebar-cat-arrow {
+  transform: rotate(90deg);
+}
+
 /* ── Feature sub-items ── */
 
 .sidebar-features {
@@ -285,7 +313,7 @@
   flex-direction: column;
   gap: 1px;
   margin: 3px 0 5px;
-  animation: slideMenu 0.22s ease;
+  animation: slideMenu 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-feature {
@@ -303,7 +331,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  transition: all 0.22s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-feature:hover {
@@ -314,14 +342,26 @@
 .sidebar-feature.active {
   color: #e0c06a;
   font-weight: 500;
+  background: rgba(224, 192, 106, 0.06);
+  box-shadow: inset 2px 0 0 rgba(224, 192, 106, 0.35);
 }
 
 .sidebar-feature-dot {
   width: 3.5px;
   height: 3.5px;
   border-radius: 50%;
-  background: currentColor;
+  background: rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-feature:hover .sidebar-feature-dot {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-feature.active .sidebar-feature-dot {
+  background: #e0c06a;
+  box-shadow: 0 0 6px rgba(224, 192, 106, 0.4);
 }
 
 /* ── Footer ── */
@@ -347,14 +387,15 @@
   gap: 8px;
   padding: 0 11px;
   cursor: pointer;
-  transition: all 0.22s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-footer-btn:hover {
-  border-color: rgba(239, 68, 68, 0.32);
-  color: rgba(239, 68, 68, 0.75);
-  background: rgba(239, 68, 68, 0.04);
+  border-color: rgba(185, 28, 28, 0.4);
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.06);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.06);
 }
 
 /* ── Scrollbar ── */
@@ -389,6 +430,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -396,10 +438,13 @@
 }
 
 @keyframes onlinePulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
   }
+
   50% {
     opacity: 0.55;
     box-shadow: 0 0 14px rgba(52, 211, 153, 0.9);
@@ -410,6 +455,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -497,6 +543,8 @@
 
 @media (max-width: 768px) {
   .sidebar {
+    top: 0;
+    height: 100vh;
     width: 235px;
     z-index: 1000;
     padding-top: 50px;
@@ -505,26 +553,25 @@
   .sidebar.is-open {
     width: 235px;
     transform: translateX(0);
+  }
+
+  .sidebar.is-open::before {
     box-shadow: 8px 0 35px rgba(0, 0, 0, 0.35);
   }
 
   .sidebar.is-closed {
     width: 235px;
-    /* Slide out in the inline-start direction */
   }
 
-  /* LTR: slide left to hide */
   [dir="ltr"] .sidebar.is-closed {
     transform: translateX(-100%);
   }
 
-  /* RTL: slide right to hide */
   [dir="rtl"] .sidebar.is-closed {
     transform: translateX(100%);
   }
 
-  /* RTL: mirror shadow */
-  [dir="rtl"] .sidebar.is-open {
+  [dir="rtl"] .sidebar.is-open::before {
     box-shadow: -8px 0 35px rgba(0, 0, 0, 0.35);
   }
 

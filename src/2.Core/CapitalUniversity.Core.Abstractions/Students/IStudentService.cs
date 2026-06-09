@@ -20,4 +20,6 @@ public interface IStudentService
     Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request);
 
     Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
+
+    Task UpdatePhotoAsync(Guid id, string photoUrl);
 }

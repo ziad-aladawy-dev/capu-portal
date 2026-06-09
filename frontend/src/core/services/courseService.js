@@ -37,3 +37,23 @@ export async function deleteCourse(id) {
   const { data } = await api.delete(`/courses/${id}`);
   return data;
 }
+
+export async function searchCourses(params = {}) {
+  const { data } = await api.get("/courses/search", { params });
+  return data;
+}
+
+export async function closeCourse(id) {
+  const { data } = await api.post(`/courses/${id}/close-record`);
+  return data;
+}
+
+export async function openCourse(id) {
+  const { data } = await api.post(`/courses/${id}/open-record`);
+  return data;
+}
+
+export async function bulkDeleteCourses(ids) {
+  const { data } = await api.post("/courses/delete", { ids });
+  return data;
+}

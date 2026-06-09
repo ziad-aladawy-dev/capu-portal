@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Application;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
@@ -35,6 +36,9 @@ public static class DependencyInjection
 
         // Module Manifest
         services.AddSingleton<IManifest, StudentServicesManifest>();
+
+        // Permission Manifest
+        services.AddSingleton<IPermissionManifest, Authorization.StudentServicesPermissionManifest>();
 
         return services;
     }

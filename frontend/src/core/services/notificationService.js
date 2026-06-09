@@ -30,3 +30,18 @@ export async function markNotificationRead(id) {
   const { data } = await api.put(`/notifications/${id}/read`);
   return data;
 }
+
+export async function markManyNotificationsRead(ids) {
+  const { data } = await api.put("/notifications/read", { ids });
+  return data;
+}
+
+export async function markAllNotificationsRead() {
+  const { data } = await api.put("/notifications/mark-all-read");
+  return data;
+}
+
+export async function searchNotifications(params = {}) {
+  const { data } = await api.get("/notifications/search", { params });
+  return data;
+}

@@ -272,5 +272,20 @@
   "clear_selection": "مسح التحديد",
   "directory": "الدليل",
   "search_hint": "اكتب اسماً أو رمزاً للبحث",
-  "select_user_hint": "انقر للتثبيت"
+  "select_user_hint": "انقر للتثبيت",
+  "gender": "الجنس",
+  "select_gender": "اختر الجنس",
+  "male": "ذكر",
+  "female": "أنثى",
+  "guardian_name": "اسم ولي الأمر",
+  "guardian_phone": "هاتف ولي الأمر",
+  "guardian_name_placeholder": "الاسم الكامل لولي الأمر",
+  "guardian_phone_placeholder": "رقم هاتف ولي الأمر",
+  "qualification": "المؤهل العلمي",
+  "qualification_placeholder": "مثال: دكتوراه في علوم الحاسب",
+  "upload_photo": "رفع صورة",
+  "profile_photo": "الصورة الشخصية",
+  "click_to_upload": "انقر لرفع الصورة",
+  "invalid_image_type": "يُسمح فقط بصور JPEG و PNG و WebP",
+  "image_too_large": "يجب أن يكون حجم الصورة أقل من 5 ميجابايت"
 }

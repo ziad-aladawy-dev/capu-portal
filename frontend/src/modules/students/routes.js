@@ -9,6 +9,7 @@ export default [
     path: "/admin/students",
     component: DirectoryPage,
     props: { config: studentDirectoryConfig },
+    permission: "users.users.view",
     pageType: "management",
     applicableTo: "student",
     menuItem: {

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { UserCog, Plus, Shield, ShieldCheck, Trash2, AlertTriangle, RefreshCw, Save, Info, Users, Settings, X, Search, RotateCcw } from "lucide-react";
+import { UserCog, Plus, Shield, ShieldCheck, Trash2, AlertTriangle, RefreshCw, Save, Info, Users, Settings, X, Search, RotateCcw, UserPlus, UserMinus, Loader2 } from "lucide-react";
+import PermissionGate from "../../../core/auth/PermissionGate";
 import * as permissionService from "../../../core/services/permissionService";
 import * as authorizationService from "../../../core/services/authorizationService";
+import * as staffService from "../../../core/services/staffService";
 import "../styles/roles.css";
 
 const ACTION_LEVELS = [
@@ -72,6 +74,15 @@ function RolesPage() {
 
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
+
+  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSearchResults, setMemberSearchResults] = useState([]);
+  const [memberSearching, setMemberSearching] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
+
+  const [removeMemberTarget, setRemoveMemberTarget] = useState(null);
+  const [removingMember, setRemovingMember] = useState(false);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -165,6 +176,82 @@ function RolesPage() {
       setMembersLoading(false);
     }
   }, []);
+
+  const openAddMember = () => {
+    setAddMemberModalOpen(true);
+    setMemberSearch("");
+    setMemberSearchResults([]);
+  };
+
+  const closeAddMember = () => {
+    setAddMemberModalOpen(false);
+    setMemberSearch("");
+    setMemberSearchResults([]);
+  };
+
+  const handleMemberSearch = useCallback(async (query) => {
+    setMemberSearch(query);
+    if (!query.trim()) {
+      setMemberSearchResults([]);
+      return;
+    }
+    setMemberSearching(true);
+    try {
+      const data = await staffService.searchStaff({ search: query, page: 1, pageSize: 10 });
+      const items = data.items || data.data || data || [];
+      const results = (Array.isArray(items) ? items : [])
+        .filter((s) => !members.some((m) => m.staffId === s.id))
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          employeeCode: s.employeeCode,
+          jobTitle: s.jobTitle,
+        }));
+      setMemberSearchResults(results);
+    } catch {
+      setMemberSearchResults([]);
+    } finally {
+      setMemberSearching(false);
+    }
+  }, [members]);
+
+  const handleAddMember = async (staffId) => {
+    if (!selectedRole || addingMember) return;
+    setAddingMember(true);
+    try {
+      await permissionService.addRoleMember(selectedRole.id, staffId);
+      await loadRoleMembers(selectedRole.id);
+      setMemberSearch("");
+      setMemberSearchResults([]);
+    } catch (err) {
+      setError(err.message || "Failed to add member");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const openRemoveMember = (member) => {
+    setRemoveMemberTarget(member);
+  };
+
+  const closeRemoveMember = () => {
+    setRemoveMemberTarget(null);
+    setRemovingMember(false);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!selectedRole || !removeMemberTarget || removingMember) return;
+    setRemovingMember(true);
+    try {
+      await permissionService.removeRoleMember(selectedRole.id, removeMemberTarget.staffId);
+      await loadRoleMembers(selectedRole.id);
+      closeRemoveMember();
+    } catch (err) {
+      setError(err.message || "Failed to remove member");
+      closeRemoveMember();
+    }
+  };
 
   useEffect(() => {
     if (selectedRoleId && activeTab === "permissions") {
@@ -384,9 +471,11 @@ function RolesPage() {
           </div>
         </div>
         <div className="roles-header-actions">
+          <PermissionGate resource="permissions.roles" minLevel={2}>
           <button className="roles-btn roles-btn-primary" onClick={openCreate}>
             <><Plus size={14} /> {t("create_role")}</>
           </button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -491,6 +580,7 @@ function RolesPage() {
                           maxLength={100}
                           style={{ flex: 1 }}
                         />
+                        <PermissionGate resource="permissions.roles" minLevel={3}>
                         <button
                           className="roles-btn roles-btn-primary"
                           onClick={handleUpdateName}
@@ -498,6 +588,7 @@ function RolesPage() {
                         >
                           <Save size={13} /> {saving ? t("saving") : t("save")}
                         </button>
+                        </PermissionGate>
                       </div>
                       {formError && <span className="role-form-error">{formError}</span>}
                       <span className="role-form-hint">{t("role_name_hint")}</span>
@@ -521,9 +612,11 @@ function RolesPage() {
                           <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 12px" }}>
                             {t("delete_role_warning")}
                           </p>
+                          <PermissionGate resource="permissions.roles" minLevel={5}>
                           <button className="role-delete-btn" onClick={openDelete}>
                             <><Trash2 size={13} /> {t("delete_role")}</>
                           </button>
+                          </PermissionGate>
                         </div>
                       </>
                     )}
@@ -544,10 +637,13 @@ function RolesPage() {
                       </div>
                       <div className="roles-header-actions">
                         {permDirty && (
+                          <PermissionGate resource="permissions.roles" minLevel={3}>
                           <button className="roles-btn roles-btn-outline" onClick={handleResetPermissions} disabled={permSaving}>
                             <><RotateCcw size={13} /> {t("reset")}</>
                           </button>
+                          </PermissionGate>
                         )}
+                        <PermissionGate resource="permissions.roles" minLevel={3}>
                         <button
                           className={`roles-btn roles-btn-primary ${!permDirty || permSaving ? "disabled" : ""}`}
                           onClick={handleSavePermissions}
@@ -555,6 +651,7 @@ function RolesPage() {
                         >
                           {permSaving ? t("saving") : <><Save size={13} /> {t("save_changes")}</>}
                         </button>
+                        </PermissionGate>
                       </div>
                     </div>
 
@@ -593,6 +690,7 @@ function RolesPage() {
                                       const isAvailable = isLevelZero || (backendAction && resourceActions[key]?.has(backendAction));
                                       const active = isLevelZero ? currentLevel === 0 : currentLevel >= l.value;
                                       return (
+                                        <PermissionGate resource="permissions.roles" minLevel={3}>
                                         <button
                                           key={l.value}
                                           className={`perm-lvl-btn ${active ? "filled" : ""} ${currentLevel === l.value ? "current" : ""} ${!isAvailable ? "disabled" : ""}`}
@@ -602,6 +700,7 @@ function RolesPage() {
                                         >
                                           {actionLevelLabels[l.value]}
                                         </button>
+                                        </PermissionGate>
                                       );
                                     })}
                                   </div>
@@ -627,6 +726,11 @@ function RolesPage() {
                           {t("members_count", { count: members.length })}
                         </p>
                       </div>
+                      <PermissionGate resource="permissions.roles" minLevel={3}>
+                        <button className="roles-btn roles-btn-primary" onClick={openAddMember}>
+                          <><UserPlus size={13} /> {t("add_member")}</>
+                        </button>
+                      </PermissionGate>
                     </div>
                     <div className="role-members-list">
                       {membersLoading ? (
@@ -653,6 +757,15 @@ function RolesPage() {
                               <span className="role-member-scope-label">{m.structureNodePath || t("global")}</span>
                               {m.year !== "Global" && <span className="role-member-scope">{m.year} / {m.semester}</span>}
                             </div>
+                            <PermissionGate resource="permissions.roles" minLevel={3}>
+                              <button
+                                className="role-member-remove-btn"
+                                onClick={() => openRemoveMember(m)}
+                                title={t("remove_member")}
+                              >
+                                <UserMinus size={13} />
+                              </button>
+                            </PermissionGate>
                           </div>
                         ))
                       )}
@@ -717,6 +830,95 @@ function RolesPage() {
               <button className="roles-btn roles-btn-outline" onClick={closeDelete} disabled={deleting}>{t("cancel")}</button>
               <button className="roles-btn roles-btn-danger" onClick={handleDelete} disabled={deleting}>
                 {deleting ? t("deleting") : t("delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addMemberModalOpen && selectedRole && (
+        <div className="roles-modal-overlay" onClick={closeAddMember}>
+          <div className="roles-modal roles-modal-wide" onClick={(e) => e.stopPropagation()}>
+            <div className="roles-modal-header">
+              <div className="roles-modal-header-left">
+                <UserPlus size={18} color="#1a1f5e" />
+                <div>
+                  <h2>{t("add_member_to_role", { name: selectedRole.name })}</h2>
+                  <p className="roles-modal-subtitle">{t("add_member_subtitle")}</p>
+                </div>
+              </div>
+              <button className="roles-modal-close" onClick={closeAddMember}><X size={16} /></button>
+            </div>
+            <div className="roles-modal-body">
+              <div className="role-add-member-search">
+                <Search size={14} color="#9ca3af" />
+                <input
+                  type="text"
+                  className="role-add-member-input"
+                  value={memberSearch}
+                  onChange={(e) => handleMemberSearch(e.target.value)}
+                  placeholder={t("search_staff_placeholder")}
+                  autoFocus
+                />
+                {memberSearching && <Loader2 size={14} className="roles-spinner-inline" />}
+              </div>
+              <div className="role-add-member-results">
+                {memberSearchResults.length === 0 && memberSearch.trim() && !memberSearching ? (
+                  <div className="role-add-member-empty">
+                    <Users size={24} color="#d1d5db" />
+                    <p>{t("no_staff_found")}</p>
+                  </div>
+                ) : memberSearchResults.length === 0 && !memberSearch.trim() && !memberSearching ? (
+                  <div className="role-add-member-empty">
+                    <UserPlus size={24} color="#d1d5db" />
+                    <p>{t("type_to_search_staff")}</p>
+                  </div>
+                ) : (
+                  memberSearchResults.map((s) => (
+                    <div key={s.id} className="role-add-member-result-item">
+                      <div className="role-member-avatar">
+                        {s.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="role-member-info">
+                        <strong>{s.name}</strong>
+                        <span>{s.email} &middot; {s.jobTitle || s.employeeCode}</span>
+                      </div>
+                      <button
+                        className="role-add-member-add-btn"
+                        onClick={() => handleAddMember(s.id)}
+                        disabled={addingMember}
+                      >
+                        {addingMember ? (
+                          <Loader2 size={13} className="roles-spinner-inline" />
+                        ) : (
+                          <><UserPlus size={13} /> {t("add")}</>
+                        )}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {removeMemberTarget && (
+        <div className="roles-modal-overlay" onClick={closeRemoveMember}>
+          <div className="roles-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="roles-modal-header">
+              <h2>{t("remove_member")}</h2>
+              <button className="roles-modal-close" onClick={closeRemoveMember}><X size={16} /></button>
+            </div>
+            <div className="roles-delete-body">
+              <UserMinus size={36} className="roles-remove-member-icon" />
+              <p>{t("remove_member_confirm", { name: removeMemberTarget.name })}</p>
+              <p className="roles-delete-hint">{t("remove_member_warning", { role: selectedRole?.name })}</p>
+            </div>
+            <div className="roles-modal-footer">
+              <button className="roles-btn roles-btn-outline" onClick={closeRemoveMember} disabled={removingMember}>{t("cancel")}</button>
+              <button className="roles-btn roles-btn-danger" onClick={handleRemoveMember} disabled={removingMember}>
+                {removingMember ? t("removing") : t("remove")}
               </button>
             </div>
           </div>

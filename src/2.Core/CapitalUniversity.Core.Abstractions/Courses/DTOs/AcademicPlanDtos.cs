@@ -8,6 +8,8 @@ public class AcademicPlanResponse
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
     public bool IsActive { get; set; }
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public List<AcademicPlanCourseResponse> PlanCourses { get; set; } = new();
 }
 

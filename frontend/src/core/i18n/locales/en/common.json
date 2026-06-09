@@ -272,5 +272,20 @@
   "clear_selection": "Clear selection",
   "directory": "Directory",
   "search_hint": "Type a name or ID to search",
-  "select_user_hint": "Click to pin"
+  "select_user_hint": "Click to pin",
+  "gender": "Gender",
+  "select_gender": "Select Gender",
+  "male": "Male",
+  "female": "Female",
+  "guardian_name": "Guardian Name",
+  "guardian_phone": "Guardian Phone",
+  "guardian_name_placeholder": "Full name of guardian",
+  "guardian_phone_placeholder": "Guardian phone number",
+  "qualification": "Qualification",
+  "qualification_placeholder": "e.g., PhD in Computer Science",
+  "upload_photo": "Upload Photo",
+  "profile_photo": "Profile Photo",
+  "click_to_upload": "Click to upload",
+  "invalid_image_type": "Only JPEG, PNG and WebP images are allowed",
+  "image_too_large": "Image must be less than 5MB"
 }

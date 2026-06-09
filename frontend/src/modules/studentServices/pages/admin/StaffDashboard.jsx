@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useStaffStatistics } from "../../hooks/useStatistics";
 import { getAllRequests } from "../../services/studentServicesService";
+import PermissionGate from "../../../../core/auth/PermissionGate";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import "../../styles/admin/StaffDashboard.css";
@@ -64,9 +65,11 @@ const StaffDashboard = () => {
           <h1>{t("staff_dashboard")}</h1>
           <p>{t("overview_of_student_services")}</p>
         </div>
-        <button className="sd-view-all" onClick={() => navigate("/admin/student-services/requests")}>
-          <Eye size={16} /> {t("view_all_requests")}
-        </button>
+        <PermissionGate resource="student-services.requests" minLevel={1}>
+          <button className="sd-view-all" onClick={() => navigate("/admin/student-services/requests")}>
+            <Eye size={16} /> {t("view_all_requests")}
+          </button>
+        </PermissionGate>
       </div>
 
       <div className="sd-stats-grid">
@@ -104,7 +107,7 @@ const StaffDashboard = () => {
                     <td>{req.serviceName}</td>
                     <td><span className={`sd-status-badge ${getStatusClass(req.status)}`}>{req.status}</span></td>
                     <td>{new Date(req.submittedDate).toLocaleDateString()}</td>
-                    <td><button className="sd-view-btn" onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}>{t("view")}</button></td>
+                    <td><PermissionGate resource="student-services.requests" minLevel={4}><button className="sd-view-btn" onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}>{t("view")}</button></PermissionGate></td>
                   </tr>
                 ))}
               </tbody>

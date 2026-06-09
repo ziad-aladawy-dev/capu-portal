@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, LogOut } from "lucide-react";
 
@@ -37,8 +37,23 @@ function Sidebar({ isOpen, isMobile, onClose }) {
   const { can } = usePermission();
   const { user, logout } = useAuth();
   const language = i18n.language;
+  const location = useLocation();
 
   const menu = buildMenu(can);
+
+  const activeCategoryKey = useMemo(() => {
+    for (const cat of menu) {
+      const catKey = labelToKey(cat.category);
+      for (const item of cat.items) {
+        if (item.path === location.pathname) return catKey;
+        const hasChildInCategory = cat.items.some(
+          (other) => other.path !== item.path && other.path.startsWith(item.path + "/")
+        );
+        if (hasChildInCategory && location.pathname.startsWith(item.path + "/")) return catKey;
+      }
+    }
+    return null;
+  }, [menu, location.pathname]);
 
   const displayName = useMemo(
     () => getUserDisplayName(user, language) || t("guest"),
@@ -60,12 +75,6 @@ function Sidebar({ isOpen, isMobile, onClose }) {
     <aside
       className={`sidebar ${isOpen ? "is-open" : "is-closed"}`}
     >
-      <svg className="sidebar-geo" viewBox="0 0 230 620" preserveAspectRatio="none">
-        <circle cx="230" cy="0" r="140" fill="rgba(224,192,106,0.04)" />
-        <circle cx="0" cy="460" r="110" fill="rgba(35,42,116,0.35)" />
-        <line x1="115" y1="80" x2="230" y2="200" stroke="rgba(224,192,106,0.06)" strokeWidth="1" />
-        <line x1="0" y1="300" x2="115" y2="180" stroke="rgba(224,192,106,0.04)" strokeWidth="1" />
-      </svg>
 
       <div className="sidebar-brand">
         <div className="sidebar-logo-mark">
@@ -100,7 +109,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
             <div className="sidebar-category" key={category.category}>
               <button
                 type="button"
-                className={`sidebar-category-header ${opened ? "is-open" : ""}`}
+                className={`sidebar-category-header ${opened ? "is-open" : ""}${activeCategoryKey === catKey ? " has-active-feature" : ""}`}
                 onClick={() =>
                   setOpenedCategory(opened ? null : catKey)
                 }
@@ -126,7 +135,8 @@ function Sidebar({ isOpen, isMobile, onClose }) {
                         to={item.path}
                         end={
                           item.path === "/admin/dashboard" ||
-                          item.path === "/admin/users"
+                          item.path === "/admin/users" ||
+                          item.path === "/admin/finance"
                         }
                         onClick={handleFeatureClick}
                         className={({ isActive }) =>

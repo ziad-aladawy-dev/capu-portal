@@ -43,6 +43,18 @@ public class StudentConfiguration : IEntityTypeConfiguration<Student>
 
         builder.HasIndex(x => x.Email);
 
+        builder.Property(x => x.Gender)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.PhotoUrl)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.GuardianName)
+            .HasMaxLength(200);
+
+        builder.Property(x => x.GuardianPhone)
+            .HasMaxLength(30);
+
         builder.HasOne(x => x.StructureNode)
             .WithMany()
             .HasForeignKey(x => x.StructureNodeId)

@@ -515,6 +515,8 @@ public class ScheduleSlotService : IScheduleSlotService
         Kind = s.Kind,
         Location = s.Location, // Raw JSON string
         Notes    = s.Notes,    // Raw JSON string
+        IsClosed = s.IsClosed,
+        ClosedAt = s.ClosedAt,
         CreatedAt = s.CreatedAt,
         UpdatedAt = s.UpdatedAt,
     };
@@ -543,6 +545,8 @@ public class ScheduleSlotService : IScheduleSlotService
         Kind = s.Kind,
         Location = s.Location is null ? null : _localization.Get<string>(s.Location),
         Notes = s.Notes is null ? null : _localization.Get<string>(s.Notes),
+        IsClosed = s.IsClosed,
+        ClosedAt = s.ClosedAt,
         CreatedAt = s.CreatedAt,
         UpdatedAt = s.UpdatedAt,
     };

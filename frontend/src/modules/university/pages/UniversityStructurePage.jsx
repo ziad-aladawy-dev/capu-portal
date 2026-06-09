@@ -11,6 +11,7 @@ import { universityStructureService } from "../services/universityStructureServi
 import { getLocalized } from "../../../core/utils/getLocalized";
 import { canMoveToParent, getContextualActions } from "../utils/nodeTypeHelpers";
 import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
+import PermissionGate from "../../../core/auth/PermissionGate";
 import "../styles/universityStructure.css";
 import "../styles/scopeModal.css";
 
@@ -223,9 +224,11 @@ const UniversityStructurePage = () => {
             <p>{t("manage_structure")}</p>
           </div>
         </div>
-        <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
-          <Plus size={16} /> {t("add_root")}
-        </button>
+        <PermissionGate resource="structure.structure" minLevel={2}>
+          <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
+            <Plus size={16} /> {t("add_root")}
+          </button>
+        </PermissionGate>
       </div>
 
       {breadcrumb.length > 0 && (
@@ -267,6 +270,7 @@ const UniversityStructurePage = () => {
               onToggleNode={toggleNode}
               matchedIds={[]}
               search={searchTerm}
+              permissionResource="structure.structure"
             />
           ))}
         </div>
@@ -282,9 +286,13 @@ const UniversityStructurePage = () => {
                 <div><span>{t("children_count")}</span><strong>{selectedNode.children?.length || 0}</strong></div>
               </div>
               <div className="details-actions" style={{ marginTop: 16, display: "flex", gap: 8 }}>
-                <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>{t("edit")}</button>
+                <PermissionGate resource="structure.structure" minLevel={3}>
+                  <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>{t("edit")}</button>
+                </PermissionGate>
                 {selectedNode.parentId !== null && (
-                  <button className="btn-secondary" onClick={handleMoveClick}>{t("move")}</button>
+                  <PermissionGate resource="structure.structure" minLevel={3}>
+                    <button className="btn-secondary" onClick={handleMoveClick}>{t("move")}</button>
+                  </PermissionGate>
                 )}
               </div>
               {(() => {

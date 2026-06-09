@@ -86,9 +86,9 @@ function DashboardLayout() {
   }, []);
 
   const getPrimaryMargin = () => {
-    if (isMobile) return "0px";
-    if (windowWidth <= 1024) return sidebarOpen ? "64px" : "0px";
-    return sidebarOpen ? `${SIDEBAR_WIDTH}px` : "0px";
+    if (isMobile) return 0;
+    if (windowWidth <= 1024) return sidebarOpen ? 64 : 0;
+    return sidebarOpen ? SIDEBAR_WIDTH : 0;
   };
 
   const getContentMargin = () => {
@@ -151,8 +151,9 @@ function DashboardLayout() {
         onOpenCommandPalette={openCommandPalette}
         secondaryOpen={secondaryOpen}
         style={{
-          marginInlineStart: getPrimaryMargin(),
-          transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
+          marginInlineStart: isMobile || getPrimaryMargin() === 0 ? "0px" : `${getPrimaryMargin()}px`,
+          paddingInlineStart: isMobile || getPrimaryMargin() === 0 ? undefined : "17px",
+          transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1), padding-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
         }}
       />
 

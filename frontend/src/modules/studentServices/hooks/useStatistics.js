@@ -44,7 +44,13 @@ export const useStudentStatistics = () => {
     setError(null);
     try {
       const data = await getMyStudentStatistics();
-      setStats(data);
+      const r = data?.requestsByStatus || {};
+      setStats({
+        ...data,
+        activeRequests: (r.pending || 0) + (r.underReview || 0) + (r.moreInfoRequired || 0) + (r.paymentPending || 0),
+        pendingRequests: r.pending || 0,
+        completedRequests: (r.completed || 0) + (r.approved || 0) + (r.readyForPickup || 0),
+      });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Failed to load student statistics";
       setError(msg);
@@ -71,7 +77,13 @@ export const useStudentStatisticsById = (studentId) => {
     setError(null);
     try {
       const data = await getStudentStatisticsById(studentId);
-      setStats(data);
+      const r = data?.requestsByStatus || {};
+      setStats({
+        ...data,
+        activeRequests: (r.pending || 0) + (r.underReview || 0) + (r.moreInfoRequired || 0) + (r.paymentPending || 0),
+        pendingRequests: r.pending || 0,
+        completedRequests: (r.completed || 0) + (r.approved || 0) + (r.readyForPickup || 0),
+      });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Failed to load student statistics";
       setError(msg);

@@ -28,14 +28,21 @@ const SEGMENT_LABELS = {
   settings: "Settings",
   "audit-log": "Audit Log",
   "system-health": "System Health",
+  system: "System",
+  "audit-logs": "Audit Logs",
+  workflows: "Workflows",
   "profile-records": "Profile Records",
+  "student-information": "Student Information",
+  programs: "Programs",
+  sync: "SIS Integration",
+  transactions: "Transactions",
+  finance: "Finance",
   "add-student": "Add Student",
   "add-staff": "Add Staff",
   "edit-student": "Edit Student",
   "edit-staff": "Edit Staff",
   add: "Add New",
   create: "Create",
-  transactions: "Transactions",
 };
 
 /**
@@ -58,25 +65,36 @@ function Breadcrumbs() {
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
       pathAccum += `/${seg}`;
+      const isCurrent = i === segments.length - 1;
 
-      // Skip IDs — don't render as breadcrumb links
+      // ID segments are dynamic entities, not pages — never link
       if (isIdSegment(seg)) {
-        // Replace with a "Detail" label
         items.push({
           label: "Detail",
           path: pathAccum,
-          isCurrent: i === segments.length - 1,
+          isCurrent,
+          isLink: false,
         });
         continue;
       }
 
       const label = SEGMENT_LABELS[seg] || seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
 
+      // Don't link category segments that don't resolve to real pages:
+      // 1. Segments before a nested ID with more segments after it
+      //    (e.g., `staff` in /admin/users/staff/<uuid>/edit)
+      // 2. staff/students sub-categories under /admin/users/
+      //    (e.g., `/admin/users/staff` or `/admin/users/students` are not real routes)
+      const nextSeg = segments[i + 1];
+      const hasNestedId = nextSeg && isIdSegment(nextSeg) && i + 2 < segments.length;
+      const isSubCategory = i > 0 && segments[i - 1] === "users" && (seg === "staff" || seg === "students") && !isCurrent;
+
       items.push({
         label,
         path: pathAccum,
-        isCurrent: i === segments.length - 1,
-        isHome: seg === "admin" || seg === "student",
+        isCurrent,
+        isHome: seg === "admin",
+        isLink: !hasNestedId && !isSubCategory,
       });
     }
 
@@ -92,8 +110,8 @@ function Breadcrumbs() {
           {idx > 0 && (
             <ChevronRight size={11} className="breadcrumb-separator" />
           )}
-          {crumb.isCurrent ? (
-            <span className="breadcrumb-item is-current">
+          {crumb.isCurrent || !crumb.isLink ? (
+            <span className={`breadcrumb-item${crumb.isCurrent ? ' is-current' : ''}`}>
               {crumb.label}
             </span>
           ) : (
