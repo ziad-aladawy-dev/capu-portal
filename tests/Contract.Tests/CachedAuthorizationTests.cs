@@ -24,6 +24,11 @@ using MongoDB.Driver;
 
 namespace CapitalUniversity.Contract.Tests;
 
+// Disambiguate the authz entity from the CapitalUniversity.Module.* module
+// namespace. Declared inside the namespace scope so the alias resolves before
+// the outer `Module` namespace shadows the bare type name.
+using Module = CapitalUniversity.Core.Domain.Authorization.Module;
+
 public class CachedAuthorizationTests : IClassFixture<WebApplicationFactory<ModulesRegistry>>
 {
     private readonly WebApplicationFactory<ModulesRegistry> _factory;

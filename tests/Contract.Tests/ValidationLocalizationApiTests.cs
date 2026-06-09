@@ -23,6 +23,11 @@ using Xunit;
 
 namespace CapitalUniversity.Contract.Tests;
 
+// Disambiguate the authz entity from the CapitalUniversity.Module.* module
+// namespace. Declared inside the namespace scope so the alias resolves before
+// the outer `Module` namespace shadows the bare type name.
+using Module = CapitalUniversity.Core.Domain.Authorization.Module;
+
 /// <summary>
 /// End-to-end verification of the Runtime Hardening Plan §1 and §2 fixes:
 /// MVC no longer short-circuits invalid requests (services produce the response)
