@@ -20,10 +20,6 @@ using CourseRow = CapitalUniversity.Sync.Courses.Push.CourseOutboxEntity;
 using CourseDispatch = CapitalUniversity.Sync.Courses.Push.CourseOutboxDispatch;
 using CourseOutboxValidator = CapitalUniversity.Sync.Courses.Push.CourseOutboxValidator;
 
-using InvoicePayload = CapitalUniversity.Sync.Finance.Domain.ExternalInvoice;
-using InvoiceRow = CapitalUniversity.Sync.Finance.Push.InvoiceOutboxEntity;
-using InvoiceDispatch = CapitalUniversity.Sync.Finance.Push.InvoiceOutboxDispatch;
-using InvoiceOutboxValidator = CapitalUniversity.Sync.Finance.Push.InvoiceOutboxValidator;
 
 using SlotPayload = CapitalUniversity.Sync.Schedules.Domain.ExternalScheduleSlot;
 using SlotRow = CapitalUniversity.Sync.Schedules.Push.ScheduleSlotOutboxEntity;
@@ -152,41 +148,6 @@ public class SyncOutboxValidatorTests
         var d = new CourseDispatch { Row = new CourseRow { ExternalCourseId = "X" }, Payload = CoursePayloadWith("A") };
         new CourseOutboxValidator().IsValid(d, out var err).Should().BeFalse();
         err.Should().Be("Outbox payload ExternalCourseId mismatch.");
-    }
-
-    private static InvoicePayload InvoicePayloadWith(string id) => new()
-    {
-        ExternalInvoiceId = id,
-        ExternalStudentId = "STU-1",
-        Status = InvoiceStatus.Pending,
-        TotalAmount = 100m,
-        Currency = "EGP",
-        ExternalUpdatedAt = DateTimeOffset.UnixEpoch,
-        ExternalVersion = 1,
-    };
-
-    [Fact]
-    public void Invoice_Valid_ReturnsTrue()
-    {
-        var d = new InvoiceDispatch { Row = new InvoiceRow { ExternalInvoiceId = "A" }, Payload = InvoicePayloadWith("A") };
-        new InvoiceOutboxValidator().IsValid(d, out var err).Should().BeTrue();
-        err.Should().BeNull();
-    }
-
-    [Fact]
-    public void Invoice_BlankPayloadId_Fails()
-    {
-        var d = new InvoiceDispatch { Row = new InvoiceRow { ExternalInvoiceId = "A" }, Payload = InvoicePayloadWith("") };
-        new InvoiceOutboxValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("Outbox payload missing ExternalInvoiceId.");
-    }
-
-    [Fact]
-    public void Invoice_Mismatch_Fails()
-    {
-        var d = new InvoiceDispatch { Row = new InvoiceRow { ExternalInvoiceId = "Z" }, Payload = InvoicePayloadWith("A") };
-        new InvoiceOutboxValidator().IsValid(d, out var err).Should().BeFalse();
-        err.Should().Be("Outbox payload ExternalInvoiceId mismatch.");
     }
 
     private static SlotPayload SlotPayloadWith(string id) => new()

@@ -22,24 +22,23 @@ using CapitalUniversity.Sync.Courses.Domain;
 using CapitalUniversity.Sync.Courses.Persistence;
 using CapitalUniversity.Sync.Courses.Push;
 using CapitalUniversity.Sync.Courses.Sources;
-using CapitalUniversity.Sync.Finance.DependencyInjection;
-using CapitalUniversity.Sync.Finance.Domain;
-using CapitalUniversity.Sync.Finance.Persistence;
-using CapitalUniversity.Sync.Finance.Push;
-using CapitalUniversity.Sync.Finance.Sources;
 using CapitalUniversity.Sync.Schedules.DependencyInjection;
 using CapitalUniversity.Sync.Schedules.Domain;
 using CapitalUniversity.Sync.Schedules.Persistence;
 using CapitalUniversity.Sync.Schedules.Push;
 using CapitalUniversity.Sync.Schedules.Sources;
+using CapitalUniversity.Sync.Registration.DependencyInjection;
+using CapitalUniversity.Modules.Registration.Domain;
 // Enums used by the admin-seed endpoints now live on the operational sides
 // (Core / module abstractions) since the sync layer no longer duplicates them.
 using CapitalUniversity.Core.Abstractions.Sync;
 using CapitalUniversity.Core.Domain.Courses;
 using CapitalUniversity.Core.Infrastructure.Logging;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Infrastructure.Services.Outbox;
 using CapitalUniversity.Core.Infrastructure.Sync;
 using CapitalUniversity.Modules.CourseOffering.Domain;
+using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Payments.Abstractions;
 using CapitalUniversity.Modules.Payments.Domain;
 using CapitalUniversity.Modules.Schedule.Abstractions;
@@ -100,9 +99,12 @@ if (string.IsNullOrWhiteSpace(coreConnectionString))
         "Sync:Core:ConnectionString is required — sync writes to Core through CoreDbContext.");
 }
 
-CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(Invoice).Assembly);
+CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt).Assembly);
 CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(ScheduleSlot).Assembly);
 CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(CourseOffering).Assembly);
+// Registration read-model lives in Core's StudentRegisteredCourses table; the
+// gateway needs its EF configuration to upsert synced rows.
+CoreDbContext.ModuleConfigurationAssemblies.Add(typeof(StudentRegisteredCourse).Assembly);
 
 builder.Services.AddDbContext<CoreDbContext>(opts => opts.UseSqlServer(coreConnectionString));
 builder.Services.AddScoped<ICoreWriteGateway, CoreWriteGateway>();
@@ -131,12 +133,30 @@ builder.Services.AddScoped<
 builder.Services.AddStudentSync(builder.Configuration);
 builder.Services.AddStaffSync(builder.Configuration);
 builder.Services.AddCoursesSync(builder.Configuration);
-builder.Services.AddFinanceSync(builder.Configuration);
 builder.Services.AddSchedulesSync(builder.Configuration);
+// Pull-only: registrations flow in from the external academic system and are
+// never modified locally, so there is no push/outbox/DbContext to wire.
+builder.Services.AddRegistrationSync(builder.Configuration);
 
 // HTTP-adapter override. When Sync:Integration:UseHttpAdapters is true, HTTP
 // implementations replace the per-module in-memory ones via DI last-wins.
 builder.Services.AddSyncHttpAdaptersIfEnabled(builder.Configuration);
+
+// Treasury receipt synchronization (Phase 3). Outbound client + receipt sync
+// service + Hangfire trigger. Receipts merge into Core via ICoreWriteGateway
+// (already registered above). Additive — does not touch existing sync modules.
+builder.Services.AddTreasuryIntegration(builder.Configuration);
+builder.Services.AddTreasuryReceiptSync();
+builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReceiptPullTrigger>();
+
+// Treasury settlement + reconciliation (Phase 7). Wire the transactional outbox
+// into this host so reconciliation-driven settlements emit FeePaidEvent exactly
+// like the webhook path. Rows are staged on the shared CoreDbContext and drained
+// by the API host's OutboxDispatcher (same database).
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddOutboxForBackgroundHost();
+builder.Services.AddTreasuryReconciliation();
+builder.Services.AddScoped<CapitalUniversity.Sync.Host.Scheduling.TreasuryReconciliationTrigger>();
 
 builder.Services.AddHangfire(cfg => cfg
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -249,7 +269,6 @@ builder.Services.AddAuthorization(options =>
 var studentConn = builder.Configuration["Sync:Student:ConnectionString"] ?? "";
 var staffConn = builder.Configuration["Sync:Staff:ConnectionString"] ?? "";
 var coursesConn = builder.Configuration["Sync:Courses:ConnectionString"] ?? "";
-var financeConn = builder.Configuration["Sync:Finance:ConnectionString"] ?? "";
 var schedulesConn = builder.Configuration["Sync:Schedules:ConnectionString"] ?? "";
 builder.Services.AddHealthChecks()
     .AddCheck("hangfire-sql", new SqlConnectivityHealthCheck(
@@ -257,7 +276,6 @@ builder.Services.AddHealthChecks()
     .AddCheck("student-db", new SqlConnectivityHealthCheck(studentConn, "Sync.Student DB"))
     .AddCheck("staff-db", new SqlConnectivityHealthCheck(staffConn, "Sync.Staff DB"))
     .AddCheck("courses-db", new SqlConnectivityHealthCheck(coursesConn, "Sync.Courses DB"))
-    .AddCheck("finance-db", new SqlConnectivityHealthCheck(financeConn, "Sync.Finance DB"))
     .AddCheck("schedules-db", new SqlConnectivityHealthCheck(schedulesConn, "Sync.Schedules DB"));
 
 var app = builder.Build();
@@ -281,9 +299,6 @@ using (var migrationScope = app.Services.CreateScope())
 
     var coursesDb = migrationScope.ServiceProvider.GetRequiredService<CoursesSyncDbContext>();
     await coursesDb.Database.MigrateAsync();
-
-    var financeDb = migrationScope.ServiceProvider.GetRequiredService<FinanceSyncDbContext>();
-    await financeDb.Database.MigrateAsync();
 
     var schedulesDb = migrationScope.ServiceProvider.GetRequiredService<SchedulesSyncDbContext>();
     await schedulesDb.Database.MigrateAsync();
@@ -689,75 +704,6 @@ if (syncOptions.ExposeAdminEndpoints)
         return Results.Ok(new { externalCourseId, armed = true });
     });
 
-    // Outbox seed (Finance / Invoice) — mirror of Student/Staff.
-    admin.MapPost("/outbox/finance/{externalInvoiceId}", async (
-        string externalInvoiceId,
-        InvoiceOutboxSeedRequest? body,
-        IServiceScopeFactory scopeFactory,
-        CancellationToken ct) =>
-    {
-        if (string.IsNullOrWhiteSpace(externalInvoiceId))
-        {
-            return Results.BadRequest(new { error = "externalInvoiceId required." });
-        }
-
-        var payload = new ExternalInvoice
-        {
-            ExternalInvoiceId = externalInvoiceId,
-            ExternalStudentId = body?.ExternalStudentId ?? "EXT-S-0001",
-            Status = body?.Status ?? InvoiceStatus.Pending,
-            TotalAmount = body?.TotalAmount ?? 500.00m,
-            Currency = body?.Currency ?? "EGP",
-            DueAt = body?.DueAt,
-            ExternalUpdatedAt = body?.ExternalUpdatedAt ?? DateTimeOffset.UtcNow,
-            ExternalVersion = body?.ExternalVersion ?? 1
-        };
-
-        var row = new InvoiceOutboxEntity
-        {
-            ExternalInvoiceId = externalInvoiceId,
-            Operation = OutboxOperation.Upsert,
-            Payload = OutboxPayloadSerializer.Serialize(payload),
-            PayloadSchemaVersion = InvoiceOutboxEntity.CurrentPayloadSchemaVersion,
-            Status = OutboxStatus.Pending,
-            AttemptCount = 0,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<FinanceSyncDbContext>();
-        db.InvoicesOutbox.Add(row);
-        await db.SaveChangesAsync(ct);
-
-        return Results.Ok(new { outboxId = row.Id, externalInvoiceId, status = row.Status.ToString(), createdAt = row.CreatedAt });
-    });
-
-    admin.MapGet("/outbox/finance/sink", (InMemoryExternalInvoiceSink sink) =>
-    {
-        return Results.Ok(new
-        {
-            acceptedCount = sink.AcceptedCount,
-            accepted = sink.Accepted.Select(kvp => new
-            {
-                externalInvoiceId = kvp.Key,
-                kvp.Value.ExternalStudentId,
-                status = kvp.Value.Status.ToString(),
-                kvp.Value.TotalAmount,
-                kvp.Value.Currency,
-                kvp.Value.DueAt,
-                kvp.Value.ExternalVersion,
-                kvp.Value.ExternalUpdatedAt
-            })
-        });
-    });
-
-    admin.MapPost("/outbox/finance/sink/fail-next/{externalInvoiceId}", (
-        string externalInvoiceId,
-        InMemoryExternalInvoiceSink sink) =>
-    {
-        sink.FailNextPushFor(externalInvoiceId);
-        return Results.Ok(new { externalInvoiceId, armed = true });
-    });
 
     // Outbox seed (Schedules / ScheduleSlot) — mirror of Student/Staff.
     admin.MapPost("/outbox/schedules/{externalScheduleSlotId}", async (

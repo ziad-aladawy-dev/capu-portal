@@ -33,6 +33,10 @@
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Student\CapitalUniversity.Module.Student.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.CourseOffering.Abstractions\CapitalUniversity.Module.CourseOffering.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.CourseOffering\CapitalUniversity.Module.CourseOffering.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Registration.Abstractions\CapitalUniversity.Module.Registration.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Registration\CapitalUniversity.Module.Registration.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.AcademicRecords.Abstractions\CapitalUniversity.Module.AcademicRecords.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.AcademicRecords\CapitalUniversity.Module.AcademicRecords.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Schedule.Abstractions\CapitalUniversity.Module.Schedule.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.Schedule\CapitalUniversity.Module.Schedule.csproj" />
     <ProjectReference Include="..\..\src\4.Modules\CapitalUniversity.Module.StudentServices.Abstractions\CapitalUniversity.Module.StudentServices.Abstractions.csproj" />

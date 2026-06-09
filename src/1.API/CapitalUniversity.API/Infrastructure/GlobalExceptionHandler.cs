@@ -101,7 +101,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         // constructor-injecting a scoped service would create a captive dependency.
         var localization = httpContext.RequestServices.GetService<ILocalizationService>();
         var title = localization?.GetString(titleKey) ?? titleKey;
-        var detail = ResolveDetail(localization, exception.Message, fallbackDetailKey);
+        var detail = ResolveDetail(localization, exception.Message, fallbackDetailKey, exception is AppException);
 
         var problemDetails = new ProblemDetails
         {
@@ -197,24 +197,26 @@ public class GlobalExceptionHandler : IExceptionHandler
         return number == SqlForeignKeyViolation;
     }
 
-    private static string ResolveDetail(ILocalizationService? localization, string? message, string fallbackKey)
+    private static string ResolveDetail(ILocalizationService? localization, string? message, string fallbackKey, bool safeMessage)
     {
-        if (localization is null) return message ?? string.Empty;
-
-        // If the exception message itself is a known localization key, resolve it.
-        if (!string.IsNullOrEmpty(message) && localization.ContainsKey(message))
+        // If the exception message itself is a known localization key, resolve it —
+        // catalogue keys are author-controlled and always safe to surface.
+        if (localization is not null && !string.IsNullOrEmpty(message) && localization.ContainsKey(message))
         {
             return localization.GetString(message);
         }
 
-        // Empty / null message → emit the localized fallback. Otherwise pass the
-        // literal through so callers still see context-specific details.
-        if (string.IsNullOrWhiteSpace(message))
+        // E2 — only pass the literal exception message through when it originates
+        // from our own domain layer (AppException). Arbitrary / third-party / raw
+        // .NET exceptions can carry connection strings, file paths or stack detail
+        // in their Message, so for those we emit the generic localized fallback
+        // instead of leaking internals onto the wire.
+        if (safeMessage && !string.IsNullOrWhiteSpace(message))
         {
-            return localization.GetString(fallbackKey);
+            return message;
         }
 
-        return message;
+        return localization?.GetString(fallbackKey) ?? string.Empty;
     }
 
     private static IDictionary<string, string[]> LocalizeErrors(

@@ -1,6 +1,5 @@
 using CapitalUniversity.Sync.Abstractions.Enums;
 using CapitalUniversity.Sync.Courses;
-using CapitalUniversity.Sync.Finance;
 using CapitalUniversity.Sync.Host.Scheduling;
 using CapitalUniversity.Sync.Infrastructure.Locking;
 using CapitalUniversity.Sync.Schedules;
@@ -160,8 +159,6 @@ public class SyncStabilityTests
         (StaffSyncModule.Name,     SyncDirection.Push),
         (CoursesSyncModule.Name,   SyncDirection.Pull),
         (CoursesSyncModule.Name,   SyncDirection.Push),
-        (FinanceSyncModule.Name,   SyncDirection.Pull),
-        (FinanceSyncModule.Name,   SyncDirection.Push),
         (SchedulesSyncModule.Name, SyncDirection.Pull),
         (SchedulesSyncModule.Name, SyncDirection.Push),
     };

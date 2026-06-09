@@ -699,6 +699,12 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("LockedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("MessageType")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -882,6 +888,102 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("StructureNodes", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Modules.AcademicRecords.Domain.AcademicSummarySnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AcademicStanding")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<decimal>("Cgpa")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EarnedCredits")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FailedHours")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Gpa")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PassedHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RemainingCredits")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId")
+                        .IsUnique();
+
+                    b.ToTable("AcademicSummarySnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.AcademicRecords.Domain.StudentAcademicResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreditsEarned")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLatestAttempt")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("NumericScore")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("decimal(6,3)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentRegisteredCourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsLatestAttempt");
+
+                    b.HasIndex("StudentRegisteredCourseId")
+                        .IsUnique();
+
+                    b.ToTable("StudentAcademicResults", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Modules.CourseOffering.Domain.CourseOffering", b =>
                 {
                     b.Property<Guid>("Id")
@@ -950,14 +1052,11 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("CourseOfferings", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -967,14 +1066,32 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
-                    b.Property<DateTime?>("DueAt")
+                    b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsClosed")
-                        .HasColumnType("bit");
+                    b.Property<int>("Gateway")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GatewaySessionRef")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<string>("MerchantOrderId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("ReconciliationAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RedirectUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -996,12 +1113,18 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentId", "Status");
+                    b.HasIndex("MerchantOrderId")
+                        .IsUnique()
+                        .HasFilter("[MerchantOrderId] <> ''");
 
-                    b.ToTable("Invoices", (string)null);
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("Status", "ExpiresAt");
+
+                    b.ToTable("Orders", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.InvoiceItem", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Payment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1013,80 +1136,83 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("FeeType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("InvoiceId")
+                    b.Property<Guid>("FeeId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Gateway")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("ReferenceId")
+                    b.Property<string>("MerchantOrderId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("SourceModule")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceId");
+                    b.HasIndex("FeeId")
+                        .IsUnique();
 
-                    b.HasIndex("SourceModule", "ReferenceId");
+                    b.HasIndex("OrderId");
 
-                    b.ToTable("InvoiceItems", (string)null);
+                    b.ToTable("Payments", (string)null);
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.PaymentTransaction", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.PaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("Amount")
+                    b.Property<decimal?>("Amount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("Gateway")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GatewayReference")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("ProviderTransactionId")
+                    b.Property<string>("MerchantOrderId")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<string>("RawPayloadJson")
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RawResponse")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1094,10 +1220,221 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceId", "IdempotencyKey")
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("MerchantOrderId", "IdempotencyKey")
                         .IsUnique();
 
-                    b.ToTable("PaymentTransactions", (string)null);
+                    b.ToTable("TreasuryPaymentTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.ServiceReceiptMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("QuantityMode")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.HasIndex("StudentServiceId")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("ServiceReceiptMappings", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.StudentFee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceModule")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid?>("SourceReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.HasIndex("SourceModule", "SourceReferenceId");
+
+                    b.HasIndex("StudentId", "Status");
+
+                    b.ToTable("StudentFees", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ConnectionTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("ExternalReceiptId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<decimal>("UnitAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionTypeId", "IsActive");
+
+                    b.ToTable("TreasuryReceipts", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Registration.Domain.StudentRegisteredCourse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RegistrationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SemesterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StructureNodeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("SemesterId");
+
+                    b.HasIndex("StructureNodeId");
+
+                    b.HasIndex("StudentId", "RegistrationStatus");
+
+                    b.HasIndex("StudentId", "SemesterId");
+
+                    b.HasIndex("StudentId", "CourseId", "AttemptNumber")
+                        .IsUnique();
+
+                    b.ToTable("StudentRegisteredCourses", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot", b =>
@@ -1214,6 +1551,460 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("StudentProfileRecords", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AllowedExtensions")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<long>("MaxFileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentServiceId", "DisplayOrder");
+
+                    b.HasIndex("StudentServiceId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceDocumentDefinitions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DocumentDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("StudentServiceRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentDefinitionId");
+
+                    b.HasIndex("StudentServiceRequestId", "DocumentDefinitionId");
+
+                    b.ToTable("ServiceDocumentSubmissions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DropdownValues")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("FieldType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int?>("MaxLength")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MaxValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int?>("MinLength")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MinValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentServiceId", "DisplayOrder");
+
+                    b.HasIndex("StudentServiceId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ServiceFieldDefinitions", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("StudentServiceRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId");
+
+                    b.HasIndex("StudentServiceRequestId", "FieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("ServiceFieldValues", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentService", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AllowedProcessingRoleIdsCsv")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int?>("EstimatedProcessingDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("RequiresPayment")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("StudentServices", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssignedStaffId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("PaymentReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StudentServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedStaffId");
+
+                    b.HasIndex("PaymentReferenceId");
+
+                    b.HasIndex("CurrentStatus", "SubmittedAt");
+
+                    b.HasIndex("StudentId", "CurrentStatus");
+
+                    b.HasIndex("StudentServiceId", "CurrentStatus");
+
+                    b.ToTable("StudentServiceRequests", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("StudentServiceWorkflows", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsInitial")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTerminal")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsWaitingPayment")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("WorkflowDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowDefinitionId", "Status")
+                        .IsUnique();
+
+                    b.ToTable("StudentServiceWorkflowStates", (string)null);
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowTransition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FromStatus")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RequiredAction")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TransitionType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("WorkflowDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkflowDefinitionId", "FromStatus", "ToStatus")
+                        .IsUnique();
+
+                    b.ToTable("StudentServiceWorkflowTransitions", (string)null);
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Resource", b =>
@@ -1481,7 +2272,275 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Modules.AcademicRecords.Domain.AcademicSummarySnapshot", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("AcademicSummarySnapshotId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("AcademicSummarySnapshotId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("AcademicSummarySnapshots");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AcademicSummarySnapshotId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.AcademicRecords.Domain.StudentAcademicResult", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Registration.Domain.StudentRegisteredCourse", null)
+                        .WithMany()
+                        .HasForeignKey("StudentRegisteredCourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("StudentAcademicResultId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("StudentAcademicResultId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("StudentAcademicResults");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StudentAcademicResultId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CapitalUniversity.Modules.CourseOffering.Domain.CourseOffering", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("AcademicSummarySnapshotId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("AcademicSummarySnapshotId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("AcademicSummarySnapshots");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AcademicSummarySnapshotId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Registration.Domain.StudentRegisteredCourse", null)
+                        .WithMany()
+                        .HasForeignKey("StudentRegisteredCourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Payment", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.StudentFee", null)
+                        .WithMany()
+                        .HasForeignKey("FeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.PaymentTransaction", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", "Order")
+                        .WithMany("Transactions")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.ServiceReceiptMapping", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt", "Receipt")
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.StudentFee", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", null)
+                        .WithMany("Fees")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.TreasuryReceipt", b =>
+                {
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("TreasuryReceiptId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("TreasuryReceiptId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("TreasuryReceipts");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TreasuryReceiptId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Registration.Domain.StudentRegisteredCourse", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
                         .WithMany()
@@ -1501,6 +2560,58 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
+                        {
+                            b1.Property<Guid>("StudentRegisteredCourseId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("ExternalId")
+                                .HasMaxLength(128)
+                                .HasColumnType("nvarchar(128)")
+                                .HasColumnName("ExternalId");
+
+                            b1.Property<DateTime?>("ExternalUpdatedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("ExternalUpdatedAt");
+
+                            b1.Property<int?>("ExternalVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("ExternalVersion");
+
+                            b1.Property<DateTime?>("LastSyncedAt")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("LastSyncedAt");
+
+                            b1.Property<string>("OriginSystem")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("OriginSystem");
+
+                            b1.HasKey("StudentRegisteredCourseId");
+
+                            b1.HasIndex("ExternalId")
+                                .IsUnique()
+                                .HasFilter("[ExternalId] IS NOT NULL");
+
+                            b1.ToTable("StudentRegisteredCourses");
+
+                            b1.WithOwner()
+                                .HasForeignKey("StudentRegisteredCourseId");
+                        });
+
+                    b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot", b =>
+                {
                     b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
                         {
                             b1.Property<Guid>("CourseOfferingId")
@@ -1545,7 +2656,76 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
+                        .WithMany("Documents")
+                        .HasForeignKey("StudentServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StudentService");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentSubmission", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.ServiceDocumentDefinition", "DocumentDefinition")
+                        .WithMany()
+                        .HasForeignKey("DocumentDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", "StudentServiceRequest")
+                        .WithMany("Documents")
+                        .HasForeignKey("StudentServiceRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentDefinition");
+
+                    b.Navigation("StudentServiceRequest");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
+                        .WithMany("Fields")
+                        .HasForeignKey("StudentServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StudentService");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldValue", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.ServiceFieldDefinition", "FieldDefinition")
+                        .WithMany()
+                        .HasForeignKey("FieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", "StudentServiceRequest")
+                        .WithMany("FieldValues")
+                        .HasForeignKey("StudentServiceRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FieldDefinition");
+
+                    b.Navigation("StudentServiceRequest");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.StudentServiceRequest", b =>
                 {
                     b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
                         .WithMany()
@@ -1553,125 +2733,35 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
-                        {
-                            b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("ExternalId")
-                                .HasMaxLength(128)
-                                .HasColumnType("nvarchar(128)")
-                                .HasColumnName("ExternalId");
-
-                            b1.Property<DateTime?>("ExternalUpdatedAt")
-                                .HasColumnType("datetime2")
-                                .HasColumnName("ExternalUpdatedAt");
-
-                            b1.Property<int?>("ExternalVersion")
-                                .HasColumnType("int")
-                                .HasColumnName("ExternalVersion");
-
-                            b1.Property<DateTime?>("LastSyncedAt")
-                                .HasColumnType("datetime2")
-                                .HasColumnName("LastSyncedAt");
-
-                            b1.Property<string>("OriginSystem")
-                                .IsRequired()
-                                .HasMaxLength(32)
-                                .HasColumnType("nvarchar(32)")
-                                .HasColumnName("OriginSystem");
-
-                            b1.HasKey("InvoiceId");
-
-                            b1.HasIndex("ExternalId")
-                                .IsUnique()
-                                .HasFilter("[ExternalId] IS NOT NULL");
-
-                            b1.ToTable("Invoices");
-
-                            b1.WithOwner()
-                                .HasForeignKey("InvoiceId");
-                        });
-
-                    b.Navigation("ExternallySourced")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.InvoiceItem", b =>
-                {
-                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Invoice", "Invoice")
-                        .WithMany("Items")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.PaymentTransaction", b =>
-                {
-                    b.HasOne("CapitalUniversity.Modules.Payments.Domain.Invoice", "Invoice")
-                        .WithMany("Transactions")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.Schedule.Domain.ScheduleSlot", b =>
-                {
-                    b.OwnsOne("CapitalUniversity.Core.Domain.Common.ExternallySourcedData", "ExternallySourced", b1 =>
-                        {
-                            b1.Property<Guid>("ScheduleSlotId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("ExternalId")
-                                .HasMaxLength(128)
-                                .HasColumnType("nvarchar(128)")
-                                .HasColumnName("ExternalId");
-
-                            b1.Property<DateTime?>("ExternalUpdatedAt")
-                                .HasColumnType("datetime2")
-                                .HasColumnName("ExternalUpdatedAt");
-
-                            b1.Property<int?>("ExternalVersion")
-                                .HasColumnType("int")
-                                .HasColumnName("ExternalVersion");
-
-                            b1.Property<DateTime?>("LastSyncedAt")
-                                .HasColumnType("datetime2")
-                                .HasColumnName("LastSyncedAt");
-
-                            b1.Property<string>("OriginSystem")
-                                .IsRequired()
-                                .HasMaxLength(32)
-                                .HasColumnType("nvarchar(32)")
-                                .HasColumnName("OriginSystem");
-
-                            b1.HasKey("ScheduleSlotId");
-
-                            b1.HasIndex("ExternalId")
-                                .IsUnique()
-                                .HasFilter("[ExternalId] IS NOT NULL");
-
-                            b1.ToTable("ScheduleSlots");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ScheduleSlotId");
-                        });
-
-                    b.Navigation("ExternallySourced")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Modules.Student.Domain.StudentProfileRecord", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.Identity.Student", null)
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.StudentService", "StudentService")
                         .WithMany()
-                        .HasForeignKey("StudentId")
+                        .HasForeignKey("StudentServiceId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("StudentService");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowState", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.WorkflowDefinition", "WorkflowDefinition")
+                        .WithMany("States")
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkflowDefinition");
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Modules.StudentServices.Domain.WorkflowTransition", b =>
+                {
+                    b.HasOne("CapitalUniversity.Modules.StudentServices.Domain.WorkflowDefinition", "WorkflowDefinition")
+                        .WithMany("Transitions")
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkflowDefinition");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Authorization.Module", b =>
@@ -1694,9 +2784,9 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     b.Navigation("Children");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Invoice", b =>
+            modelBuilder.Entity("CapitalUniversity.Modules.Payments.Domain.Treasury.Order", b =>
                 {
-                    b.Navigation("Items");
+                    b.Navigation("Fees");
 
                     b.Navigation("Transactions");
                 });

@@ -4,12 +4,14 @@ using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Infrastructure;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
+using CapitalUniversity.Modules.AcademicRecords;
 using CapitalUniversity.Module.StudentServices;
 using CapitalUniversity.Module.StudentServices.Abstractions.Hubs;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Seeders;
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
+using CapitalUniversity.Modules.Registration;
 using CapitalUniversity.Modules.Payments.Persistence;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
@@ -78,12 +80,22 @@ builder.Services.AddCoreServices(builder.Configuration);
 // infrastructure (cache, UoW, scope services) is already in the container
 // before the module wires its services that depend on those interfaces.
 builder.Services.AddPaymentsModule();
+// Treasury outbound integration (Phase 2) — typed HttpClient + options.
+builder.Services.AddTreasuryIntegration(builder.Configuration);
 builder.Services.AddStudentModule();
 builder.Services.AddCourseOfferingModule();
 // Schedule depends on ICourseOfferingService for parent existence + scope
 // checks — registered AFTER CourseOffering so the resolver finds the
 // dependency at construction time.
 builder.Services.AddScheduleModule();
+// Registration is a read-only module over sync-sourced registration data; it
+// depends only on Core (scope service + DbContext), so order is unconstrained.
+builder.Services.AddRegistrationModule();
+// Academic Records (Grades / Transcript) is read-only over sync-sourced academic
+// outcomes; it reads registration data (StudentRegisteredCourse) and the active
+// academic plan, so it is registered AFTER Registration. Depends only on Core +
+// Registration types, no construction-time service dependency on either.
+builder.Services.AddAcademicRecordsModule();
 // Student Services depends on IFeeCreationService (Payments) for fee
 // authoring on submit — registered AFTER Payments so the resolver finds
 // the dependency at construction time.

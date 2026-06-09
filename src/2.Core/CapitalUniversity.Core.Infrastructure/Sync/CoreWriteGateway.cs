@@ -74,78 +74,123 @@ public sealed class CoreWriteGateway : ICoreWriteGateway
             return new CoreUpsertResult { SkippedNoExternalId = skippedNoExternalId };
         }
 
-        // Single round-trip to fetch the existing rows for this batch. The
-        // ExternalId column lives on the owned navigation; EF translates the
-        // ExternallySourced.ExternalId lambda into a query against the
-        // physical column on the parent table.
-        var externalIds = withKey
-            .Select(e => e.ExternallySourced.ExternalId!)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-
-        var existing = await _db.Set<TEntity>()
-            .Where(e => externalIds.Contains(e.ExternallySourced.ExternalId))
-            .ToDictionaryAsync(e => e.ExternallySourced.ExternalId!, StringComparer.Ordinal, cancellationToken)
-            .ConfigureAwait(false);
-
-        var persisted = 0;
-        var skippedNotFound = 0;
-        var skippedNotNewer = 0;
-        var now = DateTime.UtcNow;
-
-        foreach (var entity in withKey)
+        // C2 — the read-existing → Add-missing → SaveChanges sequence is a
+        // check-then-act: a concurrent writer can insert the same ExternalId in
+        // the window between our read and our save, surfacing as a unique
+        // violation that would otherwise crash the whole sync batch. Retry once;
+        // the second pass re-reads, sees the now-present row as an update, and
+        // commits cleanly. One retry suffices — a sustained stream of colliding
+        // inserts for the same key is not a real sync scenario.
+        const int maxAttempts = 2;
+        for (var attempt = 1; ; attempt++)
         {
-            if (existing.TryGetValue(entity.ExternallySourced.ExternalId!, out var current))
+            try
             {
-                // External-wins guard: skip on stale upstream replay.
-                if (options.RespectExternalUpdatedAt
-                    && current.ExternallySourced.ExternalUpdatedAt is { } currentStamp
-                    && entity.ExternallySourced.ExternalUpdatedAt is { } incomingStamp
-                    && incomingStamp <= currentStamp)
-                {
-                    skippedNotNewer++;
-                    continue;
-                }
-
-                // Caller chooses which scalar columns the sync layer owns —
-                // see the docs on Action<TEntity, TEntity>. The gateway is
-                // responsible only for the sync-metadata stamping below.
-                applyUpdate(current, entity);
-
-                current.ExternallySourced.ExternalUpdatedAt = entity.ExternallySourced.ExternalUpdatedAt;
-                current.ExternallySourced.ExternalVersion = entity.ExternallySourced.ExternalVersion;
-                current.ExternallySourced.LastSyncedAt = now;
-                current.ExternallySourced.OriginSystem = "external";
-
-                persisted++;
+                return await UpsertTrackedBatchAsync().ConfigureAwait(false);
             }
-            else if (options.AllowInsert)
+            catch (DbUpdateException ex) when (attempt < maxAttempts && IsUniqueViolation(ex))
             {
-                // Insert path — sync's mapper already produced a complete
-                // entity. We stamp the sync-metadata and add as-is.
-                entity.ExternallySourced.LastSyncedAt = now;
-                entity.ExternallySourced.OriginSystem = "external";
-                _db.Set<TEntity>().Add(entity);
-                persisted++;
-            }
-            else
-            {
-                skippedNotFound++;
-                _logger.LogInformation(
-                    "CoreWriteGateway: {EntityType} ExternalId={ExternalId} not pre-provisioned in Core, update-only mode skipped insert.",
-                    typeof(TEntity).Name, entity.ExternallySourced.ExternalId);
+                _logger.LogWarning(ex,
+                    "CoreWriteGateway: concurrent insert collided on {EntityType}; clearing tracker and retrying once.",
+                    typeof(TEntity).Name);
+                // Detach the half-applied batch so the retry re-reads a clean
+                // slate — the conflicting row now resolves as an update.
+                _db.ChangeTracker.Clear();
             }
         }
 
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return new CoreUpsertResult
+        async Task<CoreUpsertResult> UpsertTrackedBatchAsync()
         {
-            Persisted = persisted,
-            SkippedNotFound = skippedNotFound,
-            SkippedNotNewer = skippedNotNewer,
-            SkippedNoExternalId = skippedNoExternalId
-        };
+            // Single round-trip to fetch the existing rows for this batch. The
+            // ExternalId column lives on the owned navigation; EF translates the
+            // ExternallySourced.ExternalId lambda into a query against the
+            // physical column on the parent table.
+            var externalIds = withKey
+                .Select(e => e.ExternallySourced.ExternalId!)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            var existing = await _db.Set<TEntity>()
+                .Where(e => externalIds.Contains(e.ExternallySourced.ExternalId))
+                .ToDictionaryAsync(e => e.ExternallySourced.ExternalId!, StringComparer.Ordinal, cancellationToken)
+                .ConfigureAwait(false);
+
+            var persisted = 0;
+            var skippedNotFound = 0;
+            var skippedNotNewer = 0;
+            var now = DateTime.UtcNow;
+
+            foreach (var entity in withKey)
+            {
+                if (existing.TryGetValue(entity.ExternallySourced.ExternalId!, out var current))
+                {
+                    // External-wins guard: skip on stale upstream replay.
+                    if (options.RespectExternalUpdatedAt
+                        && current.ExternallySourced.ExternalUpdatedAt is { } currentStamp
+                        && entity.ExternallySourced.ExternalUpdatedAt is { } incomingStamp
+                        && incomingStamp <= currentStamp)
+                    {
+                        skippedNotNewer++;
+                        continue;
+                    }
+
+                    // Caller chooses which scalar columns the sync layer owns —
+                    // see the docs on Action<TEntity, TEntity>. The gateway is
+                    // responsible only for the sync-metadata stamping below.
+                    applyUpdate(current, entity);
+
+                    current.ExternallySourced.ExternalUpdatedAt = entity.ExternallySourced.ExternalUpdatedAt;
+                    current.ExternallySourced.ExternalVersion = entity.ExternallySourced.ExternalVersion;
+                    current.ExternallySourced.LastSyncedAt = now;
+                    current.ExternallySourced.OriginSystem = "external";
+
+                    persisted++;
+                }
+                else if (options.AllowInsert)
+                {
+                    // Insert path — sync's mapper already produced a complete
+                    // entity. We stamp the sync-metadata and add as-is.
+                    entity.ExternallySourced.LastSyncedAt = now;
+                    entity.ExternallySourced.OriginSystem = "external";
+                    _db.Set<TEntity>().Add(entity);
+                    persisted++;
+                }
+                else
+                {
+                    skippedNotFound++;
+                    _logger.LogInformation(
+                        "CoreWriteGateway: {EntityType} ExternalId={ExternalId} not pre-provisioned in Core, update-only mode skipped insert.",
+                        typeof(TEntity).Name, entity.ExternallySourced.ExternalId);
+                }
+            }
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            return new CoreUpsertResult
+            {
+                Persisted = persisted,
+                SkippedNotFound = skippedNotFound,
+                SkippedNotNewer = skippedNotNewer,
+                SkippedNoExternalId = skippedNoExternalId
+            };
+        }
+    }
+
+    // SQL Server unique-violation error numbers (2601 unique index, 2627 unique
+    // constraint). Read off the provider's SqlException via reflection so this
+    // assembly keeps no hard reference to Microsoft.Data.SqlClient — same
+    // approach GlobalExceptionHandler uses on the API side.
+    private const int SqlUniqueIndexViolation = 2601;
+    private const int SqlUniqueConstraintViolation = 2627;
+
+    private static bool IsUniqueViolation(DbUpdateException dbEx)
+    {
+        var inner = dbEx.InnerException;
+        if (inner is null) return false;
+        var numberProp = inner.GetType().GetProperty("Number");
+        if (numberProp is null) return false;
+        var number = (int?)numberProp.GetValue(inner);
+        return number == SqlUniqueIndexViolation || number == SqlUniqueConstraintViolation;
     }
 
     public async Task<Guid?> ResolveIdByExternalIdAsync<TEntity>(

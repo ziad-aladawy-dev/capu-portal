@@ -8,8 +8,6 @@ using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.UniTests._Helpers;
-using CapitalUniversity.Modules.Payments.Abstractions;
-using CapitalUniversity.Modules.Payments.Abstractions.DTOs;
 using CapitalUniversity.Modules.StudentServices.Abstractions;
 using CapitalUniversity.Modules.StudentServices.Abstractions.DTOs;
 using CapitalUniversity.Modules.StudentServices.Application;
@@ -40,7 +38,7 @@ public class StudentServiceRequestServiceTests
         public required Mock<IStudentServiceRequestRepository> Requests { get; init; }
         public required Mock<IStudentServiceRepository> Services { get; init; }
         public required Mock<IWorkflowService> Workflows { get; init; }
-        public required Mock<IFeeCreationService> Fees { get; init; }
+        public required Mock<CapitalUniversity.Modules.Payments.Abstractions.Treasury.IFeeGenerationService> FeeGeneration { get; init; }
         public required Mock<IEffectiveScope> Scope { get; init; }
         public required Mock<ICacheService> Cache { get; init; }
         public required Mock<INotificationService> Notifications { get; init; }
@@ -50,10 +48,21 @@ public class StudentServiceRequestServiceTests
     private static Ctx Build()
     {
         var uow = new Mock<IUnitOfWork>();
+        // Run the transactional critical section inline so the wrapped submit
+        // logic executes under test (mirrors the in-memory provider behaviour).
+        uow.Setup(u => u.ExecuteInSerializableTransactionAsync(
+                It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<CancellationToken, Task>, CancellationToken>((action, ct) => action(ct));
         var requests = new Mock<IStudentServiceRequestRepository>();
         var services = new Mock<IStudentServiceRepository>();
         var workflows = new Mock<IWorkflowService>();
-        var fees = new Mock<IFeeCreationService>();
+        var feeGeneration = new Mock<CapitalUniversity.Modules.Payments.Abstractions.Treasury.IFeeGenerationService>();
+        // Default: no Treasury receipt mapping → null → legacy fee path runs.
+        feeGeneration
+            .Setup(f => f.GenerateFeeFromServiceAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(),
+                It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
         var scope = new Mock<IEffectiveScope>();
         var cache = new Mock<ICacheService>();
         var notifications = new Mock<INotificationService>();
@@ -79,7 +88,7 @@ public class StudentServiceRequestServiceTests
             requests.Object,
             services.Object,
             workflows.Object,
-            fees.Object,
+            feeGeneration.Object,
             scope.Object,
             cache.Object,
             notifications.Object,
@@ -99,7 +108,7 @@ public class StudentServiceRequestServiceTests
             Requests = requests,
             Services = services,
             Workflows = workflows,
-            Fees = fees,
+            FeeGeneration = feeGeneration,
             Scope = scope,
             Cache = cache,
             Notifications = notifications,
@@ -132,9 +141,6 @@ public class StudentServiceRequestServiceTests
         Name = LocalizedJson.Of("خدمة", "Service"),
         IsActive = isActive,
         RequiresPayment = requiresPayment,
-        FeeType = requiresPayment ? "fee" : null,
-        FeeAmount = requiresPayment ? 50m : null,
-        Currency = "EGP",
         WorkflowDefinitionId = workflowId,
     };
 
@@ -490,20 +496,21 @@ public class StudentServiceRequestServiceTests
         captured.Should().NotBeNull();
         captured!.CurrentStatus.Should().Be(ServiceRequestStatus.Submitted);
         id.Should().Be(captured.Id);
-        c.Fees.Verify(f => f.CreateFeesAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IReadOnlyCollection<CreateInvoiceItemRequest>>(), It.IsAny<bool>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
+        c.FeeGeneration.Verify(f => f.GenerateFeeFromServiceAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()), Times.Never);
         c.Uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task SubmitAsync_FeeService_CreatesInvoiceAndMovesToWaitingPayment()
+    public async Task SubmitAsync_FeeService_CreatesTreasuryFeeAndMovesToWaitingPayment()
     {
         var c = Build();
         var serviceId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
+        var feeId = Guid.NewGuid();
         c.Services.Setup(s => s.GetByIdAsync(serviceId, true, It.IsAny<CancellationToken>())).ReturnsAsync(Svc(requiresPayment: true));
-        c.Fees.Setup(f => f.CreateFeesAsync(studentId, "EGP", It.IsAny<IReadOnlyCollection<CreateInvoiceItemRequest>>(), false, null, It.IsAny<CancellationToken>()))
-              .ReturnsAsync(invoiceId);
+        c.FeeGeneration.Setup(f => f.GenerateFeeFromServiceAsync(
+                studentId, It.IsAny<Guid>(), It.IsAny<int>(), "student-services", It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(feeId);
         StudentServiceRequest? captured = null;
         c.Requests.Setup(r => r.AddAsync(It.IsAny<StudentServiceRequest>(), It.IsAny<CancellationToken>()))
                   .Callback<StudentServiceRequest, CancellationToken>((e, _) => captured = e);
@@ -511,8 +518,7 @@ public class StudentServiceRequestServiceTests
         await c.Sut.SubmitAsync(studentId, Submit(serviceId));
 
         captured!.CurrentStatus.Should().Be(ServiceRequestStatus.WaitingPayment);
-        captured.PaymentReferenceId.Should().Be(invoiceId);
-        c.Fees.Verify(f => f.CreateFeesAsync(studentId, "EGP", It.IsAny<IReadOnlyCollection<CreateInvoiceItemRequest>>(), false, null, It.IsAny<CancellationToken>()), Times.Once);
+        captured.PaymentReferenceId.Should().Be(feeId);
         c.Requests.Verify(r => r.Update(captured), Times.Once);
         c.Uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }

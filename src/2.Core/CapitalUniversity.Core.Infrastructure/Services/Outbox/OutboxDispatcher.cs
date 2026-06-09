@@ -94,11 +94,58 @@ public class OutboxDispatcher : BackgroundService
         // "rows enqueued earlier are processed first", which is the only
         // ordering guarantee they can rely on when staging a series of related
         // events in the same transaction.
-        var batch = await db.OutboxMessages
-            .Where(m => m.ProcessedAt == null && m.AttemptCount < _options.MaxAttempts)
-            .OrderBy(m => m.EnqueuedAt)
-            .Take(_options.BatchSize)
-            .ToListAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        List<Domain.Outbox.OutboxMessage> batch;
+
+        if (db.Database.IsRelational())
+        {
+            // C1 — atomic lease so multiple dispatchers (horizontal scaling) can
+            // never both grab the same rows. Stamp a token + expiry on a capped
+            // set of pending, unleased (or lease-expired) rows in one UPDATE,
+            // then load back only the rows this instance now owns. The UPDATE's
+            // WHERE re-checks ProcessedAt + lease at write time, so a racing
+            // dispatcher's claim simply affects zero of the contested rows.
+            var leaseToken = Guid.NewGuid();
+            var leaseUntil = now.AddSeconds(Math.Max(1, _options.LeaseSeconds));
+
+            var candidateIds = await db.OutboxMessages
+                .Where(m => m.ProcessedAt == null
+                    && m.AttemptCount < _options.MaxAttempts
+                    && (m.LockedUntil == null || m.LockedUntil < now))
+                .OrderBy(m => m.EnqueuedAt)
+                .Take(_options.BatchSize)
+                .Select(m => m.Id)
+                .ToListAsync(cancellationToken);
+
+            if (candidateIds.Count == 0) return;
+
+            await db.OutboxMessages
+                .Where(m => candidateIds.Contains(m.Id)
+                    && m.ProcessedAt == null
+                    && (m.LockedUntil == null || m.LockedUntil < now))
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(m => m.LockedBy, leaseToken)
+                        .SetProperty(m => m.LockedUntil, leaseUntil),
+                    cancellationToken);
+
+            batch = await db.OutboxMessages
+                .Where(m => m.LockedBy == leaseToken && m.ProcessedAt == null)
+                .OrderBy(m => m.EnqueuedAt)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            // InMemory/test provider has no ExecuteUpdateAsync and runs the
+            // dispatcher single-threaded, so leasing is unnecessary — the
+            // read-then-process window cannot race. Load the pending batch
+            // directly, preserving the original behaviour for tests.
+            batch = await db.OutboxMessages
+                .Where(m => m.ProcessedAt == null && m.AttemptCount < _options.MaxAttempts)
+                .OrderBy(m => m.EnqueuedAt)
+                .Take(_options.BatchSize)
+                .ToListAsync(cancellationToken);
+        }
 
         if (batch.Count == 0) return;
 
@@ -154,6 +201,16 @@ public class OutboxDispatcher : BackgroundService
                         row.Id, row.MessageType, row.AttemptCount, row.LastError);
                 }
             }
+        }
+
+        // C1 — release the lease on every row we handled this tick. A row that
+        // failed without poisoning becomes immediately claimable again next tick;
+        // a processed/poisoned row simply doesn't sit holding a stale lease.
+        // (No-op under the InMemory path, where these are always null.)
+        foreach (var row in batch)
+        {
+            row.LockedBy = null;
+            row.LockedUntil = null;
         }
 
         await db.SaveChangesAsync(cancellationToken);

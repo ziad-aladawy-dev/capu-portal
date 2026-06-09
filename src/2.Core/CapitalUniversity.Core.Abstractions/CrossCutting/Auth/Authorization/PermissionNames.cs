@@ -144,6 +144,56 @@ public static class PermissionNames
         public const string Delete    = "course-offerings.course-offerings.Delete";
     }
 
+    /// <summary>
+    /// Registered Courses — read-only access to course registrations synced from
+    /// external academic systems. Students hold View (own-row scope enforced in
+    /// the service layer via <c>IEffectiveScope</c>); staff read within their
+    /// structure-node scope. Module = <c>registered-courses</c>, Resource =
+    /// <c>registered-courses</c>. Bound by <see cref="RegisteredCoursesController"/>;
+    /// declared by <c>RegistrationPermissionManifest</c>.
+    /// </summary>
+    public static class RegisteredCourses
+    {
+        public const string View      = "registered-courses.registered-courses.View";
+        public const string Insert    = "registered-courses.registered-courses.Insert";
+        public const string EditClose = "registered-courses.registered-courses.EditClose";
+        public const string Open      = "registered-courses.registered-courses.Open";
+        public const string Delete    = "registered-courses.registered-courses.Delete";
+    }
+
+    /// <summary>
+    /// Academic Records — Grades. Read-only access to a student's synchronized
+    /// grade history, semester detail, and academic summary. Students hold View
+    /// (own-row scope enforced in the service layer via <c>IEffectiveScope</c>);
+    /// staff read within their structure-node scope. Module =
+    /// <c>academic-records</c>, Resource = <c>grades</c>. Bound by
+    /// <see cref="GradesController"/>; declared by <c>AcademicRecordsPermissionManifest</c>.
+    /// </summary>
+    public static class Grades
+    {
+        public const string View      = "academic-records.grades.View";
+        public const string Insert    = "academic-records.grades.Insert";
+        public const string EditClose = "academic-records.grades.EditClose";
+        public const string Open      = "academic-records.grades.Open";
+        public const string Delete    = "academic-records.grades.Delete";
+    }
+
+    /// <summary>
+    /// Academic Records — Transcript. Read-only access to a student's transcript
+    /// structure + PDF export. Same own-row / structure-node scope rules as
+    /// <see cref="Grades"/>. Module = <c>academic-records</c>, Resource =
+    /// <c>transcript</c>. Bound by <see cref="TranscriptController"/>; declared by
+    /// <c>AcademicRecordsPermissionManifest</c>.
+    /// </summary>
+    public static class Transcript
+    {
+        public const string View      = "academic-records.transcript.View";
+        public const string Insert    = "academic-records.transcript.Insert";
+        public const string EditClose = "academic-records.transcript.EditClose";
+        public const string Open      = "academic-records.transcript.Open";
+        public const string Delete    = "academic-records.transcript.Delete";
+    }
+
     public static class Schedule
     {
         public const string View      = "schedule.schedule-slots.View";
