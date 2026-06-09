@@ -9,6 +9,11 @@ using Xunit;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
+// Disambiguate the authz entity from the CapitalUniversity.Module.* module
+// namespace. Declared inside the namespace scope so the alias resolves before
+// the outer `Module` namespace shadows the bare type name.
+using Module = CapitalUniversity.Core.Domain.Authorization.Module;
+
 /// <summary>
 /// Synchroniser is additive + idempotent:
 ///   - Empty DB → creates one Module + one Resource per manifest-declared resource.

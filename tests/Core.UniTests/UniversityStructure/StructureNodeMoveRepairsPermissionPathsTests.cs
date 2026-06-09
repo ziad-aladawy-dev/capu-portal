@@ -67,7 +67,7 @@ public class StructureNodeMoveRepairsPermissionPathsTests
 
         cache.Setup(c => c.InvalidateAllAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        var sut = new UniversityStructureService(repo.Object, unitOfWork.Object, new TestLocalizationService(), cache.Object);
+        var sut = new UniversityStructureService(repo.Object, new TestLocalizationService(), cache.Object);
 
         await sut.MoveNodeAsync(faculty.Id, new MoveStructureNodeRequest
         {
@@ -112,7 +112,7 @@ public class StructureNodeMoveRepairsPermissionPathsTests
         repo.Setup(r => r.UpdateRangeAsync(It.IsAny<List<StructureNode>>())).Returns(Task.CompletedTask);
         repo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        var sut = new UniversityStructureService(repo.Object, unitOfWork.Object, new TestLocalizationService(), cache.Object);
+        var sut = new UniversityStructureService(repo.Object, new TestLocalizationService(), cache.Object);
 
         await sut.MoveNodeAsync(node.Id, new MoveStructureNodeRequest
         {

@@ -10,6 +10,11 @@ using Xunit;
 
 namespace CapitalUniversity.Core.UniTests.Authorization;
 
+// Disambiguate the authz entity from the CapitalUniversity.Module.* module
+// namespace. Declared inside the namespace scope so the alias resolves before
+// the outer `Module` namespace shadows the bare type name.
+using Module = CapitalUniversity.Core.Domain.Authorization.Module;
+
 /// <summary>
 /// PermissionService is the raw permission-row reader. These tests pin the
 /// resource-key narrowing, the override stream, and — most importantly — the

@@ -109,8 +109,9 @@ public class PermissionNamesManifestCoverageTests
             typeof(CapitalUniversity.Modules.AcademicRecords.Abstractions.Manifest.AcademicRecordsPermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest).Assembly,
-            typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly,
-            typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest).Assembly
+            typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly
+            // StudentServices has no permission manifest on this line (the module
+            // namespace is CapitalUniversity.Module.StudentServices, sans manifest).
         );
     }
 

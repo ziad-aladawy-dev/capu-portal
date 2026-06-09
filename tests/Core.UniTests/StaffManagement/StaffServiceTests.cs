@@ -36,12 +36,12 @@ public class StaffServiceTests
         structure.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new StructureNode { Id = Guid.NewGuid(), Name = "Faculty of CS" });
         
         var sut = new StaffService(
-            staff.Object, 
-            structure.Object, 
-            new Mock<IPasswordHasher>().Object, 
-            sessions.Object, 
-            uow.Object, 
-            new TestLocalizationService());
+            staff.Object,
+            structure.Object,
+            new Mock<IPasswordHasher>().Object,
+            new TestLocalizationService(),
+            sessions.Object,
+            uow.Object);
             
         return (sut, staff, structure, sessions, uow);
     }
@@ -51,7 +51,8 @@ public class StaffServiceTests
         EmployeeCode = "EMP-2001",
         Password = "P@ss",
         ConfirmPassword = "P@ss",
-        Name = "Aya",
+        NameAr = "Aya",
+        NameEn = "Aya",
         NationalId = "29901011234567",
         BirthDate = new DateTime(1999, 1, 1),
         PhoneNumber = "+201111111111",
@@ -177,7 +178,7 @@ public class StaffServiceTests
 
         var act = async () => await sut.UpdateAsync(Guid.NewGuid(), new UpdateStaffRequest
         {
-            Email = "x@y.z", NationalId = "1", Name = "X", PhoneNumber = "1",
+            Email = "x@y.z", NationalId = "1", NameAr = "X", NameEn = "X", PhoneNumber = "1",
             Role = "r", JobTitle = "j", StructureNodeId = Guid.NewGuid(),
             BirthDate = DateTime.UtcNow, IsActive = true,
         });
@@ -196,7 +197,7 @@ public class StaffServiceTests
 
         await sut.UpdateAsync(id, new UpdateStaffRequest
         {
-            Email = "self@x", NationalId = "1", Name = "new", PhoneNumber = "1",
+            Email = "self@x", NationalId = "1", NameAr = "new", NameEn = "new", PhoneNumber = "1",
             Role = "r", JobTitle = "j", StructureNodeId = Guid.NewGuid(),
             BirthDate = new DateTime(2000, 1, 1), IsActive = true,
         });
@@ -215,7 +216,7 @@ public class StaffServiceTests
 
         var act = async () => await sut.UpdateAsync(id, new UpdateStaffRequest
         {
-            Email = "other@x", NationalId = "1", Name = "n", PhoneNumber = "1",
+            Email = "other@x", NationalId = "1", NameAr = "n", NameEn = "n", PhoneNumber = "1",
             Role = "r", JobTitle = "j", StructureNodeId = Guid.NewGuid(),
             BirthDate = new DateTime(2000, 1, 1), IsActive = true,
         });
@@ -232,7 +233,7 @@ public class StaffServiceTests
 
         var act = async () => await sut.UpdateAsync(id, new UpdateStaffRequest
         {
-            Email = "x", NationalId = "1", Name = "n", PhoneNumber = "1",
+            Email = "x", NationalId = "1", NameAr = "n", NameEn = "n", PhoneNumber = "1",
             Role = "r", JobTitle = "j", StructureNodeId = Guid.NewGuid(),
             BirthDate = new DateTime(2000, 1, 1), IsActive = true,
             Password = "abc", ConfirmPassword = "xyz",
@@ -251,7 +252,7 @@ public class StaffServiceTests
 
         await sut.UpdateAsync(id, new UpdateStaffRequest
         {
-            Email = "x", NationalId = "1", Name = "n", PhoneNumber = "1",
+            Email = "x", NationalId = "1", NameAr = "n", NameEn = "n", PhoneNumber = "1",
             Role = "r", JobTitle = "j", StructureNodeId = Guid.NewGuid(),
             BirthDate = new DateTime(2000, 1, 1), IsActive = true,
         });
