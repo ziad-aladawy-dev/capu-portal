@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
     <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Domain\CapitalUniversity.Core.Domain.csproj" />
     <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Infrastructure\CapitalUniversity.Core.Infrastructure.csproj" />
+    <ProjectReference Include="..\CapitalUniversity.Module.Payments.Abstractions\CapitalUniversity.Module.Payments.Abstractions.csproj" />
     <ProjectReference Include="..\CapitalUniversity.Module.StudentServices.Abstractions\CapitalUniversity.Module.StudentServices.Abstractions.csproj" />
   </ItemGroup>
 

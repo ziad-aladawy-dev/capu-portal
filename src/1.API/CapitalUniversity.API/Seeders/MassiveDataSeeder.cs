@@ -13,8 +13,8 @@ using CapitalUniversity.Modules.Schedule.Domain;
 using CapitalUniversity.Modules.Schedule.Abstractions;
 using CapitalUniversity.Modules.Student.Domain;
 using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
-using CapitalUniversity.Modules.Payments.Domain;
-using CapitalUniversity.Modules.Payments.Abstractions;
+using CapitalUniversity.Modules.Payments.Domain.Treasury;
+using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -1067,259 +1067,193 @@ public static class MassiveDataSeeder
 
     private static async Task ExpandPaymentsAsync(CoreDbContext context)
     {
-        if (await context.Set<Invoice>().CountAsync() > 10) return;
+        // Idempotent: skip once any Treasury fee has been seeded.
+        if (await context.Set<StudentFee>().AnyAsync()) return;
 
         var students = await context.Students.OrderBy(s => s.StudentCode).Take(15).ToListAsync();
-        if (students.Count < 5) return;
+        // The scenarios below index up to students[12].
+        if (students.Count < 13) return;
 
-        var invoiceRepo = context.Set<Invoice>();
+        var receiptSet = context.Set<TreasuryReceipt>();
+        var feeSet = context.Set<StudentFee>();
+        var orderSet = context.Set<Order>();
+        var paymentSet = context.Set<Payment>();
+        var txnSet = context.Set<PaymentTransaction>();
+
         var now = DateTime.UtcNow;
+        var receiptSeq = 0;
 
-        var saraInv = new Invoice
+        // Each fee is priced by a TreasuryReceipt (catalog row). In production
+        // receipts are synced from the HU Treasury System; here we mint a local
+        // one per fee so the required FK resolves and the receipt name carries
+        // the human-readable description.
+        TreasuryReceipt MakeReceipt(string name, decimal unitAmount, DateTime createdAt)
         {
-            Id = Guid.NewGuid(),
-            StudentId = students[1].Id,
-            TotalAmount = 37_500.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Paid,
-            DueAt = new DateTime(2025, 10, 15, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
-        };
-        saraInv.Items.Add(new InvoiceItem
-        {
-            InvoiceId = saraInv.Id,
-            Amount = 37_500.00m,
-            FeeType = "مصروفات دراسية",
-            SourceModule = "registration",
-            Description = "مصاريف الترم الأول - 2025 - الفرقة الرابعة",
-        });
-        saraInv.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = saraInv.Id,
-            Provider = "Bank Transfer",
-            ProviderTransactionId = "BNK-20250925-002",
-            Status = PaymentTransactionStatus.Succeeded,
-            Amount = 37_500.00m,
-            IdempotencyKey = "idem-sarainv1",
-            RawPayloadJson = "{}",
-            CreatedAt = new DateTime(2025, 9, 25, 10, 30, 0, DateTimeKind.Utc),
-        });
-        invoiceRepo.Add(saraInv);
+            var receipt = new TreasuryReceipt
+            {
+                ExternalReceiptId = $"SEED-RCPT-{++receiptSeq:D4}",
+                ConnectionTypeId = 6,
+                Name = name,
+                UnitAmount = unitAmount,
+                Currency = "EGP",
+                IsActive = true,
+                CreatedAt = createdAt,
+            };
+            receiptSet.Add(receipt);
+            return receipt;
+        }
 
-        var saraInv2 = new Invoice
+        // An outstanding (unpaid) obligation — the only thing the student fees
+        // dashboard surfaces (its read path filters on FeeStatus.Pending).
+        void MakePendingFee(Guid studentId, string name, decimal amount, string sourceModule, DateTime createdAt)
         {
-            Id = Guid.NewGuid(),
-            StudentId = students[1].Id,
-            TotalAmount = 500.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Pending,
-            CreatedAt = now.AddDays(-30),
-        };
-        saraInv2.Items.Add(new InvoiceItem
-        {
-            InvoiceId = saraInv2.Id,
-            Amount = 500.00m,
-            FeeType = "مصروفات إدارية",
-            SourceModule = "admin",
-            Description = "الأنشطة الطلابية - 2025",
-        });
-        invoiceRepo.Add(saraInv2);
+            var receipt = MakeReceipt(name, amount, createdAt);
+            feeSet.Add(new StudentFee
+            {
+                StudentId = studentId,
+                ReceiptId = receipt.Id,
+                Quantity = 1,
+                UnitAmount = amount,
+                TotalAmount = amount,
+                Currency = "EGP",
+                Status = FeeStatus.Pending,
+                SourceModule = sourceModule,
+                CreatedAt = createdAt,
+            });
+        }
 
-        var omarInv = new Invoice
+        // A settled fee (Paid or Refunded) plus the Order, immutable Payment, and
+        // gateway audit transaction that settlement would have produced.
+        void MakeSettledFee(
+            Guid studentId, string name, decimal amount, string sourceModule,
+            DateTime createdAt, DateTime settledAt, Gateway gateway, string merchantOrderId,
+            string idempotencyKey, FeeStatus feeStatus, OrderStatus orderStatus, TransactionType txnType)
         {
-            Id = Guid.NewGuid(),
-            StudentId = students[6].Id,
-            TotalAmount = 18_750.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Paid,
-            DueAt = new DateTime(2025, 10, 15, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
-        };
-        omarInv.Items.Add(new InvoiceItem
-        {
-            InvoiceId = omarInv.Id,
-            Amount = 18_750.00m,
-            FeeType = "مصروفات دراسية",
-            SourceModule = "registration",
-            Description = "مصاريف الترم الأول - 2025 - الهندسة المدنية",
-        });
-        omarInv.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = omarInv.Id,
-            Provider = "Online",
-            ProviderTransactionId = "TXN-20251001-003",
-            Status = PaymentTransactionStatus.Succeeded,
-            Amount = 18_750.00m,
-            IdempotencyKey = "idem-omarinv1",
-            RawPayloadJson = "{}",
-            CreatedAt = new DateTime(2025, 10, 1, 12, 0, 0, DateTimeKind.Utc),
-        });
-        invoiceRepo.Add(omarInv);
+            var receipt = MakeReceipt(name, amount, createdAt);
+            var order = new Order
+            {
+                StudentId = studentId,
+                Status = orderStatus,
+                Gateway = gateway,
+                MerchantOrderId = merchantOrderId,
+                TotalAmount = amount,
+                Currency = "EGP",
+                CreatedAt = createdAt,
+            };
+            var fee = new StudentFee
+            {
+                StudentId = studentId,
+                ReceiptId = receipt.Id,
+                Quantity = 1,
+                UnitAmount = amount,
+                TotalAmount = amount,
+                Currency = "EGP",
+                Status = feeStatus,
+                SourceModule = sourceModule,
+                OrderId = order.Id,
+                CreatedAt = createdAt,
+            };
+            orderSet.Add(order);
+            feeSet.Add(fee);
+            // Payment.FeeId is UNIQUE — exactly one settlement record per fee.
+            paymentSet.Add(new Payment
+            {
+                FeeId = fee.Id,
+                OrderId = order.Id,
+                Amount = amount,
+                Gateway = gateway,
+                MerchantOrderId = merchantOrderId,
+                PaidAt = settledAt,
+                CreatedAt = settledAt,
+            });
+            txnSet.Add(new PaymentTransaction
+            {
+                OrderId = order.Id,
+                MerchantOrderId = merchantOrderId,
+                Gateway = gateway,
+                Type = txnType,
+                Status = GatewayTransactionStatus.Succeeded,
+                Amount = amount,
+                GatewayReference = merchantOrderId,
+                IdempotencyKey = idempotencyKey,
+                CreatedAt = settledAt,
+            });
+        }
 
-        var aliInv1 = new Invoice
-        {
-            Id = Guid.NewGuid(),
-            StudentId = students[8].Id,
-            TotalAmount = 37_500.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Refunded,
-            CreatedAt = new DateTime(2025, 8, 15, 8, 0, 0, DateTimeKind.Utc),
-        };
-        aliInv1.Items.Add(new InvoiceItem
-        {
-            InvoiceId = aliInv1.Id,
-            Amount = 37_500.00m,
-            FeeType = "مصروفات دراسية",
-            SourceModule = "registration",
-            Description = "مصاريف الترم الأول - 2025 (ملغية)",
-        });
-        aliInv1.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = aliInv1.Id,
-            Provider = "Online",
-            ProviderTransactionId = "TXN-20250915-004",
-            Status = PaymentTransactionStatus.Refunded,
-            Amount = 37_500.00m,
-            IdempotencyKey = "idem-aliinv1",
-            RawPayloadJson = "{}",
-            CreatedAt = new DateTime(2025, 9, 15, 14, 0, 0, DateTimeKind.Utc),
-        });
-        invoiceRepo.Add(aliInv1);
+        // ── students[1] — tuition paid (bank transfer) + outstanding activity fee ──
+        MakeSettledFee(students[1].Id, "مصاريف الترم الأول - 2025 - الفرقة الرابعة", 37_500.00m,
+            "registration",
+            new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
+            new DateTime(2025, 9, 25, 10, 30, 0, DateTimeKind.Utc),
+            Gateway.BankMisr, "BNK-20250925-002", "idem-sarainv1",
+            FeeStatus.Paid, OrderStatus.Paid, TransactionType.Webhook);
+        MakePendingFee(students[1].Id, "الأنشطة الطلابية - 2025", 500.00m, "admin", now.AddDays(-30));
 
-        var aliInv2 = new Invoice
-        {
-            Id = Guid.NewGuid(),
-            StudentId = students[8].Id,
-            TotalAmount = 3_400.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Pending,
-            DueAt = now.AddDays(30),
-            CreatedAt = now.AddDays(-10),
-        };
-        aliInv2.Items.Add(new InvoiceItem
-        {
-            InvoiceId = aliInv2.Id,
-            Amount = 3_400.00m,
-            FeeType = "خدمات",
-            SourceModule = "services",
-            Description = "رسوم معادلة مواد",
-        });
-        invoiceRepo.Add(aliInv2);
+        // ── students[6] — civil-engineering tuition paid (card) ──
+        MakeSettledFee(students[6].Id, "مصاريف الترم الأول - 2025 - الهندسة المدنية", 18_750.00m,
+            "registration",
+            new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
+            new DateTime(2025, 10, 1, 12, 0, 0, DateTimeKind.Utc),
+            Gateway.Mastercard, "TXN-20251001-003", "idem-omarinv1",
+            FeeStatus.Paid, OrderStatus.Paid, TransactionType.Webhook);
 
-        var hagarInv = new Invoice
-        {
-            Id = Guid.NewGuid(),
-            StudentId = students[9].Id,
-            TotalAmount = 37_500.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.PartiallyPaid,
-            DueAt = new DateTime(2025, 10, 15, 0, 0, 0, DateTimeKind.Utc),
-            CreatedAt = new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
-        };
-        hagarInv.Items.Add(new InvoiceItem
-        {
-            InvoiceId = hagarInv.Id,
-            Amount = 37_500.00m,
-            FeeType = "مصروفات دراسية",
-            SourceModule = "registration",
-            Description = "مصاريف الترم الأول - 2025",
-        });
-        hagarInv.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = hagarInv.Id,
-            Provider = "Online",
-            ProviderTransactionId = "TXN-20250920-005",
-            Status = PaymentTransactionStatus.Succeeded,
-            Amount = 15_000.00m,
-            IdempotencyKey = "idem-hagar1",
-            RawPayloadJson = "{}",
-            CreatedAt = new DateTime(2025, 9, 20, 9, 15, 0, DateTimeKind.Utc),
-        });
-        invoiceRepo.Add(hagarInv);
+        // ── students[8] — tuition refunded + outstanding course-equivalency fee ──
+        MakeSettledFee(students[8].Id, "مصاريف الترم الأول - 2025 (ملغية)", 37_500.00m,
+            "registration",
+            new DateTime(2025, 8, 15, 8, 0, 0, DateTimeKind.Utc),
+            new DateTime(2025, 9, 15, 14, 0, 0, DateTimeKind.Utc),
+            Gateway.Mastercard, "TXN-20250915-004", "idem-aliinv1",
+            FeeStatus.Refunded, OrderStatus.Refunded, TransactionType.Refund);
+        MakePendingFee(students[8].Id, "رسوم معادلة مواد", 3_400.00m, "services", now.AddDays(-10));
 
-        var karimInv = new Invoice
-        {
-            Id = Guid.NewGuid(),
-            StudentId = students[10].Id,
-            TotalAmount = 150.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Paid,
-            DueAt = now.AddDays(-5),
-            CreatedAt = now.AddDays(-10),
-        };
-        karimInv.Items.Add(new InvoiceItem
-        {
-            InvoiceId = karimInv.Id,
-            Amount = 150.00m,
-            FeeType = "خدمة بيان درجات",
-            SourceModule = "student_services",
-            Description = "رسوم طلب بيان درجات",
-        });
-        karimInv.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = karimInv.Id,
-            Provider = "Fawry",
-            ProviderTransactionId = "FAW-20260601-006",
-            Status = PaymentTransactionStatus.Succeeded,
-            Amount = 150.00m,
-            IdempotencyKey = "idem-karim-transcript",
-            RawPayloadJson = "{}",
-            CreatedAt = now.AddDays(-5),
-        });
-        invoiceRepo.Add(karimInv);
+        // ── students[9] — tuition still outstanding ──
+        // The legacy "partially paid" state has no Treasury equivalent (a fee is
+        // atomic — paid in full or not), so it maps to a single Pending obligation.
+        MakePendingFee(students[9].Id, "مصاريف الترم الأول - 2025", 37_500.00m, "registration",
+            new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc));
 
-        var salmaInv = new Invoice
-        {
-            Id = Guid.NewGuid(),
-            StudentId = students[11].Id,
-            TotalAmount = 500.00m,
-            Currency = "EGP",
-            Status = InvoiceStatus.Pending,
-            DueAt = now.AddDays(14),
-            CreatedAt = now.AddDays(-30),
-        };
-        salmaInv.Items.Add(new InvoiceItem
-        {
-            InvoiceId = salmaInv.Id,
-            Amount = 500.00m,
-            FeeType = "رسوم تخرج",
-            SourceModule = "student_services",
-            Description = "رسوم التخرج واصدار الشهادة",
-        });
-        invoiceRepo.Add(salmaInv);
+        // ── students[10] — transcript fee paid (e-finance) ──
+        MakeSettledFee(students[10].Id, "رسوم طلب بيان درجات", 150.00m, "student_services",
+            now.AddDays(-10), now.AddDays(-5),
+            Gateway.EFinance, "FAW-20260601-006", "idem-karim-transcript",
+            FeeStatus.Paid, OrderStatus.Paid, TransactionType.Webhook);
 
-        var hassanInv = new Invoice
+        // ── students[11] — graduation fee outstanding ──
+        MakePendingFee(students[11].Id, "رسوم التخرج واصدار الشهادة", 500.00m, "student_services",
+            now.AddDays(-30));
+
+        // ── students[12] — ID-card fee outstanding after a failed payment attempt ──
+        // The fee stays Pending (released back from the failed order); the failed
+        // attempt survives as an Order + gateway audit row with no Payment.
+        var hassanCreated = now.AddDays(-3);
+        MakePendingFee(students[12].Id, "رسوم إصدار كارنية طالب", 85.00m, "student_services", hassanCreated);
+        var failedOrder = new Order
         {
-            Id = Guid.NewGuid(),
             StudentId = students[12].Id,
+            Status = OrderStatus.Failed,
+            Gateway = Gateway.Mastercard,
+            MerchantOrderId = "TXN-20260604-007",
             TotalAmount = 85.00m,
             Currency = "EGP",
-            Status = InvoiceStatus.Pending,
-            CreatedAt = now.AddDays(-3),
+            CreatedAt = hassanCreated,
         };
-        hassanInv.Items.Add(new InvoiceItem
+        orderSet.Add(failedOrder);
+        txnSet.Add(new PaymentTransaction
         {
-            InvoiceId = hassanInv.Id,
+            OrderId = failedOrder.Id,
+            MerchantOrderId = "TXN-20260604-007",
+            Gateway = Gateway.Mastercard,
+            Type = TransactionType.Webhook,
+            Status = GatewayTransactionStatus.Failed,
             Amount = 85.00m,
-            FeeType = "خدمة كارنية طالب",
-            SourceModule = "student_services",
-            Description = "رسوم إصدار كارنية طالب",
-        });
-        hassanInv.Transactions.Add(new PaymentTransaction
-        {
-            InvoiceId = hassanInv.Id,
-            Provider = "Online",
-            ProviderTransactionId = "TXN-20260604-007",
-            Status = PaymentTransactionStatus.Failed,
-            Amount = 85.00m,
+            GatewayReference = "TXN-20260604-007",
+            RawResponse = "{\"error\":\"insufficient_funds\"}",
             IdempotencyKey = "idem-hassan-idcard-fail",
-            RawPayloadJson = "{\"error\":\"insufficient_funds\"}",
-            CreatedAt = now.AddDays(-3),
+            CreatedAt = hassanCreated,
         });
-        invoiceRepo.Add(hassanInv);
 
         await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] Payments: expanded with multi-student invoices.");
+        Console.WriteLine($"[MassSeed] Payments: seeded Treasury fees/orders/payments for multiple students.");
     }
 
     private static async Task SeedStudentProfileRecordsAsync(CoreDbContext context)

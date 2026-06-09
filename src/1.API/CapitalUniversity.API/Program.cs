@@ -12,7 +12,6 @@ using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Seeder
 using CapitalUniversity.Modules.CourseOffering;
 using CapitalUniversity.Modules.Payments;
 using CapitalUniversity.Modules.Registration;
-using CapitalUniversity.Modules.Payments.Persistence;
 using CapitalUniversity.Modules.Schedule;
 using CapitalUniversity.Modules.Student;
 using FluentValidation.AspNetCore;
@@ -255,7 +254,6 @@ using (var scope = app.Services.CreateScope())
     await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     await IdentitySeeder.SeedAsync(db, passwordHasher);
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
-    await PaymentsSeeder.SeedAsync(db);
     await MassiveDataSeeder.SeedAsync(db, passwordHasher);
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
