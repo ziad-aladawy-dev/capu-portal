@@ -8,6 +8,7 @@ const StudentGrades = lazy(() => import("./pages/StudentGrades"));
 const StudentTranscript = lazy(() => import("./pages/StudentTranscript"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
 const StudentPayments = lazy(() => import("./pages/StudentPaymentsPage"));
+const PaymentReturn = lazy(() => import("./pages/PaymentReturn"));
 
 const StudentServiceDetails = lazy(() => import("./pages/StudentServiceDetails"));
 const RequestSubmission = lazy(() => import("./pages/RequestSubmission"));
@@ -102,6 +103,13 @@ export default [
       label: "Payments & Fees",
       icon: "Receipt",
     },
+  },
+  {
+    path: "/student/payments/return",
+    component: PaymentReturn,
+    permission: "student.dashboard.view",
+    pageType: "entity",
+    applicableTo: "student",
   },
   {
     path: "/student/schedule",
