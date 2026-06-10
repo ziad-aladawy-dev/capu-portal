@@ -279,27 +279,29 @@ function CoursesPage() {
               return <span style={{ fontFamily: "Space Mono, monospace" }}>{v}</span>;
             },
           },
-          { key: "actions", label: "Actions", render: (_, row) => (
-            <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
-              <PermissionGate resource="courses.courses" minLevel={3}>
-                <button className="courses-action-btn edit" onClick={() => openEditDrawer(row)} title="Edit"><Edit2 size={13} /></button>
-              </PermissionGate>
-              {row.isClosed ? (
-                <PermissionGate resource="courses.courses" minLevel={4}>
-                  <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "open", course: row })}
-                    disabled={openCourse.isPending} title="Reopen"><Trash2 size={13} /></button>
-                </PermissionGate>
-              ) : (
+          {
+            key: "actions", label: "Actions", render: (_, row) => (
+              <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
                 <PermissionGate resource="courses.courses" minLevel={3}>
-                  <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "close", course: row })}
-                    disabled={closeCourse.isPending} title="Close Record"><Trash2 size={13} /></button>
+                  <button className="courses-action-btn edit" onClick={() => openEditDrawer(row)} title="Edit"><Edit2 size={13} /></button>
                 </PermissionGate>
-              )}
-              <PermissionGate resource="courses.courses" minLevel={5}>
-                <button className="courses-action-btn delete" onClick={() => setDeleteTarget(row)} title="Delete"><Trash2 size={13} /></button>
-              </PermissionGate>
-            </div>
-          ), nowrap: true },
+                {row.isClosed ? (
+                  <PermissionGate resource="courses.courses" minLevel={4}>
+                    <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "open", course: row })}
+                      disabled={openCourse.isPending} title="Reopen"><Trash2 size={13} /></button>
+                  </PermissionGate>
+                ) : (
+                  <PermissionGate resource="courses.courses" minLevel={3}>
+                    <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "close", course: row })}
+                      disabled={closeCourse.isPending} title="Close Record"><Trash2 size={13} /></button>
+                  </PermissionGate>
+                )}
+                <PermissionGate resource="courses.courses" minLevel={5}>
+                  <button className="courses-action-btn delete" onClick={() => setDeleteTarget(row)} title="Delete"><Trash2 size={13} /></button>
+                </PermissionGate>
+              </div>
+            ), nowrap: true
+          },
         ]}
         data={courses}
         loading={isLoading}

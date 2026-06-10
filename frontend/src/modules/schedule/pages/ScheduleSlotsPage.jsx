@@ -410,7 +410,7 @@ function ScheduleSlotsPage() {
         )}
         {selectedOfferingId && (
           <button className="sch-btn sch-btn-primary" style={{ padding: "6px 12px", fontSize: 12 }}
-            onClick={() => {}} title="Refresh">
+            onClick={() => { }} title="Refresh">
             <RefreshCw size={12} />
           </button>
         )}

@@ -20,7 +20,7 @@ export function useAcademicPlans(params = {}) {
         totalPages: data?.totalPages || 1,
       };
     },
-    enabled: true,
+    enabled: !!params.structureNodeId,
   });
 }
 

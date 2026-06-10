@@ -252,7 +252,26 @@ function CourseOfferingsPage() {
     }
   };
 
-
+  if (!selectedSemesterObj) {
+    return (
+      <div className="co-page">
+        <div className="co-header">
+          <div className="co-header-left">
+            <CalendarCheck size={20} />
+            <div>
+              <h1>{t("course_offerings")}</h1>
+              <p>{t("manage_course_offerings")}</p>
+            </div>
+          </div>
+        </div>
+        <EmptyState
+          icon={Calendar}
+          title="Select a Semester"
+          message="Choose a semester from the context selector above to view course offerings."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="co-page">
@@ -261,11 +280,11 @@ function CourseOfferingsPage() {
           <CalendarCheck size={20} />
           <div>
             <h1>{t("course_offerings")}</h1>
-            <p>{t("manage_course_offerings")} — {selectedSemesterObj ? selectedSemester : "All Semesters"}</p>
+            <p>{t("manage_course_offerings")} — {selectedSemester}</p>
           </div>
         </div>
         <PermissionGate resource="course-offerings.course-offerings" minLevel={2}>
-          <button className="co-btn co-btn-primary" onClick={openCreate} disabled={!selectedSemesterObj || !scopeNode} title={(!selectedSemesterObj || !scopeNode) ? "Select a node and semester to create" : ""}>
+          <button className="co-btn co-btn-primary" onClick={openCreate}>
             <Plus size={16} /> {t("new_offering")}
           </button>
         </PermissionGate>
@@ -358,79 +377,91 @@ function CourseOfferingsPage() {
 
       <DataTable
         columns={[
-          { key: "course", label: t("course"), render: (_, row) => {
-            const course = getCourseInfo(row.courseId);
-            return (
-              <div className="co-course-info">
-                <span className="co-course-code">{course?.code || "—"}</span>
-                <span className="co-course-title">{course?.title || t("unknown_course")}</span>
-              </div>
-            );
-          }, nowrap: false },
+          {
+            key: "course", label: t("course"), render: (_, row) => {
+              const course = getCourseInfo(row.courseId);
+              return (
+                <div className="co-course-info">
+                  <span className="co-course-code">{course?.code || "—"}</span>
+                  <span className="co-course-title">{course?.title || t("unknown_course")}</span>
+                </div>
+              );
+            }, nowrap: false
+          },
           { key: "sectionCode", label: t("section"), render: (v) => <span className="co-section-badge">{v}</span> },
-          { key: "capacity", label: t("capacity"), render: (_, row) => (
-            <div className="co-capacity-control">
-              <span className="co-capacity-num">{row.capacity}</span>
-              <PermissionGate resource="course-offerings.course-offerings" minLevel={3}>
-                <div className="co-capacity-adjust">
-                  <button className="co-capacity-btn" onClick={(e) => { e.stopPropagation(); handleCapacityAdjust(row, 1); }}
-                    disabled={capacityAdjusting === row.id} title="Increase capacity" aria-label="Increase capacity">
-                    <ArrowUp size={10} />
-                  </button>
-                  <button className="co-capacity-btn" onClick={(e) => { e.stopPropagation(); handleCapacityAdjust(row, -1); }}
-                    disabled={capacityAdjusting === row.id || row.capacity <= 0} title="Decrease capacity" aria-label="Decrease capacity">
-                    <ArrowDown size={10} />
-                  </button>
-                </div>
-              </PermissionGate>
-            </div>
-          )},
-          { key: "registeredCount", label: t("enrolled"), render: (_, row) => {
-            const filled = row.capacity > 0 ? Math.round((row.registeredCount / row.capacity) * 100) : 0;
-            return (
-              <div className="co-enrolled-cell">
-                <span className={`co-enrolled-num ${filled >= 100 ? "danger" : filled >= 80 ? "warn" : ""}`}>
-                  {row.registeredCount}
-                  <span className="co-enrolled-sep">/{row.capacity}</span>
-                </span>
-                <div className="co-capacity-bar">
-                  <div className={`co-capacity-fill ${filled >= 100 ? "full" : filled >= 80 ? "warn" : "ok"}`}
-                    style={{ width: `${Math.min(filled, 100)}%` }} />
-                </div>
-              </div>
-            );
-          }},
-          { key: "status", label: t("status"), render: (v) => (
-            <StatusBadge status={offeringStatusVariant(v)} label={OFFERING_STATUS_LABELS[v] || t("unknown")} />
-          )},
-          { key: "registrationState", label: t("registration"), render: (v) => (
-            <StatusBadge status={regStatusVariant(v)} label={REGISTRATION_STATE_LABELS[v] || t("unknown")} />
-          )},
-          { key: "isClosed", label: "Record", render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? "Closed" : "Open"} /> },
-          { key: "actions", label: t("actions"), render: (_, row) => (
-            <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
-              <PermissionGate resource="course-offerings.course-offerings" minLevel={3}>
-                <button className="co-action-btn" onClick={() => openEdit(row)} title={t("edit")} aria-label={t("edit")}>
-                  <Edit2 size={14} />
-                </button>
-              </PermissionGate>
-              {row.isClosed ? (
-                <PermissionGate resource="course-offerings.course-offerings" minLevel={4}>
-                  <button className="co-action-btn" onClick={() => setConfirmAction({ type: "open", id: row.id })}
-                    disabled={openMut.isPending} title="Reopen" aria-label="Reopen offering">
-                    <Unlock size={14} />
-                  </button>
-                </PermissionGate>
-              ) : (
+          {
+            key: "capacity", label: t("capacity"), render: (_, row) => (
+              <div className="co-capacity-control">
+                <span className="co-capacity-num">{row.capacity}</span>
                 <PermissionGate resource="course-offerings.course-offerings" minLevel={3}>
-                  <button className="co-action-btn" onClick={() => setConfirmAction({ type: "close", id: row.id })}
-                    disabled={closeMut.isPending} title="Close record" aria-label="Close offering record">
-                    <Lock size={14} />
+                  <div className="co-capacity-adjust">
+                    <button className="co-capacity-btn" onClick={(e) => { e.stopPropagation(); handleCapacityAdjust(row, 1); }}
+                      disabled={capacityAdjusting === row.id} title="Increase capacity" aria-label="Increase capacity">
+                      <ArrowUp size={10} />
+                    </button>
+                    <button className="co-capacity-btn" onClick={(e) => { e.stopPropagation(); handleCapacityAdjust(row, -1); }}
+                      disabled={capacityAdjusting === row.id || row.capacity <= 0} title="Decrease capacity" aria-label="Decrease capacity">
+                      <ArrowDown size={10} />
+                    </button>
+                  </div>
+                </PermissionGate>
+              </div>
+            )
+          },
+          {
+            key: "registeredCount", label: t("enrolled"), render: (_, row) => {
+              const filled = row.capacity > 0 ? Math.round((row.registeredCount / row.capacity) * 100) : 0;
+              return (
+                <div className="co-enrolled-cell">
+                  <span className={`co-enrolled-num ${filled >= 100 ? "danger" : filled >= 80 ? "warn" : ""}`}>
+                    {row.registeredCount}
+                    <span className="co-enrolled-sep">/{row.capacity}</span>
+                  </span>
+                  <div className="co-capacity-bar">
+                    <div className={`co-capacity-fill ${filled >= 100 ? "full" : filled >= 80 ? "warn" : "ok"}`}
+                      style={{ width: `${Math.min(filled, 100)}%` }} />
+                  </div>
+                </div>
+              );
+            }
+          },
+          {
+            key: "status", label: t("status"), render: (v) => (
+              <StatusBadge status={offeringStatusVariant(v)} label={OFFERING_STATUS_LABELS[v] || t("unknown")} />
+            )
+          },
+          {
+            key: "registrationState", label: t("registration"), render: (v) => (
+              <StatusBadge status={regStatusVariant(v)} label={REGISTRATION_STATE_LABELS[v] || t("unknown")} />
+            )
+          },
+          { key: "isClosed", label: "Record", render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? "Closed" : "Open"} /> },
+          {
+            key: "actions", label: t("actions"), render: (_, row) => (
+              <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                <PermissionGate resource="course-offerings.course-offerings" minLevel={3}>
+                  <button className="co-action-btn" onClick={() => openEdit(row)} title={t("edit")} aria-label={t("edit")}>
+                    <Edit2 size={14} />
                   </button>
                 </PermissionGate>
-              )}
-            </div>
-          ), nowrap: true },
+                {row.isClosed ? (
+                  <PermissionGate resource="course-offerings.course-offerings" minLevel={4}>
+                    <button className="co-action-btn" onClick={() => setConfirmAction({ type: "open", id: row.id })}
+                      disabled={openMut.isPending} title="Reopen" aria-label="Reopen offering">
+                      <Unlock size={14} />
+                    </button>
+                  </PermissionGate>
+                ) : (
+                  <PermissionGate resource="course-offerings.course-offerings" minLevel={3}>
+                    <button className="co-action-btn" onClick={() => setConfirmAction({ type: "close", id: row.id })}
+                      disabled={closeMut.isPending} title="Close record" aria-label="Close offering record">
+                      <Lock size={14} />
+                    </button>
+                  </PermissionGate>
+                )}
+              </div>
+            ), nowrap: true
+          },
         ]}
         data={offerings}
         loading={isLoading}

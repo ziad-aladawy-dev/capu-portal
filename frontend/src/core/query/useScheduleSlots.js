@@ -97,7 +97,7 @@ export function useOfferingsForSchedule(structureNodeId, semesterId) {
   return useQuery({
     queryKey: ["offerings-for-schedule", structureNodeId, semesterId],
     queryFn: () => scheduleService.fetchOfferingsForSchedule(structureNodeId, semesterId),
-    enabled: true,
+    enabled: !!structureNodeId && !!semesterId,
     select: (data) => {
       const items = data?.items || data || [];
       return Array.isArray(items) ? items : [];

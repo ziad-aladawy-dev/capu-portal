@@ -22,7 +22,7 @@ export function useCourseOfferings(params = {}) {
         totalPages: data?.totalPages || 1,
       };
     },
-    enabled: true,
+    enabled: !!params.structureNodeId && !!params.semesterId,
   });
 }
 

@@ -528,27 +528,18 @@ public static class DataSeeder
     private static async Task SeedAuthResourcesAsync(CoreDbContext context)
     {
         var modules = await context.Modules.ToListAsync();
-        var existing = await context.Resources.ToDictionaryAsync(r => (r.ModuleId, r.Key));
 
         void AddRes(string moduleKey, string key, string displayName, int order)
         {
             var modId = modules.First(m => m.ModuleKey == moduleKey).Id;
-            if (existing.TryGetValue((modId, key), out var res))
+            context.Resources.Add(new Resource
             {
-                res.DisplayName = displayName;
-                res.OrderNumber = order;
-            }
-            else
-            {
-                context.Resources.Add(new Resource
-                {
-                    Id = Guid.NewGuid(),
-                    ModuleId = modId,
-                    Key = key,
-                    DisplayName = displayName,
-                    OrderNumber = order
-                });
-            }
+                Id = Guid.NewGuid(),
+                ModuleId = modId,
+                Key = key,
+                DisplayName = displayName,
+                OrderNumber = order
+            });
         }
 
         // One Resource per (module, key) — action verbs are per-row on

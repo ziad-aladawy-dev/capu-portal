@@ -7,7 +7,6 @@ import {
 import * as academicPlanService from "../../../core/services/academicPlanService";
 import * as courseService from "../../../core/services/courseService";
 import * as structureService from "../../../core/services/structureService";
-import { useDomain } from "../../../core/contexts/DomainContext";
 import PermissionGate from "../../../core/auth/PermissionGate";
 import { useToast } from "../../../core/components/Toast";
 import StatusBadge from "../../../core/components/StatusBadge";
@@ -35,8 +34,7 @@ function AcademicPlansPage() {
   // Structure + courses lookup data
   const [structureNodes, setStructureNodes] = useState([]);
   const [structureLoading, setStructureLoading] = useState(false);
-  const { scopeNode } = useDomain();
-  const selectedStructureId = scopeNode?.id || "";
+  const [selectedStructureId, setSelectedStructureId] = useState("");
   const [courses, setCourses] = useState([]);
   const [error, setError] = useState(null);
 
@@ -291,7 +289,7 @@ function AcademicPlansPage() {
         </div>
         <div>
           <PermissionGate resource="courses.academic-plans" minLevel={2}>
-            <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan} disabled={!selectedStructureId} title={!selectedStructureId ? "Select a specific node to create a plan" : ""}>
+            <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan} disabled={!selectedStructureId}>
               <Plus size={14} /> {t("new_plan")}
             </button>
           </PermissionGate>
@@ -310,12 +308,19 @@ function AcademicPlansPage() {
       )}
 
       <div className="aplans-toolbar">
-        <span className="label">
-          {scopeNode ? `Scope: ${scopeNode.name}` : "All Nodes (Global Scope)"}
-        </span>
-        <button className="aplans-btn aplans-btn-outline" onClick={() => refetchPlans()}>
-          <RefreshCw size={12} /> {t("refresh")}
-        </button>
+        <span className="label">{t("structure_node")}</span>
+        <select value={selectedStructureId} onChange={(e) => setSelectedStructureId(e.target.value)}
+          disabled={structureLoading} aria-label="Filter by structure node">
+          <option value="">{t("select_structure_node")}</option>
+          {structureNodes.map((n) => (
+            <option key={n.id} value={n.id}>[{n._type}] {n.name}</option>
+          ))}
+        </select>
+        {selectedStructureId && (
+          <button className="aplans-btn aplans-btn-outline" onClick={() => refetchPlans()}>
+            <RefreshCw size={12} /> {t("refresh")}
+          </button>
+        )}
       </div>
 
       <div className="aplans-grid">
@@ -346,12 +351,17 @@ function AcademicPlansPage() {
 
           {plansLoading ? (
             <div className="aplans-empty"><RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} /></div>
+          ) : !selectedStructureId ? (
+            <div className="aplans-empty" style={{ padding: "32px 16px" }}>
+              <ClipboardList size={28} />
+              <p style={{ fontSize: 12, color: "#6b7280" }}>{t("pick_structure_node")}</p>
+            </div>
           ) : plans.length === 0 ? (
             <div className="aplans-empty" style={{ padding: "32px 16px" }}>
               <ClipboardList size={28} />
               <p>{t("create_plan_for_node")}</p>
               <PermissionGate resource="courses.academic-plans" minLevel={2}>
-                <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan} disabled={!selectedStructureId} title={!selectedStructureId ? "Select a specific node to create a plan" : ""}>
+                <button className="aplans-btn aplans-btn-primary" onClick={openCreatePlan}>
                   <Plus size={14} /> {t("new_plan")}
                 </button>
               </PermissionGate>
@@ -491,24 +501,30 @@ function AcademicPlansPage() {
                 <>
                   <DataTable
                     columns={[
-                      { key: "code", label: t("code"), render: (_, row) => {
-                        const course = courseById[row.courseId];
-                        return <strong style={{ fontFamily: "Space Mono, monospace" }}>{course?.code || "—"}</strong>;
-                      }},
+                      {
+                        key: "code", label: t("code"), render: (_, row) => {
+                          const course = courseById[row.courseId];
+                          return <strong style={{ fontFamily: "Space Mono, monospace" }}>{course?.code || "—"}</strong>;
+                        }
+                      },
                       { key: "title", label: t("title"), render: (_, row) => courseById[row.courseId]?.title || "—" },
                       { key: "credits", label: "Credits", render: (_, row) => courseById[row.courseId]?.creditHours || "—", align: "center" },
                       { key: "level", label: t("level"), align: "center" },
                       { key: "semester", label: t("semester"), align: "center" },
-                      { key: "isMandatory", label: t("type"), render: (v) => (
-                        <StatusBadge status={v ? "active" : "draft"} label={v ? t("mandatory") : t("elective")} />
-                      )},
-                      { key: "actions", label: "", render: (_, row) => (
-                        <PermissionGate resource="courses.academic-plans" minLevel={5}>
-                          <button className="aplans-action-btn delete" onClick={(e) => { e.stopPropagation(); setDeletePlanCourse(row); }} title={t("remove")}>
-                            <Trash2 size={13} />
-                          </button>
-                        </PermissionGate>
-                      ), nowrap: true },
+                      {
+                        key: "isMandatory", label: t("type"), render: (v) => (
+                          <StatusBadge status={v ? "active" : "draft"} label={v ? t("mandatory") : t("elective")} />
+                        )
+                      },
+                      {
+                        key: "actions", label: "", render: (_, row) => (
+                          <PermissionGate resource="courses.academic-plans" minLevel={5}>
+                            <button className="aplans-action-btn delete" onClick={(e) => { e.stopPropagation(); setDeletePlanCourse(row); }} title={t("remove")}>
+                              <Trash2 size={13} />
+                            </button>
+                          </PermissionGate>
+                        ), nowrap: true
+                      },
                     ]}
                     data={selectedPlan.planCourses || []}
                     emptyIcon={BookOpen}
