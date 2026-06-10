@@ -6,6 +6,7 @@ const ServiceBuilder = lazy(() => import("./pages/admin/ServiceBuilder"));
 const RequestsManagement = lazy(() => import("./pages/admin/RequestsManagement"));
 const RequestReview = lazy(() => import("./pages/admin/RequestReview"));
 const NotificationsCenter = lazy(() => import("./pages/admin/NotificationsCenter"));
+const WorkflowsManagement = lazy(() => import("./pages/admin/WorkflowsManagement"));
 
 export default [
   {
@@ -72,5 +73,16 @@ export default [
     component: NotificationsCenter,
     permission: "student-services.requests.view",
     pageType: "management",
+  },
+  {
+    path: "/admin/student-services/workflows",
+    component: WorkflowsManagement,
+    permission: "student-services.workflows.view",
+    pageType: "management",
+    menuItem: {
+      category: "Student Services",
+      label: "Workflows",
+      icon: "GitBranch",
+    },
   },
 ];

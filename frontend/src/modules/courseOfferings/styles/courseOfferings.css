@@ -108,6 +108,17 @@
   box-shadow: 0 5px 18px rgba(201, 168, 76, 0.4);
 }
 
+.co-btn-outline {
+  background: transparent;
+  color: #1a1f5e;
+  border: 1.5px solid #e5e7eb;
+}
+
+.co-btn-outline:hover:not(:disabled) {
+  border-color: #1a1f5e;
+  background: #f8f9fc;
+}
+
 .co-alert {
   padding: 10px 14px;
   border-radius: 8px;
@@ -123,6 +134,114 @@
   color: #dc2626;
   border: 1px solid #fecaca;
 }
+
+.co-alert-warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+/* ── Stats Dashboard Bar ── */
+.co-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.co-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.co-stat-item.warn .co-stat-value { color: #d97706; }
+.co-stat-item.danger .co-stat-value { color: #dc2626; }
+.co-stat-item.success .co-stat-value { color: #16a34a; }
+
+.co-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1f5e;
+  line-height: 1;
+}
+
+.co-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+.co-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* ── Capacity Controls ── */
+.co-capacity-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.co-capacity-num {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1a1f5e;
+  min-width: 24px;
+}
+
+.co-capacity-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.co-capacity-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.co-capacity-btn:hover:not(:disabled) {
+  border-color: #c9a84c;
+  color: #1a1f5e;
+  background: #fcf9ef;
+}
+
+.co-capacity-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.co-enrolled-num {
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 18px;
+}
+
+.co-enrolled-num.warn { color: #d97706; }
+.co-enrolled-num.danger { color: #dc2626; }
 
 .co-table-wrap {
   overflow-x: auto;
@@ -154,6 +273,22 @@
 
 .co-table tbody tr:hover td {
   background: #f8f9fd;
+}
+
+.co-row-warn td {
+  background: #fffbeb;
+}
+
+.co-row-warn:hover td {
+  background: #fef3c7;
+}
+
+.co-row-full td {
+  background: #fef2f2;
+}
+
+.co-row-full:hover td {
+  background: #fee2e2;
 }
 
 .co-table-empty {
@@ -321,6 +456,100 @@
   border: 1px solid #fecaca;
   border-radius: 6px;
   font-size: 12px;
+}
+
+/* ── Drawer Form ── */
+.co-drawer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.co-drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.co-drawer-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1f5e;
+}
+
+.co-drawer-field input,
+.co-drawer-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: "Outfit", sans-serif;
+  color: #1a1f5e;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.co-drawer-field input:focus,
+.co-drawer-field select:focus {
+  outline: none;
+  border-color: #1a1f5e;
+  box-shadow: 0 0 0 2px rgba(26, 31, 94, 0.1);
+}
+
+.co-drawer-field.has-error input,
+.co-drawer-field.has-error select {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.co-drawer-field.has-error input:focus,
+.co-drawer-field.has-error select:focus {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.co-field-error-msg {
+  font-size: 11px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.co-drawer-error {
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Result info line ── */
+.co-result-info {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+/* ── Ghost button ── */
+.co-btn-ghost {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid transparent;
+}
+
+.co-btn-ghost:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/* ── Enrolled fraction ── */
+.co-enrolled-sep {
+  font-weight: 400;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 2px;
 }
 
 @media (max-width: 768px) {

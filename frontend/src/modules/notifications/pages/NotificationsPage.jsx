@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   Bell, Info, AlertTriangle, AlertCircle, CheckCheck, RefreshCw, X,
 } from "lucide-react";
+import PermissionGate from "../../../core/auth/PermissionGate";
 import * as notificationService from "../../../core/services/notificationService";
 import "../styles/notifications.css";
 
@@ -100,12 +101,14 @@ function NotificationsPage() {
             <><RefreshCw size={13} /> {t("refresh")}</>
           </button>
           {unreadCount > 0 && (
-            <button
-              className="notifications-btn notifications-btn-outline"
-              onClick={handleMarkAllRead}
-            >
-              <><CheckCheck size={13} /> {t("mark_all_read")}</>
-            </button>
+            <PermissionGate resource="notifications.notifications" minLevel={2}>
+              <button
+                className="notifications-btn notifications-btn-outline"
+                onClick={handleMarkAllRead}
+              >
+                <><CheckCheck size={13} /> {t("mark_all_read")}</>
+              </button>
+            </PermissionGate>
           )}
         </div>
       </div>

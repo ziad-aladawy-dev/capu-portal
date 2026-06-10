@@ -38,5 +38,7 @@
   "save_changes": "Save Changes",
   "job_title_placeholder": "e.g., Head of Department",
   "password_placeholder": "Minimum 6 characters",
-  "confirm_password_placeholder": "Re-enter password"
+  "confirm_password_placeholder": "Re-enter password",
+  "staff_directory": "Staff Directory",
+  "manage_and_view_all_staff": "Manage and view all staff members"
 }

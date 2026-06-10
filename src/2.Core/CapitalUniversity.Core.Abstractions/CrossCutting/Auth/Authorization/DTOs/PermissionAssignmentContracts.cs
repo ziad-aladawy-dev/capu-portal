@@ -65,12 +65,19 @@ public class PermissionOverrideModel
     public TemporalScopeModel? TemporalScope { get; set; }
 }
 
+public class RoleScopeAssignment
+{
+    public Guid RoleId { get; set; }
+    public StructuralScopeModel? StructuralScope { get; set; }
+    public TemporalScopeModel? TemporalScope { get; set; }
+}
+
 public class UpdatePermissionAssignmentRequest
 {
     public Guid UserId { get; set; }
 
-    public List<Guid> RolesToAdd { get; set; } = new();
-    public List<Guid> RolesToRemove { get; set; } = new();
+    public List<RoleScopeAssignment> RolesToAdd { get; set; } = new();
+    public List<RoleScopeAssignment> RolesToRemove { get; set; } = new();
 
     public List<PermissionOverrideModel> PermissionsToAdd { get; set; } = new();
 
@@ -80,10 +87,17 @@ public class UpdatePermissionAssignmentRequest
     public TemporalScopeModel TemporalScope { get; set; } = new();
 }
 
+public class RoleAssignmentInfo
+{
+    public Guid RoleId { get; set; }
+    public StructuralScopeModel StructuralScope { get; set; } = new();
+    public TemporalScopeModel TemporalScope { get; set; } = new();
+}
+
 public class PermissionAssignmentResponse
 {
     public Guid UserId { get; set; }
-    public List<Guid> RoleIds { get; set; } = new();
+    public List<RoleAssignmentInfo> RoleAssignments { get; set; } = new();
     public List<PermissionOverrideModel> PermissionOverrides { get; set; } = new();
     public StructuralScopeModel StructuralScope { get; set; } = new();
     public TemporalScopeModel TemporalScope { get; set; } = new();

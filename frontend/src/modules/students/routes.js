@@ -1,12 +1,15 @@
 import { lazy } from "react";
+import { studentDirectoryConfig } from "../../core/components/directory/directoryConfigs";
 
-const StudentDirectory = lazy(() => import("./pages/StudentDirectory"));
+const DirectoryPage = lazy(() => import("../../core/components/directory/DirectoryPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 
 export default [
   {
     path: "/admin/students",
-    component: StudentDirectory,
+    component: DirectoryPage,
+    props: { config: studentDirectoryConfig },
+    permission: "users.users.view",
     pageType: "management",
     applicableTo: "student",
     menuItem: {

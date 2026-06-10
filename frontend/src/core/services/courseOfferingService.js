@@ -52,3 +52,28 @@ export async function updateCourseOffering(id, body) {
   const { data } = await api.patch(`/course-offerings/${id}`, body);
   return data;
 }
+
+export async function searchCourseOfferings(params = {}) {
+  const { data } = await api.get("/course-offerings", { params });
+  return data;
+}
+
+export async function closeCourseOffering(id) {
+  const { data } = await api.post(`/course-offerings/${id}/close-record`);
+  return data;
+}
+
+export async function openCourseOffering(id) {
+  const { data } = await api.post(`/course-offerings/${id}/open-record`);
+  return data;
+}
+
+export async function bulkPublishOfferings(ids) {
+  const { data } = await api.post("/course-offerings/publish", { ids });
+  return data;
+}
+
+export async function bulkCancelOfferings(ids, reason) {
+  const { data } = await api.post("/course-offerings/cancel", { ids, payload: { reason } });
+  return data;
+}

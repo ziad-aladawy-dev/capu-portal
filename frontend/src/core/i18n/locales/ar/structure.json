@@ -23,5 +23,21 @@
     "move_down": "نقل لأسفل",
     "saving": "جاري الحفظ...",
     "create": "إنشاء",
-    "update": "تحديث"
+    "update": "تحديث",
+    "type_university": "جامعة",
+    "type_faculty": "كلية",
+    "type_system": "نظام",
+    "type_program": "برنامج",
+    "type_level": "مستوى",
+    "type_department": "قسم",
+    "type_specialization": "تخصص",
+    "additional_info": "معلومات إضافية",
+    "duration_years": "المدة (بالسنوات)",
+    "degree_type": "نوع الدرجة",
+    "dean": "العميد",
+    "established_date": "تاريخ التأسيس",
+    "degree_Bachelor": "بكالوريوس",
+    "degree_Master": "ماجستير",
+    "degree_PhD": "دكتوراه",
+    "degree_Diploma": "دبلوم"
   }

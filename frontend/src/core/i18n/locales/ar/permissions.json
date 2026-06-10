@@ -72,5 +72,18 @@
     "save_failed": "فشل الحفظ",
     "role_permissions": "صلاحيات الدور",
     "no_permissions_found": "لم يتم العثور على صلاحيات",
-    "created_info": "تم الإنشاء {{date}}"
+    "created_info": "تم الإنشاء {{date}}",
+    "assignment_scope": "نطاق التعيين",
+    "change_scope": "تغيير",
+    "always_active": "نشط دائماً",
+    "limited_to": "محدد بـ",
+    "select_academic_year": "اختر السنة الأكاديمية",
+    "select_semester": "اختر الفصل الدراسي",
+    "loading_structure": "جاري تحميل الهيكل...",
+    "scope_global": "عام",
+    "scope_structural": "محدد",
+    "override_scope_title": "نطاق الصلاحية",
+    "override_scope_global": "عام",
+    "override_scope_set": "تعيين نطاق لهذا التجاوز",
+    "temporal_hint": "التحكم في الوقت الذي يكون فيه هذا التعيين نشطاً."
 }

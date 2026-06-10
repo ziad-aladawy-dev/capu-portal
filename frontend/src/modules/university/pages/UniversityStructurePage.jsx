@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Network, Search, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Network, Search, Plus, ExternalLink } from "lucide-react";
 import TreeNode from "../components/TreeNode";
 import { AddEditNodeModal } from "../components/AddEditNodeModal";
 import { MoveNodeModal } from "../components/MoveNodeModal";
@@ -8,12 +9,15 @@ import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
 import { useUniversityStructure } from "../hooks/useUniversityStructure";
 import { universityStructureService } from "../services/universityStructureService";
 import { getLocalized } from "../../../core/utils/getLocalized";
-import { normalizeType, canMoveToParent } from "../utils/nodeTypeHelpers";
+import { canMoveToParent, getContextualActions } from "../utils/nodeTypeHelpers";
+import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
+import PermissionGate from "../../../core/auth/PermissionGate";
 import "../styles/universityStructure.css";
 import "../styles/scopeModal.css";
 
 const UniversityStructurePage = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const {
     treeData,
     loading,
@@ -92,11 +96,6 @@ const UniversityStructurePage = () => {
     if (!selectedNode?.name) return "";
     return getLocalized(selectedNode.name, i18n.language);
   }, [selectedNode, i18n.language]);
-
-  const displayNodeType = useMemo(() => {
-    if (selectedNode?.typeNameLocalized) return selectedNode.typeNameLocalized;
-    return normalizeType(selectedNode?.type);
-  }, [selectedNode]);
 
   useEffect(() => {
     if (selectedNode) {
@@ -225,9 +224,11 @@ const UniversityStructurePage = () => {
             <p>{t("manage_structure")}</p>
           </div>
         </div>
-        <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
-          <Plus size={16} /> {t("add_root")}
-        </button>
+        <PermissionGate resource="structure.structure" minLevel={2}>
+          <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
+            <Plus size={16} /> {t("add_root")}
+          </button>
+        </PermissionGate>
       </div>
 
       {breadcrumb.length > 0 && (
@@ -269,6 +270,7 @@ const UniversityStructurePage = () => {
               onToggleNode={toggleNode}
               matchedIds={[]}
               search={searchTerm}
+              permissionResource="structure.structure"
             />
           ))}
         </div>
@@ -279,16 +281,46 @@ const UniversityStructurePage = () => {
               <div className="details-title"><h3>{t("node_details")}</h3></div>
               <div className="details-grid">
                 <div><span>{t("name")}</span><strong>{displayNodeName}</strong></div>
-                <div><span>{t("type")}</span><strong>{displayNodeType}</strong></div>
+                <div><span>{t("type")}</span><strong><NodeTypeBadge type={selectedNode.type} size="lg" /></strong></div>
                 <div><span>{t("depth")}</span><strong>{selectedNode.depth}</strong></div>
                 <div><span>{t("children_count")}</span><strong>{selectedNode.children?.length || 0}</strong></div>
               </div>
               <div className="details-actions" style={{ marginTop: 16, display: "flex", gap: 8 }}>
-                <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>{t("edit")}</button>
+                <PermissionGate resource="structure.structure" minLevel={3}>
+                  <button className="btn-primary" onClick={() => handleEditClick(selectedNode)}>{t("edit")}</button>
+                </PermissionGate>
                 {selectedNode.parentId !== null && (
-                  <button className="btn-secondary" onClick={handleMoveClick}>{t("move")}</button>
+                  <PermissionGate resource="structure.structure" minLevel={3}>
+                    <button className="btn-secondary" onClick={handleMoveClick}>{t("move")}</button>
+                  </PermissionGate>
                 )}
               </div>
+              {(() => {
+                const actions = getContextualActions(selectedNode.type);
+                if (actions.length === 0) return null;
+                return (
+                  <div className="contextual-actions" style={{ marginTop: 12 }}>
+                    <label style={{ fontSize: 12, color: "#888", marginBottom: 6, display: "block" }}>{t("quick_actions")}</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {actions.map((action) => {
+                        const Icon = action.icon;
+                        return (
+                          <button
+                            key={action.capability}
+                            className="btn-secondary"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, padding: "4px 10px" }}
+                            onClick={() => navigate(action.path)}
+                          >
+                            <Icon size={13} />
+                            {t(action.labelKey)}
+                            <ExternalLink size={11} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           ) : (
             <div className="empty-selection">{t("select_node")}</div>

@@ -161,6 +161,36 @@ public class StaffController : ControllerBase
             $"staff-{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
     }
 
+    [HttpPost("{id}/photo")]
+    public async Task<IActionResult> UploadPhoto(Guid id, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { Message = "File is required" });
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest(new { Message = "Only JPEG, PNG and WebP images are allowed" });
+
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { Message = "File size must be less than 5MB" });
+
+        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "photos");
+        Directory.CreateDirectory(uploadsDir);
+
+        var fileName = $"staff_{id}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var photoUrl = $"/uploads/photos/{fileName}";
+        await _service.UpdatePhotoAsync(id, photoUrl);
+
+        return Ok(new { PhotoUrl = photoUrl, Message = "Photo uploaded successfully" });
+    }
+
     [HttpPost("bulk-import")]
     public async Task<IActionResult> BulkImport(
         [FromBody] List<CreateStaffRequest> requests)

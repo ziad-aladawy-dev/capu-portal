@@ -2,17 +2,19 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { parseLocalizedValue } from "../../../core/utils/getLocalized";
-import { normalizeType, getAllowedChildTypes, getNodeTypeValue } from "../utils/nodeTypeHelpers";
+import { normalizeType, getAllowedChildTypes, getNodeTypeValue, getNodeMetadataFields } from "../utils/nodeTypeHelpers";
+import { ALL_NODE_TYPES_LIST, NODE_TYPES, getNodeTypeLabel } from "../utils/nodeTypeRegistry";
 
-const ALL_NODE_TYPES = [
-  { value: "University", label: "University" },
-  { value: "Faculty", label: "Faculty" },
-  { value: "Department", label: "Department" },
-  { value: "System", label: "System" },
-  { value: "Program", label: "Program" },
-  { value: "Level", label: "Level" },
-  { value: "Specialization", label: "Specialization" },
-];
+const METADATA_INPUT_CONFIG = {
+  durationYears: { labelKey: "duration_years", type: "number", min: 1, max: 10 },
+  degreeType: {
+    labelKey: "degree_type",
+    type: "select",
+    options: ["Bachelor", "Master", "PhD", "Diploma"],
+  },
+  deanId: { labelKey: "dean", type: "text" },
+  establishedDate: { labelKey: "established_date", type: "date" },
+};
 
 export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, parentType, siblingsCount }) {
   const { t } = useTranslation();
@@ -20,11 +22,14 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
   const [nameEn, setNameEn] = useState("");
   const [type, setType] = useState("");
   const [order, setOrder] = useState(0);
+  const [metadata, setMetadata] = useState({});
   const [errors, setErrors] = useState({});
   const [allowedTypes, setAllowedTypes] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!node;
+
+  const metadataFields = getNodeMetadataFields(type);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,26 +37,41 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
         const { ar, en } = parseLocalizedValue(node.name);
         setNameAr(ar);
         setNameEn(en);
-        const currentType = node.type ? normalizeType(node.type) : "Department";
+        const currentType = node.type ? normalizeType(node.type) : getNodeTypeLabel(NODE_TYPES.Department);
         setType(currentType);
         setOrder(node.order ?? 0);
-        setAllowedTypes(ALL_NODE_TYPES.filter(t => t.value === currentType));
+        setAllowedTypes(ALL_NODE_TYPES_LIST.filter(t => t.value === currentType));
+        const fields = getNodeMetadataFields(currentType);
+        const initialMetadata = {};
+        fields.forEach(f => { initialMetadata[f] = node.metadata?.[f] ?? ""; });
+        setMetadata(initialMetadata);
       } else {
         setNameAr("");
         setNameEn("");
         const parentTypeStr = parentType ? normalizeType(parentType) : null;
         if (parentTypeStr) {
           const allowed = getAllowedChildTypes(parentTypeStr);
-          setAllowedTypes(ALL_NODE_TYPES.filter(t => allowed.includes(t.value)));
+          setAllowedTypes(ALL_NODE_TYPES_LIST.filter(t => allowed.includes(t.value)));
           setType(allowed.length > 0 ? allowed[0] : "");
         } else {
-          setAllowedTypes(ALL_NODE_TYPES.filter(t => t.value === "University"));
-          setType("University");
+          setAllowedTypes(ALL_NODE_TYPES_LIST.filter(t => t.value === getNodeTypeLabel(NODE_TYPES.University)));
+          setType(getNodeTypeLabel(NODE_TYPES.University));
         }
         setOrder(siblingsCount ?? 0);
       }
     }
   }, [node, siblingsCount, isOpen, parentType, isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode && type) {
+      const fields = getNodeMetadataFields(type);
+      setMetadata(prev => {
+        const next = {};
+        fields.forEach(f => { next[f] = prev[f] ?? ""; });
+        return next;
+      });
+    }
+  }, [type, isEditMode]);
 
   const validate = () => {
     const newErrors = {};
@@ -67,6 +87,7 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
     setIsSubmitting(true);
 
     const numericType = getNodeTypeValue(type);
+
     const request = {
       name: nameAr.trim(),
       nameEn: nameEn.trim() || nameAr.trim(),
@@ -74,7 +95,7 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
       parentId: isEditMode ? node.parentId : (parentId || null),
       order: order,
     };
-    
+
     try {
       await onSave(request, node?.id);
       onClose();
@@ -121,14 +142,14 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
             </div>
             <div className="form-group">
               <label>{t("type")} *</label>
-              <select 
-                value={type} 
-                onChange={(e) => setType(e.target.value)} 
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value)}
                 disabled={isEditMode || allowedTypes.length === 1 || isSubmitting}
               >
-                {allowedTypes.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+                {allowedTypes.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {t(opt.labelKey) || opt.value}
                   </option>
                 ))}
               </select>
@@ -148,6 +169,43 @@ export function AddEditNodeModal({ isOpen, onClose, onSave, node, parentId, pare
                 disabled={isSubmitting}
               />
             </div>
+            {metadataFields.length > 0 && (
+              <div className="metadata-section" style={{ borderTop: "1px solid #e5e7eb", paddingTop: 12, marginTop: 4 }}>
+                <label style={{ fontSize: 12, color: "#888", marginBottom: 8, display: "block", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  {t("additional_info")}
+                </label>
+                {metadataFields.map(field => {
+                  const config = METADATA_INPUT_CONFIG[field];
+                  if (!config) return null;
+                  return (
+                    <div key={field} className="form-group">
+                      <label>{t(config.labelKey)}</label>
+                      {config.type === "select" ? (
+                        <select
+                          value={metadata[field] ?? ""}
+                          onChange={(e) => setMetadata(prev => ({ ...prev, [field]: e.target.value }))}
+                          disabled={isSubmitting}
+                        >
+                          <option value="">— {t("select")} —</option>
+                          {(config.options || []).map(opt => (
+                            <option key={opt} value={opt}>{t(`degree_${opt}`)}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={config.type}
+                          value={metadata[field] ?? ""}
+                          onChange={(e) => setMetadata(prev => ({ ...prev, [field]: e.target.value }))}
+                          min={config.min}
+                          max={config.max}
+                          disabled={isSubmitting}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={isSubmitting}>

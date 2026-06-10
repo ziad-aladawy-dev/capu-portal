@@ -61,7 +61,7 @@ public static class IdentitySeeder
                 BirthDate = new DateTime(2002, 1, 1),
                 PhoneNumber = "01000000001",
                 Email = "ahmed@capital.edu.eg",
-                StructureNodeId = nutritionProgram.Id,
+                StructureNodeId = nutritionLevel4.Id,
                 PasswordExpiry = DateTime.UtcNow.AddMonths(6),
                 IsActive = true
             },

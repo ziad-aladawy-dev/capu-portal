@@ -16,7 +16,7 @@ export async function fetchPermissionAssignment(params = {}) {
     return data;
   } catch (err) {
     if (err.response?.status === 404) {
-      return { roleIds: [], permissionOverrides: [] };
+      return { roleAssignments: [], permissionOverrides: [] };
     }
     throw err;
   }
@@ -59,6 +59,16 @@ export async function deleteRole(id) {
 
 export async function fetchRoleMembers(roleId) {
   const { data } = await api.get(`/roles/${roleId}/members`);
+  return data;
+}
+
+export async function addRoleMember(roleId, staffId) {
+  const { data } = await api.post(`/roles/${roleId}/members`, { roleId, staffId });
+  return data;
+}
+
+export async function removeRoleMember(roleId, staffId) {
+  const { data } = await api.delete(`/roles/${roleId}/members/${staffId}`);
   return data;
 }
 

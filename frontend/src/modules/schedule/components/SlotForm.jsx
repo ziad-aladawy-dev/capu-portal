@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Save } from "lucide-react";
 import { SLOT_KINDS, SLOT_KIND_LABELS, DAY_LABELS } from "../../../core/services/scheduleService";
 
-function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClose }) {
+function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClose, existingSlots }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     courseOfferingId: courseOfferingId || "",
@@ -33,6 +33,22 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
       }));
     }
   }, [editSlot, courseOfferingId]);
+
+  const overlapWarning = useMemo(() => {
+    if (!existingSlots || existingSlots.length === 0) return null;
+    const day = Number(form.dayOfWeek);
+    const start = form.startTime;
+    const end = form.endTime;
+    if (!start || !end || end <= start) return null;
+    const conflicting = existingSlots.find((s) => {
+      if (s.dayOfWeek !== day) return false;
+      if (editSlot && s.id === editSlot.id) return false;
+      return s.startTime < end && s.endTime > start;
+    });
+    if (!conflicting) return null;
+    const dayLabel = DAY_LABELS[conflicting.dayOfWeek];
+    return `${dayLabel} ${conflicting.startTime?.slice(0, 5)}–${conflicting.endTime?.slice(0, 5)} (${SLOT_KIND_LABELS[conflicting.kind] || "Other"})`;
+  }, [form, existingSlots, editSlot]);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -120,6 +136,12 @@ function SlotForm({ editSlot, courseOfferingId, saving, formError, onSave, onClo
             </div>
           </div>
 
+          {overlapWarning && (
+            <div style={{ padding: "8px 12px", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, fontSize: 12, color: "#92400e", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14 }}>⚠️</span>
+              Overlaps with: <strong>{overlapWarning}</strong>
+            </div>
+          )}
           {formError && <div className="sch-form-error">{formError}</div>}
 
           <div className="modal-footer">

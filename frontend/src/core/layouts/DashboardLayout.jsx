@@ -9,7 +9,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
 import { useAuth } from "../auth/useAuth";
 import { getCurrentRouteInfo } from "../router/routeRegistry";
-import { PAGE_TYPES, APPLICABLE_TO } from "../manifests/manifestTypes";
+import { PAGE_TYPES } from "../manifests/manifestTypes";
 import "../components/shellComponents.css";
 
 const CommandPalette = lazy(() => import("../components/CommandPalette"));
@@ -32,19 +32,17 @@ function DashboardLayout() {
 
   const routeInfo = getCurrentRouteInfo(location.pathname);
   const currentPageType = routeInfo?.pageType || PAGE_TYPES.MANAGEMENT;
-  const currentApplicableTo = routeInfo?.applicableTo || APPLICABLE_TO.BOTH;
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      setSidebarOpen(window.innerWidth > MOBILE_BREAKPOINT);
+    };
 
     window.addEventListener("resize", handleResize);
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    setSidebarOpen(!isMobile);
-  }, [isMobile]);
 
   // Global keyboard shortcuts: Cmd+K → Command Palette, ? → Shortcuts
   useEffect(() => {
@@ -86,6 +84,12 @@ function DashboardLayout() {
   const openCommandPalette = useCallback(() => {
     setShowCommandPalette(true);
   }, []);
+
+  const getPrimaryMargin = () => {
+    if (isMobile) return 0;
+    if (windowWidth <= 1024) return sidebarOpen ? 64 : 0;
+    return sidebarOpen ? SIDEBAR_WIDTH : 0;
+  };
 
   const getContentMargin = () => {
     if (isMobile) return "0px";
@@ -132,13 +136,6 @@ function DashboardLayout() {
 
       {secondaryOpen && (
         <SecondarySidebar
-          config={{
-            directoryType: currentApplicableTo === APPLICABLE_TO.STAFF ? "staff"
-              : currentApplicableTo === APPLICABLE_TO.STUDENT ? "student"
-              : "all",
-            currentPageType,
-            currentApplicableTo,
-          }}
           sidebarOpen={sidebarOpen}
           sidebarWidth={
             isMobile ? 0
@@ -148,6 +145,18 @@ function DashboardLayout() {
         />
       )}
 
+      <Navbar
+        onToggleSidebar={toggleSidebar}
+        onToggleSecondary={toggleSecondary}
+        onOpenCommandPalette={openCommandPalette}
+        secondaryOpen={secondaryOpen}
+        style={{
+          marginInlineStart: isMobile || getPrimaryMargin() === 0 ? "0px" : `${getPrimaryMargin()}px`,
+          paddingInlineStart: isMobile || getPrimaryMargin() === 0 ? undefined : "17px",
+          transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1), padding-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
+        }}
+      />
+
       <div
         className="dashboard-content"
         style={{
@@ -155,12 +164,6 @@ function DashboardLayout() {
           transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
         }}
       >
-        <Navbar
-          onToggleSidebar={toggleSidebar}
-          showSecondary={secondaryOpen}
-          onToggleSecondary={toggleSecondary}
-          onOpenCommandPalette={openCommandPalette}
-        />
 
         <Breadcrumbs />
 

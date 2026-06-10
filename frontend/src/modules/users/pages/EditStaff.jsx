@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, Mail, Phone, Shield, CheckCircle2, UserCircle2, Briefcase,
-  Building2, XCircle, AlertCircle, Calendar, Lock, Globe
+  Building2, XCircle, AlertCircle, Calendar, Lock, Globe, Users, GraduationCap, Camera, RefreshCw
 } from "lucide-react";
 import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../services/userService";
@@ -36,7 +36,20 @@ const EditStaff = () => {
     isActive: true,
     password: "",
     confirmPassword: "",
+    gender: "",
+    qualification: "",
   });
+
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5256';
+  const getPhotoUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `${apiBaseUrl}${url}`;
+  };
   const [roles, setRoles] = useState([]);
   const [selectedNodeName, setSelectedNodeName] = useState("");
   const [errors, setErrors] = useState({});
@@ -65,7 +78,12 @@ const EditStaff = () => {
           isActive: staff.isActive !== undefined ? staff.isActive : true,
           password: "",
           confirmPassword: "",
+          gender: staff.gender || "",
+          qualification: staff.qualification || "",
         });
+        if (staff.photoUrl) {
+          setPhotoPreview(getPhotoUrl(staff.photoUrl));
+        }
 
         const nodeName = staff.structureNodeName || "";
         setSelectedNodeName(nodeName);
@@ -124,7 +142,7 @@ const EditStaff = () => {
     setSubmitting(true);
     const updateData = {
       nameAr: formData.nameAr,
-      nameEn: formData.nameEn || formData.nameAr, // fallback
+      nameEn: formData.nameEn || formData.nameAr,
       nationalId: formData.nationalId,
       birthDate: formData.birthDate,
       phoneNumber: formData.phoneNumber || null,
@@ -135,9 +153,16 @@ const EditStaff = () => {
       isActive: formData.isActive,
       password: formData.password || null,
       confirmPassword: formData.confirmPassword || null,
+      gender: formData.gender || null,
+      qualification: formData.qualification || null,
     };
     try {
       await userService.updateStaff(id, updateData);
+      if (photoFile) {
+        setUploadingPhoto(true);
+        await userService.uploadStaffPhoto(id, photoFile);
+        setUploadingPhoto(false);
+      }
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
@@ -158,24 +183,23 @@ const EditStaff = () => {
   return (
     <div className="edit-user-page add-user-page">
       <div className="page-container compact-wizard">
-        <div className="page-header compact-header wizard-header-with-status">
-          <div className="header-content">
-            <div className="header-icon"><UserCircle2 size={22} /></div>
-            <div className="header-text">
-              <h1>{t("edit_staff_member")}</h1>
-              <div className="gold-line" />
-              <p>{t("update_staff_information")}</p>
-            </div>
+        <div className="uf-hero">
+          <div className="uf-hero-avatar"><UserCircle2 size={24} /></div>
+          <div className="uf-hero-body">
+            <h1>{t("edit_staff_member")}</h1>
+            <p className="uf-hero-subtitle">{t("update_staff_information")}</p>
           </div>
-          <label className="account-status-toggle">
-            <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
-            <span className="account-status-switch">
-              <span className="account-status-dot">
-                {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+          <div className="uf-hero-actions">
+            <label className="account-status-toggle">
+              <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
+              <span className="account-status-switch">
+                <span className="account-status-dot">
+                  {formData.isActive ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                </span>
               </span>
-            </span>
-            <span>{formData.isActive ? t("active_account") : t("inactive_account")}</span>
-          </label>
+              <span>{formData.isActive ? t("active_account") : t("inactive_account")}</span>
+            </label>
+          </div>
         </div>
 
         <div className="wizard-steps">
@@ -278,6 +302,18 @@ const EditStaff = () => {
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label">{t("gender")}</label>
+                    <div className="input-wrapper">
+                      <select name="gender" value={formData.gender} onChange={handleChange} className="form-select">
+                        <option value="">{t("select_gender")}</option>
+                        <option value="Male">{t("male")}</option>
+                        <option value="Female">{t("female")}</option>
+                      </select>
+                      <Users size={15} className="input-icon" />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
                     <label className="form-label">{t("phone")}</label>
                     <div className="input-wrapper">
                       <input
@@ -289,6 +325,60 @@ const EditStaff = () => {
                       />
                       <Phone size={15} className="input-icon" />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t("qualification")}</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        name="qualification"
+                        value={formData.qualification}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder={t("qualification_placeholder")}
+                      />
+                      <GraduationCap size={15} className="input-icon" />
+                    </div>
+                  </div>
+                </div>
+                <div className="photo-upload-section">
+                  <div className="photo-upload-label">{t("profile_photo")}</div>
+                  <div className="photo-upload-area">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="preview" className="photo-preview" />
+                    ) : (
+                      <div className="photo-placeholder">
+                        <Camera size={32} />
+                        <span>{t("click_to_upload")}</span>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="photo-file-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                            alert(t('invalid_image_type'));
+                            return;
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert(t('image_too_large'));
+                            return;
+                          }
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                    {photoPreview && (
+                      <button type="button" className="photo-remove-btn" onClick={() => setPhotoFile(null)}>
+                        {t("remove")}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

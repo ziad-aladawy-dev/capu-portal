@@ -159,6 +159,44 @@ const userService = {
     ];
   },
 
+  // ---------------------- Photo Upload ----------------------
+  uploadStudentPhoto: async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(`${STUDENTS_BASE}/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+  uploadStaffPhoto: async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post(`${STAFF_BASE}/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  // ---------------------- Bulk Actions ----------------------
+  bulkActivateUsers: async (ids, userType) => {
+    const toggle = userType === "Student" ? userService.toggleStudentStatus : userService.toggleStaffStatus;
+    const results = await Promise.allSettled(ids.map(id => toggle(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+  bulkDeactivateUsers: async (ids, userType) => {
+    const toggle = userType === "Student" ? userService.toggleStudentStatus : userService.toggleStaffStatus;
+    const results = await Promise.allSettled(ids.map(id => toggle(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+  bulkDeleteUsers: async (ids, userType) => {
+    const del = userType === "Student" ? userService.deleteStudent : userService.deleteStaff;
+    const results = await Promise.allSettled(ids.map(id => del(id)));
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    return { success: succeeded > 0, succeeded, failed: ids.length - succeeded };
+  },
+
   // ---------------------- Helpers (for UI) ----------------------
   checkEmailUnique: async (email, userType) => {
     return { isUnique: true };

@@ -127,6 +127,7 @@
 .action-btn.edit:hover { color: #3b82f6; }
 .action-btn.duplicate:hover { color: #8b5cf6; }
 .action-btn.toggle:hover { color: #f59e0b; }
+.action-btn.toggle.inactive:hover { color: #10b981; }
 .action-btn.delete:hover { color: #dc2626; background: #fee2e2; }
 @media (max-width: 768px) {
   .services-management-page { padding: 1rem; }

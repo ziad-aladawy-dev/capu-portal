@@ -8,23 +8,12 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
-  Building2,
-  GraduationCap,
-  Layers,
-  BookOpen,
 } from "lucide-react";
 import { getLocalized } from "../../../core/utils/getLocalized";
-import { getAllowedChildTypes, normalizeType } from "../utils/nodeTypeHelpers";
-
-const typeIcons = {
-  University: Building2,
-  Faculty: GraduationCap,
-  Department: Layers,
-  Program: BookOpen,
-  Level: BookOpen,
-  System: Layers,
-  Specialization: BookOpen,
-};
+import { getAllowedChildTypes } from "../utils/nodeTypeHelpers";
+import { getNodeTypeConfig } from "../utils/nodeTypeRegistry";
+import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
+import PermissionGate from "../../../core/auth/PermissionGate";
 
 function TreeNode({
   node,
@@ -40,10 +29,13 @@ function TreeNode({
   onToggleNode = () => {},
   matchedIds = [],
   search = "",
+  permissionResource = "structure.structure",
 }) {
   const { t, i18n } = useTranslation();
   const hasChildren = node.children?.length > 0;
-  const Icon = typeIcons[node.type] || Layers;
+  const typeConfig = getNodeTypeConfig(node.type);
+  const Icon = typeConfig?.icon || null;
+  const typeColor = typeConfig?.color || "#6b7280";
   const canAddChildren = getAllowedChildTypes(node.type).length > 0;
 
   const isOpen = expandedNodes.has(node.id);
@@ -53,7 +45,6 @@ function TreeNode({
   const isMatched = search && matchedIds.includes(node.id);
 
   const displayName = node.localizedName || getLocalized(node.name, i18n.language);
-  const displayType = node.typeNameLocalized || normalizeType(node.type);
 
   const handleToggle = (e) => {
     e.stopPropagation();
@@ -119,44 +110,59 @@ function TreeNode({
             )}
           </button>
 
-          <div className="tree-node-icon">
-            <Icon size={15} />
-          </div>
+          {Icon && (
+            <div className="tree-node-icon" style={{ background: `linear-gradient(135deg, ${typeColor}, ${typeColor}dd)`, color: "#fff" }}>
+              <Icon size={15} />
+            </div>
+          )}
 
           <div className="tree-node-text">
             <strong>{displayName}</strong>
-            <span>{displayType} • {t("depth")} {node.depth}</span>
+            <span>
+              <NodeTypeBadge type={node.type} showIcon={false} size="xs" />
+              {" • "}{t("depth")} {node.depth}
+            </span>
           </div>
         </div>
 
         <div className="tree-node-actions" onClick={(e) => e.stopPropagation()}>
-          <button type="button" title={t("move_up")} onClick={() => onMove(node.id, "up", parentId)}>
-            <ArrowUp size={13} />
-          </button>
-          <button type="button" title={t("move_down")} onClick={() => onMove(node.id, "down", parentId)}>
-            <ArrowDown size={13} />
-          </button>
+          <PermissionGate resource={permissionResource} minLevel={3}>
+            <button type="button" title={t("move_up")} onClick={() => onMove(node.id, "up", parentId)}>
+              <ArrowUp size={13} />
+            </button>
+          </PermissionGate>
+          <PermissionGate resource={permissionResource} minLevel={3}>
+            <button type="button" title={t("move_down")} onClick={() => onMove(node.id, "down", parentId)}>
+              <ArrowDown size={13} />
+            </button>
+          </PermissionGate>
           {canAddChildren && (
+            <PermissionGate resource={permissionResource} minLevel={2}>
+              <button
+                type="button"
+                title={t("add_child")}
+                onClick={() => onAdd(node.id, node.children?.length || 0, node.type)}
+              >
+                <Plus size={13} />
+              </button>
+            </PermissionGate>
+          )}
+          <PermissionGate resource={permissionResource} minLevel={3}>
+            <button type="button" title={t("rename")} onClick={() => onRename(node)}>
+              <Pencil size={13} />
+            </button>
+          </PermissionGate>
+          <PermissionGate resource={permissionResource} minLevel={5}>
             <button
               type="button"
-              title={t("add_child")}
-              onClick={() => onAdd(node.id, node.children?.length || 0, node.type)}
+              title={t("delete")}
+              className="danger"
+              disabled={node.parentId === null}
+              onClick={() => onDelete(node.id)}
             >
-              <Plus size={13} />
+              <Trash2 size={13} />
             </button>
-          )}
-          <button type="button" title={t("rename")} onClick={() => onRename(node)}>
-            <Pencil size={13} />
-          </button>
-          <button
-            type="button"
-            title={t("delete")}
-            className="danger"
-            disabled={node.parentId === null}
-            onClick={() => onDelete(node.id)}
-          >
-            <Trash2 size={13} />
-          </button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -178,6 +184,7 @@ function TreeNode({
               onToggleNode={onToggleNode}
               matchedIds={matchedIds}
               search={search}
+              permissionResource={permissionResource}
             />
           ))}
         </div>

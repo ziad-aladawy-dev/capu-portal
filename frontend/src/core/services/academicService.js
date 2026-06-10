@@ -60,18 +60,32 @@ export async function deleteSemester(id) {
   return data;
 }
 
-// ---------------------- Year Lifecycle ----------------------
+export async function closeSemester(id) {
+  const { data } = await api.post(`/semesters/${id}/close-record`);
+  return data;
+}
+
+export async function openSemester(id) {
+  const { data } = await api.post(`/semesters/${id}/open-record`);
+  return data;
+}
+
+export async function recomputeCurrentSemester() {
+  const { data } = await api.post("/semesters/recompute-current");
+  return data;
+}
+
 export async function closeAcademicYear(id) {
-  const { data } = await api.post(`/academic-years/${id}/close`);
+  const { data } = await api.post(`/academic-years/${id}/close-record`);
   return data;
 }
 
 export async function reopenAcademicYear(id) {
-  const { data } = await api.post(`/academic-years/${id}/reopen`);
+  const { data } = await api.post(`/academic-years/${id}/open-record`);
   return data;
 }
 
-export async function resolveCurrentAcademicYear(id) {
-  const { data } = await api.post("/academic-years/resolve", { id });
+export async function resolveCurrentAcademicYear() {
+  const { data } = await api.post("/academic-years/recompute-current");
   return data;
 }

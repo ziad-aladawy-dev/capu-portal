@@ -94,6 +94,14 @@ public class StudentService : IStudentService
 
             Email = request.Email,
 
+            PhotoUrl = request.PhotoUrl,
+
+            Gender = request.Gender,
+
+            GuardianName = request.GuardianName,
+
+            GuardianPhone = request.GuardianPhone,
+
             StructureNodeId = request.StructureNodeId,
 
             PasswordHash = hashedPassword,
@@ -172,6 +180,14 @@ public class StudentService : IStudentService
 
         student.Email = request.Email;
 
+        student.PhotoUrl = request.PhotoUrl ?? student.PhotoUrl;
+
+        student.Gender = request.Gender ?? student.Gender;
+
+        student.GuardianName = request.GuardianName ?? student.GuardianName;
+
+        student.GuardianPhone = request.GuardianPhone ?? student.GuardianPhone;
+
         student.StructureNodeId = request.StructureNodeId;
 
         student.IsActive = request.IsActive;
@@ -243,6 +259,18 @@ public class StudentService : IStudentService
         };
     }
 
+    public async Task UpdatePhotoAsync(Guid id, string photoUrl)
+    {
+        var student = await _repository.GetByIdAsync(id);
+        if (student == null)
+            throw new Exception("Student not found");
+
+        student.PhotoUrl = photoUrl;
+        student.UpdatedAt = DateTime.UtcNow;
+        await _repository.UpdateAsync(student);
+        await _repository.SaveChangesAsync();
+    }
+
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
         return await _repository.GetStatisticsAsync(request);
@@ -252,7 +280,7 @@ public class StudentService : IStudentService
     {
         var localizedName = _localizationService.GetLocalizedString(student.Name);
 
-        var levelNode = student.StructureNode;
+        var structureNode = student.StructureNode;
 
         string facultyName = string.Empty;
 
@@ -260,10 +288,22 @@ public class StudentService : IStudentService
 
         string levelName = string.Empty;
 
-        if (levelNode != null)
+        if (structureNode != null)
         {
-            levelName = _localizationService.GetLocalizedString(levelNode.Name);
-            var currentNode = levelNode.Parent;
+            // Only treat StructureNode as a Level node when its type actually is Level.
+            // It may be a Program or other type if data was incorrectly seeded.
+            if (structureNode.Type == StructureNodeType.Level)
+            {
+                levelName = _localizationService.GetLocalizedString(structureNode.Name);
+            }
+            else if (structureNode.Type == StructureNodeType.Program)
+            {
+                // Student attached to a Program instead of a Level — use Program name here
+                programName = _localizationService.GetLocalizedString(structureNode.Name);
+            }
+
+            // Walk ancestors to find remaining Program and Faculty names
+            var currentNode = structureNode.Parent;
             while (currentNode != null)
             {
                 if (currentNode.Type == StructureNodeType.Program && string.IsNullOrEmpty(programName))
@@ -291,6 +331,14 @@ public class StudentService : IStudentService
             PhoneNumber = student.PhoneNumber,
 
             Email = student.Email,
+
+            PhotoUrl = student.PhotoUrl,
+
+            Gender = student.Gender,
+
+            GuardianName = student.GuardianName,
+
+            GuardianPhone = student.GuardianPhone,
 
             StructureNodeId = student.StructureNodeId,
 

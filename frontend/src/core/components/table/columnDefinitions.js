@@ -1,0 +1,32 @@
+export const STUDENT_COLUMNS = [
+  { key: 'studentCode',   labelKey: 'student_code',    always: false, order: 1  },
+  { key: 'nationalId',    labelKey: 'national_id',     always: false, order: 2  },
+  { key: 'name',          labelKey: 'name',            always: false, order: 3  },
+  { key: 'email',         labelKey: 'email',           always: false, order: 4  },
+  { key: 'phoneNumber',   labelKey: 'phone',           always: false, order: 5  },
+  { key: 'birthDate',     labelKey: 'date_of_birth',   always: false, order: 6  },
+  { key: 'facultyName',   labelKey: 'faculty',         always: false, order: 7  },
+  { key: 'programName',   labelKey: 'program',         always: false, order: 8  },
+  { key: 'levelName',     labelKey: 'level',           always: false, order: 9  },
+  { key: 'status',        labelKey: 'academic_status',  always: false, order: 10 },
+  { key: 'isActive',      labelKey: 'status',          always: false, order: 11 },
+  { key: 'passwordStatus',labelKey: 'password_status',  always: false, order: 12 },
+  { key: 'createdAt',     labelKey: 'created_at',       always: false, order: 13 },
+  { key: 'actions',       labelKey: 'actions',         always: true,  order: 14 },
+];
+
+export const STAFF_COLUMNS = [
+  { key: 'employeeCode',  labelKey: 'employee_code',   always: false, order: 1  },
+  { key: 'nationalId',    labelKey: 'national_id',     always: false, order: 2  },
+  { key: 'name',          labelKey: 'name',            always: false, order: 3  },
+  { key: 'email',         labelKey: 'email',           always: false, order: 4  },
+  { key: 'phoneNumber',   labelKey: 'phone',           always: false, order: 5  },
+  { key: 'birthDate',     labelKey: 'date_of_birth',   always: false, order: 6  },
+  { key: 'role',          labelKey: 'role',            always: false, order: 7  },
+  { key: 'jobTitle',      labelKey: 'job_title',       always: false, order: 8  },
+  { key: 'facultyName',   labelKey: 'faculty',         always: false, order: 9  },
+  { key: 'isActive',      labelKey: 'status',          always: false, order: 10 },
+  { key: 'passwordStatus',labelKey: 'password_status',  always: false, order: 11 },
+  { key: 'createdAt',     labelKey: 'created_at',       always: false, order: 12 },
+  { key: 'actions',       labelKey: 'actions',         always: true,  order: 13 },
+];

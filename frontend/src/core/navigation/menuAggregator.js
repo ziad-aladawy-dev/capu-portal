@@ -20,6 +20,10 @@ import {
   CalendarRange,
   CalendarCheck,
   Clock,
+  RefreshCw,
+  ShieldCheck,
+  Package,
+  GitBranch,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../router/routeRegistry";
 
@@ -45,6 +49,10 @@ const ICON_MAP = {
   CalendarRange,
   CalendarCheck,
   Clock,
+  RefreshCw,
+  ShieldCheck,
+  Package,
+  GitBranch,
 };
 
 const CATEGORY_ICONS = {
@@ -53,6 +61,7 @@ const CATEGORY_ICONS = {
   "People Management": Users,
   "Security & Access": Shield,
   Academic: BookOpen,
+  "Student Information": FileText,
   Finance: Receipt,
   Student: GraduationCap,
 };

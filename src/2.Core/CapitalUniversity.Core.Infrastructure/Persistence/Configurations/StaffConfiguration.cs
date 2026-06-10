@@ -50,6 +50,15 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
         builder.Property(x => x.JobTitle)
             .HasMaxLength(200);
 
+        builder.Property(x => x.Gender)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.PhotoUrl)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.Qualification)
+            .HasMaxLength(200);
+
         builder.HasOne(x => x.StructureNode)
             .WithMany()
             .HasForeignKey(x => x.StructureNodeId)

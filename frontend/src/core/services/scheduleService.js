@@ -1,4 +1,5 @@
 import api from "../api/apiClient";
+import * as courseOfferingService from "./courseOfferingService";
 
 export const SLOT_KINDS = {
   Lecture: 0,
@@ -34,7 +35,7 @@ export async function fetchSlot(id) {
 }
 
 export async function fetchSlotsForOffering(courseOfferingId) {
-  const { data } = await api.get(`/schedule-slots/by-offering/${courseOfferingId}`);
+  const { data } = await api.get(`/schedule-slots/offering/${courseOfferingId}`);
   return data;
 }
 
@@ -44,11 +45,35 @@ export async function createSlot(body) {
 }
 
 export async function updateSlot(id, body) {
-  const { data } = await api.put(`/schedule-slots/${id}`, body);
+  const { data } = await api.patch(`/schedule-slots/${id}`, body);
   return data;
 }
 
 export async function deleteSlot(id) {
   const { data } = await api.delete(`/schedule-slots/${id}`);
   return data;
+}
+
+export async function searchSlots(params = {}) {
+  const { data } = await api.get("/schedule-slots", { params });
+  return data;
+}
+
+export async function batchCreateSlots(courseOfferingId, slots) {
+  const { data } = await api.post("/schedule-slots/batch", { courseOfferingId, slots });
+  return data;
+}
+
+export async function closeSlot(id) {
+  const { data } = await api.post(`/schedule-slots/${id}/close-record`);
+  return data;
+}
+
+export async function openSlot(id) {
+  const { data } = await api.post(`/schedule-slots/${id}/open-record`);
+  return data;
+}
+
+export async function fetchOfferingsForSchedule(structureNodeId, semesterId) {
+  return courseOfferingService.fetchOfferingsForNodeSemester(structureNodeId, semesterId);
 }

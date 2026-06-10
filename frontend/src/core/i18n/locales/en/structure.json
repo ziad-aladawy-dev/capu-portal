@@ -23,5 +23,21 @@
     "move_down": "Move down",
     "saving": "Saving...",
     "create": "Create",
-    "update": "Update"
+    "update": "Update",
+    "type_university": "University",
+    "type_faculty": "Faculty",
+    "type_system": "System",
+    "type_program": "Program",
+    "type_level": "Level",
+    "type_department": "Department",
+    "type_specialization": "Specialization",
+    "additional_info": "Additional Info",
+    "duration_years": "Duration (Years)",
+    "degree_type": "Degree Type",
+    "dean": "Dean",
+    "established_date": "Established Date",
+    "degree_Bachelor": "Bachelor",
+    "degree_Master": "Master",
+    "degree_PhD": "PhD",
+    "degree_Diploma": "Diploma"
   }

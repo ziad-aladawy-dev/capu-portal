@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import * as academicService from "../services/academicService";
 
 const AcademicContext = createContext();
@@ -6,12 +7,29 @@ const AcademicContext = createContext();
 const YEAR_STORAGE_KEY = "capu_selected_academic_year";
 const SEMESTER_STORAGE_KEY = "capu_selected_semester";
 
+async function fetchWithRetry(fn, maxRetries = 2, baseDelay = 600) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, baseDelay * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export const AcademicProvider = ({ children }) => {
+  const { i18n } = useTranslation();
   const [academicYears, setAcademicYears] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const savedYearRef = useRef(null);
   const savedSemRef = useRef(null);
 
@@ -58,14 +76,19 @@ export const AcademicProvider = ({ children }) => {
     }
     let cancelled = false;
     setLoading(true);
-    academicService
-      .fetchAcademicYears()
+    fetchWithRetry(() => academicService.fetchAcademicYears())
       .then((years) => {
         if (cancelled) return;
         const list = Array.isArray(years) ? years : [];
         setAcademicYears(list);
         // Prefer saved year, fall back to current or first
-        const saved = savedYearRef.current;
+        let saved = savedYearRef.current;
+        if (!saved) {
+          try {
+            const localSaved = localStorage.getItem(YEAR_STORAGE_KEY);
+            if (localSaved) saved = JSON.parse(localSaved);
+          } catch {}
+        }
         const match = saved
           ? list.find((y) => y.id === saved.id)
           : null;
@@ -83,7 +106,7 @@ export const AcademicProvider = ({ children }) => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [saveYear]);
+  }, [saveYear, i18n.language, refreshCounter]);
 
   useEffect(() => {
     if (!selectedYear?.id) {
@@ -93,14 +116,19 @@ export const AcademicProvider = ({ children }) => {
       return;
     }
     let cancelled = false;
-    academicService
-      .fetchSemesters(selectedYear.id)
+    fetchWithRetry(() => academicService.fetchSemesters(selectedYear.id))
       .then((sems) => {
         if (cancelled) return;
         const list = Array.isArray(sems) ? sems : [];
         setSemesters(list);
         // Prefer saved semester, fall back to current or first
-        const saved = savedSemRef.current;
+        let saved = savedSemRef.current;
+        if (!saved) {
+          try {
+            const localSaved = localStorage.getItem(SEMESTER_STORAGE_KEY);
+            if (localSaved) saved = JSON.parse(localSaved);
+          } catch {}
+        }
         const match = saved
           ? list.find((s) => s.id === saved.id)
           : null;
@@ -117,7 +145,7 @@ export const AcademicProvider = ({ children }) => {
         }
       });
     return () => { cancelled = true; };
-  }, [selectedYear, saveSemester]);
+  }, [selectedYear, saveSemester, i18n.language]);
 
   const selectYear = useCallback(
     (yearNameOrObj) => {
@@ -170,6 +198,7 @@ export const AcademicProvider = ({ children }) => {
         selectSemester,
         clearYear: () => selectYear(null),
         clearSemester: () => selectSemester(null),
+        refreshAcademicYears: () => setRefreshCounter(c => c + 1),
         loading,
       }}
     >

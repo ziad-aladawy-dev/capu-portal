@@ -611,7 +611,12 @@ public class PermissionManagementService : IPermissionManagementService
         return new PermissionAssignmentResponse
         {
             UserId = query.UserId,
-            RoleIds = roles.Select(r => r.RoleId).ToList(),
+            RoleAssignments = roles.Select(r => new RoleAssignmentInfo
+            {
+                RoleId = r.RoleId,
+                StructuralScope = new StructuralScopeModel { StructureNodeId = r.StructureNodeId },
+                TemporalScope = BuildTemporalScope(r.Year, r.Semester),
+            }).ToList(),
             PermissionOverrides = BuildOverrideDtosWithScope(overrides),
             StructuralScope = new StructuralScopeModel
             {
@@ -756,7 +761,17 @@ public class PermissionManagementService : IPermissionManagementService
         return new PermissionAssignmentResponse
         {
             UserId = request.UserId,
-            RoleIds = request.RoleIds,
+            RoleAssignments = request.RoleIds.Select(rid => new RoleAssignmentInfo
+            {
+                RoleId = rid,
+                StructuralScope = new StructuralScopeModel { StructureNodeId = request.StructuralScope.StructureNodeId },
+                TemporalScope = new TemporalScopeModel
+                {
+                    AlwaysActive = request.TemporalScope.AlwaysActive,
+                    AcademicYearId = request.TemporalScope.AcademicYearId,
+                    SemesterId = request.TemporalScope.SemesterId,
+                },
+            }).ToList(),
             PermissionOverrides = request.PermissionOverrides,
             StructuralScope = request.StructuralScope,
             TemporalScope = request.TemporalScope
@@ -781,15 +796,12 @@ public class PermissionManagementService : IPermissionManagementService
         await InvalidateUserCacheAsync(request.UserId, cancellationToken);
         await EmitRoleChangeAuditAsync(request, cancellationToken);
 
-        var finalRoles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == request.UserId &&
-                         sr.StructureNodeId == requestScope.NodeId &&
-                         sr.Year == requestScope.Year && sr.Semester == requestScope.Semester)
-            .Select(sr => sr.RoleId)
+        // Return every role assignment with its own scope, plus every override.
+        var finalRoleRows = await _dbContext.StaffRoles
+            .Where(sr => sr.StaffId == request.UserId)
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        // Echo every override the user holds, each tagged with its own scope — matches
-        // the reshaped GetAssignment so a write that re-scopes a permission round-trips.
         var finalOverrideRows = await _dbContext.StaffPermissions
             .Where(sp => sp.StaffId == request.UserId)
             .AsNoTracking()
@@ -798,7 +810,12 @@ public class PermissionManagementService : IPermissionManagementService
         return new PermissionAssignmentResponse
         {
             UserId = request.UserId,
-            RoleIds = finalRoles,
+            RoleAssignments = finalRoleRows.Select(r => new RoleAssignmentInfo
+            {
+                RoleId = r.RoleId,
+                StructuralScope = new StructuralScopeModel { StructureNodeId = r.StructureNodeId },
+                TemporalScope = BuildTemporalScope(r.Year, r.Semester),
+            }).ToList(),
             PermissionOverrides = BuildOverrideDtosWithScope(finalOverrideRows),
             StructuralScope = request.StructuralScope,
             TemporalScope = request.TemporalScope
@@ -812,28 +829,83 @@ public class PermissionManagementService : IPermissionManagementService
         return node?.Path;
     }
 
-    private async Task ApplyRoleUpdatesAsync(
-        UpdatePermissionAssignmentRequest request, ResolvedScope scope, CancellationToken cancellationToken)
+    /// <summary>
+    /// Resolves a per-role assignment scope. If the <see cref="RoleScopeAssignment"/>
+    /// supplies its own structural/temporal scope, that is used; otherwise the
+    /// request-level scope (<paramref name="requestScope"/>) is inherited.
+    /// </summary>
+    private async Task<ResolvedScope> ResolveRoleScopeAsync(
+        RoleScopeAssignment roleAssignment, ResolvedScope requestScope, CancellationToken cancellationToken)
     {
-        var currentRoles = await _dbContext.StaffRoles
-            .Where(sr => sr.StaffId == request.UserId &&
-                         sr.StructureNodeId == scope.NodeId &&
-                         sr.Year == scope.Year && sr.Semester == scope.Semester)
+        if (roleAssignment.StructuralScope is null && roleAssignment.TemporalScope is null)
+            return requestScope;
+
+        var nodeId = requestScope.NodeId;
+        var nodePath = requestScope.NodePath;
+        if (roleAssignment.StructuralScope is not null)
+        {
+            nodeId = roleAssignment.StructuralScope.StructureNodeId;
+            nodePath = await ResolveNodePathAsync(nodeId, cancellationToken);
+        }
+
+        var year = requestScope.Year;
+        var semester = requestScope.Semester;
+        var expiresAt = requestScope.ExpiresAt;
+        if (roleAssignment.TemporalScope is not null)
+        {
+            ValidateScopeCombinations(roleAssignment.TemporalScope);
+            year = roleAssignment.TemporalScope.AlwaysActive ? ScopeKeys.Global : (roleAssignment.TemporalScope.AcademicYearId?.ToString() ?? ScopeKeys.Global);
+            semester = roleAssignment.TemporalScope.AlwaysActive ? ScopeKeys.Global : (roleAssignment.TemporalScope.SemesterId?.ToString() ?? ScopeKeys.Global);
+            expiresAt = await ResolveTemporalExpiryAsync(year, semester, cancellationToken);
+        }
+
+        return new ResolvedScope(nodeId, nodePath, year, semester, expiresAt);
+    }
+
+    private async Task ApplyRoleUpdatesAsync(
+        UpdatePermissionAssignmentRequest request, ResolvedScope requestScope, CancellationToken cancellationToken)
+    {
+        // Load all of the user's current role assignments (all scopes).
+        var allUserRoles = await _dbContext.StaffRoles
+            .Where(sr => sr.StaffId == request.UserId)
             .ToListAsync(cancellationToken);
 
-        var roleIdsToRemove = request.RolesToRemove.Where(r => !request.RolesToAdd.Contains(r)).ToList();
-        var rolesToRemoveEntities = currentRoles.Where(cr => roleIdsToRemove.Contains(cr.RoleId)).ToList();
-        _dbContext.StaffRoles.RemoveRange(rolesToRemoveEntities);
-
-        var addedRoles = request.RolesToAdd.Where(rid => currentRoles.All(cr => cr.RoleId != rid)).ToList();
-        foreach (var roleId in addedRoles)
+        // Process removals — each may target a specific scope.
+        foreach (var item in request.RolesToRemove)
         {
-            var roleAssignment = new StaffRoleAssignment(request.UserId, roleId, scope.Year, scope.Semester)
+            var scope = await ResolveRoleScopeAsync(item, requestScope, cancellationToken);
+            var toRemove = allUserRoles
+                .Where(sr => sr.RoleId == item.RoleId
+                             && sr.StructureNodeId == scope.NodeId
+                             && sr.Year == scope.Year
+                             && sr.Semester == scope.Semester)
+                .ToList();
+
+            foreach (var entity in toRemove)
             {
-                StructureNodeId = scope.NodeId,
-                StructureNodePath = scope.NodePath
-            };
-            _dbContext.StaffRoles.Add(roleAssignment);
+                _dbContext.StaffRoles.Remove(entity);
+                allUserRoles.Remove(entity);
+            }
+        }
+
+        // Process additions — each with its own resolved scope.
+        foreach (var item in request.RolesToAdd)
+        {
+            var scope = await ResolveRoleScopeAsync(item, requestScope, cancellationToken);
+            var exists = allUserRoles.Any(sr => sr.RoleId == item.RoleId
+                                                 && sr.StructureNodeId == scope.NodeId
+                                                 && sr.Year == scope.Year
+                                                 && sr.Semester == scope.Semester);
+            if (!exists)
+            {
+                var assignment = new StaffRoleAssignment(request.UserId, item.RoleId, scope.Year, scope.Semester)
+                {
+                    StructureNodeId = scope.NodeId,
+                    StructureNodePath = scope.NodePath,
+                };
+                _dbContext.StaffRoles.Add(assignment);
+                allUserRoles.Add(assignment);
+            }
         }
     }
 
@@ -961,10 +1033,12 @@ public class PermissionManagementService : IPermissionManagementService
         if (_audit is null) return;
         if (request.RolesToAdd.Count == 0 && request.RolesToRemove.Count == 0) return;
 
-        var added = request.RolesToAdd.Where(r => !request.RolesToRemove.Contains(r)).ToArray();
-        var removed = request.RolesToRemove.Where(r => !request.RolesToAdd.Contains(r)).ToArray();
-        if (added.Length == 0 && removed.Length == 0) return;
+        var addedIds = request.RolesToAdd.Select(r => r.RoleId).ToArray();
+        var removedIds = request.RolesToRemove.Select(r => r.RoleId).ToArray();
+        var netAdded = addedIds.Except(removedIds).ToArray();
+        var netRemoved = removedIds.Except(addedIds).ToArray();
+        if (netAdded.Length == 0 && netRemoved.Length == 0) return;
 
-        await _audit.LogRoleAssignmentChangedAsync(request.UserId, added, removed, cancellationToken);
+        await _audit.LogRoleAssignmentChangedAsync(request.UserId, netAdded, netRemoved, cancellationToken);
     }
 }

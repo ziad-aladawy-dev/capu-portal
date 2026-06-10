@@ -44,3 +44,18 @@ export async function searchInvoices(params = {}) {
   const { data } = await api.get("/invoices", { params });
   return data;
 }
+
+export async function closeInvoice(id) {
+  const { data } = await api.post(`/invoices/${id}/close-record`);
+  return data;
+}
+
+export async function openInvoice(id) {
+  const { data } = await api.post(`/invoices/${id}/open-record`);
+  return data;
+}
+
+export async function bulkCancelInvoices(ids, reason) {
+  const { data } = await api.post("/invoices/cancel", { ids, payload: { reason } });
+  return data;
+}

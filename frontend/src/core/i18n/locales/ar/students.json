@@ -33,5 +33,7 @@
   "redirecting_to_users_list": "جاري التوجيه إلى قائمة المستخدمين...",
   "edit_student": "تعديل بيانات الطالب",
   "update_student_information": "تحديث بيانات الطالب",
-  "level_required": "المستوى مطلوب"
+  "level_required": "المستوى مطلوب",
+  "student_directory": "دليل الطلاب",
+  "manage_and_view_all_students": "إدارة وعرض جميع الطلاب"
 }

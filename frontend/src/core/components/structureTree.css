@@ -1,0 +1,101 @@
+.structure-tree-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+}
+
+.structure-tree-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.structure-tree-scroll::-webkit-scrollbar-thumb {
+  background: rgba(26, 31, 94, 0.12);
+  border-radius: 10px;
+}
+
+.structure-tree-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.structure-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: "Outfit", sans-serif;
+  transition: all 0.15s ease;
+}
+
+.structure-tree-node:hover {
+  background: rgba(26, 31, 94, 0.04);
+}
+
+.structure-tree-node.is-selected {
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.structure-tree-toggle {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(26, 31, 94, 0.3);
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 3px;
+  background: none;
+  border: none;
+}
+
+.structure-tree-toggle:hover {
+  background: rgba(26, 31, 94, 0.06);
+  color: rgba(26, 31, 94, 0.6);
+}
+
+.structure-tree-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(26, 31, 94, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  background: white;
+}
+
+.structure-tree-checkbox.checked {
+  background: #c9a84c;
+  border-color: #c9a84c;
+  color: #1a1f5e;
+}
+
+.structure-tree-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1f5e;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structure-tree-check {
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.structure-tree-children {
+  display: flex;
+  flex-direction: column;
+}

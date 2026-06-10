@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Search, Filter, RefreshCw } from "lucide-react";
 import { useStaffRequests } from "../../hooks/useStaffRequests";
+import PermissionGate from "../../../../core/auth/PermissionGate";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import StatusBadge from "../../components/StatusBadge";
@@ -97,12 +98,14 @@ const RequestsManagement = () => {
                   <td><StatusBadge status={req.status} /></td>
                   <td><StatusBadge status={req.paymentStatus} /></td>
                   <td>
-                    <button 
-                      className="rm-review-btn" 
-                      onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}
-                    >
-                      {t("review")}
-                    </button>
+                    <PermissionGate resource="student-services.requests" minLevel={4}>
+                      <button 
+                        className="rm-review-btn" 
+                        onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}
+                      >
+                        {t("review")}
+                      </button>
+                    </PermissionGate>
                   </td>
                 </tr>
               ))}

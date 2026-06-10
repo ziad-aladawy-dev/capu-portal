@@ -220,6 +220,7 @@ public class AcademicPlanService : IAcademicPlanService
         EffectiveFrom = source.EffectiveFrom,
         EffectiveTo = source.EffectiveTo,
         IsActive = source.IsActive,
+        IsClosed = source.IsClosed,
     };
 
     /// <summary>Slim list/search projection — no PlanCourses (avoids N+1).</summary>
@@ -231,6 +232,7 @@ public class AcademicPlanService : IAcademicPlanService
         EffectiveFrom = p.EffectiveFrom,
         EffectiveTo = p.EffectiveTo,
         IsActive = p.IsActive,
+        IsClosed = p.IsClosed,
     };
 
     private async Task<string> GetCollectionVersionAsync(CancellationToken cancellationToken)

@@ -20,6 +20,8 @@ public class ScheduleSlotResponse
     /// <summary>Free-text descriptive notes shown alongside the slot. Optional.</summary>
     public string? Notes { get; set; }
 
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

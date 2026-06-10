@@ -233,6 +233,79 @@
   color: #6b7280;
 }
 
+/* Loading / Error / Empty states */
+.ss-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.ss-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #1a1f5e;
+  border-radius: 50%;
+  animation: ss-spin 0.8s linear infinite;
+}
+
+@keyframes ss-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ss-status h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  color: #1a1f5e;
+}
+
+.ss-status-text {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 16px;
+  max-width: 400px;
+}
+
+.ss-retry-btn {
+  padding: 8px 20px;
+  background: #1a1f5e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ss-retry-btn:hover { background: #2d3380; }
+
+/* Closed slot styling */
+.ss-slot-closed {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.ss-slot-closed::after {
+  content: "CLOSED";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
 @media (max-width: 1024px) {
   .ss-content { grid-template-columns: 1fr; }
 }

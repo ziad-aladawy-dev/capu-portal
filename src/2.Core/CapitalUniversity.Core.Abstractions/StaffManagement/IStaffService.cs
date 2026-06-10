@@ -20,4 +20,6 @@ public interface IStaffService
     Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request);
 
     Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
+
+    Task UpdatePhotoAsync(Guid id, string photoUrl);
 }

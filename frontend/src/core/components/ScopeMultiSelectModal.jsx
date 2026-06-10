@@ -1,23 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, ChevronRight, ChevronDown, Building2, Check } from "lucide-react";
 import * as structureService from "../services/structureService";
+import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
+import NodeTypeBadge from "./NodeTypeBadge";
 import "./scopeModal.css";
-
-const TYPE_ICONS = {
-  University: Building2,
-  Faculty: Building2,
-  System: Building2,
-  Program: Building2,
-  Level: Building2,
-  Department: Building2,
-  Specialization: Building2,
-};
 
 function TreeNode({ node, expandedNodes, toggleNode, selectedIds, onToggle, depth }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedNodes.has(node.id);
   const isSelected = selectedIds.has(node.id);
-  const Icon = TYPE_ICONS[node.type] || Building2;
+  const typeConfig = getNodeTypeConfig(node.type);
+  const Icon = typeConfig?.icon || Building2;
+  const typeColor = typeConfig?.color || "rgba(26, 31, 94, 0.4)";
 
   return (
     <div className="scope-tree-group">
@@ -39,9 +33,9 @@ function TreeNode({ node, expandedNodes, toggleNode, selectedIds, onToggle, dept
         <span className={`scope-tree-checkbox ${isSelected ? "checked" : ""}`}>
           {isSelected && <Check size={10} />}
         </span>
-        <Icon size={14} className="scope-tree-type-icon" />
+        <Icon size={14} className="scope-tree-type-icon" style={{ color: typeColor }} />
         <span className="scope-tree-label">{node.name}</span>
-        <span className="scope-tree-type">{node.typeNameLocalized || node.type}</span>
+        <NodeTypeBadge type={node.type} size="xs" />
       </button>
       {hasChildren && isExpanded && (
         <div className="scope-tree-children">
@@ -163,15 +157,18 @@ function ScopeMultiSelectModal({ onClose, initialSelectedIds, onApply }) {
               </div>
             ) : (
               <div className="scope-selection-list">
-                {selectedNodes.map((n) => (
-                  <div key={n.id} className="scope-selection-card">
-                    <div className="scope-selection-icon">
-                      <Building2 size={16} />
-                    </div>
-                    <div className="scope-selection-info">
-                      <strong>{n.name}</strong>
-                      <span>{n.typeNameLocalized || n.type}</span>
-                    </div>
+                  {selectedNodes.map((n) => {
+                    const SelNodeIcon = getNodeTypeConfig(n.type)?.icon || Building2;
+                    const selNodeColor = getNodeTypeConfig(n.type)?.color || "#c9a84c";
+                    return (
+                      <div key={n.id} className="scope-selection-card">
+                        <div className="scope-selection-icon" style={{ color: selNodeColor }}>
+                          <SelNodeIcon size={16} />
+                        </div>
+                        <div className="scope-selection-info">
+                          <strong>{n.name}</strong>
+                          <NodeTypeBadge type={n.type} size="xs" />
+                        </div>
                     <button
                       className="scope-selection-clear"
                       onClick={() => handleToggle(n.id)}
@@ -180,7 +177,8 @@ function ScopeMultiSelectModal({ onClose, initialSelectedIds, onApply }) {
                       <X size={12} />
                     </button>
                   </div>
-                ))}
+                    );
+                  })}
               </div>
             )}
           </div>

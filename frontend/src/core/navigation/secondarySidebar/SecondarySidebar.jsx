@@ -1,112 +1,123 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
-  Search, X, Building2,
-  CalendarRange, BookOpen, User, SlidersHorizontal, RotateCcw,
+  Search, X, Users,
+  CalendarRange, BookOpen, User, RotateCcw,
+  GraduationCap, ChevronDown, Eye, Building2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { getLocalized } from "../../utils/getLocalized";
+import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeRegistry";
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useStickySelection } from "../../contexts/StickySelectionContext";
+import { useScopeAwareUI } from "../../hooks/useScopeAwareUI";
 import * as staffService from "../../services/staffService";
 import * as studentService from "../../services/studentService";
 import * as structureService from "../../services/structureService";
 import * as permissionService from "../../services/permissionService";
-import { PAGE_TYPES, APPLICABLE_TO } from "../../manifests/manifestTypes";
 import "./secondarySidebar.css";
 
-const DIRECTORY_META = {
-  staff: { heading: "Staff Directory", placeholder: "Search staff by name or ID" },
-  student: { heading: "Student Directory", placeholder: "Search students by name or ID" },
-  all: { heading: "User Directory", placeholder: "Search by name or ID" },
-};
-
-const DIRECTORY_FILTERS = {
+const FILTER_DEFS = {
   staff: [
-    { key: "role", label: "Role" },
-    { key: "status", label: "Status", options: [
-      { value: "active", label: "Active" },
-      { value: "inactive", label: "Inactive" },
+    { key: "role", labelKey: "role" },
+    { key: "status", labelKey: "status", options: [
+      { value: "active", labelKey: "active" },
+      { value: "inactive", labelKey: "inactive" },
     ]},
-    { key: "facultyId", label: "Faculty" },
+    { key: "facultyId", labelKey: "faculty" },
   ],
   student: [
-    { key: "level", label: "Level" },
-    { key: "status", label: "Status", options: [
-      { value: "active", label: "Active" },
-      { value: "inactive", label: "Inactive" },
+    { key: "level", labelKey: "level" },
+    { key: "status", labelKey: "status", options: [
+      { value: "active", labelKey: "active" },
+      { value: "inactive", labelKey: "inactive" },
     ]},
-    { key: "facultyId", label: "Faculty" },
-    { key: "enrollment", label: "Enrollment", options: [
-      { value: "active", label: "Currently Enrolled" },
-      { value: "graduated", label: "Graduated" },
+    { key: "facultyId", labelKey: "faculty" },
+    { key: "enrollment", labelKey: "enrollment", options: [
+      { value: "active", labelKey: "currently_enrolled" },
+      { value: "graduated", labelKey: "graduated" },
     ]},
   ],
   all: [
-    { key: "role", label: "Role" },
-    { key: "level", label: "Level" },
-    { key: "status", label: "Status", options: [
-      { value: "active", label: "Active" },
-      { value: "inactive", label: "Inactive" },
+    { key: "role", labelKey: "role" },
+    { key: "level", labelKey: "level" },
+    { key: "status", labelKey: "status", options: [
+      { value: "active", labelKey: "active" },
+      { value: "inactive", labelKey: "inactive" },
     ]},
-    { key: "facultyId", label: "Faculty" },
+    { key: "facultyId", labelKey: "faculty" },
   ],
 };
 
-function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
+const TABS = [
+  { key: "all", labelKey: "all_users", icon: Users },
+  { key: "staff", labelKey: "staff", icon: User },
+  { key: "student", labelKey: "students", icon: GraduationCap },
+];
+
+function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
+  const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
+  const { preferredUserTab } = useScopeAwareUI();
   const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
   const { selected, select, clear, isActive } = useStickySelection();
 
+  const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({});
   const [results, setResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const debounceRef = useRef(null);
   const [filterOptions, setFilterOptions] = useState({});
-
-  const { currentPageType = PAGE_TYPES.MANAGEMENT, currentApplicableTo = APPLICABLE_TO.BOTH } = config || {};
-
-  const dirType = config?.directoryType || (
-    currentApplicableTo === APPLICABLE_TO.STAFF ? "staff"
-    : currentApplicableTo === APPLICABLE_TO.STUDENT ? "student"
-    : "all"
-  );
-
-  const [typeFilter, setTypeFilter] = useState("all");
+  const prevScopeIdRef = useRef(null);
 
   useEffect(() => {
-    if (isActive && selected?.type && dirType === "all") {
-      setTypeFilter(selected.type);
-    } else if (!isActive && dirType === "all") {
-      setTypeFilter("all");
+    if (scopeNode?.id && scopeNode.id !== prevScopeIdRef.current) {
+      setActiveTab(preferredUserTab);
+      setSearchQuery("");
+      setFilters({});
+      prevScopeIdRef.current = scopeNode.id;
     }
-  }, [isActive, selected, dirType]);
+    if (!scopeNode) {
+      prevScopeIdRef.current = null;
+    }
+  }, [scopeNode, preferredUserTab]);
 
-  const effectiveDirType = dirType === "all" && typeFilter !== "all" ? typeFilter : dirType;
-  const meta = DIRECTORY_META[effectiveDirType] || DIRECTORY_META.all;
-  const configFilters = (config?.filters && config.filters.length > 0)
-    ? config.filters
-    : (DIRECTORY_FILTERS[effectiveDirType] || []);
+  const effectiveDirType = activeTab === "all" ? "all" : activeTab;
+  const activeFilters = FILTER_DEFS[effectiveDirType] || FILTER_DEFS.all;
+
+  const scopeDisplayName = useMemo(() =>
+    scopeNode?.localizedName || getLocalized(scopeNode?.name, i18n.language) || t("all_scopes"),
+  [scopeNode, i18n.language, t]);
 
   useEffect(() => {
-    const loadFilterOptions = async () => {
+    const load = async () => {
       const options = {};
       try {
         if (effectiveDirType === "staff" || effectiveDirType === "all") {
           const roles = await permissionService.fetchAllRoles({ pageSize: 100 });
-          options.roles = (roles?.items || []).map(r => ({ value: r.id, label: r.name }));
+          options.roles = (roles?.items || []).map(r => ({
+            value: r.id,
+            label: getLocalized(r.name, i18n.language),
+          }));
         }
         const levels = await structureService.fetchLevels();
-        options.levels = (levels || []).map(l => ({ value: l.id, label: l.name }));
+        options.levels = (levels || []).map(l => ({
+          value: l.id,
+          label: getLocalized(l.name, i18n.language),
+        }));
         const faculties = await structureService.fetchFaculties();
-        options.faculties = (faculties || []).map(f => ({ value: f.id, label: f.name }));
-      } catch {
-      }
+        options.faculties = (faculties || []).map(f => ({
+          value: f.id,
+          label: getLocalized(f.name, i18n.language),
+        }));
+      } catch { /* ignore */ }
       setFilterOptions(options);
     };
-    loadFilterOptions();
-  }, [effectiveDirType]);
+    load();
+  }, [effectiveDirType, i18n.language]);
 
-  const buildSearchParams = useCallback((query, activeFilters) => {
+  const buildSearchParams = useCallback((query, activeFilters_) => {
     const params = {
       search: query || undefined,
       page: 1,
@@ -115,40 +126,28 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
       AcademicYearId: selectedYearObj?.id || undefined,
       SemesterId: selectedSemesterObj?.id || undefined,
     };
-
-    if (activeFilters) {
-      if (activeFilters.role) {
-        params.role = activeFilters.role;
-      }
-      if (activeFilters.status === "active") {
-        params.isActive = true;
-      } else if (activeFilters.status === "inactive") {
-        params.isActive = false;
-      }
-      if (activeFilters.level) {
-        params.levelId = activeFilters.level;
-      }
-      if (activeFilters.enrollment === "graduated") {
-        params.isActive = false;
-      }
-      if (activeFilters.facultyId) {
-        params.facultyId = activeFilters.facultyId;
-      }
+    if (activeFilters_) {
+      if (activeFilters_.role) params.role = activeFilters_.role;
+      if (activeFilters_.status === "active") params.isActive = true;
+      else if (activeFilters_.status === "inactive") params.isActive = false;
+      if (activeFilters_.level) params.levelId = activeFilters_.level;
+      if (activeFilters_.enrollment === "graduated") params.isActive = false;
+      if (activeFilters_.facultyId) params.facultyId = activeFilters_.facultyId;
     }
     return params;
   }, [scopeNode, selectedYearObj, selectedSemesterObj]);
 
-  const doSearch = useCallback(async (query, activeFilters) => {
+  const doSearch = useCallback(async (query, activeFilters_) => {
     setResultsLoading(true);
     try {
-      const searchParams = buildSearchParams(query, activeFilters);
+      const searchParams = buildSearchParams(query, activeFilters_);
       let allItems = [];
       if (effectiveDirType === "staff" || effectiveDirType === "all") {
         const data = await staffService.searchStaff(searchParams);
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
             id: r.id,
-            name: r.name,
+            name: getLocalized(r.name, i18n.language),
             code: r.employeeCode || "",
             type: "staff",
             role: r.role || "",
@@ -160,7 +159,7 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
             id: r.id,
-            name: r.name,
+            name: getLocalized(r.name, i18n.language),
             code: r.studentCode || "",
             type: "student",
             level: r.levelName || "",
@@ -168,18 +167,13 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
         }
       }
       setResults(allItems);
-    } catch {
-      setResults([]);
-    } finally {
-      setResultsLoading(false);
-    }
-  }, [effectiveDirType, buildSearchParams]);
+    } catch { setResults([]); }
+    finally { setResultsLoading(false); }
+  }, [effectiveDirType, buildSearchParams, i18n.language]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      doSearch(searchQuery, filters);
-    }, 300);
+    debounceRef.current = setTimeout(() => doSearch(searchQuery, filters), 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -190,169 +184,180 @@ function SecondarySidebar({ config, sidebarOpen, sidebarWidth }) {
     setFilters({});
   }, []);
 
-  const handleSelectEntity = useCallback((entity) => {
-    select(entity);
-  }, [select]);
+  const handleSelectEntity = useCallback((entity) => select(entity), [select]);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+    setFilters({});
+    setSearchQuery("");
+  }, []);
 
   const resolveOptions = (filter) => {
-    if (filter.options) {
-      return filter.options;
-    }
-    if (filter.key === "role" && filterOptions.roles) {
-      return filterOptions.roles;
-    }
-    if (filter.key === "level" && filterOptions.levels) {
-      return filterOptions.levels;
-    }
-    if (filter.key === "facultyId" && filterOptions.faculties) {
-      return filterOptions.faculties;
-    }
-    return filter.options || [];
+    if (filter.options) return filter.options;
+    if (filter.key === "role" && filterOptions.roles) return filterOptions.roles;
+    if (filter.key === "level" && filterOptions.levels) return filterOptions.levels;
+    if (filter.key === "facultyId" && filterOptions.faculties) return filterOptions.faculties;
+    return [];
   };
+
+  const hasActiveFilters = Object.values(filters).some(v => v !== "");
 
   return (
     <aside
       className="secondary-sidebar"
       style={{ insetInlineStart: sidebarOpen ? sidebarWidth : 0 }}
     >
-      <div className="sec-dir-header">
-        <span className="sec-dir-label">{meta.heading}</span>
+      {/* ── Tab Bar ──────────────────────── */}
+      <div className="sec-tabs">
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              className={`sec-tab ${activeTab === tab.key ? "is-active" : ""}`}
+              onClick={() => handleTabChange(tab.key)}
+            >
+              <Icon size={14} />
+              <span>{t(tab.labelKey)}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="sec-sidebar-scope">
-        <div className="sec-scope-item">
-          <Building2 size={13} />
+      {/* ── Scope Section ────────────────── */}
+      <div className="sec-scope">
+        <div className="sec-scope-main">
+          {(() => {
+            const ScopeIcon = scopeNode ? (getNodeTypeConfig(scopeNode.type)?.icon || Building2) : Building2;
+            const scopeColor = getNodeTypeConfig(scopeNode?.type)?.color || "inherit";
+            return <ScopeIcon size={13} style={{ color: scopeColor }} />;
+          })()}
           <div className="sec-scope-content">
-            <span className="sec-scope-label">Scope</span>
-            <strong>{scopeNode?.name || "All"}</strong>
+            <span className="sec-scope-label">{t("scope_summary")}</span>
+            <span className="sec-scope-value">{scopeDisplayName}</span>
           </div>
         </div>
-        <div className="sec-scope-row">
-          <div className="sec-scope-item small">
-            <CalendarRange size={11} />
+        <div className="sec-scope-meta">
+          <div className="sec-scope-meta-item">
+            <CalendarRange size={10} />
             <span>{selectedYear}</span>
           </div>
-          <div className="sec-scope-item small">
-            <BookOpen size={11} />
+          <div className="sec-scope-meta-divider" />
+          <div className="sec-scope-meta-item">
+            <BookOpen size={10} />
             <span>{selectedSemester}</span>
           </div>
         </div>
       </div>
 
-      {/* Sticky pinned card — top of filters area */}
-      {isActive && (
-        <div className="sec-sticky-card">
-          <div className={`sec-sticky-card-avatar type-${selected.type}`}>
-            {selected.name?.charAt(0).toUpperCase()}
-          </div>
-          <div className="sec-sticky-card-info">
-            <strong>{selected.name}</strong>
-            <span>{selected.code}</span>
-          </div>
-          <span className={`sec-sticky-card-badge type-${selected.type}`}>
-            {selected.type === "staff" ? "Staff" : "Student"}
-          </span>
-          <button className="sec-sticky-card-clear" onClick={clear} title="Clear selection">
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
-      <div className="sec-sidebar-filters">
-        {/* User-type filter for "both" pages */}
-        {dirType === "all" && (
-          <div className="sec-filter-section">
-            <div className="sec-filter-header">
-              <User size={11} />
-              <span>Show</span>
-            </div>
-            <select
-              className="sec-filter-select"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setFilters({});
-                setSearchQuery("");
-              }}
-            >
-              <option value="all">All Users</option>
-              <option value="staff">Staff Only</option>
-              <option value="student">Students Only</option>
-            </select>
-          </div>
-        )}
-
+      {/* ── Search + Filters ──────────────── */}
+      <div className="sec-filters">
         <div className="sec-search-box">
           <Search size={13} />
           <input
             type="text"
-            placeholder={meta.placeholder}
+            placeholder={t("sidebar_search_placeholder")}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button className="sec-clear-search" onClick={() => setSearchQuery("")}>
+            <button className="sec-search-clear" onClick={() => setSearchQuery("")}>
               <X size={12} />
             </button>
           )}
         </div>
 
-        {configFilters.map((filter) => {
+        {activeFilters.map(filter => {
           const options = resolveOptions(filter);
           if (!options || options.length === 0) return null;
           return (
-            <div className="sec-filter-section" key={filter.key}>
-              <div className="sec-filter-header">
-                <SlidersHorizontal size={11} />
-                <span>{filter.label}</span>
+            <div className="sec-filter-group" key={filter.key}>
+              <label className="sec-filter-label">{t(filter.labelKey)}</label>
+              <div className="sec-filter-select-wrap">
+                <select
+                  className="sec-filter-select"
+                  value={filters[filter.key] || ""}
+                  onChange={e => setFilters(prev => ({ ...prev, [filter.key]: e.target.value }))}
+                >
+                  <option value="">{t("all")}</option>
+                  {options.map((opt, i) => (
+                    <option key={i} value={opt.value}>{opt.labelKey ? t(opt.labelKey) : opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="sec-filter-chevron" />
               </div>
-              <select
-                className="sec-filter-select"
-                value={filters[filter.key] || ""}
-                onChange={(e) => setFilters((prev) => ({ ...prev, [filter.key]: e.target.value }))}
-              >
-                <option value="">All {filter.label}</option>
-                {options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
             </div>
           );
         })}
 
-        <button className="sec-clear-all" onClick={handleClearFilters}>
-          <RotateCcw size={11} />
-          Clear Filters
-        </button>
+        {hasActiveFilters && (
+          <button className="sec-clear-btn" onClick={handleClearFilters}>
+            <RotateCcw size={11} />
+            {t("clear_filters")}
+          </button>
+        )}
       </div>
 
-      <div className="sec-sidebar-results">
-        <div className="sec-results-header">
-          <span className="sec-results-count">
-            {resultsLoading ? "Searching..." : `${results.length} ${effectiveDirType === "staff" ? "staff" : effectiveDirType === "student" ? "students" : "users"}`}
+      {/* ── Pinned User Card (above results) ── */}
+      {isActive && (
+        <div className="sec-pinned-card">
+          <div className="sec-pinned-avatar">
+            {selected.name?.charAt(0).toUpperCase()}
+          </div>
+          <div className="sec-pinned-info">
+            <span className="sec-pinned-name">{selected.name}</span>
+            <span className="sec-pinned-code">{selected.code}</span>
+          </div>
+          <span className={`sec-pinned-badge type-${selected.type}`}>
+            {selected.type === "staff" ? t("staff") : t("student")}
           </span>
+          <button className="sec-pinned-clear" onClick={clear} title={t("clear_selection")}>
+            <X size={11} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Results ───────────────────────── */}
+      <div className="sec-results">
+        <div className="sec-results-header">
+          {resultsLoading ? (
+            <span className="sec-results-status">{t("searching")}</span>
+          ) : (
+            <span className="sec-results-status">
+              {results.length} {effectiveDirType === "staff" ? t("staff") : effectiveDirType === "student" ? t("students") : t("users")}
+            </span>
+          )}
+          {!resultsLoading && results.length > 0 && (
+            <span className="sec-results-hint"><Eye size={10} />{t("select_user_hint")}</span>
+          )}
         </div>
         <div className="sec-results-list">
           {results.length === 0 && !resultsLoading && (
-            <div className="sec-no-results">No results match your criteria.</div>
+            <div className="sec-results-empty">
+              {searchQuery || hasActiveFilters ? t("no_results") : <><Search size={20} /><span>{t("search_hint")}</span></>}
+            </div>
           )}
           {resultsLoading && (
-            <div className="sec-no-results">Loading...</div>
+            <div className="sec-results-loading">
+              <div className="sec-pulse" />
+              <div className="sec-pulse" />
+              <div className="sec-pulse" />
+            </div>
           )}
-          {results.map((entity) => (
+          {results.map(entity => (
             <button
               key={entity.id}
-              className={"sec-result-item" + (isActive && selected?.id === entity.id ? " is-selected" : "")}
+              className={`sec-result-item ${isActive && selected?.id === entity.id ? "is-selected" : ""}`}
               onClick={() => handleSelectEntity(entity)}
             >
-              <div className={"sec-result-avatar type-" + entity.type}>
-                {entity.name.charAt(0).toUpperCase()}
+              <div className={`sec-result-avatar type-${entity.type}`}>
+                {entity.name?.charAt(0).toUpperCase()}
               </div>
               <div className="sec-result-info">
-                <strong>{entity.name}</strong>
-                <span>{entity.code}</span>
-                {entity.role && <small className="sec-result-meta">{entity.role}</small>}
-                {entity.level && <small className="sec-result-meta">{entity.level}</small>}
+                <strong className="sec-result-name">{entity.name}</strong>
+                <span className="sec-result-code">{entity.code}</span>
+                {entity.role && <span className="sec-result-meta">{entity.role}</span>}
+                {entity.level && <span className="sec-result-meta">{entity.level}</span>}
               </div>
             </button>
           ))}

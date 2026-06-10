@@ -25,8 +25,7 @@ public static class MassiveDataSeeder
 {
     public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
-        await ExpandCoursesAsync(context);
-        await SeedAcademicPlansAsync(context);
+        // Courses and AcademicPlans are now seeded by DataSeeder in Core.Infrastructure.
         await ExpandStudentsAsync(context, passwordHasher);
         await SeedCourseOfferingsAsync(context);
         await SeedScheduleSlotsAsync(context);
@@ -35,302 +34,6 @@ public static class MassiveDataSeeder
         //await SeedStudentServiceRequestsAsync(context);
         await ExpandPaymentsAsync(context);
         await SeedStudentProfileRecordsAsync(context);
-    }
-
-    private static async Task ExpandCoursesAsync(CoreDbContext context)
-    {
-        if (await context.Courses.CountAsync() > 10) return;
-
-        var seed = new (string Code, string TitleAr, string TitleEn, int CreditHours, CourseCategory Category)[]
-        {
-            ("CS101",   "مقدمة في علوم الحاسب",          "Introduction to Computer Science", 3, CourseCategory.ProgramRequirement),
-            ("CS201",   "هياكل البيانات والخوارزميات",   "Data Structures and Algorithms",   3, CourseCategory.ProgramRequirement),
-            ("MATH101", "تفاضل وتكامل (1)",              "Calculus I",                       4, CourseCategory.FacultyRequirement),
-            ("UNIV100", "التفكير الناقد",                 "Critical Thinking",                2, CourseCategory.UniversityRequirement),
-            ("GEN150",  "مهارات الإلقاء",                 "Public Speaking",                  2, CourseCategory.GeneralEducation),
-            ("CS-ELC1", "موضوعات في الذكاء الاصطناعي",   "Topics in AI",                     3, CourseCategory.Elective),
-
-            ("CS102",   "برمجة حاسبات (2)",               "Computer Programming II",          3, CourseCategory.ProgramRequirement),
-            ("CS202",   "تصميم قواعد البيانات",           "Database Design",                  3, CourseCategory.ProgramRequirement),
-            ("CS301",   "هندسة البرمجيات",                "Software Engineering",             3, CourseCategory.ProgramRequirement),
-            ("CS401",   "التعلم الآلي",                   "Machine Learning",                 3, CourseCategory.ProgramRequirement),
-            ("CS402",   "تأمين المعلومات",                "Information Security",             3, CourseCategory.ProgramRequirement),
-
-            ("MATH102", "تفاضل وتكامل (2)",              "Calculus II",                      4, CourseCategory.FacultyRequirement),
-            ("MATH201", "المعادلات التفاضلية",           "Differential Equations",           3, CourseCategory.FacultyRequirement),
-            ("MATH301", "الاحتمالات والإحصاء",           "Probability & Statistics",         3, CourseCategory.FacultyRequirement),
-            ("PHYS101", "الفيزياء (1)",                  "Physics I",                        4, CourseCategory.FacultyRequirement),
-            ("PHYS102", "الفيزياء (2)",                  "Physics II",                       4, CourseCategory.FacultyRequirement),
-            ("CHEM101", "الكيمياء العامة",               "General Chemistry",                3, CourseCategory.FacultyRequirement),
-
-            ("CE201",   "ميكانيكا الهندسة",              "Engineering Mechanics",            3, CourseCategory.ProgramRequirement),
-            ("CE202",   "مقاومة المواد",                 "Strength of Materials",            3, CourseCategory.ProgramRequirement),
-            ("CE301",   "تحليل الإنشاءات",               "Structural Analysis",              3, CourseCategory.ProgramRequirement),
-            ("CE302",   "هندسة الأساسات",                "Foundation Engineering",           3, CourseCategory.ProgramRequirement),
-            ("CE401",   "هندسة النقل",                   "Transportation Engineering",       3, CourseCategory.ProgramRequirement),
-
-            ("ARCH201", "تاريخ العمارة",                 "History of Architecture",          2, CourseCategory.ProgramRequirement),
-            ("ARCH202", "الرسم المعماري",                "Architectural Drawing",            3, CourseCategory.ProgramRequirement),
-            ("ARCH301", "التصميم المعماري (1)",          "Architectural Design I",           4, CourseCategory.ProgramRequirement),
-            ("ARCH401", "التخطيط العمراني",              "Urban Planning",                   3, CourseCategory.ProgramRequirement),
-
-            ("ME201",   "الديناميكا الحرارية",           "Thermodynamics",                   3, CourseCategory.ProgramRequirement),
-            ("ME202",   "ميكانيكا الموائع",              "Fluid Mechanics",                  3, CourseCategory.ProgramRequirement),
-            ("ME301",   "انتقال الحرارة",                "Heat Transfer",                    3, CourseCategory.ProgramRequirement),
-            ("ME302",   "هندسة التصنيع",                 "Manufacturing Engineering",        3, CourseCategory.ProgramRequirement),
-
-            ("EE201",   "الدوائر الكهربائية",            "Electric Circuits",                3, CourseCategory.ProgramRequirement),
-            ("EE202",   "الإلكترونيات",                  "Electronics",                      3, CourseCategory.ProgramRequirement),
-            ("EE301",   "أنظمة التحكم",                  "Control Systems",                  3, CourseCategory.ProgramRequirement),
-            ("EE302",   "الاتصالات التناظرية",           "Analog Communications",            3, CourseCategory.ProgramRequirement),
-
-            ("HE101",   "التغذية الأساسية",              "Basic Nutrition",                  3, CourseCategory.ProgramRequirement),
-            ("HE102",   "علوم الأطعمة",                  "Food Science",                     3, CourseCategory.ProgramRequirement),
-            ("HE201",   "التغذية العلاجية",              "Clinical Nutrition",               3, CourseCategory.ProgramRequirement),
-            ("HE202",   "إدارة المؤسسات الغذائية",       "Food Service Management",          3, CourseCategory.ProgramRequirement),
-            ("HE301",   "التغذية المجتمعية",             "Community Nutrition",              3, CourseCategory.ProgramRequirement),
-            ("TEX101",  "المنسوجات والملابس",            "Textiles & Clothing",              3, CourseCategory.ProgramRequirement),
-            ("TEX201",  "تصميم الأزياء",                 "Fashion Design",                   3, CourseCategory.ProgramRequirement),
-            ("TEX301",  "تكنولوجيا الملابس",             "Apparel Technology",               3, CourseCategory.ProgramRequirement),
-            ("CHLD101", "تنمية الطفل",                   "Child Development",                3, CourseCategory.ProgramRequirement),
-            ("CHLD201", "إدارة رياض الأطفال",            "Kindergarten Management",          3, CourseCategory.ProgramRequirement),
-
-            ("BME201",  "الموائع الحيوية",               "Biofluid Mechanics",               3, CourseCategory.ProgramRequirement),
-            ("BME202",  "الإشارات الحيوية",              "Biosignals",                       3, CourseCategory.ProgramRequirement),
-            ("BME301",  "الأجهزة الطبية",                "Medical Devices",                  3, CourseCategory.ProgramRequirement),
-
-            ("GEN101",  "مهارات الحاسب",                 "Computer Skills",                  2, CourseCategory.GeneralEducation),
-            ("GEN102",  "اللغة العربية",                 "Arabic Language",                  2, CourseCategory.UniversityRequirement),
-            ("GEN103",  "اللغة الإنجليزية",              "English Language",                 2, CourseCategory.UniversityRequirement),
-            ("GEN201",  "تاريخ مصر الحديث",              "Modern Egyptian History",          2, CourseCategory.GeneralEducation),
-            ("GEN202",  "التربية البيئية",               "Environmental Education",          2, CourseCategory.GeneralEducation),
-        };
-
-        var existing = await context.Courses.Select(c => c.Code).ToHashSetAsync();
-        foreach (var (code, ar, en, hours, category) in seed)
-        {
-            if (existing.Contains(code)) continue;
-            context.Courses.Add(new Course
-            {
-                Id = Guid.NewGuid(),
-                Code = code,
-                Title = LocalizedJson.Of(ar, en),
-                CreditHours = hours,
-                Category = category,
-                IsActive = true,
-            });
-        }
-        await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] Courses: expanded.");
-    }
-
-    private static async Task SeedAcademicPlansAsync(CoreDbContext context)
-    {
-        if (await context.AcademicPlans.AnyAsync()) return;
-
-        var nodes = await context.StructureNodes.ToListAsync();
-        var courses = await context.Courses.ToDictionaryAsync(c => c.Code);
-
-        var programs = nodes.Where(n => n.Type == StructureNodeType.Program).ToList();
-        var years = await context.AcademicYears.OrderBy(y => y.Name).ToListAsync();
-        var effectiveFrom = years.FirstOrDefault()?.StartDate ?? new DateTime(2023, 9, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        StructureNode? GetProgram(string name)
-        {
-            var found = programs.FirstOrDefault(n =>
-            {
-                try
-                {
-                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(n.Name);
-                    return dict != null && dict.TryGetValue("en", out var en) && en.Contains(name, StringComparison.OrdinalIgnoreCase);
-                }
-                catch
-                {
-                    return n.Name.Contains(name, StringComparison.OrdinalIgnoreCase);
-                }
-            });
-            if (found == null)
-                Console.WriteLine($"[MassSeed] Plan: program '{name}' not found in structure — skipping.");
-            return found;
-        }
-
-        int GetLevelCount(Guid programId)
-        {
-            var childLevels = nodes.Where(n => n.ParentId == programId && n.Type == StructureNodeType.Level).ToList();
-            return Math.Max(childLevels.Count, 4);
-        }
-
-        Course C(string code) => courses.GetValueOrDefault(code) ?? throw new InvalidOperationException($"Course '{code}' not found.");
-
-        Guid? MakePlan(string name, string programName, (string Code, int Level, int Semester, bool Mandatory)[] planCourses)
-        {
-            var prog = GetProgram(programName);
-            if (prog == null) return null;
-            var plan = new AcademicPlan
-            {
-                Id = Guid.NewGuid(),
-                StructureNodeId = prog.Id,
-                Name = name,
-                EffectiveFrom = effectiveFrom,
-                IsActive = true,
-            };
-
-            foreach (var (code, level, sem, mandatory) in planCourses)
-            {
-                if (!courses.ContainsKey(code))
-                {
-                    Console.WriteLine($"[MassSeed] Plan '{name}': skipping missing course '{code}'.");
-                    continue;
-                }
-                plan.PlanCourses.Add(new AcademicPlanCourse
-                {
-                    AcademicPlanId = plan.Id,
-                    CourseId = C(code).Id,
-                    Level = level,
-                    Semester = sem,
-                    IsMandatory = mandatory,
-                });
-            }
-
-            context.AcademicPlans.Add(plan);
-            return plan.Id;
-        }
-
-        MakePlan("BSc Computer & Systems Engineering 2025",
-            "Computer & Systems Engineering", new[]
-            {
-                ("CS101", 1, 1, true), ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true),
-                ("CS102", 1, 2, true), ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
-                ("CS201", 2, 1, true), ("MATH201", 2, 1, true), ("EE201",   2, 1, true), ("GEN103", 2, 1, true), ("GEN201",  2, 1, false),
-                ("CS202", 2, 2, true), ("MATH301", 2, 2, true), ("EE202",   2, 2, true), ("GEN202", 2, 2, false), ("CS-ELC1", 2, 2, false),
-                ("CS301", 3, 1, true), ("CE201",   3, 1, false), ("ME201",  3, 1, false), ("EE301",  3, 1, false),
-                ("CS401", 3, 2, true), ("CS402",   3, 2, true),
-                ("CE301", 4, 1, false), ("CE401",  4, 1, false), ("BME201", 4, 1, false),
-            });
-
-        MakePlan("BSc Civil Engineering 2025",
-            "Civil Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true), ("CHEM101", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
-                ("MATH201", 2, 1, true), ("CE201",   2, 1, true), ("CS101",  2, 1, false), ("GEN103",  2, 1, true),
-                ("CE202",   2, 2, true), ("MATH301", 2, 2, true), ("GEN201", 2, 2, false), ("GEN202",  2, 2, false),
-                ("CE301",   3, 1, true), ("ME201",   3, 1, true), ("EE201",  3, 1, false),
-                ("CE302",   3, 2, true), ("ME202",   3, 2, false),
-                ("CE401",   4, 1, true), ("ARCH201", 4, 1, false),
-            });
-
-        MakePlan("BSc Architecture 2025",
-            "Architectural Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101", 1, 1, true), ("ARCH201",1, 1, true), ("UNIV100", 1, 1, true), ("GEN101", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102", 1, 2, true), ("ARCH202",1, 2, true), ("GEN102",  1, 2, true), ("GEN150", 1, 2, true),
-                ("ARCH301", 2, 1, true), ("CS101",   2, 1, false), ("GEN103", 2, 1, true),
-                ("CE201",   2, 2, true), ("GEN202",  2, 2, false),
-                ("ARCH401", 3, 1, true), ("CE301",   3, 1, true),
-                ("CE302",   4, 1, false),
-            });
-
-        MakePlan("BSc Clinical Nutrition 2025",
-            "Clinical Nutrition", new[]
-            {
-                ("HE101",  1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("HE201",  2, 1, true), ("HE202",  2, 1, true), ("GEN103", 2, 1, true),
-                ("HE301",  2, 2, true), ("CHLD101",2, 2, false), ("GEN201", 2, 2, false),
-                ("CHLD201",3, 1, false), ("GEN202", 3, 1, false),
-                ("CS101",  4, 1, false),
-            });
-
-        MakePlan("BSc Textiles & Clothing 2025",
-            "Textile & Clothing", new[]
-            {
-                ("TEX101", 1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("TEX201", 1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("TEX301", 2, 1, true), ("HE202",  2, 1, false), ("GEN103", 2, 1, true),
-                ("HE102",  2, 2, true), ("GEN201", 2, 2, false),
-                ("GEN202", 3, 1, false),
-                ("CS101",  4, 1, false),
-            });
-
-        MakePlan("BSc Biomedical Engineering 2025",
-            "Biomedical Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CHEM101",1, 1, true), ("GEN101", 1, 1, true), ("UNIV100", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("GEN102", 1, 2, true), ("GEN150",  1, 2, true),
-                ("MATH201", 2, 1, true), ("BME201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103",  2, 1, true),
-                ("BME202", 2, 2, true), ("MATH301",2, 2, true), ("EE202",  2, 2, true), ("GEN201",  2, 2, false),
-                ("BME301", 3, 1, true), ("ME201",  3, 1, true), ("GEN202", 3, 1, false),
-                ("CS401",  4, 1, false),
-            });
-
-        MakePlan("BSc Nutrition & Food Science 2025",
-            "Nutrition & Food Science", new[]
-            {
-                ("HE101",  1, 1, true), ("CHEM101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("HE201",  2, 1, true), ("HE202",  2, 1, true), ("GEN103", 2, 1, true),
-                ("HE301",  2, 2, true), ("GEN201", 2, 2, false),
-                ("GEN202", 3, 1, false),
-                ("CS101",  4, 1, false),
-            });
-
-        MakePlan("BSc Communications Engineering 2025",
-            "Communications & Information Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("CS102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("MATH201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103", 2, 1, true),
-                ("EE202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
-                ("EE301",   3, 1, true), ("EE302",  3, 1, true), ("GEN202", 3, 1, false),
-                ("CS402",   4, 1, true), ("CS301",  4, 1, true),
-            });
-
-        MakePlan("BSc Mechanical Engineering 2025",
-            "Mechanical Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("MATH201", 2, 1, true), ("ME201",  2, 1, true), ("CE201",  2, 1, true), ("GEN103", 2, 1, true),
-                ("ME202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
-                ("ME301",   3, 1, true), ("ME302",  3, 1, true), ("EE201",  3, 1, false), ("GEN202", 3, 1, false),
-                ("CE301",   4, 1, false),
-            });
-
-        MakePlan("BSc Electrical Engineering 2025",
-            "Electrical Engineering", new[]
-            {
-                ("MATH101", 1, 1, true), ("PHYS101",1, 1, true), ("CS101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("MATH102", 1, 2, true), ("PHYS102",1, 2, true), ("CS102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("MATH201", 2, 1, true), ("EE201",  2, 1, true), ("GEN103", 2, 1, true),
-                ("EE202",   2, 2, true), ("MATH301",2, 2, true), ("GEN201", 2, 2, false),
-                ("EE301",   3, 1, true), ("EE302",  3, 1, true), ("ME201",  3, 1, false), ("GEN202", 3, 1, false),
-                ("CS402",   4, 1, true),
-            });
-
-        MakePlan("BSc General Stream 2025",
-            "General Stream", new[]
-            {
-                ("HE101",  1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("HE102",  1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("CS101",  2, 1, false), ("GEN103", 2, 1, true),
-                ("HE202",  2, 2, false), ("GEN201", 2, 2, false),
-                ("GEN202", 3, 1, false),
-            });
-
-        MakePlan("BSc Family & Childhood Management 2025",
-            "Family & Childhood Institution Management", new[]
-            {
-                ("CHLD101",1, 1, true), ("UNIV100",1, 1, true), ("GEN101", 1, 1, true),
-                ("CHLD201",1, 2, true), ("GEN102", 1, 2, true), ("GEN150", 1, 2, true),
-                ("HE202",  2, 1, false), ("GEN103", 2, 1, true),
-                ("GEN201", 2, 2, false),
-                ("GEN202", 3, 1, false),
-                ("CS101",  4, 1, false),
-            });
-
-        await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] AcademicPlans: {context.AcademicPlans.Local.Count} plans created.");
     }
 
     private static async Task ExpandStudentsAsync(CoreDbContext context, IPasswordHasher passwordHasher)
@@ -548,60 +251,71 @@ public static class MassiveDataSeeder
     {
         if (await context.Set<CourseOffering>().AnyAsync()) return;
 
-        var courses = await context.Courses.ToListAsync();
+        var courses = await context.Courses.ToDictionaryAsync(c => c.Id);
         var semesters = await context.Semesters.Include(s => s.AcademicYear).ToListAsync();
-        var programs = await context.StructureNodes.Where(n => n.Type == StructureNodeType.Program).ToListAsync();
+        var plans = await context.AcademicPlans.Include(p => p.PlanCourses).ToListAsync();
 
-        var targetSemesters = semesters
-            .Where(s => s.AcademicYear!.Name is "2025-2026" or "2024-2025")
-            .OrderBy(s => s.AcademicYear!.Name).ThenBy(s => s.Order)
-            .ToList();
+        var fallSemester = semesters.FirstOrDefault(s =>
+            s.AcademicYear!.Name == "2025-2026" && s.Order == 1);
+        var springSemester = semesters.FirstOrDefault(s =>
+            s.AcademicYear!.Name == "2025-2026" && s.Order == 2);
+
+        if (fallSemester == null && springSemester == null)
+        {
+            Console.WriteLine($"[MassSeed] CourseOfferings: no 2025-2026 semesters found, skipping.");
+            return;
+        }
 
         var courseOfferingRepo = context.Set<CourseOffering>();
         var added = 0;
 
-        foreach (var semester in targetSemesters)
+        foreach (var plan in plans)
         {
-            foreach (var program in programs.Take(5))
+            foreach (var planCourse in plan.PlanCourses)
             {
-                foreach (var course in courses.Take(8))
+                if (!courses.TryGetValue(planCourse.CourseId, out var course)) continue;
+
+                // Plan semester 1 → Fall, semester 2 → Spring
+                var targetSemester = planCourse.Semester == 1 ? fallSemester : springSemester;
+                if (targetSemester == null) continue;
+
+                // Section A
+                var offering = new CourseOffering
                 {
-                    var offering = new CourseOffering
+                    Id = Guid.NewGuid(),
+                    CourseId = course.Id,
+                    SemesterId = targetSemester.Id,
+                    StructureNodeId = plan.StructureNodeId,
+                    SectionCode = "A",
+                };
+                offering.InitializeCapacity(60);
+                offering.Activate();
+                offering.OpenRegistration();
+                courseOfferingRepo.Add(offering);
+                added++;
+
+                // Section B for courses with >= 3 credit hours
+                if (course.CreditHours >= 3)
+                {
+                    var offeringB = new CourseOffering
                     {
                         Id = Guid.NewGuid(),
                         CourseId = course.Id,
-                        SemesterId = semester.Id,
-                        StructureNodeId = program.Id,
-                        SectionCode = "A",
+                        SemesterId = targetSemester.Id,
+                        StructureNodeId = plan.StructureNodeId,
+                        SectionCode = "B",
                     };
-                    offering.InitializeCapacity(60);
-                    offering.Activate();
-                    offering.OpenRegistration();
-                    courseOfferingRepo.Add(offering);
+                    offeringB.InitializeCapacity(45);
+                    offeringB.Activate();
+                    offeringB.OpenRegistration();
+                    courseOfferingRepo.Add(offeringB);
                     added++;
-
-                    if (course.CreditHours >= 3)
-                    {
-                        var offering2 = new CourseOffering
-                        {
-                            Id = Guid.NewGuid(),
-                            CourseId = course.Id,
-                            SemesterId = semester.Id,
-                            StructureNodeId = program.Id,
-                            SectionCode = "B",
-                        };
-                        offering2.InitializeCapacity(45);
-                        offering2.Activate();
-                        offering2.OpenRegistration();
-                        courseOfferingRepo.Add(offering2);
-                        added++;
-                    }
                 }
             }
         }
 
         await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] CourseOfferings: {added} created.");
+        Console.WriteLine($"[MassSeed] CourseOfferings: {added} created across {plans.Count} plans.");
     }
 
     private static async Task SeedScheduleSlotsAsync(CoreDbContext context)
@@ -616,40 +330,49 @@ public static class MassiveDataSeeder
         {
             (DayOfWeek.Sunday,    new TimeOnly(8, 0),  new TimeOnly(9, 30)),
             (DayOfWeek.Sunday,    new TimeOnly(10, 0), new TimeOnly(11, 30)),
+            (DayOfWeek.Sunday,    new TimeOnly(12, 0), new TimeOnly(13, 30)),
             (DayOfWeek.Monday,    new TimeOnly(8, 0),  new TimeOnly(9, 30)),
             (DayOfWeek.Monday,    new TimeOnly(10, 0), new TimeOnly(11, 30)),
+            (DayOfWeek.Monday,    new TimeOnly(12, 0), new TimeOnly(13, 30)),
             (DayOfWeek.Tuesday,   new TimeOnly(8, 0),  new TimeOnly(9, 30)),
             (DayOfWeek.Tuesday,   new TimeOnly(10, 0), new TimeOnly(11, 30)),
+            (DayOfWeek.Tuesday,   new TimeOnly(12, 0), new TimeOnly(13, 30)),
             (DayOfWeek.Wednesday, new TimeOnly(8, 0),  new TimeOnly(9, 30)),
             (DayOfWeek.Wednesday, new TimeOnly(10, 0), new TimeOnly(11, 30)),
+            (DayOfWeek.Wednesday, new TimeOnly(12, 0), new TimeOnly(13, 30)),
             (DayOfWeek.Thursday,  new TimeOnly(8, 0),  new TimeOnly(9, 30)),
+            (DayOfWeek.Thursday,  new TimeOnly(10, 0), new TimeOnly(11, 30)),
         };
 
-        foreach (var offering in offerings.Take(60))
+        var idx = 0;
+        foreach (var offering in offerings)
         {
-            var (day, start, end) = timeSlots[added % timeSlots.Length];
+            var (day, start, end) = timeSlots[idx % timeSlots.Length];
             var slot = new ScheduleSlot
             {
                 Id = Guid.NewGuid(),
                 CourseOfferingId = offering.Id,
                 DayOfWeek = day,
                 Kind = ScheduleSlotKind.Lecture,
-                Location = $"Building {((added % 5) + 1)}, Room {100 + (added % 30)}",
+                Location = $"Building {(idx % 8) + 1}, Room {100 + (idx % 40)}",
                 Notes = null,
             };
             slot.SetTimeRange(start, end);
             scheduleRepo.Add(slot);
             added++;
+            idx++;
 
-            if (added % 3 == 0)
+            // Lab session for every 3rd offering (alternating days)
+            if (idx % 3 == 0)
             {
+                var labDay = day == DayOfWeek.Thursday ? DayOfWeek.Wednesday : (DayOfWeek)(((int)day + 2) % 7);
                 var labSlot = new ScheduleSlot
                 {
                     Id = Guid.NewGuid(),
                     CourseOfferingId = offering.Id,
-                    DayOfWeek = day == DayOfWeek.Thursday ? DayOfWeek.Wednesday : day + 1,
+                    DayOfWeek = labDay,
                     Kind = ScheduleSlotKind.Lab,
-                    Location = $"Lab {200 + (added % 20)}",
+                    Location = $"Lab {200 + (idx % 25)}",
                     Notes = "Lab session",
                 };
                 labSlot.SetTimeRange(new TimeOnly(12, 0), new TimeOnly(13, 30));
@@ -659,7 +382,7 @@ public static class MassiveDataSeeder
         }
 
         await context.SaveChangesAsync();
-        Console.WriteLine($"[MassSeed] ScheduleSlots: {added} created.");
+        Console.WriteLine($"[MassSeed] ScheduleSlots: {added} created for {offerings.Count} offerings.");
     }
 
     //private static async Task SeedWorkflowsAsync(CoreDbContext context)

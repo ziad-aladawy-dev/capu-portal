@@ -17,15 +17,24 @@ const QUICK_PAGES = [
   { title: "Student Directory", path: "/admin/students", type: "page" },
   { title: "Staff Directory", path: "/admin/staff", type: "page" },
   { title: "Course Catalog", path: "/admin/courses", type: "page" },
+  { title: "Academic Plans", path: "/admin/academic-plans", type: "page" },
+  { title: "Programs", path: "/admin/programs", type: "page" },
 
   { title: "Roles", path: "/admin/roles", type: "page" },
   { title: "Permissions", path: "/admin/permissions", type: "page" },
-  { title: "University Structure", path: "/admin/university-structure", type: "page" },
+  { title: "Permission Tree", path: "/admin/authorization", type: "page" },
+  { title: "University Structure", path: "/admin/university", type: "page" },
   { title: "Academic Years", path: "/admin/academic-years", type: "page" },
-  { title: "Notifications", path: "/admin/notifications", type: "page" },
   { title: "Course Offerings", path: "/admin/academic/course-offerings", type: "page" },
   { title: "Schedule", path: "/admin/academic/schedule", type: "page" },
-  { title: "Academic Plans", path: "/admin/academic-plans", type: "page" },
+  { title: "Student Services", path: "/admin/student-services/dashboard", type: "page" },
+  { title: "Notifications", path: "/admin/notifications", type: "page" },
+  { title: "Finance Dashboard", path: "/admin/finance", type: "page" },
+  { title: "Transactions", path: "/admin/finance/transactions", type: "page" },
+  { title: "Workflows", path: "/admin/student-services/workflows", type: "page" },
+  { title: "Profile Records", path: "/admin/student-information/profile-records", type: "page" },
+  { title: "SIS Integration", path: "/admin/sync", type: "page" },
+  { title: "Audit Logs", path: "/admin/system/audit-logs", type: "page" },
 ];
 
 const CATEGORY_ICONS = {
