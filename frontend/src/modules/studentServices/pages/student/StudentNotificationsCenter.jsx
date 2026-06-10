@@ -11,40 +11,29 @@ const StudentNotificationsCenter = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+  useEffect(() => { loadNotifications(); }, []);
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
       const response = await apiClient.get("/api/notifications");
       setNotifications(response.data.items || []);
-    } catch (err) {
-      console.error("Failed to load notifications", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("Failed to load notifications", err); }
+    finally { setLoading(false); }
   };
 
   const markAsRead = async (id) => {
     try {
       await apiClient.put(`/api/notifications/${id}/read`);
       await loadNotifications();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const markAllAsRead = async () => {
     try {
-      await apiClient.put("/api/notifications/read", { 
-        ids: notifications.filter(n => !n.isRead).map(n => n.id) 
-      });
+      await apiClient.put("/api/notifications/read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) });
       await loadNotifications();
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const filtered = notifications.filter(n => {
@@ -64,40 +53,20 @@ const StudentNotificationsCenter = () => {
   return (
     <div className="snc-container">
       <div className="snc-header">
-        <div>
-          <Bell size={20} />
-          <h1>{t("notifications")}</h1>
-          <span className="snc-badge">{notifications.filter(n => !n.isRead).length}</span>
-        </div>
-        <button className="snc-mark-all" onClick={markAllAsRead}>
-          <CheckCheck size={16} /> {t("mark_all_read")}
-        </button>
+        <div><Bell size={20} /><h1>{t("notifications")}</h1><span className="snc-badge">{notifications.filter(n => !n.isRead).length}</span></div>
+        <button className="snc-mark-all" onClick={markAllAsRead}><CheckCheck size={16} /> {t("mark_all_read")}</button>
       </div>
       <div className="snc-filters">
-        <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
-          {t("all")} ({notifications.length})
-        </button>
-        <button className={filter === "unread" ? "active" : ""} onClick={() => setFilter("unread")}>
-          {t("unread")} ({notifications.filter(n => !n.isRead).length})
-        </button>
-        <button className={filter === "read" ? "active" : ""} onClick={() => setFilter("read")}>
-          {t("read")} ({notifications.filter(n => n.isRead).length})
-        </button>
+        <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>{t("all")} ({notifications.length})</button>
+        <button className={filter === "unread" ? "active" : ""} onClick={() => setFilter("unread")}>{t("unread")} ({notifications.filter(n => !n.isRead).length})</button>
+        <button className={filter === "read" ? "active" : ""} onClick={() => setFilter("read")}>{t("read")} ({notifications.filter(n => n.isRead).length})</button>
       </div>
       <div className="snc-list">
         {filtered.map(notif => (
           <div key={notif.id} className={`snc-item ${!notif.isRead ? "snc-unread" : ""}`}>
             <div className="snc-icon">{getIcon(notif.type)}</div>
-            <div className="snc-content">
-              <h4>{notif.title}</h4>
-              <p>{notif.message}</p>
-              <span>{new Date(notif.createdAt).toLocaleString()}</span>
-            </div>
-            {!notif.isRead && (
-              <button className="snc-read-btn" onClick={() => markAsRead(notif.id)}>
-                <CheckCheck size={16} />
-              </button>
-            )}
+            <div className="snc-content"><h4>{notif.title}</h4><p>{notif.message}</p><span>{new Date(notif.createdAt).toLocaleString()}</span></div>
+            {!notif.isRead && (<button className="snc-read-btn" onClick={() => markAsRead(notif.id)}><CheckCheck size={16} /></button>)}
           </div>
         ))}
       </div>

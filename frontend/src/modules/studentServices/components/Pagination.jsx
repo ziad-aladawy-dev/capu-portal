@@ -28,28 +28,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
   return (
     <div className="pagination">
-      <button
-        className="pagination-btn"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
+      <button className="pagination-btn" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
         <ChevronLeft size={16} />
       </button>
       {getPageNumbers().map((page, idx) => (
-        <button
-          key={idx}
-          className={`pagination-btn ${page === currentPage ? "active" : ""} ${page === "..." ? "dots" : ""}`}
-          onClick={() => typeof page === "number" && onPageChange(page)}
-          disabled={page === "..."}
-        >
+        <button key={idx} className={`pagination-btn ${page === currentPage ? "active" : ""} ${page === "..." ? "dots" : ""}`} onClick={() => typeof page === "number" && onPageChange(page)} disabled={page === "..."}>
           {page}
         </button>
       ))}
-      <button
-        className="pagination-btn"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
+      <button className="pagination-btn" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>
         <ChevronRight size={16} />
       </button>
     </div>

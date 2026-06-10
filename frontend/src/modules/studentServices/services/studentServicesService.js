@@ -2,7 +2,7 @@ import apiClient from "../../../core/api/apiClient";
 
 const BASE_URL = "/api/student-services";
 
-// ==================== Services ====================
+// ---------------------- Services (CRUD) ----------------------
 export const getServices = async () => {
   const response = await apiClient.get(`${BASE_URL}/services`);
   return response.data;
@@ -10,6 +10,11 @@ export const getServices = async () => {
 
 export const getServiceById = async (id) => {
   const response = await apiClient.get(`${BASE_URL}/services/${id}`);
+  return response.data;
+};
+
+export const getAllServices = async () => {
+  const response = await apiClient.get(`${BASE_URL}/services/all`);
   return response.data;
 };
 
@@ -40,7 +45,7 @@ export const getAvailableServicesForStudent = async (studentId) => {
   return response.data;
 };
 
-// ==================== Workflows ====================
+// ---------------------- Workflows ----------------------
 export const getWorkflows = async () => {
   const response = await apiClient.get(`${BASE_URL}/workflows`);
   return response.data;
@@ -81,7 +86,7 @@ export const deleteWorkflowStep = async (stepId) => {
   return response.data;
 };
 
-// ==================== Student Requests ====================
+// ---------------------- Student Requests ----------------------
 export const getStudentRequests = async () => {
   const response = await apiClient.get(`${BASE_URL}/requests`);
   return response.data;
@@ -119,7 +124,7 @@ export const processPayment = async (requestId, paymentMethod) => {
   return response.data;
 };
 
-// ==================== Staff Requests ====================
+// ---------------------- Staff Requests ----------------------
 export const getAllRequests = async () => {
   const response = await apiClient.get(`${BASE_URL}/requests/all`);
   return response.data;
@@ -152,7 +157,13 @@ export const getAssignedToMe = async () => {
   return response.data;
 };
 
-// ==================== Statistics ====================
+export const getPagedStaffRequests = async (page, pageSize, search, sortBy, ascending) => {
+  const params = { page, pageSize, search, sortBy, ascending };
+  const response = await apiClient.get(`${BASE_URL}/requests/staff/paged`, { params });
+  return response.data;
+};
+
+// ---------------------- Statistics ----------------------
 export const getStaffStatistics = async () => {
   const response = await apiClient.get(`${BASE_URL}/statistics/staff`);
   return response.data;
@@ -168,7 +179,12 @@ export const getStudentStatisticsById = async (studentId) => {
   return response.data;
 };
 
-// ==================== File Upload ====================
+export const getRecentRequests = async (count = 5) => {
+  const response = await apiClient.get(`${BASE_URL}/statistics/staff/recent-requests`, { params: { count } });
+  return response.data;
+};
+
+// ---------------------- File Upload ----------------------
 export const uploadFile = async (requestId, stepKey, file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -192,9 +208,14 @@ export const deleteFile = async (attachmentId) => {
   return response.data;
 };
 
-// ==================== External APIs ====================
+// ---------------------- External APIs (Structure, Years, Semesters) ----------------------
 export const getAcademicYears = async () => {
   const response = await apiClient.get("/api/academic-years");
+  return response.data;
+};
+
+export const getSemestersByYear = async (academicYearId) => {
+  const response = await apiClient.get(`/api/academic-years/${academicYearId}/semesters`);
   return response.data;
 };
 
@@ -205,5 +226,16 @@ export const getFaculties = async () => {
 
 export const getProgramsByFaculty = async (facultyId) => {
   const response = await apiClient.get(`/api/structure/lookups/faculties/${facultyId}/programs`);
+  return response.data;
+};
+
+// ---------------------- Attachments & Pending Request ----------------------
+export const getStudentRequestAttachments = async (requestId) => {
+  const response = await apiClient.get(`${BASE_URL}/requests/${requestId}/attachments`);
+  return response.data;
+};
+
+export const getPendingRequestForService = async (serviceId) => {
+  const response = await apiClient.get(`${BASE_URL}/requests/pending/${serviceId}`);
   return response.data;
 };

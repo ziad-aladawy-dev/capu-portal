@@ -23,6 +23,7 @@ import UniversityStructurePage from "../../modules/university/pages/UniversitySt
 import StaffDashboard from "../../modules/studentServices/pages/admin/StaffDashboard";
 import ServicesManagement from "../../modules/studentServices/pages/admin/ServicesManagement";
 import ServiceBuilder from "../../modules/studentServices/pages/admin/ServiceBuilder";
+import ServiceDetailsPage from "../../modules/studentServices/pages/admin/ServiceDetailsPage";
 import RequestsManagement from "../../modules/studentServices/pages/admin/RequestsManagement";
 import RequestReview from "../../modules/studentServices/pages/admin/RequestReview";
 import NotificationsCenter from "../../modules/studentServices/pages/admin/NotificationsCenter";
@@ -64,6 +65,7 @@ function AppRouter() {
               <Route path="/admin/student-services/services" element={<ServicesManagement />} />
               <Route path="/admin/student-services/services/create" element={<ServiceBuilder />} />
               <Route path="/admin/student-services/services/edit/:id" element={<ServiceBuilder />} />
+              <Route path="/admin/student-services/services/:id" element={<ServiceDetailsPage />} />
               <Route path="/admin/student-services/requests" element={<RequestsManagement />} />
               <Route path="/admin/student-services/requests/:id" element={<RequestReview />} />
               <Route path="/admin/student-services/notifications" element={<NotificationsCenter />} />
