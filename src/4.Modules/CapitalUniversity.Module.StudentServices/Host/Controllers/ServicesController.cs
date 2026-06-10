@@ -24,6 +24,13 @@ public class ServicesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllServices(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetAllServicesAsync(cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -42,21 +49,21 @@ public class ServicesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateServiceDto dto, CancellationToken cancellationToken)
     {
         await _service.UpdateServiceAsync(id, dto, cancellationToken);
-        return Ok(new { message = "Service updated successfully" });
+        return Ok(new { message = "Service updated" });
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _service.DeleteServiceAsync(id, cancellationToken);
-        return Ok(new { message = "Service deleted successfully" });
+        return Ok(new { message = "Service deleted" });
     }
 
     [HttpPatch("{id:guid}/toggle")]
     public async Task<IActionResult> ToggleStatus(Guid id, CancellationToken cancellationToken)
     {
         await _service.ToggleServiceStatusAsync(id, cancellationToken);
-        return Ok(new { message = "Service status toggled" });
+        return Ok(new { message = "Status toggled" });
     }
 
     [HttpGet("available")]

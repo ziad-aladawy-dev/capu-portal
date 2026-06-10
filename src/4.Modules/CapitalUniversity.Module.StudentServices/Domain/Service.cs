@@ -11,10 +11,14 @@ public class Service : BaseEntity
     public bool IsActive { get; set; } = true;
     public bool IsPaid { get; set; }
     public decimal? Price { get; set; }
-    public Guid? AcademicYearId { get; set; }
 
     public ICollection<ServiceStructureNode> ScopeNodes { get; set; } = new List<ServiceStructureNode>();
     public bool IncludeDescendants { get; set; } = true;
+
+    public Guid? AcademicYearId { get; set; }
+    public Guid? SemesterId { get; set; }
+
+    public int? LevelOrder { get; set; }
 
     public Guid? WorkflowId { get; set; }
     public Workflow? Workflow { get; set; }

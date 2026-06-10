@@ -10,10 +10,17 @@ public class StudentRequestConfiguration : IEntityTypeConfiguration<StudentReque
     {
         builder.ToTable("StudentRequests", "StudentServices");
         builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.RequestNumber)
+            .IsRequired()
+            .ValueGeneratedOnAdd()
+            .UseIdentityColumn(seed: 1, increment: 1);
+
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.PaymentStatus).HasConversion<int>().IsRequired();
         builder.Property(x => x.AmountPaid).HasPrecision(18, 2);
         builder.Property(x => x.SubmittedData).HasColumnType("nvarchar(max)").IsRequired();
+        builder.Property(x => x.RowVersion).IsRowVersion();
 
         builder.HasMany(x => x.HistoryEntries)
             .WithOne(x => x.StudentRequest)

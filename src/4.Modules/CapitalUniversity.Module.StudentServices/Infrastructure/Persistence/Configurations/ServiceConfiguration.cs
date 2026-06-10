@@ -15,6 +15,10 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(x => x.Description).HasMaxLength(2000);
         builder.Property(x => x.Price).HasPrecision(18, 2);
 
+        builder.Property(x => x.LevelOrder);
+        builder.Property(x => x.AcademicYearId);
+        builder.Property(x => x.SemesterId);
+
         builder.HasMany(x => x.ScopeNodes)
             .WithOne(x => x.Service)
             .HasForeignKey(x => x.ServiceId)

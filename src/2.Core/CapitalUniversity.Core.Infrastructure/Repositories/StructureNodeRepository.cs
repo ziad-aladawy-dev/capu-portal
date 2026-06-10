@@ -17,6 +17,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<StructureNode?> GetByIdAsync(Guid id)
     {
         return await _context.StructureNodes
+            .Include(x => x.Parent)
             .Include(x => x.Children)
             .FirstOrDefaultAsync(x => x.Id == id);
     }

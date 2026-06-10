@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +123,17 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -158,7 +170,9 @@ using (var scope = app.Services.CreateScope())
 
     //await DataSeeder.SeedAsync(db, passwordHasher);
     await UniversityStructureSeeder.SeedAsync(db);
-    await IdentitySeeder.SeedAsync(db, passwordHasher);
+    await IdentitySeeder.SeedUsersAsync(db, passwordHasher);
+    await IdentitySeeder.EnsureSuperAdminRoleAsync(db);
+    await IdentitySeeder.AssignUserToSuperAdminRoleAsync(db, "ibrahim@capital.edu.eg");
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
 
     // Reconcile manifest-declared permissions against the DB. Additive only —
@@ -168,6 +182,8 @@ using (var scope = app.Services.CreateScope())
     var manifestSync = scope.ServiceProvider
         .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
     await manifestSync.SynchronizeAsync();
+
+    await IdentitySeeder.GrantAllPermissionsToSuperAdminAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

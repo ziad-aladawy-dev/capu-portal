@@ -89,11 +89,5 @@ public class StudentServicesManifest : IManifest
         Subscribes = new List<string>()
     };
 
-    public string SettingsSchema => @"{
-      ""type"": ""object"",
-      ""properties"": {
-        ""MaxAttachmentsPerRequest"": { ""type"": ""integer"", ""default"": 10 },
-        ""AllowedFileTypes"": { ""type"": ""array"", ""items"": { ""type"": ""string"" }, ""default"": [""pdf"",""jpg"",""png""] }
-      }
-    }";
+    public string SettingsSchema => @"{""type"":""object"",""properties"":{""MaxAttachmentsPerRequest"":{""type"":""integer"",""default"":10},""AllowedFileTypes"":{""type"":""array"",""items"":{""type"":""string""},""default"":[""pdf"",""jpg"",""png""]}}}";
 }

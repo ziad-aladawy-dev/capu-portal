@@ -16,24 +16,21 @@ public static class DependencyInjection
         IConfiguration configuration,
         string connectionStringKey = "DefaultConnection")
     {
-        // DbContext
         services.AddDbContext<StudentServicesDbContext>(options =>
             options.UseSqlServer(
                 configuration.GetConnectionString(connectionStringKey),
                 sqlOptions => sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_StudentServices", "StudentServices")));
 
-        // Repositories
         services.AddScoped<IServiceRepository, ServiceRepository>();
         services.AddScoped<IStudentRequestRepository, StudentRequestRepository>();
         services.AddScoped<IWorkflowRepository, WorkflowRepository>();
 
-        // Services
         services.AddScoped<IServiceManagementService, ServiceManagementService>();
         services.AddScoped<IStudentRequestService, StudentRequestService>();
         services.AddScoped<IWorkflowManagementService, WorkflowManagementService>();
         services.AddScoped<IDashboardStatisticsService, DashboardStatisticsService>();
+        services.AddScoped<IFileUploadService, FileUploadService>();
 
-        // Module Manifest
         services.AddSingleton<IManifest, StudentServicesManifest>();
 
         return services;

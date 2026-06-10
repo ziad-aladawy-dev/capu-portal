@@ -39,4 +39,11 @@ public class StatisticsController : ControllerBase
         var result = await _statisticsService.GetStudentStatisticsAsync(studentId, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("staff/recent-requests")]
+    public async Task<IActionResult> GetRecentRequests([FromQuery] int count = 5, CancellationToken cancellationToken = default)
+    {
+        var result = await _statisticsService.GetRecentRequestsAsync(count, cancellationToken);
+        return Ok(result);
+    }
 }

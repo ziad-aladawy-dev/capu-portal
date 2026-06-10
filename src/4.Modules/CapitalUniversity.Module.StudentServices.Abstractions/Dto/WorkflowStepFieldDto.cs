@@ -4,6 +4,7 @@ namespace CapitalUniversity.Module.StudentServices.Abstractions.Dto;
 
 public class WorkflowStepFieldDto
 {
+    public Guid Id { get; set; }
     public int Order { get; set; }
     public string Label { get; set; } = string.Empty;
     public StepFieldType FieldType { get; set; }

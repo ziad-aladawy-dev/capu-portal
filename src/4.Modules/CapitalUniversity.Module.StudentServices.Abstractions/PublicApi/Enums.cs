@@ -46,8 +46,6 @@ public enum StepFieldType
 public enum WorkflowStepType
 {
     Form = 1,
-    FileUpload = 2,
-    Review = 3,
-    Payment = 4,
-    Submit = 5
+    Review = 2,
+    Payment = 3
 }
