@@ -17,3 +17,5 @@
 .status-active { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
 .status-inactive { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
 .status-default { background: #f3f4f6; color: #1f2937; }
+.status-moreinfo { background: #ffe4e6; color: #be123c; }
+.status-ready { background: #ccfbf1; color: #0f766e; }

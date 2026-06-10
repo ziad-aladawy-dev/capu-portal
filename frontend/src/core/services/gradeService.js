@@ -25,6 +25,56 @@ export async function fetchSemesterGrades(semesterId) {
   return Array.isArray(data) ? data : data?.items || [];
 }
 
+// ── Transcript (read-only, synced; categorised by requirement) ───────────────
+// TranscriptRequirementCategory enum, mirrored from the backend.
+export const TRANSCRIPT_CATEGORY = { General: 0, Faculty: 1, MainSpecialization: 2 };
+
+/** Full transcript structure: summary + 3 requirement categories. Null if none synced. */
+export async function fetchTranscript() {
+  try {
+    const { data } = await api.get("/transcript");
+    return data || null;
+  } catch (err) {
+    // 404 = nothing synced yet (service returns null → NotFound). Treat as empty.
+    if (err?.response?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Downloads the official transcript PDF rendered server-side and triggers a
+ * browser save. Backend owns the institutional formatting (header, watermark,
+ * QR), so there is no client-side rendering. Returns the saved file name.
+ */
+export async function downloadTranscriptPdf() {
+  const res = await api.get("/transcript/pdf", { responseType: "blob" });
+  const fileName =
+    parseContentDispositionFilename(res.headers?.["content-disposition"]) ||
+    `Transcript_${new Date().toISOString().split("T")[0]}.pdf`;
+  triggerBlobDownload(res.data, fileName);
+  return fileName;
+}
+
+function parseContentDispositionFilename(header) {
+  if (!header) return null;
+  // Prefer RFC 5987 filename*=UTF-8''… then plain filename="…".
+  const star = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(header);
+  if (star) return decodeURIComponent(star[1].replace(/"/g, "").trim());
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : null;
+}
+
+function triggerBlobDownload(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ── GPA helpers (client-side projection / what-if) ───────────────────────────
 // Standard 4.0 letter→points scale. Used only for the projection calculator;
 // the authoritative GPA comes from /grades/summary.

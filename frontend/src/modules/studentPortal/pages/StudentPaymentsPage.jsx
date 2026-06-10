@@ -1,535 +1,365 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Receipt, CheckCircle, AlertCircle, RefreshCw, Inbox, DollarSign,
-  CreditCard, Hourglass, ExternalLink,
+  CreditCard, Lock, X, Loader2, ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
-import { useCanDo } from "../../../core/auth/usePermission";
-import { useToast } from "../../../core/components/Toast";
 import {
-  useUnpaidFees, useStudentOrders, useReceipts, buildReceiptIndex,
-  useCreateOrder, useInitiatePayment,
-} from "../../../core/query/useTreasury";
+  FEE_STATUS, ORDER_STATUS, ORDER_STATUS_LABELS, ORDER_TERMINAL,
+  GATEWAY, GATEWAY_LABELS, fmtAmount, feeLabel, initiateOrder,
+} from "../../../core/services/treasuryPaymentService";
 import {
-  ORDER_STATUS, ORDER_STATUS_KEYS, GATEWAY, GATEWAY_KEYS,
-  fmtAmount, apiErrorMessage,
-} from "../../../core/services/treasuryService";
+  useStudentFees, useStudentOrders, useCreateOrder, useCancelOrder,
+} from "../hooks/usePayments";
 import "../styles/studentPayments.css";
 
-const TABS = ["unpaid_fees_tab", "treasury_orders_tab", "payment_history_tab"];
-const EMPTY_LIST = [];
-
-function sumByCurrency(rows, amountOf) {
-  const map = {};
-  for (const row of rows) {
-    const c = row.currency || "EGP";
-    map[c] = (map[c] || 0) + Number(amountOf(row));
-  }
-  return Object.entries(map).map(([currency, total]) => ({ currency, total }));
-}
-
-function MoneySums({ sums }) {
-  if (!sums.length) {
-    return (
-      <>
-        0.00<span className="currency">EGP</span>
-      </>
-    );
-  }
-  return sums.map((s, i) => (
-    <span key={s.currency}>
-      {i > 0 && " · "}
-      {fmtAmount(s.total)}
-      <span className="currency">{s.currency}</span>
-    </span>
-  ));
-}
-
-function orderBadgeClass(status) {
-  if (status === ORDER_STATUS.Paid) return "paid";
-  if (status === ORDER_STATUS.PendingPayment || status === ORDER_STATUS.Created) return "partial";
-  return "unpaid";
-}
+const GATEWAYS = [GATEWAY.Mastercard, GATEWAY.BankMisr, GATEWAY.EFinance];
 
 function StudentPaymentsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { addToast } = useToast();
-  const canPay = useCanDo("payments.transactions", 2);
+  const studentId = user?.id;
+
+  const feesQ = useStudentFees(studentId);
+  const ordersQ = useStudentOrders(studentId);
+  const fees = useMemo(() => feesQ.data || [], [feesQ.data]);
+
   const [activeTab, setActiveTab] = useState(0);
+  const [selected, setSelected] = useState({}); // feeId -> bool
 
-  const fees = useUnpaidFees(user?.id);
-  const orders = useStudentOrders(user?.id);
-  const { data: receipts = [] } = useReceipts();
-  const receiptIndex = useMemo(() => buildReceiptIndex(receipts), [receipts]);
+  const pendingFees = useMemo(() => fees.filter((f) => f.status === FEE_STATUS.Pending), [fees]);
+  const inOrderFees = useMemo(() => fees.filter((f) => f.status === FEE_STATUS.IncludedInOrder), [fees]);
 
-  const feeRows = fees.data || EMPTY_LIST;
-  const orderRows = orders.data || EMPTY_LIST;
+  // Summary metrics
+  const outstanding = pendingFees.reduce((s, f) => s + Number(f.totalAmount), 0);
+  const inOrder = inOrderFees.reduce((s, f) => s + Number(f.totalAmount), 0);
+  const paid = fees.filter((f) => f.status === FEE_STATUS.Paid).reduce((s, f) => s + Number(f.totalAmount), 0);
 
-  const paidOrders = orderRows.filter((o) => o.status === ORDER_STATUS.Paid);
-  const openOrders = orderRows.filter(
-    (o) => o.status === ORDER_STATUS.PendingPayment || o.status === ORDER_STATUS.Created
-  );
+  const selectedFees = pendingFees.filter((f) => selected[f.id]);
+  const selectedTotal = selectedFees.reduce((s, f) => s + Number(f.totalAmount), 0);
 
-  const outstandingSums = useMemo(() => sumByCurrency(feeRows, (f) => f.totalAmount), [feeRows]);
-  const inFlightSums = useMemo(() => sumByCurrency(openOrders, (o) => o.totalAmount), [openOrders]);
-  const paidSums = useMemo(() => sumByCurrency(paidOrders, (o) => o.totalAmount), [paidOrders]);
+  function toggle(id) {
+    setSelected((s) => ({ ...s, [id]: !s[id] }));
+  }
+  function toggleAll() {
+    if (selectedFees.length === pendingFees.length) setSelected({});
+    else setSelected(Object.fromEntries(pendingFees.map((f) => [f.id, true])));
+  }
 
-  /* Paid fees flattened from settled orders — the payment history. */
-  const historyRows = useMemo(() => {
-    const rows = [];
-    for (const order of paidOrders) {
-      for (const fee of order.fees || []) {
-        rows.push({ order, fee });
-      }
-    }
-    return rows;
-  }, [paidOrders]);
-
-  const loading = (fees.isLoading || orders.isLoading) && !fees.data && !orders.data;
-  const fatalError = fees.error && orders.error;
-  const refreshing = fees.isFetching || orders.isFetching;
-
-  const recheck = () => {
-    fees.refetch();
-    orders.refetch();
-  };
-
-  const feeName = (fee) =>
-    receiptIndex[fee.receiptId]?.name || t("treasury_fee_fallback_name");
-
-  if (loading) {
+  if (feesQ.isLoading) {
     return (
       <div className="student-payments">
-        <div className="sp-loading">
-          <div className="spinner"></div>
-          <p>{t("loading_payments")}</p>
-        </div>
+        <div className="sp-loading"><div className="spinner" /><p>{t("payments.loading", { defaultValue: "Loading your fees…" })}</p></div>
       </div>
     );
   }
 
-  if (fatalError) {
-    return (
-      <div className="student-payments">
-        <div className="sp-header">
-          <h1>{t("payments_and_fees")}</h1>
-          <p>{t("payments_subtitle")}</p>
-        </div>
-        <div className="sp-error">
-          <AlertCircle size={36} color="#dc2626" />
-          <h3>{t("failed_to_load_data")}</h3>
-          <p>{apiErrorMessage(fees.error, "")}</p>
-          <button className="sp-retry-btn" onClick={recheck}>
-            {t("retry")}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const orders = ordersQ.data || [];
+  const pendingOrders = orders.filter((o) => !ORDER_TERMINAL.includes(o.status));
 
   return (
     <div className="student-payments">
       <div className="sp-header">
-        <h1>{t("payments_and_fees")}</h1>
-        <p>{t("payments_subtitle")}</p>
+        <h1>{t("payments.title", { defaultValue: "Payments & Fees" })}</h1>
+        <p>{t("payments.subtitle", { defaultValue: "Pay your university fees through HU Treasury" })}</p>
       </div>
 
-      {/* Summary cards */}
       <div className="sp-summary-grid">
-        <div className="sp-summary-card total-fees">
-          <div className="sp-card-icon total-fees">
-            <Receipt size={22} />
-          </div>
-          <div className="sp-card-info">
-            <div className="sp-card-label">{t("balance_due")}</div>
-            <div className="sp-card-value">
-              <MoneySums sums={outstandingSums} />
-            </div>
-            <div className="sp-card-sub">
-              {t("treasury_fees_count", { count: feeRows.length })}
-            </div>
-          </div>
-        </div>
-
-        <div className="sp-summary-card discount">
-          <div className="sp-card-icon discount">
-            <Hourglass size={22} />
-          </div>
-          <div className="sp-card-info">
-            <div className="sp-card-label">{t("treasury_awaiting_payment")}</div>
-            <div className="sp-card-value">
-              <MoneySums sums={inFlightSums} />
-            </div>
-            <div className="sp-card-sub">
-              {t("treasury_orders_count", { count: openOrders.length })}
-            </div>
-          </div>
-        </div>
-
-        <div className="sp-summary-card total-paid">
-          <div className="sp-card-icon total-paid">
-            <CheckCircle size={22} />
-          </div>
-          <div className="sp-card-info">
-            <div className="sp-card-label">{t("total_paid")}</div>
-            <div className="sp-card-value">
-              <MoneySums sums={paidSums} />
-            </div>
-            <div className="sp-card-sub">
-              {t("treasury_orders_count", { count: paidOrders.length })}
-            </div>
-          </div>
-        </div>
+        <SummaryCard variant="balance-due" icon={<DollarSign size={22} />} label={t("payments.outstanding", { defaultValue: "Outstanding" })} value={outstanding} sub={`${pendingFees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
+        <SummaryCard variant="discount" icon={<ShoppingCart size={22} />} label={t("payments.in_order", { defaultValue: "In Open Orders" })} value={inOrder} sub={`${inOrderFees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
+        <SummaryCard variant="total-paid" icon={<CheckCircle size={22} />} label={t("payments.paid", { defaultValue: "Paid" })} value={paid} />
+        <SummaryCard variant="total-fees" icon={<Receipt size={22} />} label={t("payments.total", { defaultValue: "Total Fees" })} value={fees.reduce((s, f) => s + Number(f.totalAmount), 0)} sub={`${fees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
       </div>
 
-      {/* Tabs */}
       <div className="sp-tabs-bar">
-        {TABS.map((label, idx) => {
-          let badge = null;
-          if (idx === 0 && feeRows.length > 0) {
-            badge = <span className="sp-tab-badge urgent">{feeRows.length}</span>;
-          }
-          if (idx === 1 && openOrders.length > 0) {
-            badge = <span className="sp-tab-badge">{openOrders.length}</span>;
-          }
-          return (
-            <button
-              key={label}
-              className={`sp-tab${activeTab === idx ? " active" : ""}`}
-              onClick={() => setActiveTab(idx)}
-            >
-              {t(label)}
-              {badge}
-            </button>
-          );
-        })}
+        <button className={`sp-tab${activeTab === 0 ? " active" : ""}`} onClick={() => setActiveTab(0)}>
+          {t("payments.tab_pay", { defaultValue: "Pay Fees" })}
+          {pendingFees.length > 0 && <span className="sp-tab-badge urgent">{pendingFees.length}</span>}
+        </button>
+        <button className={`sp-tab${activeTab === 1 ? " active" : ""}`} onClick={() => setActiveTab(1)}>
+          {t("payments.tab_orders", { defaultValue: "Orders" })}
+          {pendingOrders.length > 0 && <span className="sp-tab-badge">{pendingOrders.length}</span>}
+        </button>
       </div>
 
-      {activeTab === 0 && (
-        <UnpaidFeesTab
-          fees={feeRows}
-          feeName={feeName}
-          canPay={canPay}
-          studentId={user?.id}
-          refreshing={refreshing}
-          onRecheck={recheck}
-          addToast={addToast}
+      {activeTab === 0 ? (
+        <PayFeesTab
+          studentId={studentId}
+          pendingFees={pendingFees}
+          inOrderFees={inOrderFees}
+          selected={selected}
+          toggle={toggle}
+          toggleAll={toggleAll}
+          allSelected={pendingFees.length > 0 && selectedFees.length === pendingFees.length}
+          selectedFees={selectedFees}
+          selectedTotal={selectedTotal}
+          refreshing={feesQ.isFetching}
+          onRecheck={() => { feesQ.refetch(); ordersQ.refetch(); }}
+          isError={feesQ.isError}
         />
+      ) : (
+        <OrdersTab studentId={studentId} orders={orders} isError={ordersQ.isError} isLoading={ordersQ.isLoading} />
       )}
-      {activeTab === 1 && (
-        <OrdersTab orders={orderRows} refreshing={refreshing} onRecheck={recheck} />
-      )}
-      {activeTab === 2 && <HistoryTab rows={historyRows} feeName={feeName} />}
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   Outstanding fees + optional self-pay
-   ════════════════════════════════════════════════════════════════ */
+function SummaryCard({ variant, icon, label, value, sub }) {
+  return (
+    <div className={`sp-summary-card ${variant}`}>
+      <div className={`sp-card-icon ${variant}`}>{icon}</div>
+      <div className="sp-card-info">
+        <div className="sp-card-label">{label}</div>
+        <div className="sp-card-value">{fmtAmount(value)}<span className="currency">EGP</span></div>
+        {sub && <div className="sp-card-sub">{sub}</div>}
+      </div>
+    </div>
+  );
+}
 
-function UnpaidFeesTab({ fees, feeName, canPay, studentId, refreshing, onRecheck, addToast }) {
+// ── Pay Fees tab ─────────────────────────────────────────────────────────────
+function PayFeesTab({
+  studentId, pendingFees, inOrderFees, selected, toggle, toggleAll, allSelected,
+  selectedFees, selectedTotal, refreshing, onRecheck, isError,
+}) {
   const { t } = useTranslation();
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [gateway, setGateway] = useState(GATEWAY.Mastercard);
-  const [payError, setPayError] = useState("");
-  const createOrder = useCreateOrder();
-  const initiate = useInitiatePayment();
+  const [showGateways, setShowGateways] = useState(false);
 
-  const selected = fees.filter((f) => selectedIds.has(f.id));
-  const activeCurrency = selected[0]?.currency ?? null;
-  const selectedTotal = selected.reduce((s, f) => s + Number(f.totalAmount), 0);
-  const paying = createOrder.isPending || initiate.isPending;
+  if (isError) {
+    return (
+      <div className="sp-error">
+        <AlertCircle size={36} color="#dc2626" />
+        <h3>{t("payments.load_error", { defaultValue: "Couldn't load your fees" })}</h3>
+        <p>{t("payments.load_error_hint", { defaultValue: "Please try again in a moment." })}</p>
+        <button className="sp-retry-btn" onClick={onRecheck}>{t("common.retry", { defaultValue: "Retry" })}</button>
+      </div>
+    );
+  }
 
-  const toggle = (fee) => {
-    if (activeCurrency && fee.currency !== activeCurrency && !selectedIds.has(fee.id)) return;
-    setPayError("");
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(fee.id)) next.delete(fee.id);
-      else next.add(fee.id);
-      return next;
-    });
-  };
-
-  const payNow = async () => {
-    if (!selected.length) return;
-    setPayError("");
-    try {
-      const order = await createOrder.mutateAsync({
-        studentId,
-        feeIds: [...selectedIds],
-        gateway: Number(gateway),
-      });
-      const result = await initiate.mutateAsync({
-        id: order.id,
-        redirectUrl: window.location.href,
-      });
-      if (result?.redirectUrl) {
-        addToast(t("treasury_redirecting_to_gateway"), "info");
-        window.location.assign(result.redirectUrl);
-      } else {
-        setPayError(t("treasury_initiate_failed"));
-      }
-    } catch (err) {
-      setPayError(apiErrorMessage(err, t("treasury_initiate_failed")));
-      setSelectedIds(new Set());
-    }
-  };
+  const nothing = pendingFees.length === 0 && inOrderFees.length === 0;
 
   return (
     <>
       <div className="sp-toolbar">
         <button className="sp-recheck-btn" onClick={onRecheck} disabled={refreshing}>
           <RefreshCw size={14} className={refreshing ? "spinning" : ""} />
-          {t("recheck_payments")}
+          {t("payments.recheck", { defaultValue: "Refresh" })}
         </button>
-
-        {canPay && fees.length > 0 && (
-          <div className="sp-pay-bar">
-            <select
-              className="sp-gateway-select"
-              value={gateway}
-              onChange={(e) => setGateway(e.target.value)}
-              aria-label={t("treasury_choose_gateway")}
-            >
-              {Object.values(GATEWAY).map((g) => (
-                <option key={g} value={g}>
-                  {t(GATEWAY_KEYS[g])}
-                </option>
-              ))}
-            </select>
-            <button
-              className="sp-pay-btn"
-              onClick={payNow}
-              disabled={!selected.length || paying}
-            >
-              <CreditCard size={14} />
-              {paying
-                ? t("treasury_redirecting_to_gateway")
-                : selected.length
-                ? `${t("treasury_pay_selected")} — ${fmtAmount(selectedTotal)} ${activeCurrency}`
-                : t("treasury_pay_selected")}
-            </button>
-          </div>
-        )}
       </div>
 
-      {payError && (
-        <div className="sp-inline-error" role="alert">
-          <AlertCircle size={14} /> {payError}
-        </div>
-      )}
-
-      {fees.length === 0 ? (
+      {nothing ? (
         <div className="sp-empty-state">
           <CheckCircle size={40} />
-          <h3>{t("all_fees_paid_title")}</h3>
-          <p>{t("all_fees_paid_message")}</p>
+          <h3>{t("payments.all_clear", { defaultValue: "Nothing to pay" })}</h3>
+          <p>{t("payments.all_clear_hint", { defaultValue: "You have no outstanding fees right now." })}</p>
         </div>
       ) : (
         <div className="sp-table-wrapper">
           <table className="sp-table">
             <thead>
               <tr>
-                {canPay && <th style={{ width: 36 }}></th>}
-                <th>{t("fee_title")}</th>
-                <th>{t("treasury_source")}</th>
-                <th>{t("date")}</th>
-                <th className="text-right">{t("treasury_quantity")}</th>
-                <th className="text-right">{t("treasury_unit_price")}</th>
-                <th className="text-right">{t("amount")}</th>
+                <th className="sp-select-col">
+                  {pendingFees.length > 0 && (
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="select all" />
+                  )}
+                </th>
+                <th>{t("payments.fee", { defaultValue: "Fee" })}</th>
+                <th>{t("payments.source", { defaultValue: "Source" })}</th>
+                <th className="text-right">{t("payments.unit", { defaultValue: "Unit" })}</th>
+                <th className="text-center">{t("payments.qty", { defaultValue: "Qty" })}</th>
+                <th className="text-right">{t("payments.amount", { defaultValue: "Amount" })}</th>
+                <th className="text-center">{t("payments.status", { defaultValue: "Status" })}</th>
               </tr>
             </thead>
             <tbody>
-              {fees.map((fee) => {
-                const checked = selectedIds.has(fee.id);
-                const locked = activeCurrency && fee.currency !== activeCurrency && !checked;
-                return (
-                  <tr
-                    key={fee.id}
-                    style={locked ? { opacity: 0.5 } : undefined}
-                    title={
-                      locked
-                        ? t("treasury_currency_locked_hint", { currency: activeCurrency })
-                        : undefined
-                    }
-                  >
-                    {canPay && (
-                      <td className="text-center">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={locked || paying}
-                          onChange={() => toggle(fee)}
-                          aria-label={feeName(fee)}
-                        />
-                      </td>
-                    )}
-                    <td><span className="sp-fee-title">{feeName(fee)}</span></td>
-                    <td>{fee.sourceModule || <span className="sp-dash">–</span>}</td>
-                    <td>{new Date(fee.createdAt).toLocaleDateString()}</td>
-                    <td className="text-right">{fee.quantity}</td>
-                    <td className="text-right">{fmtAmount(fee.unitAmount)}</td>
-                    <td className="text-right">
-                      <span className="sp-amount remaining">
-                        {fmtAmount(fee.totalAmount)} {fee.currency}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {pendingFees.map((f) => (
+                <tr key={f.id} className={selected[f.id] ? "sp-row-selected" : ""}>
+                  <td className="sp-select-col">
+                    <input type="checkbox" checked={!!selected[f.id]} onChange={() => toggle(f.id)} aria-label={`select ${feeLabel(f)}`} />
+                  </td>
+                  <td><span className="sp-fee-title">{feeLabel(f)}</span></td>
+                  <td>{f.sourceModule || <span className="sp-dash">–</span>}</td>
+                  <td className="text-right">{fmtAmount(f.unitAmount)}</td>
+                  <td className="text-center">{f.quantity}</td>
+                  <td className="text-right"><span className="sp-amount remaining">{fmtAmount(f.totalAmount)}</span></td>
+                  <td className="text-center"><span className="sp-status-badge unpaid">{t("payments.pending", { defaultValue: "Pending" })}</span></td>
+                </tr>
+              ))}
+              {inOrderFees.map((f) => (
+                <tr key={f.id} className="sp-row-locked">
+                  <td className="sp-select-col"><Lock size={13} className="sp-lock-icon" /></td>
+                  <td><span className="sp-fee-title">{feeLabel(f)}</span></td>
+                  <td>{f.sourceModule || <span className="sp-dash">–</span>}</td>
+                  <td className="text-right">{fmtAmount(f.unitAmount)}</td>
+                  <td className="text-center">{f.quantity}</td>
+                  <td className="text-right"><span className="sp-amount">{fmtAmount(f.totalAmount)}</span></td>
+                  <td className="text-center"><span className="sp-status-badge partial">{t("payments.in_order_short", { defaultValue: "In Order" })}</span></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
-      {!canPay && fees.length > 0 && (
-        <p className="sp-footnote">{t("treasury_pay_at_office_hint")}</p>
+      {selectedFees.length > 0 && (
+        <div className="sp-pay-bar">
+          <div className="sp-pay-bar-info">
+            <span>{selectedFees.length} {t("payments.selected", { defaultValue: "selected" })}</span>
+            <strong>{fmtAmount(selectedTotal)} EGP</strong>
+          </div>
+          <button className="sp-pay-btn" onClick={() => setShowGateways(true)}>
+            <CreditCard size={16} /> {t("payments.pay_selected", { defaultValue: "Pay Selected" })}
+          </button>
+        </div>
+      )}
+
+      {showGateways && (
+        <GatewayModal
+          studentId={studentId}
+          feeIds={selectedFees.map((f) => f.id)}
+          total={selectedTotal}
+          onClose={() => setShowGateways(false)}
+        />
       )}
     </>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   Orders
-   ════════════════════════════════════════════════════════════════ */
-
-function OrdersTab({ orders, refreshing, onRecheck }) {
+// ── Gateway picker + checkout ────────────────────────────────────────────────
+function GatewayModal({ studentId, feeIds, total, onClose }) {
   const { t } = useTranslation();
+  const createOrder = useCreateOrder();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (orders.length === 0) {
-    return (
-      <div className="sp-empty-state">
-        <Inbox size={40} />
-        <h3>{t("treasury_no_orders_title")}</h3>
-        <p>{t("treasury_no_orders_hint")}</p>
-      </div>
-    );
+  async function pay(gateway) {
+    setError(null);
+    setBusy(true);
+    try {
+      const order = await createOrder.mutateAsync({ studentId, feeIds, gateway });
+      const returnUrl = `${window.location.origin}/student/payments/return?orderId=${order.id}`;
+      const session = await initiateOrder(order.id, returnUrl);
+      // Stash so the return page can recover the order even if the gateway
+      // drops our query param.
+      localStorage.setItem("capu_pending_order", order.id);
+      if (!session?.redirectUrl) throw new Error("no redirect url");
+      window.location.assign(session.redirectUrl);
+    } catch (err) {
+      const status = err?.response?.status;
+      setError(
+        status === 403
+          ? t("payments.pay_forbidden", { defaultValue: "You don't have permission to pay these fees." })
+          : t("payments.pay_error", { defaultValue: "Couldn't start the payment. Please try again." })
+      );
+      setBusy(false);
+    }
   }
 
   return (
-    <>
-      <div className="sp-toolbar">
-        <button className="sp-recheck-btn" onClick={onRecheck} disabled={refreshing}>
-          <RefreshCw size={14} className={refreshing ? "spinning" : ""} />
-          {t("recheck_payments")}
-        </button>
+    <div className="sp-modal-overlay" onClick={busy ? undefined : onClose}>
+      <div className="sp-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="sp-modal-head">
+          <h3>{t("payments.choose_gateway", { defaultValue: "Choose a payment method" })}</h3>
+          <button className="sp-modal-close" onClick={onClose} disabled={busy}><X size={18} /></button>
+        </div>
+        <p className="sp-modal-total">{t("payments.total_due", { defaultValue: "Total" })}: <strong>{fmtAmount(total)} EGP</strong></p>
+        {error && <div className="sp-modal-error"><AlertCircle size={15} /> {error}</div>}
+        <div className="sp-gateway-list">
+          {GATEWAYS.map((g) => (
+            <button key={g} className="sp-gateway-option" onClick={() => pay(g)} disabled={busy}>
+              <CreditCard size={18} />
+              <span>{GATEWAY_LABELS[g]}</span>
+              {busy ? <Loader2 size={15} className="sp-spin" /> : null}
+            </button>
+          ))}
+        </div>
+        <p className="sp-modal-note">{t("payments.redirect_note", { defaultValue: "You'll be redirected to the secure HU Treasury payment page." })}</p>
       </div>
-      <div className="sp-table-wrapper">
-        <table className="sp-table">
-          <thead>
-            <tr>
-              <th>{t("date")}</th>
-              <th>{t("status")}</th>
-              <th>{t("treasury_gateway")}</th>
-              <th className="text-right">{t("treasury_fees_in_order_col")}</th>
-              <th className="text-right">{t("amount")}</th>
-              <th className="text-center"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td>
-                  <span className="payment-date">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </span>
-                </td>
-                <td>
-                  <span className={`sp-status-badge ${orderBadgeClass(order.status)}`}>
-                    {t(ORDER_STATUS_KEYS[order.status])}
-                  </span>
-                </td>
-                <td>{t(GATEWAY_KEYS[order.gateway])}</td>
-                <td className="text-right">{order.fees?.length ?? 0}</td>
-                <td className="text-right">
-                  <span className="sp-amount">
-                    {fmtAmount(order.totalAmount)} {order.currency}
-                  </span>
-                </td>
-                <td className="text-center">
-                  {order.status === ORDER_STATUS.PendingPayment && order.redirectUrl && (
-                    <a
-                      className="sp-continue-link"
-                      href={order.redirectUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink size={12} /> {t("treasury_continue_payment")}
-                    </a>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+    </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   Payment history (fees inside settled orders)
-   ════════════════════════════════════════════════════════════════ */
-
-function HistoryTab({ rows, feeName }) {
+// ── Orders tab ───────────────────────────────────────────────────────────────
+function OrdersTab({ studentId, orders, isError, isLoading }) {
   const { t } = useTranslation();
+  if (isLoading) return <div className="sp-empty-state"><Loader2 size={32} className="sp-spin" /><p>{t("common.loading", { defaultValue: "Loading…" })}</p></div>;
+  if (isError) return <div className="sp-error"><AlertCircle size={36} color="#dc2626" /><h3>{t("payments.orders_error", { defaultValue: "Couldn't load your orders" })}</h3></div>;
+  if (orders.length === 0) {
+    return <div className="sp-empty-state"><Inbox size={40} /><h3>{t("payments.no_orders", { defaultValue: "No orders yet" })}</h3><p>{t("payments.no_orders_hint", { defaultValue: "Your payment orders will appear here." })}</p></div>;
+  }
+  return (
+    <div className="sp-orders">
+      {orders.map((o) => <OrderCard key={o.id} order={o} studentId={studentId} />)}
+    </div>
+  );
+}
 
-  if (rows.length === 0) {
-    return (
-      <div className="sp-empty-state">
-        <DollarSign size={40} />
-        <h3>{t("no_payment_history_title")}</h3>
-        <p>{t("no_payment_history_message")}</p>
-      </div>
-    );
+function OrderCard({ order, studentId }) {
+  const { t } = useTranslation();
+  const cancelOrder = useCancelOrder(studentId);
+  const [confirming, setConfirming] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [error, setError] = useState(null);
+
+  const statusCls =
+    order.status === ORDER_STATUS.Paid ? "paid"
+      : order.status === ORDER_STATUS.Failed || order.status === ORDER_STATUS.Expired ? "unpaid"
+        : order.status === ORDER_STATUS.Cancelled || order.status === ORDER_STATUS.Refunded ? "partial"
+          : "pending";
+  const canAct = !ORDER_TERMINAL.includes(order.status);
+
+  async function resume() {
+    setError(null);
+    setResuming(true);
+    try {
+      const returnUrl = `${window.location.origin}/student/payments/return?orderId=${order.id}`;
+      const session = await initiateOrder(order.id, returnUrl);
+      localStorage.setItem("capu_pending_order", order.id);
+      if (!session?.redirectUrl) throw new Error("no redirect url");
+      window.location.assign(session.redirectUrl);
+    } catch {
+      setError(t("payments.resume_error", { defaultValue: "Couldn't resume payment." }));
+      setResuming(false);
+    }
   }
 
   return (
-    <div className="sp-table-wrapper">
-      <table className="sp-table">
-        <thead>
-          <tr>
-            <th>{t("date")}</th>
-            <th>{t("fee")}</th>
-            <th>{t("treasury_gateway")}</th>
-            <th>{t("treasury_merchant_ref")}</th>
-            <th className="text-right">{t("amount")}</th>
-            <th className="text-center">{t("status")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ order, fee }) => (
-            <tr key={fee.id}>
-              <td>
-                <span className="payment-date">
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </span>
-              </td>
-              <td>
-                <span className="payment-fee-desc">{feeName(fee)}</span>
-              </td>
-              <td>{t(GATEWAY_KEYS[order.gateway])}</td>
-              <td>
-                {order.merchantOrderId
-                  ? <span className="sp-mono">{order.merchantOrderId}</span>
-                  : <span className="sp-dash">–</span>}
-              </td>
-              <td className="text-right">
-                <span className="sp-amount green">
-                  {fmtAmount(fee.totalAmount)} {fee.currency}
-                </span>
-              </td>
-              <td className="text-center">
-                <span className="sp-status-badge paid">{t("paid")}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="sp-order-card">
+      <div className="sp-order-main">
+        <div>
+          <div className="sp-order-id">#{order.merchantOrderId || order.id.slice(0, 8)}</div>
+          <div className="sp-order-meta">
+            {GATEWAY_LABELS[order.gateway]} · {(order.fees || []).length} {t("payments.fees", { defaultValue: "fee(s)" })} · {new Date(order.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <div className="sp-order-right">
+          <div className="sp-order-total">{fmtAmount(order.totalAmount)} EGP</div>
+          <span className={`sp-status-badge ${statusCls}`}>{ORDER_STATUS_LABELS[order.status]}</span>
+        </div>
+      </div>
+      {error && <div className="sp-modal-error"><AlertCircle size={14} /> {error}</div>}
+      {canAct && (
+        <div className="sp-order-actions">
+          <button className="sp-pay-btn small" onClick={resume} disabled={resuming || cancelOrder.isPending}>
+            {resuming ? <Loader2 size={14} className="sp-spin" /> : <CreditCard size={14} />}
+            {t("payments.continue_payment", { defaultValue: "Continue Payment" })}
+          </button>
+          {confirming ? (
+            <span className="sp-confirm-inline">
+              {t("payments.cancel_confirm", { defaultValue: "Cancel this order?" })}
+              <button className="sp-link danger" onClick={() => cancelOrder.mutate(order.id)} disabled={cancelOrder.isPending}>
+                {t("common.yes", { defaultValue: "Yes" })}
+              </button>
+              <button className="sp-link" onClick={() => setConfirming(false)}>{t("common.no", { defaultValue: "No" })}</button>
+            </span>
+          ) : (
+            <button className="sp-link danger" onClick={() => setConfirming(true)} disabled={cancelOrder.isPending}>
+              {t("payments.cancel_order", { defaultValue: "Cancel Order" })}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

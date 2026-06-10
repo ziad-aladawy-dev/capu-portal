@@ -26,6 +26,7 @@ import {
   GitBranch,
   HandCoins,
   ReceiptText,
+  LayoutGrid,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../router/routeRegistry";
 
@@ -57,6 +58,7 @@ const ICON_MAP = {
   GitBranch,
   HandCoins,
   ReceiptText,
+  LayoutGrid,
 };
 
 const CATEGORY_ICONS = {

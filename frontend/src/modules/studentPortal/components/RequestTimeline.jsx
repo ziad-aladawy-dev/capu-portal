@@ -1,57 +1,59 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Send,
-  UserCheck,
-  XCircle,
+  CheckCircle, Clock, AlertCircle, Send, UserCheck, XCircle, CreditCard, FileText,
 } from "lucide-react";
 import "../../studentServices/styles/components/RequestTimeline.css";
 
+// Backend HistoryEntryDto: { action, comment, performedByUserId, performedByRole, performedAt }.
 const RequestTimeline = ({ timeline = [] }) => {
   const { t } = useTranslation();
 
   const getIcon = (action) => {
-    const lower = action.toLowerCase();
+    const lower = (action || "").toLowerCase();
     if (lower.includes("approve")) return <CheckCircle size={16} />;
     if (lower.includes("reject")) return <XCircle size={16} />;
     if (lower.includes("assign")) return <UserCheck size={16} />;
     if (lower.includes("comment")) return <Send size={16} />;
-    if (lower.includes("missing") || lower.includes("info"))
-      return <AlertCircle size={16} />;
+    if (lower.includes("payment")) return <CreditCard size={16} />;
+    if (lower.includes("submit")) return <FileText size={16} />;
+    if (lower.includes("moreinfo") || lower.includes("info")) return <AlertCircle size={16} />;
     return <Clock size={16} />;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    return new Date(dateStr).toLocaleString();
+  // "StatusChanged_Approved" → "Status Changed · Approved"; "PaymentCompleted" → "Payment Completed".
+  const prettyAction = (action) => {
+    if (!action) return "";
+    return action
+      .replace(/_/g, " · ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .trim();
   };
+
+  const formatDate = (dateStr) => (dateStr ? new Date(dateStr).toLocaleString() : "");
 
   if (!timeline || timeline.length === 0) {
     return (
       <div className="rt-timeline">
-        <h3 className="rt-title">{t("timeline")}</h3>
-        <div className="rt-empty">{t("no_timeline_events")}</div>
+        <h3 className="rt-title">{t("timeline", { defaultValue: "Timeline" })}</h3>
+        <div className="rt-empty">{t("no_timeline_events", { defaultValue: "No activity yet." })}</div>
       </div>
     );
   }
 
   return (
     <div className="rt-timeline">
-      <h3 className="rt-title">{t("timeline")}</h3>
+      <h3 className="rt-title">{t("timeline", { defaultValue: "Timeline" })}</h3>
       <div className="rt-items">
         {timeline.map((item, idx) => (
           <div key={idx} className="rt-item">
             <div className="rt-icon">{getIcon(item.action)}</div>
             <div className="rt-content">
-              <span className="rt-action">{item.action}</span>
-              <span className="rt-date">{formatDate(item.date)}</span>
+              <span className="rt-action">{prettyAction(item.action)}</span>
+              <span className="rt-date">{formatDate(item.performedAt)}</span>
               {item.comment && <p className="rt-comment">{item.comment}</p>}
-              {item.performedBy && (
+              {item.performedByRole && (
                 <span className="rt-performer">
-                  {t("by")} {item.performedBy}
+                  {t("by", { defaultValue: "by" })} {item.performedByRole}
                 </span>
               )}
             </div>
