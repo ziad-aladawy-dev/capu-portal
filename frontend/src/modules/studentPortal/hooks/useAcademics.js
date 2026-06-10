@@ -3,7 +3,7 @@ import {
   fetchRegisteredCourses, fetchRegistrationHistory, fetchCourseAttempts,
 } from "../../../core/services/registrationService";
 import {
-  fetchGradeSummary, fetchGradeHistory,
+  fetchGradeSummary, fetchGradeHistory, fetchTranscript,
 } from "../../../core/services/gradeService";
 
 const STALE = 60_000;
@@ -47,5 +47,14 @@ export function useGradeHistory() {
     queryKey: ["academics", "grade-history"],
     staleTime: STALE,
     queryFn: fetchGradeHistory,
+  });
+}
+
+export function useTranscript() {
+  return useQuery({
+    queryKey: ["academics", "transcript"],
+    staleTime: STALE,
+    retry: false,
+    queryFn: fetchTranscript,
   });
 }

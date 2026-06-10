@@ -5,6 +5,7 @@ const StudentProfile = lazy(() => import("./pages/StudentProfile"));
 const StudentCourses = lazy(() => import("./pages/StudentCourses"));
 const CourseRegistration = lazy(() => import("./pages/CourseRegistration"));
 const StudentGrades = lazy(() => import("./pages/StudentGrades"));
+const StudentTranscript = lazy(() => import("./pages/StudentTranscript"));
 const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
 const StudentPayments = lazy(() => import("./pages/StudentPaymentsPage"));
 
@@ -76,6 +77,18 @@ export default [
       category: "Student",
       label: "My Grades",
       icon: "FileText",
+    },
+  },
+  {
+    path: "/student/transcript",
+    component: StudentTranscript,
+    permission: "student.grades.view",
+    pageType: "management",
+    applicableTo: "student",
+    menuItem: {
+      category: "Student",
+      label: "Transcript",
+      icon: "GraduationCap",
     },
   },
   {

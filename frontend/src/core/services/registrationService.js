@@ -1,11 +1,15 @@
 import api from "../api/apiClient";
 
 // RegistrationStatus enum (read-only, synced from external systems).
-export const REGISTRATION_STATUS = { Enrolled: 0, Completed: 1, Withdrawn: 2 };
+export const REGISTRATION_STATUS = {
+  Enrolled: 0, Completed: 1, Withdrawn: 2, Failed: 3, Cancelled: 4,
+};
 export const REGISTRATION_STATUS_LABELS = {
   0: "Enrolled",
   1: "Completed",
   2: "Withdrawn",
+  3: "Failed",
+  4: "Cancelled",
 };
 export function getRegistrationStatusLabel(value) {
   return REGISTRATION_STATUS_LABELS[value] ?? "Unknown";
