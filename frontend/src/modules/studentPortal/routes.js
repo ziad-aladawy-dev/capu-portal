@@ -10,6 +10,7 @@ const StudentSchedule = lazy(() => import("./pages/StudentSchedule"));
 const StudentPayments = lazy(() => import("./pages/StudentPaymentsPage"));
 const PaymentReturn = lazy(() => import("./pages/PaymentReturn"));
 
+const StudentServicesCatalog = lazy(() => import("./pages/StudentServicesCatalog"));
 const StudentServiceDetails = lazy(() => import("./pages/StudentServiceDetails"));
 const RequestSubmission = lazy(() => import("./pages/RequestSubmission"));
 const MyRequests = lazy(() => import("./pages/MyRequests"));
@@ -121,6 +122,18 @@ export default [
       category: "Student",
       label: "Schedule",
       icon: "CalendarRange",
+    },
+  },
+  {
+    path: "/student/services",
+    component: StudentServicesCatalog,
+    permission: "student.services.view",
+    pageType: "management",
+    applicableTo: "student",
+    menuItem: {
+      category: "Student",
+      label: "Services",
+      icon: "LayoutGrid",
     },
   },
   {

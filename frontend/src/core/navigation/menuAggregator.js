@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Package,
   GitBranch,
+  LayoutGrid,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../router/routeRegistry";
 
@@ -53,6 +54,7 @@ const ICON_MAP = {
   ShieldCheck,
   Package,
   GitBranch,
+  LayoutGrid,
 };
 
 const CATEGORY_ICONS = {
