@@ -127,8 +127,8 @@ public class PermissionLookupCacheTests
         await service.UpdateAssignmentAsync(new UpdatePermissionAssignmentRequest
         {
             UserId = userId,
-            RolesToAdd = new List<Guid>(),
-            RolesToRemove = new List<Guid>(),
+            RolesToAdd = new List<RoleScopeAssignment>(),
+            RolesToRemove = new List<RoleScopeAssignment>(),
             PermissionsToAdd = new List<PermissionOverrideModel>(),
             PermissionsToRemove = new List<PermissionOverrideModel>(),
             StructuralScope = new StructuralScopeModel(),

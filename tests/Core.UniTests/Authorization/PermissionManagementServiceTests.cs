@@ -191,8 +191,8 @@ public class PermissionManagementServiceTests
         var request = new UpdatePermissionAssignmentRequest
         {
             UserId = userId,
-            RolesToRemove = new List<Guid> { role1 },
-            RolesToAdd = new List<Guid> { role2 },
+            RolesToRemove = new List<RoleScopeAssignment> { new() { RoleId = role1 } },
+            RolesToAdd = new List<RoleScopeAssignment> { new() { RoleId = role2 } },
             PermissionsToRemove = new List<PermissionOverrideModel>(),
             PermissionsToAdd = new List<PermissionOverrideModel>(),
             StructuralScope = new StructuralScopeModel(),
@@ -889,7 +889,7 @@ public class PermissionManagementServiceTests
         });
 
         Assert.NotNull(assignment);
-        Assert.Contains(roleId, assignment!.RoleIds);
+        Assert.Contains(assignment!.RoleAssignments, ra => ra.RoleId == roleId);
         var ov = Assert.Single(assignment.PermissionOverrides);
         Assert.Equal(resourceId, ov.ResourceId);
         Assert.Equal(nodeOverride, ov.StructuralScope?.StructureNodeId); // surfaced with its OWN scope
