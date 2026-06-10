@@ -24,4 +24,15 @@ public interface IUserCredentialResolver
         string newPassword,
         IPasswordHasher hasher,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets a new password hash WITHOUT verifying a current password. Used by the
+    /// password-reset flow, where ownership is proven by a single-use reset token
+    /// rather than the existing password. Returns true if the user was found.
+    /// </summary>
+    Task<bool> SetPasswordAsync(
+        Guid userId,
+        string newPassword,
+        IPasswordHasher hasher,
+        CancellationToken cancellationToken = default);
 }

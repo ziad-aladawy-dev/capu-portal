@@ -38,6 +38,8 @@ export async function login(identifier, password) {
       structural: { nodeId: null },
       temporal: { academicYearId: null, semesterId: null },
     },
+    passwordExpiryDate: data.passwordExpiryDate ?? null,
+    requiresPasswordChange: data.requiresPasswordChange ?? false,
   };
 }
 
@@ -61,13 +63,20 @@ export async function getCurrentUser() {
         structural: { nodeId: null },
         temporal: { academicYearId: null, semesterId: null },
       },
+      passwordExpiryDate: data.passwordExpiryDate ?? null,
+      requiresPasswordChange: data.requiresPasswordChange ?? false,
     };
   } catch {
     return null;
   }
 }
 
-export async function forgotPassword(data) {
-  const response = await api.post("/auth/forgot-password", data);
+export async function forgotPassword(identifier) {
+  const response = await api.post("/auth/forgot-password", { identifier });
+  return response.data;
+}
+
+export async function resetPassword(token, newPassword) {
+  const response = await api.post("/auth/reset-password", { token, newPassword });
   return response.data;
 }

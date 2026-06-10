@@ -55,11 +55,12 @@ public class AuthenticationService : IAuthenticationService
             return null;
         }
 
-        if (credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry)
+        var passwordExpired = credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry;
+        if (passwordExpired && _audit is not null)
         {
-            if (_audit is not null)
-                await _audit.LogAuthenticationFailedAsync(request.Identifier, "password_expired", cancellationToken);
-            return null;
+            // Still surfaced in the audit trail, but the login now succeeds and the
+            // client is required to change the password before proceeding.
+            await _audit.LogAuthenticationFailedAsync(request.Identifier, "password_expired", cancellationToken);
         }
 
         var token = _tokenService.GenerateToken(credential);
@@ -68,6 +69,8 @@ public class AuthenticationService : IAuthenticationService
         var response = await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
         response.Token = token;
         response.RefreshToken = refresh.RawToken;
+        response.PasswordExpiryDate = credential.PasswordExpiry;
+        response.RequiresPasswordChange = passwordExpired;
 
         return response;
     }
@@ -108,7 +111,10 @@ public class AuthenticationService : IAuthenticationService
     {
         var credential = await _credentialResolver.ResolveByIdAsync(userId, cancellationToken);
         if (credential is null) return null;
-        return await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
+        var response = await _permissionManagementService.GetBootstrapContextAsync(credential, cancellationToken);
+        response.PasswordExpiryDate = credential.PasswordExpiry;
+        response.RequiresPasswordChange = credential.PasswordExpiry.HasValue && DateTime.UtcNow > credential.PasswordExpiry;
+        return response;
     }
 
     public async Task<RefreshTokenResponseDto?> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
@@ -121,7 +127,10 @@ public class AuthenticationService : IAuthenticationService
         return new RefreshTokenResponseDto
         {
             Token = _tokenService.GenerateToken(rotation.Credential),
-            RefreshToken = rotation.RawToken
+            RefreshToken = rotation.RawToken,
+            PasswordExpiryDate = rotation.Credential.PasswordExpiry,
+            RequiresPasswordChange = rotation.Credential.PasswordExpiry.HasValue
+                && DateTime.UtcNow > rotation.Credential.PasswordExpiry
         };
     }
 }

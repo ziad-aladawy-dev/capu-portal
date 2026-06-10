@@ -24,7 +24,12 @@ function ChangePasswordModal({ onClose }) {
   const validate = () => {
     if (!form.currentPassword) return "Current password is required";
     if (!form.newPassword) return "New password is required";
-    if (form.newPassword.length < 6) return "New password must be at least 6 characters";
+    // Password policy (spec 1.3): min 8, upper, lower, digit, special.
+    if (form.newPassword.length < 8) return "New password must be at least 8 characters";
+    if (!/[A-Z]/.test(form.newPassword)) return "New password must contain an uppercase letter";
+    if (!/[a-z]/.test(form.newPassword)) return "New password must contain a lowercase letter";
+    if (!/[0-9]/.test(form.newPassword)) return "New password must contain a digit";
+    if (!/[^A-Za-z0-9]/.test(form.newPassword)) return "New password must contain a special character";
     if (form.newPassword !== form.confirmNewPassword) return "Passwords do not match";
     if (form.currentPassword === form.newPassword) return "New password must be different";
     return null;
@@ -97,7 +102,7 @@ function ChangePasswordModal({ onClose }) {
                     name="newPassword"
                     value={form.newPassword}
                     onChange={handleChange}
-                    placeholder="Minimum 6 characters"
+                    placeholder="Min 8 chars: upper, lower, number, symbol"
                   />
                   <button type="button" className="cpw-eye" onClick={() => setShowNew(!showNew)}>
                     {showNew ? <EyeOff size={14} /> : <Eye size={14} />}

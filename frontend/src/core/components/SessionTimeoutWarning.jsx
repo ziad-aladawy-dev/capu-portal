@@ -29,7 +29,7 @@ function SessionTimeoutWarning({ onLogout }) {
 
   // Track user activity
   useEffect(() => {
-    const events = ["mousedown", "keydown", "scroll", "touchstart"];
+    const events = ["mousemove", "mousedown", "click", "keydown", "scroll", "touchstart"];
     const handler = () => { lastActivityRef.current = Date.now(); };
     events.forEach((e) => document.addEventListener(e, handler, { passive: true }));
     return () => events.forEach((e) => document.removeEventListener(e, handler));
@@ -44,7 +44,7 @@ function SessionTimeoutWarning({ onLogout }) {
         // Session expired
         clearInterval(idleTimerRef.current);
         if (countdownRef.current) clearInterval(countdownRef.current);
-        onLogout?.();
+        onLogout?.("expired");
         return;
       }
 
@@ -59,7 +59,7 @@ function SessionTimeoutWarning({ onLogout }) {
           setRemaining(left);
           if (left <= 0) {
             clearInterval(countdownRef.current);
-            onLogout?.();
+            onLogout?.("expired");
           }
         }, 1000);
       }

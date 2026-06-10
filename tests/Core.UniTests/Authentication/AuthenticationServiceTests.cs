@@ -66,6 +66,7 @@ public class AuthenticationServiceTests
         Assert.Equal("rt-1", result.RefreshToken);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
+        Assert.False(result.RequiresPasswordChange);
     }
 
     [Fact]
@@ -120,6 +121,7 @@ public class AuthenticationServiceTests
         Assert.Equal("rt-1", result.RefreshToken);
         Assert.Equal(loginResponse.Permissions, result.Permissions);
         Assert.Equal(loginResponse.ActiveScope, result.ActiveScope);
+        Assert.False(result.RequiresPasswordChange);
     }
 
     [Theory]
@@ -170,29 +172,48 @@ public class AuthenticationServiceTests
     }
 
     [Fact]
-    public async Task AuthenticateAsync_ExpiredPassword_ReturnsNull()
+    public async Task AuthenticateAsync_ExpiredPassword_ReturnsResponseRequiringPasswordChange()
     {
-        // Arrange
+        // Arrange — valid credentials but an expired password. The login now
+        // succeeds and flags the client to force a password change rather than
+        // hard-failing the login.
         var mockResolver = new Mock<IUserCredentialResolver>();
         var mockHasher = new Mock<IPasswordHasher>();
         var mockPermService = new Mock<IPermissionManagementService>();
         var mockTokenService = new Mock<ITokenService>();
 
+        var expiry = DateTime.UtcNow.AddMinutes(-1);
         var credentialMock = new Mock<IUserCredential>();
-        credentialMock.Setup(c => c.PasswordExpiry).Returns(DateTime.UtcNow.AddMinutes(-1));
+        credentialMock.Setup(c => c.Id).Returns(Guid.NewGuid());
+        credentialMock.Setup(c => c.Identifier).Returns("user");
+        credentialMock.Setup(c => c.PasswordHash).Returns("hashed");
+        credentialMock.Setup(c => c.PasswordExpiry).Returns(expiry);
+        credentialMock.Setup(c => c.Role).Returns("Student");
 
         var request = new LoginRequestDto { Identifier = "user", Password = "password" };
 
         mockResolver.Setup(r => r.ResolveCredentialAsync(request.Identifier, It.IsAny<CancellationToken>()))
             .ReturnsAsync(credentialMock.Object);
+        mockHasher.Setup(h => h.VerifyHashedPassword("hashed", "password")).Returns(true);
+        mockTokenService.Setup(t => t.GenerateToken(credentialMock.Object)).Returns("token123");
 
-        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, new Mock<IRefreshTokenService>().Object);
+        mockPermService.Setup(a => a.GetBootstrapContextAsync(credentialMock.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LoginResponseDto { Permissions = new List<PermissionDto>(), ActiveScope = new ActiveScopeDto() });
+
+        var mockRefresh = new Mock<IRefreshTokenService>();
+        mockRefresh.Setup(r => r.IssueAsync(It.IsAny<IUserCredential>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RefreshTokenIssuance("rt-1", DateTime.UtcNow.AddDays(30)));
+
+        var authService = new AuthenticationService(mockResolver.Object, mockHasher.Object, mockTokenService.Object, mockPermService.Object, new Mock<ISessionVersionService>().Object, mockRefresh.Object);
 
         // Act
         var result = await authService.AuthenticateAsync(request);
 
         // Assert
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.True(result.RequiresPasswordChange);
+        Assert.Equal(expiry, result.PasswordExpiryDate);
+        Assert.Equal("token123", result.Token);
     }
 
     [Fact]

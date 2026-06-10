@@ -79,6 +79,31 @@ public class UserCredentialResolver : IUserCredentialResolver
 
         return false;
     }
+
+    public async Task<bool> SetPasswordAsync(
+        Guid userId,
+        string newPassword,
+        IPasswordHasher hasher,
+        CancellationToken cancellationToken = default)
+    {
+        var staff = await _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (staff != null)
+        {
+            staff.PasswordHash = hasher.HashPassword(newPassword);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        var student = await _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        if (student != null)
+        {
+            student.PasswordHash = hasher.HashPassword(newPassword);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        return false;
+    }
 }
 
 public class StudentUserCredential : IUserCredential

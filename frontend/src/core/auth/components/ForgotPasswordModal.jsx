@@ -3,34 +3,26 @@ import { forgotPassword } from "../authService";
 import "../styles/forgotPasswordModal.css";
 
 function ForgotPasswordModal({ onClose }) {
-  const [formData, setFormData] = useState({
-    universityCode: "",
-    nationalId: "",
-    email: "",
-  });
-
+  const [nationalId, setNationalId] = useState("");
   const [message, setMessage] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setLoading(true);
     setMessage("");
 
     try {
-      await forgotPassword(formData);
-      setMessage("Reset link sent to your email. Please check your inbox.");
-      setTimeout(onClose, 3000);
+      await forgotPassword(nationalId.trim());
+      // The backend always responds the same way whether or not the account
+      // exists, so the UI must not imply existence either.
+      setSubmitted(true);
+      setMessage(
+        "If an account matches that National ID, a password reset link has been sent."
+      );
     } catch (err) {
-      setMessage(err.message || "Failed to send reset link");
+      setMessage(err.response?.data?.message || err.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -41,52 +33,43 @@ function ForgotPasswordModal({ onClose }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h3>Reset Password</h3>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>University Code</label>
-            <input
-              type="text"
-              name="universityCode"
-              value={formData.universityCode}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        {submitted ? (
+          <>
+            <p className="message">{message}</p>
+            <div className="modal-actions">
+              <button type="button" onClick={onClose}>Close</button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <p className="modal-subtitle">
+              Enter your National ID and we'll send a reset link to the email on file.
+            </p>
 
-          <div className="form-group">
-            <label>National ID</label>
-            <input
-              type="text"
-              name="nationalId"
-              value={formData.nationalId}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label>National ID</label>
+              <input
+                type="text"
+                name="nationalId"
+                inputMode="numeric"
+                maxLength="14"
+                value={nationalId}
+                onChange={(e) => setNationalId(e.target.value.replace(/\D/g, "").slice(0, 14))}
+                required
+                autoFocus
+              />
+            </div>
 
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+            <div className="modal-actions">
+              <button type="button" onClick={onClose}>Cancel</button>
+              <button type="submit" disabled={loading}>
+                {loading ? "Sending..." : "Send Reset Link"}
+              </button>
+            </div>
 
-          <div className="modal-actions">
-            <button type="button" onClick={onClose}>
-              Cancel
-            </button>
-
-            <button type="submit" disabled={loading}>
-              {loading ? "Sending..." : "Send Reset Link"}
-            </button>
-          </div>
-
-          {message && <p className="message">{message}</p>}
-        </form>
+            {message && <p className="message">{message}</p>}
+          </form>
+        )}
       </div>
     </div>
   );

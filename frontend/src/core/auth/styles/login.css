@@ -211,6 +211,31 @@ body {
   border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
+.login-page .session-notice {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.login-page .field-error {
+  display: block;
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.login-page .input-wrapper:has(input[aria-invalid="true"]) .form-input,
+.login-page .form-input[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
 .login-page .login-form {
   display: flex;
   flex-direction: column;

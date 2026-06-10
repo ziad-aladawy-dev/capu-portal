@@ -19,6 +19,19 @@ public class LoginResponseDto
 
     public List<PermissionDto> Permissions { get; set; } = new();
     public ActiveScopeDto ActiveScope { get; set; } = new();
+
+    /// <summary>
+    /// When the user's password expires (UTC). Null when no expiry applies
+    /// (e.g. staff accounts). The client uses this to warn ahead of expiry.
+    /// </summary>
+    public DateTime? PasswordExpiryDate { get; set; }
+
+    /// <summary>
+    /// True when the password is already expired and the client must force a
+    /// password change before granting access to the rest of the app. The access
+    /// token is still issued so the change-password call can be authorized.
+    /// </summary>
+    public bool RequiresPasswordChange { get; set; }
 }
 
 public class UserInfoDto

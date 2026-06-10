@@ -214,6 +214,13 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(RefreshTokenSettings.SectionName));
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
+        // Password reset (forgot-password). The sender logs the link until a real
+        // email/SMS channel is wired in — swap the IPasswordResetSender registration.
+        services.AddOptions<PasswordResetSettings>()
+            .Bind(configuration.GetSection(PasswordResetSettings.SectionName));
+        services.AddScoped<IPasswordResetSender, LoggingPasswordResetSender>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
+
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<IExecutionContext, CapitalUniversity.Core.Application.CrossCutting.Auth.Authentication.ExecutionContext>();

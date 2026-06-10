@@ -68,6 +68,7 @@ public class CoreDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<CapitalUniversity.Core.Domain.Outbox.OutboxMessage> OutboxMessages { get; set; }
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<AcademicPlan> AcademicPlans => Set<AcademicPlan>();
     public DbSet<AcademicPlanCourse> AcademicPlanCourses => Set<AcademicPlanCourse>();

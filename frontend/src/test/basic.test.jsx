@@ -37,12 +37,12 @@ describe("authService", () => {
     expect(result.user).toHaveProperty("name", "Test");
   });
 
-  it("forgotPassword calls the correct endpoint", async () => {
+  it("forgotPassword calls the correct endpoint with the identifier", async () => {
     const api = (await import("../core/api/apiClient")).default;
     api.post.mockResolvedValue({ data: { success: true } });
 
-    const result = await forgotPassword({ email: "test@test.com" });
-    expect(api.post).toHaveBeenCalledWith("/auth/forgot-password", { email: "test@test.com" });
+    const result = await forgotPassword("12345678901234");
+    expect(api.post).toHaveBeenCalledWith("/auth/forgot-password", { identifier: "12345678901234" });
     expect(result).toEqual({ success: true });
   });
 });

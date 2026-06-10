@@ -13,6 +13,8 @@ const initialState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  passwordExpiryDate: null,
+  requiresPasswordChange: false,
 };
 
 function authReducer(state, action) {
@@ -29,6 +31,8 @@ function authReducer(state, action) {
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        passwordExpiryDate: action.payload.passwordExpiryDate ?? null,
+        requiresPasswordChange: action.payload.requiresPasswordChange ?? false,
       };
     case "AUTH_FAILURE":
       return {
@@ -63,11 +67,12 @@ function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const navigate = useNavigate();
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback((reason) => {
     authService.logout().finally(() => {
       dispatch({ type: "AUTH_LOGOUT" });
       const loginPath = window.location.pathname.startsWith("/student") ? "/student/login" : "/admin/login";
-      navigate(loginPath);
+      const query = typeof reason === "string" && reason ? `?session=${reason}` : "";
+      navigate(`${loginPath}${query}`);
     });
   }, [navigate]);
 
@@ -93,6 +98,8 @@ function AuthProvider({ children }) {
               permissions: result.permissions || [],
               authorizedScopes: result.authorizedScopes,
               activeScope: result.activeScope,
+              passwordExpiryDate: result.passwordExpiryDate,
+              requiresPasswordChange: result.requiresPasswordChange,
             },
           });
         } else {
@@ -117,6 +124,8 @@ function AuthProvider({ children }) {
           permissions: result.permissions || [],
           authorizedScopes: result.authorizedScopes,
           activeScope: result.activeScope,
+          passwordExpiryDate: result.passwordExpiryDate,
+          requiresPasswordChange: result.requiresPasswordChange,
         },
       });
       return result;
@@ -129,8 +138,8 @@ function AuthProvider({ children }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    handleLogout();
+  const logout = useCallback((reason) => {
+    handleLogout(reason);
   }, [handleLogout]);
 
   const value = {
@@ -141,6 +150,8 @@ function AuthProvider({ children }) {
     permissions: state.permissions,
     authorizedScopes: state.authorizedScopes,
     activeScope: state.activeScope,
+    passwordExpiryDate: state.passwordExpiryDate,
+    requiresPasswordChange: state.requiresPasswordChange,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

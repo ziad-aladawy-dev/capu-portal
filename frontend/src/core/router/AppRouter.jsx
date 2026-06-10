@@ -6,6 +6,7 @@ import { buildProtectedRoutes } from "./routeRegistry";
 const LandingPage = lazy(() => import("../../modules/landing/pages/LandingPage"));
 const AdminLogin = lazy(() => import("../auth/pages/AdminLogin"));
 const StudentLogin = lazy(() => import("../auth/pages/StudentLogin"));
+const ResetPassword = lazy(() => import("../auth/pages/ResetPassword"));
 
 function AppRouter() {
   const protectedRoutes = useMemo(() => buildProtectedRoutes(), []);
@@ -21,6 +22,7 @@ function AppRouter() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/student/login" element={<StudentLogin />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected dashboard routes — manifest-driven, wrapped by RouteGuard */}
         <Route element={<DashboardLayout />}>

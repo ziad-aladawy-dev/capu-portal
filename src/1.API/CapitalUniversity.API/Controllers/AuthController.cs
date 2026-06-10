@@ -11,10 +11,12 @@ namespace CapitalUniversity.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthenticationService authService)
+    public AuthController(IAuthenticationService authService, IPasswordResetService passwordResetService)
     {
         _authService = authService;
+        _passwordResetService = passwordResetService;
     }
 
     [AllowAnonymous]
@@ -81,6 +83,31 @@ public class AuthController : ControllerBase
         if (!TryGetUserId(out var userId)) return Unauthorized();
         var ok = await _authService.ChangePasswordAsync(userId, request, cancellationToken);
         return ok ? NoContent() : BadRequest(new { Message = "Password change failed." });
+    }
+
+    /// <summary>
+    /// Requests a password-reset link for the given identifier. Always returns 200
+    /// regardless of whether the account exists, so the endpoint cannot be used to
+    /// enumerate valid identifiers.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        await _passwordResetService.RequestResetAsync(request.Identifier, cancellationToken);
+        return Ok(new { Message = "If an account matches, a password reset link has been sent." });
+    }
+
+    /// <summary>
+    /// Consumes a reset token and sets a new password. Revokes all existing sessions
+    /// for the user on success.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        var ok = await _passwordResetService.ResetAsync(request.Token, request.NewPassword, cancellationToken);
+        return ok ? NoContent() : BadRequest(new { Message = "Invalid or expired reset token." });
     }
 
     private bool TryGetUserId(out Guid userId)

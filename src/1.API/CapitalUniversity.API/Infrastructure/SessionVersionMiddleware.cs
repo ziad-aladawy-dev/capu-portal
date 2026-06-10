@@ -87,6 +87,13 @@ public class SessionVersionMiddleware
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         context.Response.Headers.WWWAuthenticate = $"Bearer error=\"invalid_token\", error_description=\"{reason}\"";
 
+        // Stable machine-readable code in the body so the SPA can distinguish a
+        // revoked/forced-logout session from an ordinary expired token and show
+        // the right message. A version mismatch (logout elsewhere, password
+        // change, replayed refresh token) maps to "session_revoked".
+        var code = reason == "session.revoked" ? "session_revoked" : reason.Replace('.', '_');
+        await context.Response.WriteAsJsonAsync(new { reason = code });
+
         // M16 — fire-and-forget audit so a session rejection (forced logout,
         // stale token after password change, etc.) is visible in the audit
         // trail. Audit failures are swallowed inside the logger so they can

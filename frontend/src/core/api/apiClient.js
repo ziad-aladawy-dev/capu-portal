@@ -99,6 +99,19 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // Session was revoked server-side (logged out elsewhere, password changed,
+      // or refresh-token replay). The refresh token is revoked too, so a refresh
+      // would only fail — log out immediately and surface the reason.
+      if (error.response?.data?.reason === "session_revoked") {
+        apiClient.clearTokens();
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback("revoked");
+        } else {
+          window.location.href = "/admin/login?session=revoked";
+        }
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
