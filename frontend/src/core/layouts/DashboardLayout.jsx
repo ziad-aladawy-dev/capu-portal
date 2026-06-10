@@ -7,6 +7,7 @@ import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
 import UserScopeBanner from "../components/UserScopeBanner";
 import Breadcrumbs from "../components/Breadcrumbs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
+import StudentBlockerGate from "../components/StudentBlockerGate";
 import { useAuth } from "../auth/useAuth";
 import { getCurrentRouteInfo } from "../router/routeRegistry";
 import { PAGE_TYPES } from "../manifests/manifestTypes";
@@ -169,7 +170,13 @@ function DashboardLayout() {
 
         <main className="dashboard-page-content">
           {currentPageType === PAGE_TYPES.MANAGEMENT && <UserScopeBanner />}
-          <Outlet />
+          {location.pathname.startsWith("/student") ? (
+            <StudentBlockerGate>
+              <Outlet />
+            </StudentBlockerGate>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 

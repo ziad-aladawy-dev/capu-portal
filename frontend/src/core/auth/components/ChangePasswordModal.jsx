@@ -3,7 +3,7 @@ import { Key, X, Eye, EyeOff, CheckCircle } from "lucide-react";
 import api from "../../api/apiClient";
 import "../styles/changePassword.css";
 
-function ChangePasswordModal({ onClose }) {
+function ChangePasswordModal({ onClose, forced = false }) {
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -58,13 +58,21 @@ function ChangePasswordModal({ onClose }) {
   };
 
   return (
-    <div className="cpw-overlay" onClick={onClose}>
+    <div className="cpw-overlay" onClick={forced ? undefined : onClose}>
       <div className="cpw-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cpw-header">
           <Key size={18} />
           <h2>Change Password</h2>
-          <button className="cpw-close" onClick={onClose}><X size={16} /></button>
+          {!forced && (
+            <button className="cpw-close" onClick={onClose}><X size={16} /></button>
+          )}
         </div>
+
+        {forced && !success && (
+          <div className="cpw-forced-note">
+            Your password has expired. Please set a new password to continue.
+          </div>
+        )}
 
         {success ? (
           <div className="cpw-success">
@@ -123,7 +131,9 @@ function ChangePasswordModal({ onClose }) {
             </div>
 
             <div className="cpw-footer">
-              <button type="button" className="cpw-btn cpw-btn-cancel" onClick={onClose}>Cancel</button>
+              {!forced && (
+                <button type="button" className="cpw-btn cpw-btn-cancel" onClick={onClose}>Cancel</button>
+              )}
               <button type="submit" className="cpw-btn cpw-btn-save" disabled={saving}>
                 {saving ? "Saving…" : "Change Password"}
               </button>
