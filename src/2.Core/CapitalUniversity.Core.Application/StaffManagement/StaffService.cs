@@ -323,6 +323,25 @@ public class StaffService : IStaffService
         };
     }
 
+    public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
+    {
+        var result = await SearchAsync(new StaffQueryRequest
+        {
+            ScopeNodeId = request.ScopeNodeId,
+
+            Page = 1,
+
+            PageSize = int.MaxValue
+        });
+
+        return new UserStatisticsDto
+        {
+            TotalStaff = result.Items.Count,
+            ActiveStaff = result.Items.Count(x => x.IsActive),
+            InactiveStaff = result.Items.Count(x => !x.IsActive)
+        };
+    }
+
     public async Task UpdatePhotoAsync(Guid id, string photoUrl)
     {
         var staff = await _repository.GetByIdAsync(id);
@@ -333,11 +352,6 @@ public class StaffService : IStaffService
         staff.UpdatedAt = DateTime.UtcNow;
         await _repository.UpdateAsync(staff);
         await _unitOfWork.SaveChangesAsync();
-    }
-
-    public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
-    {
-        return await _repository.GetStatisticsAsync(request);
     }
 
     private StaffDto Map(Staff staff)

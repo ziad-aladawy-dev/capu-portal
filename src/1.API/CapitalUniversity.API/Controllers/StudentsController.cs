@@ -22,6 +22,7 @@ public class StudentsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
+
         return Ok(result);
     }
 

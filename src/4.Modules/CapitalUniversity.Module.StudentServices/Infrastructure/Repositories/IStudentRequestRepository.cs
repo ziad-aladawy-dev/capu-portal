@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
+﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
 using CapitalUniversity.Module.StudentServices.Domain;
 
 namespace CapitalUniversity.Module.StudentServices.Infrastructure.Repositories;
@@ -18,4 +19,10 @@ public interface IStudentRequestRepository
     Task<RequestCountsDto> GetRequestCountsByStatusAsync(CancellationToken cancellationToken = default);
     Task<RequestCountsDto> GetRequestCountsByStatusForStudentAsync(Guid studentId, CancellationToken cancellationToken = default);
     Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default);
+    Task<StaffStatisticsDto> GetStaffStatisticsAsync(CancellationToken cancellationToken = default);
+    Task<List<RecentRequestDto>> GetRecentRequestsAsync(int count, CancellationToken cancellationToken = default);
+    Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, CancellationToken cancellationToken = default);
+
+    Task<List<RequestAttachment>> GetAttachmentsByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default);
+    Task<StudentRequest?> GetPendingForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default);
 }

@@ -12,7 +12,10 @@ public class ServiceDto
     public bool IsPaid { get; set; }
     public decimal? Price { get; set; }
     public List<Guid> ScopeNodeIds { get; set; } = new();
+    public List<ScopeNodeDetailsDto> ScopeNodesDetails { get; set; } = new();
     public bool IncludeDescendants { get; set; }
     public Guid? AcademicYearId { get; set; }
+    public Guid? SemesterId { get; set; }
+    public int? LevelOrder { get; set; }
     public WorkflowDto? Workflow { get; set; }
 }

@@ -1,4 +1,5 @@
 ﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
 using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -97,6 +98,35 @@ public class StudentRequestsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("staff/paged")]
+    public async Task<IActionResult> GetPagedForStaff(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool ascending = false,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _requestService.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/attachments")]
+    public async Task<IActionResult> GetAttachments(Guid id, CancellationToken cancellationToken)
+    {
+        var attachments = await _requestService.GetAttachmentsByRequestIdAsync(id, cancellationToken);
+        return Ok(attachments);
+    }
+
+    [HttpGet("pending/{serviceId:guid}")]
+    public async Task<IActionResult> GetPendingRequest(Guid serviceId, CancellationToken cancellationToken)
+    {
+        var studentId = _currentUser.Id;
+        var request = await _requestService.GetPendingRequestForStudentAndServiceAsync(studentId, serviceId, cancellationToken);
+        return Ok(request);
+    }
+
+    // Helper records
     public record SubmitStepDataDto(string StepKey, object Data);
     public record PaymentRequestDto(string PaymentMethod);
     public record AssignRequest(Guid StaffId);

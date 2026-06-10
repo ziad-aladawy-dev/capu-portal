@@ -1,5 +1,6 @@
 ﻿using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
+using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Domain;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Repositories;
@@ -12,9 +13,7 @@ public class WorkflowManagementService : IWorkflowManagementService
     private readonly IWorkflowRepository _workflowRepository;
     private readonly IServiceRepository _serviceRepository;
 
-    public WorkflowManagementService(
-        IWorkflowRepository workflowRepository,
-        IServiceRepository serviceRepository)
+    public WorkflowManagementService(IWorkflowRepository workflowRepository, IServiceRepository serviceRepository)
     {
         _workflowRepository = workflowRepository;
         _serviceRepository = serviceRepository;
@@ -35,6 +34,13 @@ public class WorkflowManagementService : IWorkflowManagementService
 
     public async Task<Guid> CreateWorkflowAsync(CreateWorkflowDto dto, CancellationToken cancellationToken = default)
     {
+        // Validate step types (only Form, Review, Payment)
+        foreach (var step in dto.Steps)
+        {
+            if (step.StepType != WorkflowStepType.Form && step.StepType != WorkflowStepType.Review && step.StepType != WorkflowStepType.Payment)
+                throw new ValidationException($"Invalid step type: {step.StepType}");
+        }
+
         var workflow = new Workflow
         {
             Name = dto.Name,
@@ -74,16 +80,18 @@ public class WorkflowManagementService : IWorkflowManagementService
     {
         var workflow = await _workflowRepository.GetByIdAsync(id, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
-
         var isUsed = await _serviceRepository.IsServiceInUseByWorkflowAsync(id, cancellationToken);
         if (isUsed) throw new ConflictException("Cannot delete workflow because it is used by one or more services");
-
         _workflowRepository.Delete(workflow);
         await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Guid> AddStepAsync(Guid workflowId, CreateWorkflowStepDto dto, CancellationToken cancellationToken = default)
     {
+        // Validate step type
+        if (dto.StepType != WorkflowStepType.Form && dto.StepType != WorkflowStepType.Review && dto.StepType != WorkflowStepType.Payment)
+            throw new ValidationException($"Invalid step type: {dto.StepType}");
+
         var workflow = await _workflowRepository.GetByIdAsync(workflowId, cancellationToken);
         if (workflow == null) throw new NotFoundException("Workflow not found");
 
@@ -130,12 +138,9 @@ public class WorkflowManagementService : IWorkflowManagementService
     {
         var step = await _workflowRepository.GetStepByIdAsync(stepId, cancellationToken);
         if (step == null) throw new NotFoundException("Workflow step not found");
-
         _workflowRepository.DeleteStep(step);
         await _workflowRepository.SaveChangesAsync(cancellationToken);
     }
-
-    #region Private Mappers
 
     private WorkflowDto MapToDto(Workflow workflow)
     {
@@ -152,6 +157,7 @@ public class WorkflowManagementService : IWorkflowManagementService
                 IsRequired = s.IsRequired,
                 Fields = s.Fields.OrderBy(f => f.Order).Select(f => new WorkflowStepFieldDto
                 {
+                    Id = f.Id,
                     Order = f.Order,
                     Label = f.Label,
                     FieldType = f.FieldType,
@@ -161,6 +167,4 @@ public class WorkflowManagementService : IWorkflowManagementService
             }).ToList()
         };
     }
-
-    #endregion
 }

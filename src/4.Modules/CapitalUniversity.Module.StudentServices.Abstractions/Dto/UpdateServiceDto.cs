@@ -12,5 +12,8 @@ public class UpdateServiceDto
     public List<Guid>? ScopeNodeIds { get; set; }
     public bool? IncludeDescendants { get; set; }
     public Guid? AcademicYearId { get; set; }
+    public Guid? SemesterId { get; set; }
+    public int? LevelOrder { get; set; }
     public bool? IsActive { get; set; }
+    public WorkflowDto? Workflow { get; set; }
 }

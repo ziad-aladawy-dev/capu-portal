@@ -31,40 +31,18 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Depth")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("ParentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Path")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ParentId");
-
-                    b.ToTable("StructureNode");
+                    b.ToTable("StructureNodes", "dbo", t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.RequestAttachment", b =>
@@ -187,6 +165,9 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Property<bool>("IsPaid")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("LevelOrder")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -195,6 +176,9 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Property<decimal?>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("SemesterId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -276,6 +260,17 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
 
                     b.Property<string>("PaymentTransactionId")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RequestNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RequestNumber"));
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uniqueidentifier");
@@ -377,45 +372,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.ToTable("WorkflowSteps", "StudentServices");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStepAction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ActionKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("TriggersSubmission")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("WorkflowStepId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkflowStepId", "ActionKey")
-                        .IsUnique();
-
-                    b.ToTable("WorkflowStepActions", "StudentServices");
-                });
-
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStepField", b =>
                 {
                     b.Property<Guid>("Id")
@@ -459,15 +415,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.ToTable("WorkflowStepFields", "StudentServices");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
-                {
-                    b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId");
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.RequestAttachment", b =>
                 {
                     b.HasOne("CapitalUniversity.Module.StudentServices.Domain.StudentRequest", "StudentRequest")
@@ -508,15 +455,14 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", "StructureNode")
+                    b.HasOne("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", null)
                         .WithMany()
                         .HasForeignKey("StructureNodeId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_ServiceStructureNodes_StructureNodes_StructureNodeId");
 
                     b.Navigation("Service");
-
-                    b.Navigation("StructureNode");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.StudentRequest", b =>
@@ -541,17 +487,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                     b.Navigation("Workflow");
                 });
 
-            modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStepAction", b =>
-                {
-                    b.HasOne("CapitalUniversity.Module.StudentServices.Domain.WorkflowStep", "WorkflowStep")
-                        .WithMany()
-                        .HasForeignKey("WorkflowStepId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("WorkflowStep");
-                });
-
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.WorkflowStepField", b =>
                 {
                     b.HasOne("CapitalUniversity.Module.StudentServices.Domain.WorkflowStep", "WorkflowStep")
@@ -561,11 +496,6 @@ namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Mi
                         .IsRequired();
 
                     b.Navigation("WorkflowStep");
-                });
-
-            modelBuilder.Entity("CapitalUniversity.Core.Domain.UniversityStructure.StructureNode", b =>
-                {
-                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("CapitalUniversity.Module.StudentServices.Domain.Service", b =>

@@ -12,6 +12,5 @@ public class RequestCountsDto
     public int Completed { get; set; }
     public int Cancelled { get; set; }
     public int ReadyForPickup { get; set; }
-
     public int Total => Draft + Pending + UnderReview + MoreInfoRequired + Approved + Rejected + PaymentPending + Completed + Cancelled + ReadyForPickup;
 }

@@ -42,14 +42,14 @@ public class WorkflowsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkflowDto dto, CancellationToken cancellationToken)
     {
         await _service.UpdateWorkflowAsync(id, dto, cancellationToken);
-        return Ok(new { message = "Workflow updated successfully" });
+        return Ok(new { message = "Workflow updated" });
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _service.DeleteWorkflowAsync(id, cancellationToken);
-        return Ok(new { message = "Workflow deleted successfully" });
+        return Ok(new { message = "Workflow deleted" });
     }
 
     [HttpPost("{workflowId:guid}/steps")]
@@ -63,13 +63,13 @@ public class WorkflowsController : ControllerBase
     public async Task<IActionResult> UpdateStep(Guid stepId, [FromBody] UpdateWorkflowStepDto dto, CancellationToken cancellationToken)
     {
         await _service.UpdateStepAsync(stepId, dto, cancellationToken);
-        return Ok(new { message = "Step updated successfully" });
+        return Ok(new { message = "Step updated" });
     }
 
     [HttpDelete("steps/{stepId:guid}")]
     public async Task<IActionResult> DeleteStep(Guid stepId, CancellationToken cancellationToken)
     {
         await _service.DeleteStepAsync(stepId, cancellationToken);
-        return Ok(new { message = "Step deleted successfully" });
+        return Ok(new { message = "Step deleted" });
     }
 }

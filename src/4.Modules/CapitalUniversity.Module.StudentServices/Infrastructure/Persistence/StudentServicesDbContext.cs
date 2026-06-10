@@ -19,17 +19,38 @@ public class StudentServicesDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(StudentServicesDbContext).Assembly);
-
-        // StructureNode is owned by Core (dbo.StructureNodes). It is reachable in
-        // this context only through ServiceStructureNode.StructureNode, which the
-        // service-scope query reads for path matching. Map it onto the existing
-        // Core table and exclude it from this context's schema script — otherwise
-        // EF invents an empty dbo.StructureNode table and the scope FK targets it,
-        // so seeding/scoping inserts (which use real Core node ids) fail.
-        modelBuilder.Entity<StructureNode>(b =>
-            b.ToTable("StructureNodes", "dbo", t => t.ExcludeFromMigrations()));
-
         base.OnModelCreating(modelBuilder);
+
+        // Ignore StructureNode entity (already mapped in CoreDbContext)
+        modelBuilder.Entity<StructureNode>(entity =>
+        {
+            entity.ToTable("StructureNodes", "dbo", t => t.ExcludeFromMigrations());
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.Name);
+            entity.Ignore(e => e.Type);
+            entity.Ignore(e => e.ParentId);
+            entity.Ignore(e => e.Order);
+            entity.Ignore(e => e.Path);
+            entity.Ignore(e => e.Depth);
+            entity.Ignore(e => e.IsActive);
+            entity.Ignore(e => e.Parent);
+            entity.Ignore(e => e.Children);
+        });
+
+        // Apply all configurations from this assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(StudentServicesDbContext).Assembly);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Prevent modification of auto-generated RequestNumber
+        foreach (var entry in ChangeTracker.Entries<StudentRequest>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Property(x => x.RequestNumber).IsModified = false;
+            }
+        }
+        return await base.SaveChangesAsync(cancellationToken);
     }
 }

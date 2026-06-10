@@ -12,6 +12,7 @@ public class CreateServiceDto
     public List<Guid> ScopeNodeIds { get; set; } = new();
     public bool IncludeDescendants { get; set; } = true;
     public Guid? AcademicYearId { get; set; }
-
+    public Guid? SemesterId { get; set; }
+    public int? LevelOrder { get; set; }
     public CreateWorkflowDto Workflow { get; set; } = new();
 }

@@ -11,4 +11,8 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.10" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\2.Core\CapitalUniversity.Core.Abstractions\CapitalUniversity.Core.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>

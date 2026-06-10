@@ -273,14 +273,28 @@ public class StudentService : IStudentService
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        return await _repository.GetStatisticsAsync(request);
+        var result = await SearchAsync(new StudentQueryRequest
+        {
+            ScopeNodeId = request.ScopeNodeId,
+
+            Page = 1,
+
+            PageSize = int.MaxValue
+        });
+
+        return new UserStatisticsDto
+        {
+            TotalStudents = result.Items.Count,
+            ActiveStudents = result.Items.Count(x => x.IsActive),
+            InactiveStudents = result.Items.Count(x => !x.IsActive)
+        };
     }
 
     private StudentDto Map(Student student)
     {
         var localizedName = _localizationService.GetLocalizedString(student.Name);
 
-        var structureNode = student.StructureNode;
+        var levelNode = student.StructureNode;
 
         string facultyName = string.Empty;
 
@@ -288,22 +302,10 @@ public class StudentService : IStudentService
 
         string levelName = string.Empty;
 
-        if (structureNode != null)
+        if (levelNode != null)
         {
-            // Only treat StructureNode as a Level node when its type actually is Level.
-            // It may be a Program or other type if data was incorrectly seeded.
-            if (structureNode.Type == StructureNodeType.Level)
-            {
-                levelName = _localizationService.GetLocalizedString(structureNode.Name);
-            }
-            else if (structureNode.Type == StructureNodeType.Program)
-            {
-                // Student attached to a Program instead of a Level — use Program name here
-                programName = _localizationService.GetLocalizedString(structureNode.Name);
-            }
-
-            // Walk ancestors to find remaining Program and Faculty names
-            var currentNode = structureNode.Parent;
+            levelName = _localizationService.GetLocalizedString(levelNode.Name);
+            var currentNode = levelNode.Parent;
             while (currentNode != null)
             {
                 if (currentNode.Type == StructureNodeType.Program && string.IsNullOrEmpty(programName))
