@@ -36,7 +36,7 @@ export const ProfileWidget = memo(function ProfileWidget() {
   const { user } = useAuth();
   const { data: grades, isLoading } = useGradesSummary();
 
-  const gpa = grades?.cumulativeGpa ?? grades?.gpa ?? null;
+  const gpa = grades?.cgpa ?? grades?.gpa ?? null;
   const standing = grades?.academicStanding ?? grades?.standing ?? null;
   const gpaClass = gpa == null ? "" : gpa >= 3 ? "good" : gpa >= 2 ? "warn" : "bad";
 

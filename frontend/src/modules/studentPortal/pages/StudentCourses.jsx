@@ -1,267 +1,135 @@
-import { useState, useEffect } from "react";
-import { Clock, MapPin, AlertCircle } from "lucide-react";
-import { useAuth } from "../../../core/auth/useAuth";
-import * as scheduleService from "../../../core/services/scheduleService";
-import * as courseService from "../../../core/services/courseService";
-import api from "../../../core/api/apiClient";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AlertCircle, BookOpen, History, CheckCircle, Clock, XCircle } from "lucide-react";
+import { useRegisteredCourses, useRegistrationHistory } from "../hooks/useAcademics";
+import { REGISTRATION_STATUS, getRegistrationStatusLabel } from "../../../core/services/registrationService";
 import "../styles/studentCourses.css";
 
-const DAY_SHORT = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri" };
-
-function formatTime(timeStr) {
-  const parts = timeStr.split(":");
-  return `${parseInt(parts[0], 10)}:${parts[1] || "00"}`;
+function StatusBadge({ status }) {
+  const map = {
+    [REGISTRATION_STATUS.Enrolled]: { cls: "open", Icon: Clock },
+    [REGISTRATION_STATUS.Completed]: { cls: "completed", Icon: CheckCircle },
+    [REGISTRATION_STATUS.Withdrawn]: { cls: "withdrawn", Icon: XCircle },
+  };
+  const { cls, Icon } = map[status] || { cls: "", Icon: Clock };
+  return (
+    <span className={`sc-status-badge ${cls}`}>
+      <Icon size={12} /> {getRegistrationStatusLabel(status)}
+    </span>
+  );
 }
 
-function buildScheduleString(slots) {
-  const byTime = {};
-  slots.forEach(s => {
-    const key = `${s.start}-${s.end}`;
-    if (!byTime[key]) byTime[key] = { start: s.start, end: s.end, days: [] };
-    const dayNum = typeof s.day === "number" ? s.day : parseInt(s.day, 10);
-    const label = DAY_SHORT[dayNum];
-    if (label && !byTime[key].days.includes(label)) byTime[key].days.push(label);
-  });
-  return Object.values(byTime)
-    .map(g => `${g.days.join("/")} ${g.start}-${g.end}`)
-    .join(", ");
+function CourseCard({ c }) {
+  return (
+    <div className="sc-course-card active">
+      <div className="card-header">
+        <h3>{c.courseTitle}</h3>
+        <span className="course-code">{c.courseCode}</span>
+      </div>
+      <div className="card-info">
+        <div className="info-row"><span className="label">Credits:</span><span>{c.creditHours}</span></div>
+        <div className="info-row"><span className="label">Term:</span><span>{c.semesterName}</span></div>
+        {c.attemptNumber > 1 && (
+          <div className="info-row"><span className="label">Attempt:</span><span>#{c.attemptNumber}</span></div>
+        )}
+      </div>
+      <div className="card-schedule">
+        <StatusBadge status={c.status} />
+      </div>
+    </div>
+  );
 }
 
-function buildLocations(slots) {
-  const locs = [...new Set(slots.map(s => s.location).filter(Boolean))];
-  return locs.join(", ") || "TBD";
+function Loading() {
+  return <div className="sc-status"><div className="sc-spinner" /></div>;
 }
 
 function StudentCourses() {
-  const { activeScope } = useAuth();
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { t } = useTranslation();
+  const [tab, setTab] = useState("current");
+  const current = useRegisteredCourses();
+  const history = useRegistrationHistory();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-
-      let nodeId = activeScope?.structural?.nodeId;
-      let semesterId = activeScope?.temporal?.semesterId;
-
-      if (!nodeId || !semesterId) {
-        try {
-          const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
-          const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
-          if (!nodeId && scopeNode?.id) nodeId = scopeNode.id;
-          if (!semesterId && semester?.id) semesterId = semester.id;
-        } catch { }
-      }
-
-      if (!nodeId || !semesterId) {
-        if (!cancelled) { setError("Academic scope not configured"); setLoading(false); }
-        return;
-      }
-
-      try {
-        const resp = await api.get(`/course-offerings/node/${nodeId}/semester/${semesterId}`);
-        const offerings = Array.isArray(resp.data) ? resp.data : [];
-
-        if (offerings.length === 0) {
-          if (!cancelled) { setCourses([]); setLoading(false); }
-          return;
-        }
-
-        const slotResults = await Promise.allSettled(
-          offerings.map(o =>
-            scheduleService.fetchSlotsForOffering(o.id)
-              .then(slots => ({ offeringId: o.id, slots: Array.isArray(slots) ? slots : [] }))
-          )
-        );
-
-        const slotsByOffering = {};
-        slotResults.forEach(r => {
-          if (r.status === "fulfilled") {
-            slotsByOffering[r.value.offeringId] = r.value.slots;
-          }
-        });
-
-        const courseIds = [...new Set(offerings.map(o => o.courseId))];
-        const courseResults = await Promise.allSettled(
-          courseIds.map(id => courseService.fetchCourse(id))
-        );
-        const courseMap = {};
-        courseIds.forEach((id, i) => {
-          if (courseResults[i].status === "fulfilled" && courseResults[i].value) {
-            courseMap[id] = courseResults[i].value;
-          }
-        });
-
-        const data = [];
-        offerings.forEach(o => {
-          const course = courseMap[o.courseId];
-          if (!course) return;
-          const slots = (slotsByOffering[o.id] || []).map(s => ({
-            start: formatTime(s.startTime),
-            end: formatTime(s.endTime),
-            day: s.dayOfWeek,
-            location: s.location,
-          }));
-
-          data.push({
-            id: o.id,
-            code: course.code || "?",
-            title: course.title || "Unknown",
-            credits: course.creditHours || 0,
-            sectionCode: o.sectionCode,
-            schedule: slots.length > 0 ? buildScheduleString(slots) : "No schedule",
-            location: slots.length > 0 ? buildLocations(slots) : "TBD",
-            registeredCount: o.registeredCount,
-            capacity: o.capacity,
-            registrationState: o.registrationState,
-            slots,
-          });
-        });
-
-        if (!cancelled) {
-          setCourses(data);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || "Failed to load courses");
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-    return () => { cancelled = true; };
-  }, [activeScope]);
-
-  const totalCredits = courses.reduce((sum, c) => sum + (c.credits || 0), 0);
-
-  if (loading) {
-    return (
-      <div className="student-courses-container">
-        <div className="sc-header">
-          <h1>My Courses</h1>
-          <p>Loading your courses...</p>
-        </div>
-        <div className="sc-status">
-          <div className="sc-spinner" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="student-courses-container">
-        <div className="sc-header">
-          <h1>My Courses</h1>
-          <p>Course offerings and schedules</p>
-        </div>
-        <div className="sc-status">
-          <AlertCircle size={48} color="#dc2626" />
-          <h3>Unable to load courses</h3>
-          <p className="sc-status-text">{error}</p>
-          <button className="sc-retry-btn" onClick={() => window.location.reload()}>
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (courses.length === 0) {
-    return (
-      <div className="student-courses-container">
-        <div className="sc-header">
-          <h1>My Courses</h1>
-          <p>Course offerings and schedules</p>
-        </div>
-        <div className="sc-status">
-          <h3>No courses available</h3>
-          <p className="sc-status-text">
-            There are no course offerings for your current academic scope.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const registered = current.data || [];
+  const totalCredits = registered.reduce((s, c) => s + (c.creditHours || 0), 0);
+  const completed = registered.filter((c) => c.status === REGISTRATION_STATUS.Completed).length;
 
   return (
     <div className="student-courses-container">
       <div className="sc-header">
-        <h1>My Courses</h1>
-        <p>Course offerings and schedules</p>
+        <h1>{t("my_courses", { defaultValue: "My Courses" })}</h1>
+        <p>{t("courses.subtitle", { defaultValue: "Your registered courses, synced from academic records" })}</p>
       </div>
 
-      <div className="sc-section">
-        <h2>Course Offerings ({courses.length})</h2>
-        <div className="sc-courses-grid">
-          {courses.map(course => (
-            <div key={course.id} className="sc-course-card active">
-              <div className="card-header">
-                <h3>{course.title}</h3>
-                <span className="course-code">{course.code}</span>
-              </div>
+      <div className="sc-tabs">
+        <button className={tab === "current" ? "active" : ""} onClick={() => setTab("current")}>
+          <BookOpen size={15} /> {t("courses.current", { defaultValue: "Current" })}
+        </button>
+        <button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>
+          <History size={15} /> {t("courses.history", { defaultValue: "History" })}
+        </button>
+      </div>
 
-              <div className="card-info">
-                <div className="info-row">
-                  <span className="label">Credits:</span>
-                  <span>{course.credits}</span>
-                </div>
-                {course.sectionCode && (
-                  <div className="info-row">
-                    <span className="label">Section:</span>
-                    <span>{course.sectionCode}</span>
-                  </div>
-                )}
-                {course.capacity > 0 && (
-                  <div className="info-row">
-                    <span className="label">Enrolled:</span>
-                    <span>{course.registeredCount}/{course.capacity}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="card-schedule">
-                <div className="schedule-item">
-                  <Clock size={14} />
-                  <span>{course.schedule}</span>
-                </div>
-                <div className="schedule-item">
-                  <MapPin size={14} />
-                  <span>{course.location}</span>
-                </div>
-              </div>
+      {tab === "current" && (
+        <>
+          {current.isLoading ? (
+            <Loading />
+          ) : current.isError ? (
+            <div className="sc-status">
+              <AlertCircle size={40} color="#dc2626" />
+              <p className="sc-status-text">Unable to load your courses.</p>
+              <button className="sc-retry-btn" onClick={() => current.refetch()}>Try Again</button>
             </div>
-          ))}
-        </div>
-      </div>
+          ) : registered.length === 0 ? (
+            <div className="sc-status">
+              <h3>No registered courses</h3>
+              <p className="sc-status-text">You have no active course registrations this term.</p>
+            </div>
+          ) : (
+            <>
+              <div className="sc-section">
+                <h2>{t("courses.registered", { defaultValue: "Registered Courses" })} ({registered.length})</h2>
+                <div className="sc-courses-grid">
+                  {registered.map((c) => <CourseCard key={c.id} c={c} />)}
+                </div>
+              </div>
+              <div className="sc-section">
+                <h2>Summary</h2>
+                <div className="sc-stats">
+                  <div className="stat"><div className="stat-value">{registered.length}</div><div className="stat-label">Registered</div></div>
+                  <div className="stat"><div className="stat-value">{totalCredits}</div><div className="stat-label">Credits</div></div>
+                  <div className="stat"><div className="stat-value">{completed}</div><div className="stat-label">Completed</div></div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
 
-      <div className="sc-section">
-        <h2>Academic Summary</h2>
-        <div className="sc-stats">
-          <div className="stat">
-            <div className="stat-value">{courses.length}</div>
-            <div className="stat-label">Total Offerings</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{totalCredits}</div>
-            <div className="stat-label">Total Credits</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{courses.filter(c => c.slots.length > 0).length}</div>
-            <div className="stat-label">With Schedule</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{courses.filter(c => c.registrationState === 1).length}</div>
-            <div className="stat-label">Registration Open</div>
-          </div>
-        </div>
-      </div>
+      {tab === "history" && (
+        <>
+          {history.isLoading ? (
+            <Loading />
+          ) : history.isError ? (
+            <div className="sc-status">
+              <AlertCircle size={40} color="#dc2626" />
+              <p className="sc-status-text">Unable to load history.</p>
+              <button className="sc-retry-btn" onClick={() => history.refetch()}>Try Again</button>
+            </div>
+          ) : (history.data || []).length === 0 ? (
+            <div className="sc-status"><h3>No history yet</h3></div>
+          ) : (
+            (history.data || []).map((sem) => (
+              <div key={sem.semesterId} className="sc-section">
+                <h2>{sem.semesterName} <span className="sc-muted">({sem.courses?.length || 0})</span></h2>
+                <div className="sc-courses-grid">
+                  {(sem.courses || []).map((c) => <CourseCard key={c.id} c={c} />)}
+                </div>
+              </div>
+            ))
+          )}
+        </>
+      )}
     </div>
   );
 }

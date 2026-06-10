@@ -1,189 +1,100 @@
-import { useState } from "react";
-import { Plus, Search, X, Calendar, Clock, MapPin, AlertCircle } from "lucide-react";
-import "../styles/courseRegistration.css";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { Search, BookOpen, Info, AlertCircle } from "lucide-react";
+import * as courseService from "../../../core/services/courseService";
+import "../styles/studentCourses.css";
 
-const AVAILABLE_COURSES = [
-  { id: 101, code: "CS301", title: "Software Engineering", instructor: "Dr. Smith", credits: 3, schedule: "MWF 9:00 AM", capacity: 30, enrolled: 22, faculty: "Engineering" },
-  { id: 102, code: "CS302", title: "Database Systems", instructor: "Dr. Johnson", credits: 4, schedule: "TTh 10:00 AM", capacity: 35, enrolled: 28, faculty: "Engineering" },
-  { id: 103, code: "MATH301", title: "Linear Algebra", instructor: "Prof. Williams", credits: 3, schedule: "MWF 11:00 AM", capacity: 40, enrolled: 38, faculty: "Science" },
-  { id: 104, code: "PHYS301", title: "Quantum Mechanics", instructor: "Dr. Miller", credits: 4, schedule: "TTh 1:00 PM", capacity: 25, enrolled: 12, faculty: "Science" },
-  { id: 105, code: "ENG201", title: "Technical Writing", instructor: "Dr. Brown", credits: 3, schedule: "MWF 2:00 PM", capacity: 30, enrolled: 15, faculty: "Arts" },
-  { id: 106, code: "CS303", title: "Computer Networks", instructor: "Dr. Davis", credits: 3, schedule: "TTh 3:00 PM", capacity: 35, enrolled: 25, faculty: "Engineering" },
-  { id: 107, code: "MATH302", title: "Differential Equations", instructor: "Prof. Wilson", credits: 3, schedule: "MWF 10:00 AM", capacity: 30, enrolled: 30, faculty: "Science" },
-  { id: 108, code: "BUS201", title: "Introduction to Business", instructor: "Dr. Taylor", credits: 3, schedule: "TTh 9:00 AM", capacity: 45, enrolled: 40, faculty: "Business" },
-];
+/**
+ * Read-only course catalog (browse + search). Per the documented Registration
+ * model the portal does NOT register students — actual enrollment happens in the
+ * external academic system — so this page is a catalog reference only.
+ */
+function CourseCatalog() {
+  const { t } = useTranslation();
+  const [term, setTerm] = useState("");
+  const [debounced, setDebounced] = useState("");
 
-const ENROLLED_COURSES = [
-  { id: 1, code: "CS101", title: "Introduction to Programming", instructor: "Dr. Smith", credits: 3 },
-  { id: 2, code: "CS201", title: "Data Structures", instructor: "Dr. Johnson", credits: 4 },
-  { id: 5, code: "PHYS201", title: "Physics II", instructor: "Dr. Miller", credits: 4 },
-];
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(term.trim()), 300);
+    return () => clearTimeout(id);
+  }, [term]);
 
-function CourseRegistration() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [facultyFilter, setFacultyFilter] = useState("all");
-  const [selectedCourses, setSelectedCourses] = useState([]);
-  const [success, setSuccess] = useState(null);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["course-catalog", debounced],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await courseService.searchCourses(debounced ? { search: debounced, pageSize: 30 } : { pageSize: 30 });
+      const items = Array.isArray(res) ? res : res?.items || [];
+      return items;
+    },
+  });
 
-  const filteredCourses = AVAILABLE_COURSES.filter((c) => {
-    const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFaculty = facultyFilter === "all" || c.faculty === facultyFilter;
-    return matchesSearch && matchesFaculty;
-  }).filter((c) => !ENROLLED_COURSES.find((e) => e.id === c.id));
-
-  const faculties = [...new Set(AVAILABLE_COURSES.map((c) => c.faculty))];
-
-  const toggleCourse = (course) => {
-    setSelectedCourses((prev) =>
-      prev.find((c) => c.id === course.id)
-        ? prev.filter((c) => c.id !== course.id)
-        : [...prev, course]
-    );
-  };
-
-  const handleRegister = () => {
-    setSuccess("Registration submitted successfully! Your courses are pending approval.");
-    setSelectedCourses([]);
-    setTimeout(() => setSuccess(null), 5000);
-  };
+  const courses = data || [];
 
   return (
-    <div className="course-registration-container">
-      <div className="cr-header">
-        <div>
-          <h1>Course Registration</h1>
-          <p>Select and register for courses for the upcoming semester</p>
-        </div>
-        <div className="cr-header-actions">
-          <div className="cr-cart">
-            <span className="cart-count">{selectedCourses.length}</span>
-          </div>
-          <button
-            className="btn-register"
-            onClick={handleRegister}
-            disabled={selectedCourses.length === 0}
-          >
-            Register Selected ({selectedCourses.length})
-          </button>
-        </div>
+    <div className="student-courses-container">
+      <div className="sc-header">
+        <h1>{t("courses.catalog", { defaultValue: "Course Catalog" })}</h1>
+        <p>{t("courses.catalog_subtitle", { defaultValue: "Browse the course catalog. Registration is handled by the registrar." })}</p>
       </div>
 
-      {success && (
-        <div className="alert alert-success">{success}</div>
-      )}
+      <div className="cat-search">
+        <Search size={16} />
+        <input
+          type="text"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          placeholder={t("courses.search_placeholder", { defaultValue: "Search by code, title, or keyword…" })}
+        />
+      </div>
 
-      {/* Enrolled Courses */}
-      <div className="cr-section">
-        <h2>Currently Enrolled</h2>
-        <div className="cr-enrolled-list">
-          {ENROLLED_COURSES.map((course) => (
-            <div key={course.id} className="enrolled-item">
-              <div className="enrolled-info">
-                <span className="course-code-badge">{course.code}</span>
-                <div>
-                  <strong>{course.title}</strong>
-                  <p>{course.instructor} &middot; {course.credits} credits</p>
+      <div className="cat-note">
+        <Info size={14} />
+        {t("courses.readonly_note", { defaultValue: "This catalog is read-only. To register or drop a course, contact the registrar / your academic system." })}
+      </div>
+
+      {isLoading ? (
+        <div className="sc-status"><div className="sc-spinner" /></div>
+      ) : isError ? (
+        <div className="sc-status">
+          <AlertCircle size={40} color="#dc2626" />
+          <p className="sc-status-text">Unable to load the catalog.</p>
+          <button className="sc-retry-btn" onClick={() => refetch()}>Try Again</button>
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="sc-status">
+          <BookOpen size={40} />
+          <h3>No courses found</h3>
+          <p className="sc-status-text">{debounced ? `No matches for "${debounced}".` : "No courses in the catalog."}</p>
+        </div>
+      ) : (
+        <div className="sc-section">
+          <h2>{t("courses.results", { defaultValue: "Results" })} ({courses.length})</h2>
+          <div className="sc-courses-grid">
+            {courses.map((c) => (
+              <div key={c.id} className="sc-course-card active">
+                <div className="card-header">
+                  <h3>{c.title || c.name}</h3>
+                  <span className="course-code">{c.code}</span>
                 </div>
+                <div className="card-info">
+                  <div className="info-row"><span className="label">Credits:</span><span>{c.creditHours ?? "—"}</span></div>
+                  {c.category != null && (
+                    <div className="info-row">
+                      <span className="label">Category:</span>
+                      <span>{courseService.getCourseCategoryLabel(c.category)}</span>
+                    </div>
+                  )}
+                </div>
+                {c.description && <p className="cat-desc">{c.description}</p>}
               </div>
-              <span className="enrolled-badge">Enrolled</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Available Courses */}
-      <div className="cr-section">
-        <h2>Available Courses</h2>
-
-        {/* Filters */}
-        <div className="cr-filters">
-          <div className="search-box">
-            <Search size={16} />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <select
-            value={facultyFilter}
-            onChange={(e) => setFacultyFilter(e.target.value)}
-            className="faculty-select"
-          >
-            <option value="all">All Faculties</option>
-            {faculties.map((f) => (
-              <option key={f} value={f}>{f}</option>
             ))}
-          </select>
+          </div>
         </div>
-
-        {filteredCourses.length === 0 ? (
-          <div className="empty-state">
-            <AlertCircle size={48} />
-            <h3>No Courses Found</h3>
-            <p>Try adjusting your search or filter criteria</p>
-          </div>
-        ) : (
-          <div className="cr-courses-grid">
-            {filteredCourses.map((course) => {
-              const isSelected = selectedCourses.find((c) => c.id === course.id);
-              const full = course.enrolled >= course.capacity;
-              return (
-                <div
-                  key={course.id}
-                  className={`cr-course-card ${isSelected ? "selected" : ""} ${full ? "full" : ""}`}
-                  onClick={() => !full && toggleCourse(course)}
-                >
-                  <div className="cr-card-header">
-                    <h3>{course.title}</h3>
-                    <span className="course-code-badge">{course.code}</span>
-                  </div>
-
-                  <div className="cr-card-body">
-                    <div className="cr-info-row">
-                      <Calendar size={14} />
-                      <span>{course.instructor}</span>
-                    </div>
-                    <div className="cr-info-row">
-                      <Clock size={14} />
-                      <span>{course.schedule}</span>
-                    </div>
-                    <div className="cr-info-row">
-                      <MapPin size={14} />
-                      <span>{course.faculty} &middot; {course.credits} credits</span>
-                    </div>
-                  </div>
-
-                  <div className="cr-card-footer">
-                    <div className="capacity-bar">
-                      <div
-                        className="capacity-fill"
-                        style={{ width: `${(course.enrolled / course.capacity) * 100}%` }}
-                      ></div>
-                      <span>{course.enrolled}/{course.capacity} enrolled</span>
-                    </div>
-                    {full ? (
-                      <span className="full-badge">Full</span>
-                    ) : isSelected ? (
-                      <span className="selected-badge">
-                        <X size={14} /> Selected
-                      </span>
-                    ) : (
-                      <span className="add-badge">
-                        <Plus size={14} /> Add
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-export default CourseRegistration;
+export default CourseCatalog;
