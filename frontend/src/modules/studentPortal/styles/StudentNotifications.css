@@ -124,6 +124,39 @@
 .snc-read-btn:hover {
   background: rgba(201, 168, 76, 0.1);
 }
+.snc-mark-all:disabled { opacity: 0.5; cursor: default; }
+.snc-icon.snc-info { background: #dbeafe; color: #2563eb; }
+.snc-icon.snc-warning { background: #fef3c7; color: #b45309; }
+
+/* Date groups */
+.snc-group { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+.snc-group-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #9ca3af; padding: 0 0.25rem;
+}
+.snc-time { font-size: 0.7rem; color: #9ca3af; }
+
+/* States */
+.snc-state {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 1rem;
+  padding: 2rem; color: #6b7280; font-size: 0.9rem;
+}
+.snc-empty { flex-direction: column; color: #9ca3af; }
+.snc-empty p { margin: 0.5rem 0 0; }
+
+.snc-load-more {
+  align-self: center;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  margin-top: 0.5rem;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 2rem;
+  padding: 0.5rem 1.4rem; font-weight: 600; color: #1a1f5e; cursor: pointer;
+}
+.snc-load-more:disabled { opacity: 0.6; cursor: default; }
+
+.snc-spin { animation: snc-spin 0.8s linear infinite; }
+@keyframes snc-spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 768px) {
   .snc-container {
     padding: 1rem;
