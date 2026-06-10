@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, AlertCircle, Printer } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
 import * as scheduleService from "../../../core/services/scheduleService";
+import { SLOT_KINDS } from "../../../core/services/scheduleService";
 import * as courseService from "../../../core/services/courseService";
 import api from "../../../core/api/apiClient";
 import "../styles/studentSchedule.css";
@@ -58,7 +59,9 @@ function StudentSchedule() {
           const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
           if (!nodeId && scopeNode?.id) nodeId = scopeNode.id;
           if (!semesterId && semester?.id) semesterId = semester.id;
-        } catch { }
+        } catch {
+          // localStorage may be empty or hold invalid JSON — fall through to the scope error.
+        }
       }
 
       if (!nodeId || !semesterId) {
@@ -128,6 +131,7 @@ function StudentSchedule() {
               color: hashColor(course.code || "?"),
               sectionCode: offering.sectionCode,
               isClosed: slot.isClosed,
+              isExam: slot.kind === SLOT_KINDS.Exam,
             });
           });
         });
@@ -235,9 +239,14 @@ function StudentSchedule() {
 
   return (
     <div className="student-schedule-container">
-      <div className="ss-header">
-        <h1>My Schedule</h1>
-        <p>Weekly class schedule and timetable</p>
+      <div className="ss-header ss-header-row">
+        <div>
+          <h1>My Schedule</h1>
+          <p>Weekly class schedule and timetable</p>
+        </div>
+        <button className="ss-print-btn" data-no-print onClick={() => window.print()}>
+          <Printer size={16} /> Print
+        </button>
       </div>
 
       <div className="ss-content">
@@ -272,13 +281,14 @@ function StudentSchedule() {
                     {scheduleData.filter(s => s.day === day).map((slot, i) => (
                       <div
                         key={i}
-                        className={`ss-slot${slot.isClosed ? " ss-slot-closed" : ""}`}
+                        className={`ss-slot${slot.isClosed ? " ss-slot-closed" : ""}${slot.isExam ? " ss-slot-exam" : ""}`}
                         style={{
                           top: getSlotTop(slot.start),
                           height: getSlotHeight(slot.start, slot.end),
                           backgroundColor: slot.color,
                         }}
                       >
+                        {slot.isExam && <span className="ss-exam-tag">EXAM</span>}
                         <strong>{slot.code}</strong>
                         <small>{slot.title}</small>
                         <small>{slot.room} &middot; {slot.start}-{slot.end}</small>
