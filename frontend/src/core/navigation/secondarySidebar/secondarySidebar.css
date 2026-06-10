@@ -291,17 +291,66 @@
 }
 
 /* ── Pinned User Card ─────────────────────────── */
+.sec-pinned-wrap {
+  flex-shrink: 0;
+  margin: 8px 10px 0;
+  animation: ss-slide-up 0.2s ease;
+}
+
 .sec-pinned-card {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  margin: 8px 10px 0;
   background: linear-gradient(135deg, rgba(201, 168, 76, 0.08), rgba(201, 168, 76, 0.03));
   border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: 10px;
+  border-radius: 10px 10px 0 0;
   flex-shrink: 0;
-  animation: ss-slide-up 0.2s ease;
+}
+
+.sec-pinned-card.is-clickable {
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sec-pinned-card.is-clickable:hover,
+.sec-pinned-card.is-clickable:focus-visible {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.06));
+  border-color: rgba(201, 168, 76, 0.4);
+  outline: none;
+}
+
+.sec-pinned-actions {
+  display: flex;
+  gap: 1px;
+  background: rgba(201, 168, 76, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+.sec-pinned-action {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 4px;
+  border: none;
+  background: var(--ss-soft);
+  color: var(--ss-navy);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sec-pinned-action:hover {
+  background: var(--ss-navy);
+  color: #fff;
 }
 
 @keyframes ss-slide-up {
@@ -527,6 +576,14 @@
 
 .sec-results-empty svg {
   opacity: 0.25;
+}
+
+.sec-results-scope-hint {
+  font-size: 9px;
+  color: var(--ss-muted);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 200px;
 }
 
 .sec-results-loading {

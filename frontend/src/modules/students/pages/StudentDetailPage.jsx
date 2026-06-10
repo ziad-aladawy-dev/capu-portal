@@ -153,6 +153,9 @@ function StudentDetailPage() {
               <button className="bottom-action-btn soft-gold" onClick={() => navigate(`/admin/students/${id}/profile-records`)}>
                 <FileText size={18} /> Profile Records
               </button>
+              <button className="bottom-action-btn gold" onClick={() => navigate(`/admin/students/${id}/academics`)}>
+                <GraduationCap size={18} /> Academic Hub
+              </button>
               <span className="action-separator" />
               <button className={`bottom-action-btn ${s.isActive ? "soft-red" : "soft-green"}`} onClick={handleToggleActive}>
                 {s.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
@@ -338,18 +341,19 @@ function EnrollmentsTab({ studentId }) {
 }
 
 function PaymentsTab({ studentId }) {
-  const [invoices, setInvoices] = useState([]);
+  const navigate = useNavigate();
+  const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const invoiceService = await import("../../../core/services/invoiceService");
-        const data = await invoiceService.fetchInvoicesForStudent(studentId);
-        if (!cancelled) setInvoices(data || []);
+        const treasuryService = await import("../../../core/services/treasuryService");
+        const data = await treasuryService.fetchUnpaidFees(studentId);
+        if (!cancelled) setFees(Array.isArray(data) ? data : []);
       } catch {
-        // endpoint might not exist
+        // viewer may not hold the payments permission
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -359,36 +363,56 @@ function PaymentsTab({ studentId }) {
 
   if (loading) return <div><h2 className="section-title">Payments</h2><p style={{ color: "#6b7280", fontSize: 12 }}>Loading...</p></div>;
 
+  const outstanding = fees.reduce((s, f) => s + Number(f.totalAmount ?? 0), 0);
+  const currency = fees[0]?.currency || "EGP";
+
   return (
     <div>
-      <h2 className="section-title">Payments</h2>
-      {invoices.length === 0 ? (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <h2 className="section-title">Outstanding Fees</h2>
+        <button
+          className="btn-primary"
+          style={{ padding: "7px 14px", fontSize: 12 }}
+          onClick={() => navigate(`/admin/finance/treasury?studentId=${studentId}`)}
+        >
+          <Receipt size={13} /> Collect in Treasury
+        </button>
+      </div>
+      {fees.length === 0 ? (
         <div className="empty-state" style={{ padding: "40px 18px" }}>
-          <Receipt size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-          <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Invoices</h3>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>No payment records found for this student.</p>
+          <CheckCircle size={40} style={{ color: "#16a34a", marginBottom: 12 }} />
+          <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Outstanding Fees</h3>
+          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>This student has no unpaid Treasury fees.</p>
         </div>
       ) : (
-        <table className="users-table" style={{ minWidth: 500 }}>
-          <thead>
-            <tr>
-              <th>Invoice #</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map(inv => (
-              <tr key={inv.id}>
-                <td>{inv.invoiceNumber}</td>
-                <td>{inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : "—"}</td>
-                <td>{inv.amount}</td>
-                <td><span className={`status-badge ${inv.status === "Paid" ? "status-active" : "status-inactive"}`}>{inv.status}</span></td>
+        <>
+          <p style={{ fontSize: 12, color: "#6b7280", margin: "6px 0 12px" }}>
+            {fees.length} unpaid fee(s) · total{" "}
+            <strong style={{ color: "#b91c1c" }}>
+              {outstanding.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}
+            </strong>
+          </p>
+          <table className="users-table" style={{ minWidth: 500 }}>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Date</th>
+                <th>Qty</th>
+                <th>Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {fees.map(fee => (
+                <tr key={fee.id}>
+                  <td>{fee.sourceModule || "—"}</td>
+                  <td>{fee.createdAt ? new Date(fee.createdAt).toLocaleDateString() : "—"}</td>
+                  <td>{fee.quantity}</td>
+                  <td>{Number(fee.totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} {fee.currency}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   );

@@ -48,7 +48,7 @@ public class StructureLookupServiceTests
         var result = await sut.GetByTypeAsync(StructureNodeType.Faculty);
 
         result.Should().HaveCount(2);
-        result.Select(x => x.Name).Should().ContainInOrder("A", "B");
+        result.Select(x => x.LocalizedName).Should().ContainInOrder("A", "B");
         result.All(x => x.Type == (int)StructureNodeType.Faculty).Should().BeTrue();
     }
 
@@ -63,7 +63,7 @@ public class StructureLookupServiceTests
 
         var dto = (await sut.GetByTypeAsync(StructureNodeType.Level)).Single();
 
-        dto.Name.Should().Be("First Level");
+        dto.LocalizedName.Should().Be("First Level");
         dto.Type.Should().Be((int)StructureNodeType.Level);
     }
 
@@ -97,7 +97,7 @@ public class StructureLookupServiceTests
         var result = await sut.GetChildrenAsync(parent);
 
         result.Should().HaveCount(2);
-        result.Select(x => x.Name).Should().ContainInOrder("First", "Second");
+        result.Select(x => x.LocalizedName).Should().ContainInOrder("First", "Second");
         result.All(x => x.ParentId == parent).Should().BeTrue();
     }
 
@@ -117,7 +117,7 @@ public class StructureLookupServiceTests
 
         var result = await sut.GetChildrenByTypeAsync(parent, StructureNodeType.Level);
 
-        result.Should().ContainSingle().Which.Name.Should().Be("Level");
+        result.Should().ContainSingle().Which.LocalizedName.Should().Be("Level");
     }
 
     [Fact]

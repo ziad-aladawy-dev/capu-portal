@@ -17,6 +17,11 @@ function RouteGuard({ resource, minLevel = 1, fallback = "/admin/dashboard", chi
   }
 
   if (resource && !can(resource, minLevel)) {
+    // A student must never be dumped into the admin shell — send them back
+    // to their login with an explanation instead of the admin fallback.
+    if (location.pathname.startsWith("/student")) {
+      return <Navigate to="/student/login?session=unauthorized" replace />;
+    }
     return <Navigate to={fallback} replace />;
   }
 

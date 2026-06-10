@@ -48,9 +48,9 @@ public class DataSeederSelfHealingTests
 
         await DataSeeder.SeedAsync(ctx, hasher, Expander());
 
-        Assert.Equal(8, await ctx.Staffs.CountAsync());
+        Assert.Equal(9, await ctx.Staffs.CountAsync());
         Assert.Equal(17, await ctx.Students.CountAsync());
-        Assert.Equal(8, await ctx.StaffRoles.CountAsync());
+        Assert.Equal(9, await ctx.StaffRoles.CountAsync());
         Assert.True(await ctx.RolePermissions.AnyAsync(), "RolePermissions must be populated.");
 
         // Khaled exists and authenticates with admin123.
@@ -90,14 +90,14 @@ public class DataSeederSelfHealingTests
         // Re-run the seeder — this is what should happen on the next API startup.
         await DataSeeder.SeedAsync(ctx, hasher, Expander());
 
-        // 8 canonical + 3 stale = 11; Khaled must now exist with the right password.
-        Assert.Equal(11, await ctx.Staffs.CountAsync());
+        // 9 canonical + 3 stale = 12; Khaled must now exist with the right password.
+        Assert.Equal(12, await ctx.Staffs.CountAsync());
         var khaled = await ctx.Staffs.FirstOrDefaultAsync(s => s.NationalId == "28102021234567");
         Assert.NotNull(khaled);
         Assert.True(hasher.VerifyHashedPassword(khaled!.PasswordHash, "admin123"));
 
-        // StaffRoles must rebuild — line 419 should not throw, missing staff are skipped.
-        Assert.Equal(8, await ctx.StaffRoles.CountAsync());
+        // StaffRoles must rebuild — missing staff are skipped.
+        Assert.Equal(9, await ctx.StaffRoles.CountAsync());
     }
 
     [Fact]

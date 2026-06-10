@@ -26,6 +26,19 @@ export function useCourseOfferings(params = {}) {
   });
 }
 
+export function useOfferingsForCourse(courseId, semesterId) {
+  return useQuery({
+    queryKey: ["course-offerings", "by-course", courseId, semesterId],
+    queryFn: () => courseOfferingService.fetchOfferingsForCourse(courseId, semesterId),
+    enabled: !!courseId,
+    select: (data) => {
+      const items = data?.items || data || [];
+      return Array.isArray(items) ? items : [];
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useCreateCourseOffering() {
   const qc = useQueryClient();
   return useMutation({

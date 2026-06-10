@@ -31,6 +31,45 @@
   margin: 4px 0 0;
 }
 
+.courses-stats {
+  display: flex;
+  align-items: stretch;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.courses-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 18px;
+  min-width: 92px;
+}
+
+.courses-stat-value {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1a1f5e;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.courses-stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.courses-stat-divider {
+  width: 1px;
+  background: #f1f5f9;
+  margin: 6px 0;
+}
+
 .courses-toolbar {
   display: flex;
   gap: 10px;

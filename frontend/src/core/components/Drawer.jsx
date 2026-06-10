@@ -11,10 +11,19 @@ export default function Drawer({
   loading = false,
 }) {
   const drawerRef = useRef(null);
+  // Keep the latest onClose in a ref so the key-handler effect doesn't have to
+  // depend on it. Parents commonly pass an inline (non-memoized) onClose, which
+  // changes identity on every render; without this, every parent re-render (e.g.
+  // typing into a field) would re-run the effect below and call
+  // drawerRef.focus(), yanking focus out of the active input on each keystroke.
+  const onCloseRef = useRef(onClose);
   const titleId = "drawer-title";
 
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   const trapFocus = useCallback((e) => {
-    if (e.key !== "Tab") return;
     const dialog = drawerRef.current;
     if (!dialog) return;
     const focusable = dialog.querySelectorAll(
@@ -32,21 +41,28 @@ export default function Drawer({
     }
   }, []);
 
+  // Focus the drawer + lock body scroll ONLY when `open` transitions. Decoupled
+  // from onClose so re-renders while open never steal focus.
   useEffect(() => {
     if (!open) return;
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keydown", trapFocus);
     drawerRef.current?.focus();
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keydown", trapFocus);
       document.body.style.overflow = "";
     };
-  }, [open, onClose, trapFocus]);
+  }, [open]);
+
+  // Key handling (Escape + focus trap). trapFocus is stable; onClose is read
+  // through a ref, so this subscribes once per open rather than every render.
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onCloseRef.current?.();
+      else if (e.key === "Tab") trapFocus(e);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, trapFocus]);
 
   if (!open) return null;
 

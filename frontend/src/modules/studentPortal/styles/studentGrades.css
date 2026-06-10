@@ -132,6 +132,10 @@
 .sem-gpa { font-size: 28px; font-weight: 700; color: #1a1f5e; }
 .sg-semester-card p { font-size: 11px; color: #9ca3af; margin: 8px 0 0; }
 
+@keyframes sg-spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
   .sg-stats-grid { grid-template-columns: repeat(2, 1fr); }
 }

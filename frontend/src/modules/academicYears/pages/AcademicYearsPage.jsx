@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus, Edit2, Trash2, AlertTriangle, Calendar, Clock, Search, X,
   ChevronLeft, ChevronRight, ArrowLeft,
@@ -26,6 +27,7 @@ import "../styles/academicYears.css";
 const PAGE_SIZE = 10;
 
 function AcademicYearsPage() {
+  const { t } = useTranslation();
   const { addToast } = useToast();
   const refreshAcademicYears = useAcademicStore((s) => s.refreshAcademicYears);
 
@@ -275,46 +277,46 @@ function AcademicYearsPage() {
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1>Manage Semesters — {semesterYear.name}</h1>
-              <p>Create, edit, and manage semesters for this academic year</p>
+              <h1>{t("manage_semesters")} — {semesterYear.name}</h1>
+              <p>{t("manage_semesters_for")}</p>
             </div>
           </div>
           <PermissionGate resource="academics.academic-years" minLevel={2}>
             <button className="btn-create" onClick={openCreateSemDrawer}>
-              <Plus size={18} /> New Semester
+              <Plus size={18} /> {t("new_semester")}
             </button>
           </PermissionGate>
         </div>
 
         {semsLoading ? (
-          <div className="loading-container"><div className="spinner" /><p>Loading semesters...</p></div>
+          <div className="loading-container"><div className="spinner" /><p>{t("loading_semesters")}</p></div>
         ) : semesters.length === 0 ? (
           <div className="empty-state">
             <Clock size={40} />
-            <p>No semesters yet for this academic year</p>
+            <p>{t("no_semesters_yet")}</p>
             <PermissionGate resource="academics.academic-years" minLevel={2}>
-              <button className="btn-primary" onClick={openCreateSemDrawer}>Create First Semester</button>
+              <button className="btn-primary" onClick={openCreateSemDrawer}>{t("create_first_semester")}</button>
             </PermissionGate>
           </div>
         ) : (
           <DataTable
             columns={[
-              { key: "name", label: "Name", render: (v) => <span className="year-name">{v}</span> },
-              { key: "startDate", label: "Start Date", render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
-              { key: "endDate", label: "End Date", render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
-              { key: "startDate", label: "Duration", render: (_, row) => {
+              { key: "name", label: t("name"), render: (v) => <span className="year-name">{v}</span> },
+              { key: "startDate", label: t("start_date"), render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
+              { key: "endDate", label: t("end_date"), render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
+              { key: "startDate", label: t("duration"), render: (_, row) => {
                 const start = new Date(row.startDate);
                 const end = new Date(row.endDate);
                 const days = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-                return <span style={{ fontFamily: "Space Mono, monospace" }}>{days} days</span>;
+                return <span style={{ fontFamily: "Space Mono, monospace" }}>{t("days_count", { count: days })}</span>;
               }},
-              { key: "actions", label: "Actions", render: (_, row) => (
+              { key: "actions", label: t("actions"), render: (_, row) => (
                 <div style={{ display: "flex", gap: 4 }}>
                   <PermissionGate resource="academics.academic-years" minLevel={3}>
-                    <button className="btn-icon edit" onClick={() => openEditSemDrawer(row)} title="Edit"><Edit2 size={16} /></button>
+                    <button className="btn-icon edit" onClick={() => openEditSemDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
                   </PermissionGate>
                   <PermissionGate resource="academics.academic-years" minLevel={5}>
-                    <button className="btn-icon delete" onClick={() => setSemDelete(row)} title="Delete"><Trash2 size={16} /></button>
+                    <button className="btn-icon delete" onClick={() => setSemDelete(row)} title={t("delete")}><Trash2 size={16} /></button>
                   </PermissionGate>
                 </div>
               ), nowrap: true },
@@ -328,14 +330,14 @@ function AcademicYearsPage() {
         <Drawer
           open={!!semDrawer}
           onClose={closeSemDrawer}
-          title={semDrawer === "create" ? "Create Semester" : "Edit Semester"}
+          title={semDrawer === "create" ? t("create_semester") : t("edit_semester")}
           width={420}
           loading={createSem.isPending || updateSem.isPending}
           footer={
             <>
-              <button className="btn-cancel" onClick={closeSemDrawer}>Cancel</button>
+              <button className="btn-cancel" onClick={closeSemDrawer}>{t("cancel")}</button>
               <button className="btn-primary" onClick={handleSemSave}>
-                {createSem.isPending || updateSem.isPending ? "Saving..." : semDrawer === "create" ? "Create" : "Update"}
+                {createSem.isPending || updateSem.isPending ? t("saving") : semDrawer === "create" ? t("create") : t("update")}
               </button>
             </>
           }
@@ -347,18 +349,18 @@ function AcademicYearsPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div className="form-group">
-              <label htmlFor="sem-name">Semester Name *</label>
+              <label htmlFor="sem-name">{t("semester_name")} *</label>
               <input id="sem-name" type="text" value={semForm.name}
                 onChange={(e) => setSemForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Fall, Spring, Summer"
+                placeholder={t("semester_name_placeholder")}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }} />
               <small style={{ color: "#6b7280", fontSize: 10 }}>
-                Year bounds: {semesterDateBounds.minDate} → {semesterDateBounds.maxDate}
+                {t("year_bounds", { min: semesterDateBounds.minDate, max: semesterDateBounds.maxDate })}
               </small>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <div className="form-group" style={{ flex: 1 }}>
-                <label htmlFor="sem-start">Start Date *</label>
+                <label htmlFor="sem-start">{t("start_date")} *</label>
                 <input id="sem-start" type="date" value={semForm.startDate}
                   min={semesterDateBounds.minDate || undefined}
                   max={semForm.endDate || semesterDateBounds.maxDate || undefined}
@@ -366,7 +368,7 @@ function AcademicYearsPage() {
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }} />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
-                <label htmlFor="sem-end">End Date *</label>
+                <label htmlFor="sem-end">{t("end_date")} *</label>
                 <input id="sem-end" type="date" value={semForm.endDate}
                   min={semForm.startDate || semesterDateBounds.minDate || undefined}
                   max={semesterDateBounds.maxDate || undefined}
@@ -381,10 +383,10 @@ function AcademicYearsPage() {
           open={!!semDelete}
           onClose={() => setSemDelete(null)}
           onConfirm={handleDeleteSem}
-          title="Delete Semester"
-          message={`Are you sure you want to delete ${semDelete?.name}?`}
-          detail="This action cannot be undone."
-          confirmLabel="Delete"
+          title={t("delete_semester")}
+          message={t("confirm_delete_semester", { name: semDelete?.name })}
+          detail={t("cannot_undo")}
+          confirmLabel={t("delete")}
           variant="danger"
         />
       </div>
@@ -395,27 +397,27 @@ function AcademicYearsPage() {
     <div className="academic-years-container">
       <div className="ay-header">
         <div>
-          <h1>Academic Years Management</h1>
-          <p>Manage academic years and semesters for the institution</p>
+          <h1>{t("academic_years_management")}</h1>
+          <p>{t("manage_academic_years")}</p>
         </div>
         <div className="ay-header-actions">
           <div className="ay-view-toggle" role="group" aria-label="View mode">
             <button
               className={`ay-toggle-btn ${viewMode === "table" ? "active" : ""}`}
               onClick={() => { setViewMode("table"); setSelectedIds(new Set()); }}
-              title="Table View"
+              title={t("table_view")}
               aria-pressed={viewMode === "table"}
             ><Clock size={16} /></button>
             <button
               className={`ay-toggle-btn ${viewMode === "timeline" ? "active" : ""}`}
               onClick={() => { setViewMode("timeline"); setSelectedIds(new Set()); }}
-              title="Timeline View"
+              title={t("timeline_view")}
               aria-pressed={viewMode === "timeline"}
             ><ChevronLeft size={16} /></button>
           </div>
           <PermissionGate resource="academics.academic-years" minLevel={2}>
             <button className="btn-create" onClick={() => setShowWizard(true)}>
-              <Plus size={18} /> New Academic Year
+              <Plus size={18} /> {t("new_academic_year")}
             </button>
           </PermissionGate>
         </div>
@@ -424,16 +426,16 @@ function AcademicYearsPage() {
       {queryError && (
         <div className="alert alert-error" role="alert">
           <AlertTriangle size={18} />
-          <span>{queryError.message || "Failed to load academic years"}</span>
+          <span>{queryError.message || t("failed_to_load_data")}</span>
           <button className="btn-cancel" style={{ marginLeft: "auto", padding: "4px 10px", fontSize: 12 }} onClick={() => refetch()}>
-            Retry
+            {t("retry")}
           </button>
         </div>
       )}
 
       {viewMode === "timeline" ? (
         allYears.length === 0 ? (
-          <div className="empty-state"><Calendar size={40} /><p>No academic years yet</p></div>
+          <div className="empty-state"><Calendar size={40} /><p>{t("no_academic_years_yet")}</p></div>
         ) : (
           <AcademicTimeline
             years={allYears}
@@ -451,11 +453,11 @@ function AcademicYearsPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: "5px 10px", flex: 1, maxWidth: 320 }}>
               <Search size={13} style={{ color: "#6b7280" }} />
               <input
-                type="text" placeholder="Search by name…" value={search}
+                type="text" placeholder={t("search_by_name")} value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 style={{ border: "none", outline: "none", flex: 1, fontSize: 13, fontFamily: "inherit", color: "#1a1f5e" }}
-                aria-label="Search academic years"
+                aria-label={t("search_by_name")}
               />
               {search && (
                 <button style={{ background: "transparent", border: "none", cursor: "pointer", color: "#6b7280", padding: 2, display: "flex" }}
@@ -465,60 +467,60 @@ function AcademicYearsPage() {
               )}
             </div>
             <button className="btn-cancel" style={{ padding: "5px 12px", fontSize: 12 }} onClick={handleSearch}>
-              <Search size={12} /> Search
+              <Search size={12} /> {t("search")}
             </button>
             {filtered.length !== allYears.length && (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>{filtered.length} of {allYears.length}</span>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>{t("filtered_of_total", { filtered: filtered.length, total: allYears.length })}</span>
             )}
           </div>
 
           <DataTable
             columns={[
-              { key: "name", label: "Name", render: (_, row) => (
+              { key: "name", label: t("name"), render: (_, row) => (
                 <span className="name-cell">
                   <span className="year-name">{row.name}</span>
-                  {row.isCurrent && <StatusBadge status="active" label="Current" style={{ marginLeft: 8 }} />}
-                  {row.isClosed && <StatusBadge status="closed" label="Closed" style={{ marginLeft: 8 }} />}
+                  {row.isCurrent && <StatusBadge status="active" label={t("current_badge")} style={{ marginLeft: 8 }} />}
+                  {row.isClosed && <StatusBadge status="closed" label={t("closed_badge")} style={{ marginLeft: 8 }} />}
                 </span>
               )},
-              { key: "startDate", label: "Start Date", render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
-              { key: "endDate", label: "End Date", render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
-              { key: "isCurrent", label: "Status", render: (v) => <StatusBadge status={v ? "active" : "inactive"} label={v ? "Active" : "Inactive"} /> },
-              { key: "isClosed", label: "Record", render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? "Closed" : "Open"} /> },
-              { key: "semesters", label: "Semesters", render: (_, row) => (
+              { key: "startDate", label: t("start_date"), render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
+              { key: "endDate", label: t("end_date"), render: (v) => v ? new Date(v).toLocaleDateString() : "—" },
+              { key: "isCurrent", label: t("status"), render: (v) => <StatusBadge status={v ? "active" : "inactive"} label={v ? t("active") : t("inactive")} /> },
+              { key: "isClosed", label: t("record_status"), render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? t("closed_badge") : t("open_status")} /> },
+              { key: "semesters", label: t("semesters_tab"), render: (_, row) => (
                 <PermissionGate resource="academics.academic-years" minLevel={3}>
-                  <button className="btn-semester" onClick={(e) => { e.stopPropagation(); setSemesterYear(row); }} title="Manage Semesters">
-                    <Clock size={16} /> Manage
+                  <button className="btn-semester" onClick={(e) => { e.stopPropagation(); setSemesterYear(row); }} title={t("manage_semesters")}>
+                    <Clock size={16} /> {t("manage_semesters")}
                   </button>
                 </PermissionGate>
               )},
-              { key: "actions", label: "Actions", render: (_, row) => (
+              { key: "actions", label: t("actions"), render: (_, row) => (
                 <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
                   {!row.isCurrent && !row.isClosed && (
                     <PermissionGate resource="academics.academic-years" minLevel={3}>
                       <button className="btn-icon set-current" onClick={() => handleSetCurrent(row)}
-                        disabled={setCurrentYear.isPending} title="Set as Current Year">
+                        disabled={setCurrentYear.isPending} title={t("set_as_current_year")}>
                         <Clock size={16} />
                       </button>
                     </PermissionGate>
                   )}
                   <PermissionGate resource="academics.academic-years" minLevel={3}>
-                    <button className="btn-icon edit" onClick={() => openEditYearDrawer(row)} title="Edit"><Edit2 size={16} /></button>
+                    <button className="btn-icon edit" onClick={() => openEditYearDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
                   </PermissionGate>
                   {row.isClosed ? (
                     <PermissionGate resource="academics.academic-years" minLevel={4}>
                       <button className="btn-icon reopen" onClick={() => handleReopenYear(row)}
-                        disabled={reopenYear.isPending} title="Reopen Year"><Clock size={16} /></button>
+                        disabled={reopenYear.isPending} title={t("reopen_year")}><Clock size={16} /></button>
                     </PermissionGate>
                   ) : (
                     <PermissionGate resource="academics.academic-years" minLevel={3}>
                       <button className="btn-icon close" onClick={() => setCascadeTarget(row)}
-                        disabled={closeYear.isPending} title="Close Year"><Clock size={16} /></button>
+                        disabled={closeYear.isPending} title={t("close_year")}><Clock size={16} /></button>
                     </PermissionGate>
                   )}
                   <PermissionGate resource="academics.academic-years" minLevel={5}>
                     <button className="btn-icon delete" onClick={() => setConfirmAction({ type: "delete", id: row.id, name: row.name })}
-                      title="Delete"><Trash2 size={16} /></button>
+                      title={t("delete")}><Trash2 size={16} /></button>
                   </PermissionGate>
                 </div>
               ), nowrap: true },

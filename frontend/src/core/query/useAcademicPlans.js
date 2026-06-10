@@ -32,6 +32,16 @@ export function useAcademicPlan(id) {
   });
 }
 
+export function usePlanByStructure(structureNodeId) {
+  return useQuery({
+    queryKey: ["academic-plan", "by-structure", structureNodeId],
+    queryFn: () => academicPlanService.fetchPlansForStructure(structureNodeId),
+    enabled: !!structureNodeId,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateAcademicPlan() {
   const qc = useQueryClient();
   return useMutation({
@@ -115,7 +125,7 @@ export function useRemovePlanCourse() {
 export function useBatchSetPlanCourses() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ planId, courses }) => academicPlanService.batchSetPlanCourses(planId, courses),
+    mutationFn: ({ planId, courses }) => academicPlanService.batchUpdatePlanCourses(planId, courses),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: PLANS_KEY });
       qc.invalidateQueries({ queryKey: ["academic-plan"] });

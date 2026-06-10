@@ -143,7 +143,7 @@ function PermissionTreePage() {
           <option value="">{t("full_permission_tree")}</option>
           {roles.map((r) => (
             <option key={r.id} value={r.id}>
-              Role: {r.name}
+              {t("role_prefix", { name: r.name })}
             </option>
           ))}
         </select>

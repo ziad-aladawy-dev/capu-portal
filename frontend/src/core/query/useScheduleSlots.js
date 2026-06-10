@@ -1,7 +1,37 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as scheduleService from "../services/scheduleService";
 
 const SLOTS_KEY = ["schedule-slots"];
+
+/**
+ * Parallel-fetch schedule slots for many offerings at once (Scheduling Matrix).
+ * Returns { slotsByOffering: Map<offeringId, slot[]>, isLoading, isError }.
+ */
+export function useSlotsForOfferings(offeringIds = []) {
+  const results = useQueries({
+    queries: offeringIds.map((id) => ({
+      queryKey: ["schedule-slots", id],
+      queryFn: () => scheduleService.fetchSlotsForOffering(id),
+      enabled: !!id,
+      staleTime: 60 * 1000,
+      select: (data) => {
+        const items = data?.items || data || [];
+        return Array.isArray(items) ? items : [];
+      },
+    })),
+  });
+
+  const slotsByOffering = {};
+  offeringIds.forEach((id, i) => {
+    slotsByOffering[id] = results[i]?.data || [];
+  });
+
+  return {
+    slotsByOffering,
+    isLoading: results.some((r) => r.isLoading),
+    isError: results.some((r) => r.isError),
+  };
+}
 
 export function useScheduleSlots(offeringId) {
   return useQuery({

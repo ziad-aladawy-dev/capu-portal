@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen, Plus, Edit2, Trash2, X, Search, AlertTriangle,
-  AlertCircle, RefreshCw,
+  RefreshCw, Lock, Unlock, Library,
 } from "lucide-react";
 import PermissionGate from "../../../core/auth/PermissionGate";
 import { COURSE_CATEGORIES, getCourseCategoryLabel } from "../../../core/services/courseService";
@@ -14,31 +15,34 @@ import {
   useCourses, useCreateCourse, useUpdateCourse,
   useDeleteCourse, useCloseCourse, useOpenCourse, useBulkDeleteCourses,
 } from "../../../core/query/useCourses";
-import { findCoursePrerequisiteCycle } from "../../../core/utils/dagValidator";
 import "../styles/courses.css";
 
 const PAGE_SIZE = 20;
-const EMPTY_FORM = { code: "", title: "", creditHours: 3, category: 0, prerequisites: [] };
+const EMPTY_FORM = { code: "", title: "", creditHours: 3, category: 0 };
 
 function CoursesPage() {
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [compact, setCompact] = useState(false);
 
-  const [showHealthWarning, setShowHealthWarning] = useState(false);
+  const queryParams = useMemo(() => ({
+    page,
+    pageSize: PAGE_SIZE,
+    search,
+    category: categoryFilter,
+    isActive: statusFilter === "" ? undefined : statusFilter === "active",
+  }), [page, search, categoryFilter, statusFilter]);
 
-  const queryParams = { page, pageSize: PAGE_SIZE, search, category: categoryFilter };
   const { data: courseData, isLoading, error, refetch } = useCourses(queryParams);
   const courses = courseData?.items || [];
   const totalPages = courseData?.totalPages || 1;
-
-  // Fetch ALL courses for health check & DAG validation
-  const { data: allCourseData } = useCourses({ page: 1, pageSize: 10000 });
-  const allCourses = allCourseData?.items || [];
+  const totalCount = courseData?.totalCount || 0;
 
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
@@ -55,30 +59,36 @@ function CoursesPage() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [prereqWarning, setPrereqWarning] = useState(null);
+  const pageStats = useMemo(() => {
+    const active = courses.filter((c) => c.isActive).length;
+    const closed = courses.filter((c) => c.isClosed).length;
+    const credits = courses.reduce((a, c) => a + (c.creditHours || 0), 0);
+    return { active, closed, credits };
+  }, [courses]);
 
   const handleSearch = () => { setPage(1); setSelectedIds(new Set()); };
+  const clearFilters = () => {
+    setSearch(""); setCategoryFilter(""); setStatusFilter("");
+    setPage(1); setSelectedIds(new Set());
+  };
 
   const openCreateDrawer = () => {
     setDrawerMode("create");
     setEditCourse(null);
     setForm(EMPTY_FORM);
     setFormError("");
-    setPrereqWarning(null);
   };
   const openEditDrawer = (course) => {
     setDrawerMode("edit");
     setEditCourse(course);
-    setForm({ code: course.code, title: course.title, creditHours: course.creditHours, category: course.category, prerequisites: course.prerequisites || [] });
+    setForm({ code: course.code, title: course.title, creditHours: course.creditHours, category: course.category });
     setFormError("");
-    setPrereqWarning(null);
   };
   const closeDrawer = () => {
     setDrawerMode(null);
     setEditCourse(null);
     setForm(EMPTY_FORM);
     setFormError("");
-    setPrereqWarning(null);
   };
 
   const validateForm = () => {
@@ -86,15 +96,6 @@ function CoursesPage() {
     if (!form.title.trim()) { setFormError("Title is required"); return false; }
     if (!Number.isFinite(form.creditHours) || form.creditHours < 0 || form.creditHours > 30) {
       setFormError("Credit hours must be between 0 and 30"); return false;
-    }
-    // DAG check for prerequisite cycles
-    if (editCourse && form.prerequisites?.length > 0) {
-      const cycleResult = findCoursePrerequisiteCycle(editCourse.id, allCourses);
-      if (cycleResult?.inCycle) {
-        setFormError(`Prerequisite cycle detected involving: ${cycleResult.cycle.join(" → ")}`);
-        setPrereqWarning(cycleResult);
-        return false;
-      }
     }
     setFormError(""); return true;
   };
@@ -107,7 +108,12 @@ function CoursesPage() {
         await createCourse.mutateAsync(form);
         addToast("Course created", "success");
       } else if (drawerMode === "edit" && editCourse) {
-        await updateCourse.mutateAsync({ id: editCourse.id, ...form });
+        await updateCourse.mutateAsync({
+          id: editCourse.id,
+          title: form.title,
+          creditHours: form.creditHours,
+          category: form.category,
+        });
         addToast("Course updated", "success");
       }
       closeDrawer();
@@ -165,19 +171,6 @@ function CoursesPage() {
     }
   };
 
-  // Catalog Health: courses with offeringCount === 0
-  // Note: offeringCount requires cross-module data not currently exposed via the API
-  const orphanCourses = useMemo(() => {
-    if (!allCourseData?.items) return [];
-    return allCourseData.items.filter((c) => !c.offeringCount && c.offeringCount !== undefined);
-  }, [allCourseData]);
-
-  // Build prerequisite list UI
-  const availablePrereqs = useMemo(() => {
-    if (!allCourses) return [];
-    return allCourses.filter((c) => !editCourse || c.id !== editCourse.id);
-  }, [allCourses, editCourse]);
-
   return (
     <div className="courses-page">
       <div className="courses-header">
@@ -185,16 +178,12 @@ function CoursesPage() {
           <BookOpen size={22} />
           <div>
             <h1>Course Catalog</h1>
-            <p>Manage course offerings, credit hours and categories.</p>
+            <p>Define courses, credit hours and categories. Open the Course Hub to manage offerings &amp; schedules.</p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            className={`courses-btn courses-btn-outline ${showHealthWarning ? "danger" : ""}`}
-            onClick={() => setShowHealthWarning((p) => !p)}
-            title="Catalog Health"
-          >
-            <AlertCircle size={13} /> Health
+          <button className="courses-btn courses-btn-outline" onClick={() => navigate("/admin/academic/course-hub")} title="Browse offerings & schedule per course">
+            <Library size={14} /> Course Hub
           </button>
           <PermissionGate resource="courses.courses" minLevel={2}>
             <button className="courses-btn courses-btn-primary" onClick={openCreateDrawer}>
@@ -214,30 +203,15 @@ function CoursesPage() {
         </div>
       )}
 
-      {/* Catalog Health Alert */}
-      {showHealthWarning && orphanCourses.length > 0 && (
-        <div role="alert" style={{ padding: "12px 16px", marginBottom: 16, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, fontSize: 13 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <AlertTriangle size={16} style={{ color: "#d97706" }} />
-            <strong style={{ color: "#92400e" }}>Catalog Health Warning</strong>
-          </div>
-          <p style={{ margin: "0 0 8px", color: "#92400e" }}>
-            <strong>{orphanCourses.length}</strong> course(s) in the catalog have never been offered. These may be obsolete:
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {orphanCourses.slice(0, 10).map((c) => (
-              <span key={c.id} style={{ padding: "2px 8px", background: "#fef3c7", borderRadius: 4, fontSize: 11, fontWeight: 600, color: "#92400e" }}>
-                {c.code}
-              </span>
-            ))}
-            {orphanCourses.length > 10 && (
-              <span style={{ padding: "2px 8px", fontSize: 11, color: "#6b7280" }}>
-                +{orphanCourses.length - 10} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Stat strip */}
+      <div className="courses-stats">
+        <div className="courses-stat"><span className="courses-stat-value">{totalCount}</span><span className="courses-stat-label">Total Courses</span></div>
+        <div className="courses-stat-divider" />
+        <div className="courses-stat"><span className="courses-stat-value" style={{ color: "#166534" }}>{pageStats.active}</span><span className="courses-stat-label">Active (page)</span></div>
+        <div className="courses-stat"><span className="courses-stat-value" style={{ color: "#6b7280" }}>{pageStats.closed}</span><span className="courses-stat-label">Closed (page)</span></div>
+        <div className="courses-stat-divider" />
+        <div className="courses-stat"><span className="courses-stat-value">{pageStats.credits}</span><span className="courses-stat-label">Credits (page)</span></div>
+      </div>
 
       <div className="courses-toolbar">
         <div className="courses-search">
@@ -258,29 +232,34 @@ function CoursesPage() {
           <option value="">All categories</option>
           {COURSE_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
         </select>
+        <select className="courses-filter-select" value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); setSelectedIds(new Set()); }}
+          aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option value="active">Active only</option>
+          <option value="inactive">Inactive only</option>
+        </select>
         <button className="courses-btn courses-btn-outline" onClick={handleSearch}>
           <Search size={13} /> Search
         </button>
+        {(search || categoryFilter || statusFilter) && (
+          <button className="courses-btn courses-btn-outline" onClick={clearFilters}>
+            <X size={13} /> Clear
+          </button>
+        )}
       </div>
 
       <DataTable
         columns={[
-          { key: "code", label: "Code", render: (v) => <strong style={{ fontFamily: "Space Mono, monospace" }}>{v}</strong> },
-          { key: "title", label: "Title" },
-          { key: "creditHours", label: "Credits", align: "center" },
+          { key: "code", label: "Code", width: 120, render: (v) => <strong style={{ fontFamily: "Space Mono, monospace" }}>{v}</strong> },
+          { key: "title", label: "Title", nowrap: false },
+          { key: "creditHours", label: "Credits", align: "center", width: 80 },
           { key: "category", label: "Category", render: (v) => <span className="courses-badge courses-badge-cat">{getCourseCategoryLabel(v)}</span> },
-          { key: "isActive", label: "Status", render: (v) => <StatusBadge status={v ? "active" : "inactive"} label={v ? "Active" : "Inactive"} /> },
-          { key: "isClosed", label: "Record", render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? "Closed" : "Open"} /> },
+          { key: "isActive", label: "Status", width: 100, render: (v) => <StatusBadge status={v ? "active" : "inactive"} label={v ? "Active" : "Inactive"} /> },
+          { key: "isClosed", label: "Record", width: 90, render: (v) => <StatusBadge status={v ? "closed" : "open"} label={v ? "Closed" : "Open"} /> },
           {
-            key: "offeringCount", label: "Offerings", align: "center",
-            render: (v, row) => {
-              if (v === 0) return <StatusBadge status="draft" label="0" style={{ background: "#fef3c7", color: "#92400e" }} />;
-              if (!v && v !== 0) return <span style={{ color: "#9ca3af" }}>—</span>;
-              return <span style={{ fontFamily: "Space Mono, monospace" }}>{v}</span>;
-            },
-          },
-          {
-            key: "actions", label: "Actions", render: (_, row) => (
+            key: "actions", label: "Actions", nowrap: true, width: 130,
+            render: (_, row) => (
               <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
                 <PermissionGate resource="courses.courses" minLevel={3}>
                   <button className="courses-action-btn edit" onClick={() => openEditDrawer(row)} title="Edit"><Edit2 size={13} /></button>
@@ -288,19 +267,19 @@ function CoursesPage() {
                 {row.isClosed ? (
                   <PermissionGate resource="courses.courses" minLevel={4}>
                     <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "open", course: row })}
-                      disabled={openCourse.isPending} title="Reopen"><Trash2 size={13} /></button>
+                      disabled={openCourse.isPending} title="Reopen record"><Unlock size={13} /></button>
                   </PermissionGate>
                 ) : (
                   <PermissionGate resource="courses.courses" minLevel={3}>
                     <button className="courses-action-btn edit" onClick={() => setConfirmAction({ type: "close", course: row })}
-                      disabled={closeCourse.isPending} title="Close Record"><Trash2 size={13} /></button>
+                      disabled={closeCourse.isPending} title="Close record"><Lock size={13} /></button>
                   </PermissionGate>
                 )}
                 <PermissionGate resource="courses.courses" minLevel={5}>
                   <button className="courses-action-btn delete" onClick={() => setDeleteTarget(row)} title="Delete"><Trash2 size={13} /></button>
                 </PermissionGate>
               </div>
-            ), nowrap: true
+            ),
           },
         ]}
         data={courses}
@@ -323,6 +302,7 @@ function CoursesPage() {
         }}
         compact={compact}
         onCompactToggle={() => setCompact((c) => !c)}
+        tableLabel="Course catalog"
       />
 
       {selectedIds.size > 0 && (
@@ -359,13 +339,6 @@ function CoursesPage() {
           </div>
         )}
 
-        {prereqWarning && (
-          <div role="alert" style={{ padding: "8px 12px", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, color: "#92400e", fontSize: 12, marginBottom: 16 }}>
-            <AlertTriangle size={12} style={{ marginRight: 4 }} />
-            Cycle detected: {prereqWarning.cycle.join(" → ")}
-          </div>
-        )}
-
         <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="courses-form-group">
             <label htmlFor="course-code">Code</label>
@@ -392,26 +365,6 @@ function CoursesPage() {
               {COURSE_CATEGORIES.map((c) => (<option key={c.value} value={c.value}>{c.label}</option>))}
             </select>
           </div>
-
-          {/* Prerequisites - only show in edit mode */}
-          {drawerMode === "edit" && (
-            <div className="courses-form-group">
-              <label>Prerequisites</label>
-              <select multiple value={form.prerequisites || []}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-                  setForm((p) => ({ ...p, prerequisites: selected }));
-                }}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 12, minHeight: 80, fontFamily: "inherit" }}>
-                {availablePrereqs.map((c) => (
-                  <option key={c.id} value={c.id}>{c.code} — {c.title}</option>
-                ))}
-              </select>
-              <small style={{ color: "#6b7280", fontSize: 10 }}>
-                Hold Ctrl/Cmd to select multiple. Cycles are detected automatically.
-              </small>
-            </div>
-          )}
         </form>
       </Drawer>
 

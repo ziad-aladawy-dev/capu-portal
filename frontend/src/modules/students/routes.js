@@ -3,6 +3,7 @@ import { studentDirectoryConfig } from "../../core/components/directory/director
 
 const DirectoryPage = lazy(() => import("../../core/components/directory/DirectoryPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
+const StudentAcademicHubPage = lazy(() => import("./pages/StudentAcademicHubPage"));
 
 export default [
   {
@@ -21,6 +22,13 @@ export default [
   {
     path: "/admin/students/:id",
     component: StudentDetailPage,
+    permission: "users.users.view",
+    pageType: "entity",
+    applicableTo: "student",
+  },
+  {
+    path: "/admin/students/:id/academics",
+    component: StudentAcademicHubPage,
     permission: "users.users.view",
     pageType: "entity",
     applicableTo: "student",

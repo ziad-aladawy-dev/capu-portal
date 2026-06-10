@@ -55,6 +55,8 @@
     "permissions_manager_desc": "Manage user role assignments and permission overrides",
     "select_user": "Select a User",
     "select_user_desc": "Search for a user from the sidebar and click to select.",
+    "student_permissions_unavailable": "Students don't have permission assignments",
+    "student_permissions_unavailable_desc": "Student access is granted automatically from their enrollment context. Roles and permission overrides can only be assigned to staff members.",
     "role_assignments": "Role Assignments",
     "role_assignments_desc": "Select the roles assigned to this user.",
     "effective_permissions": "Effective Permissions",

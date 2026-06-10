@@ -25,6 +25,12 @@ public class TreasuryReceiptRepository : ITreasuryReceiptRepository
             .OrderBy(r => r.Name)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<TreasuryReceipt>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _context.Set<TreasuryReceipt>()
+            .AsNoTracking()
+            .OrderBy(r => r.Name)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(TreasuryReceipt receipt, CancellationToken cancellationToken = default) =>
         await _context.Set<TreasuryReceipt>().AddAsync(receipt, cancellationToken);
 

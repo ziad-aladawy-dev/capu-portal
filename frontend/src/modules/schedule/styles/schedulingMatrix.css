@@ -1,0 +1,86 @@
+.sm-page {
+  padding: 28px 32px;
+  font-family: "Outfit", sans-serif;
+  color: #1a1f5e;
+}
+
+.sm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  gap: 12px;
+}
+.sm-header-left { display: flex; align-items: flex-start; gap: 14px; }
+.sm-header-left h1 { font-size: 22px; font-weight: 700; margin: 0; }
+.sm-header-left p { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
+
+.sm-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.sm-legend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-left: auto;
+  font-size: 11px;
+  color: #6b7280;
+}
+.sm-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.sm-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+.sm-conflict-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Slot block rendered inside the grid */
+.sm-block {
+  height: 100%;
+  border-radius: 7px;
+  padding: 5px 7px;
+  font-size: 11px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 1px 2px rgba(15,17,47,0.08);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.sm-block:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,17,47,0.16); }
+.sm-block-code { font-weight: 700; color: #1a1f5e; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sm-block-meta { color: #4b5563; display: flex; align-items: center; gap: 4px; }
+.sm-block.kind-0 { background: #eef2ff; border-color: #c7d2fe; }   /* Lecture */
+.sm-block.kind-1 { background: #ecfdf5; border-color: #a7f3d0; }   /* Lab */
+.sm-block.kind-2 { background: #fffbeb; border-color: #fde68a; }   /* Tutorial */
+.sm-block.kind-3 { background: #f5f3ff; border-color: #ddd6fe; }   /* Seminar */
+.sm-block.kind-4 { background: #fff1f2; border-color: #fecdd3; }   /* Exam */
+.sm-block.kind-5 { background: #f3f4f6; border-color: #e5e7eb; }   /* Other */
+.sm-block.conflict { border-color: #ef4444; border-width: 2px; background: #fef2f2; }
+
+.sm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px 20px;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  background: #fbfcfe;
+  text-align: center;
+  color: #6b7280;
+}

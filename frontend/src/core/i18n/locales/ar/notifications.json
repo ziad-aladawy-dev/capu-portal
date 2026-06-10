@@ -16,5 +16,8 @@
     "hours_ago": "منذ {{count}} ساعة",
     "days_ago": "منذ {{count}} يوم",
     "loading_notifications": "جاري تحميل الإشعارات...",
-    "unread": "غير مقروء"
-}
+    "unread": "غير مقروء",
+    "failed_to_load_notifications": "فشل تحميل الإشعارات",
+    "failed_to_mark_read": "فشل تحديد الإشعار كمقروء",
+    "failed_to_mark_all_read": "فشل تحديد الكل كمقروء"
+  }

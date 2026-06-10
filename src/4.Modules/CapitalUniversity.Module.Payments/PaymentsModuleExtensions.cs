@@ -31,6 +31,7 @@ public static class PaymentsModuleExtensions
         services.AddScoped<Abstractions.Treasury.IServiceReceiptMappingService, Application.Treasury.ServiceReceiptMappingService>();
         services.AddScoped<Abstractions.Treasury.IOrderService, Application.Treasury.OrderService>();
         services.AddScoped<Abstractions.Treasury.IStudentFeeQueryService, Application.Treasury.StudentFeeQueryService>();
+        services.AddScoped<Abstractions.Treasury.IReceiptQueryService, Application.Treasury.ReceiptQueryService>();
         services.AddScoped<Abstractions.Treasury.IPaymentInitiationService, Application.Treasury.PaymentInitiationService>();
         services.AddScoped<Abstractions.Treasury.ISettlementService, Application.Treasury.SettlementService>();
         services.AddScoped<Abstractions.Treasury.IReconciliationService, Application.Treasury.ReconciliationService>();

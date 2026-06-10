@@ -195,31 +195,47 @@ function PermissionsPage() {
     }
   }, [addToast, t]);
 
+  const resetPermissionState = useCallback(() => {
+    setUserTree([]);
+    setAssignedRoleIds([]);
+    setInitialRoleIds([]);
+    setPendingLevels({});
+    setOriginalSnapshot(null);
+    setRoleScopeMap({});
+    setOverrideScopeMap({});
+    setDirty(false);
+  }, []);
+
+  // Students are context-scoped on the backend: they hold no StaffRoles /
+  // StaffPermissions rows, and the permission-tree endpoint only resolves
+  // staff ids (404 otherwise). Never request the tree for a student.
   const handleSelectUser = (user) => {
     scopeToUser(user);
     setSelectedUser(user);
     setSearchQuery("");
     setSearchResults([]);
+    if (user.type === "student") {
+      resetPermissionState();
+      return;
+    }
     loadUserTree(user.id);
   };
 
   useEffect(() => {
     if (isScoped && scopedUser && scopedUser.id !== selectedUser?.id) {
       setSelectedUser(scopedUser);
-      loadUserTree(scopedUser.id);
+      if (scopedUser.type === "student") {
+        resetPermissionState();
+      } else {
+        loadUserTree(scopedUser.id);
+      }
     }
-  }, [scopedUser?.id, isScoped, selectedUser?.id, loadUserTree]);
+  }, [scopedUser?.id, isScoped, selectedUser?.id, loadUserTree, resetPermissionState]);
 
   useEffect(() => {
     if (!isScoped && selectedUser) {
       setSelectedUser(null);
-      setUserTree([]);
-      setAssignedRoleIds([]);
-      setInitialRoleIds([]);
-      setPendingLevels({});
-      setOriginalSnapshot(null);
-      setRoleScopeMap({});
-      setOverrideScopeMap({});
+      resetPermissionState();
     }
   }, [isScoped]);
 
@@ -602,6 +618,7 @@ function PermissionsPage() {
   const selectedUserName = selectedUser?.name || "";
   const selectedUserCode = selectedUser?.code || "";
   const selectedUserType = selectedUser?.type || "";
+  const isStudentSelected = selectedUserType === "student";
 
   // Resolve actual node name from the structure tree
   const getNodeName = useCallback((nodeId) => {
@@ -719,7 +736,15 @@ function PermissionsPage() {
           </div>
         )}
 
-        {selectedUser && !loading && (
+        {isStudentSelected && (
+          <div className="perm-empty-state">
+            <ShieldCheck size={36} />
+            <h3>{t("student_permissions_unavailable")}</h3>
+            <p>{t("student_permissions_unavailable_desc")}</p>
+          </div>
+        )}
+
+        {selectedUser && !isStudentSelected && !loading && (
           <>
             {/* ─── Temporal Scope Section ─── */}
             <div className="perm-temporal-section">

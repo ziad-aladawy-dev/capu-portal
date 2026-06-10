@@ -10,6 +10,8 @@ const SESSION_NOTICES = {
   revoked:
     "Your session was ended — you may have signed in elsewhere or changed your password. Please sign in again.",
   expired: "Your session expired. Please sign in again.",
+  unauthorized:
+    "Your account doesn't have access to that area yet. Contact the administration if you believe this is a mistake.",
 };
 
 // Egyptian National ID: exactly 14 numeric digits.

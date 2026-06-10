@@ -16,5 +16,8 @@
     "hours_ago": "{{count}} h ago",
     "days_ago": "{{count}} d ago",
     "loading_notifications": "Loading notifications…",
-    "unread": "Unread"
-}
+    "unread": "Unread",
+    "failed_to_load_notifications": "Failed to load notifications",
+    "failed_to_mark_read": "Failed to mark as read",
+    "failed_to_mark_all_read": "Failed to mark all as read"
+  }

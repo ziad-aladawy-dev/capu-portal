@@ -23,6 +23,11 @@ export async function login(identifier, password) {
   const { data } = await api.post("/auth/login", { identifier, password });
   api.setToken(data.token);
   if (data.refreshToken) api.setRefreshToken(data.refreshToken);
+  // A fresh sign-in must not inherit the previous user's pinned selection.
+  try {
+    localStorage.removeItem("capu_pinned_user");
+    window.dispatchEvent(new CustomEvent("capu:auth-changed"));
+  } catch { /* ignore */ }
 
   return {
     user: data.user,
@@ -46,6 +51,10 @@ export async function login(identifier, password) {
 export async function logout() {
   try { await api.post("/auth/logout"); } catch { }
   api.clearTokens();
+  try {
+    localStorage.removeItem("capu_pinned_user");
+    window.dispatchEvent(new CustomEvent("capu:auth-changed"));
+  } catch { /* ignore */ }
 }
 
 export async function getCurrentUser() {

@@ -380,8 +380,12 @@ public class AcademicPlanService : IAcademicPlanService
             Semester = request.Semester,
             IsMandatory = request.IsMandatory,
         };
+        // The plan is tracked, so the new child is picked up by change
+        // detection on its own. Deliberately NOT calling _plans.Update(plan):
+        // that would force a rewrite of the (unchanged) plan row under its
+        // RowVersion guard, making concurrent composition edits conflict
+        // with each other for no reason.
         plan.PlanCourses.Add(entry);
-        _plans.Update(plan);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
         await BumpCollectionVersionAsync(cancellationToken);
@@ -463,7 +467,13 @@ public class AcademicPlanService : IAcademicPlanService
             });
         }
 
-        _plans.Update(plan);
+        // Composition changes are INSERTs/DELETEs on AcademicPlanCourses only —
+        // the plan row itself is untouched. _plans.Update(plan) here would mark
+        // every plan column modified and emit an UPDATE guarded by RowVersion,
+        // so two overlapping batch edits (e.g. rapid drag-drops in the
+        // curriculum grid) would collide on the parent row and surface as
+        // DbUpdateConcurrencyException even though they touch different
+        // courses. The plan is tracked, so child adds/removes save on their own.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
         await BumpCollectionVersionAsync(cancellationToken);

@@ -9,6 +9,7 @@ using CapitalUniversity.Core.UniTests._Helpers;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 
 namespace CapitalUniversity.Core.UniTests.StaffManagement;
 
@@ -77,7 +78,7 @@ public class StaffServiceTests
         captured.EmployeeCode.Should().Be("EMP-2001");
         captured.Name.Should().Be("{\"ar\":\"Aya\",\"en\":\"Aya\"}");
         captured.IsActive.Should().BeTrue("newly-created staff are active by default");
-        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        staff.Verify(r => r.SaveChangesAsync(), Times.Once);
         sessions.Verify(s => s.InvalidateCacheAsync(id, default), Times.Once,
             "P2.6 — negative-cached 'not found' must be evicted so first auth call resolves");
     }
@@ -203,7 +204,7 @@ public class StaffServiceTests
         });
 
         existing.Name.Should().Contain("new");
-        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        staff.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -300,7 +301,7 @@ public class StaffServiceTests
     public async Task GetById_Existing_ProjectsAllFields()
     {
         var (sut, staff, _, _, _) = Build();
-        var faculty = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"Faculty of Engineering\",\"en\":\"Faculty of Engineering\"}" };
+        var faculty = new StructureNode { Id = Guid.NewGuid(), Type = StructureNodeType.Faculty, Name = "{\"ar\":\"Faculty of Engineering\",\"en\":\"Faculty of Engineering\"}" };
         var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"Computer Science Dept\",\"en\":\"Computer Science Dept\"}", Parent = faculty };
         var entity = new Staff
         {
@@ -364,14 +365,11 @@ public class StaffServiceTests
     {
         var (sut, staff, _, _, _) = Build();
         var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"N\",\"en\":\"N\"}" };
-        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>())).ReturnsAsync(new PagedResult<Staff>
+        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>())).ReturnsAsync(new UserStatisticsDto
         {
-            Items = new List<Staff>
-            {
-                new() { Id = Guid.NewGuid(), Email = "1", IsActive = true,  StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"1\",\"en\":\"1\"}", JobTitle = "{\"ar\":\"1\",\"en\":\"1\"}" },
-                new() { Id = Guid.NewGuid(), Email = "2", IsActive = true,  StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"2\",\"en\":\"2\"}", JobTitle = "{\"ar\":\"2\",\"en\":\"2\"}" },
-                new() { Id = Guid.NewGuid(), Email = "3", IsActive = false, StructureNode = node, StructureNodeId = node.Id, Name = "{\"ar\":\"3\",\"en\":\"3\"}", JobTitle = "{\"ar\":\"3\",\"en\":\"3\"}" },
-            },
+            TotalStaff = 3,
+            ActiveStaff = 2,
+            InactiveStaff = 1
         });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest());
@@ -385,16 +383,13 @@ public class StaffServiceTests
     public async Task GetStatistics_RequestsAllPages_NotJustFirstPage()
     {
         var (sut, staff, _, _, _) = Build();
-        StaffQueryRequest? observed = null;
-        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>()))
-            .Callback<StaffQueryRequest>(q => observed = q)
-            .ReturnsAsync(new PagedResult<Staff> { Items = new List<Staff>() });
+        UserStatisticsRequest? observed = null;
+        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>()))
+            .Callback<UserStatisticsRequest>(q => observed = q)
+            .ReturnsAsync(new UserStatisticsDto());
 
         await sut.GetStatisticsAsync(new UserStatisticsRequest());
 
         observed.Should().NotBeNull();
-        observed!.PageSize.Should().Be(int.MaxValue,
-            "statistics aggregates the whole population, so the underlying query must not be paginated");
-        observed.Page.Should().Be(1);
     }
 }

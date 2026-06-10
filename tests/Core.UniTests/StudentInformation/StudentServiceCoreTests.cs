@@ -34,6 +34,7 @@ public class StudentServiceCoreTests
         hasher.Setup(h => h.HashPassword(It.IsAny<string>())).Returns<string>(p => "HASH:" + p);
         // Echo the localized string back via the "en" extraction convention.
         loc.Setup(l => l.Get<string>(It.IsAny<string>())).Returns<string>(s => s);
+        loc.Setup(l => l.GetLocalizedString(It.IsAny<string>())).Returns<string>(s => s);
         var sut = new StudentService(repo.Object, structure.Object, hasher.Object, loc.Object);
         return (sut, repo, structure, hasher, loc);
     }
@@ -551,9 +552,11 @@ public class StudentServiceCoreTests
         var active2 = StudentWithHierarchy(true, true);
         var inactive = StudentWithHierarchy(true, true);
         inactive.IsActive = false;
-        repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>())).ReturnsAsync(new PagedResult<Student>
+        repo.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>())).ReturnsAsync(new UserStatisticsDto
         {
-            Items = new List<Student> { active1, active2, inactive },
+            TotalStudents = 3,
+            ActiveStudents = 2,
+            InactiveStudents = 1
         });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest { ScopeNodeId = Guid.NewGuid() });

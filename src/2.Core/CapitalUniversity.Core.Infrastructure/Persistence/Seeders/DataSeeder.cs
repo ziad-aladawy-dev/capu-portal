@@ -528,18 +528,30 @@ public static class DataSeeder
     private static async Task SeedAuthResourcesAsync(CoreDbContext context)
     {
         var modules = await context.Modules.ToListAsync();
+        var existing = await context.Resources.ToListAsync();
 
         void AddRes(string moduleKey, string key, string displayName, int order)
         {
             var modId = modules.First(m => m.ModuleKey == moduleKey).Id;
-            context.Resources.Add(new Resource
+            var res = existing.FirstOrDefault(r => r.ModuleId == modId && r.Key == key);
+            if (res != null)
             {
-                Id = Guid.NewGuid(),
-                ModuleId = modId,
-                Key = key,
-                DisplayName = displayName,
-                OrderNumber = order
-            });
+                res.DisplayName = displayName;
+                res.OrderNumber = order;
+            }
+            else
+            {
+                var newRes = new Resource
+                {
+                    Id = Guid.NewGuid(),
+                    ModuleId = modId,
+                    Key = key,
+                    DisplayName = displayName,
+                    OrderNumber = order
+                };
+                context.Resources.Add(newRes);
+                existing.Add(newRes);
+            }
         }
 
         // One Resource per (module, key) — action verbs are per-row on
@@ -608,7 +620,7 @@ public static class DataSeeder
         // seeder's grant statements key by their English label, so index by
         // the "en" subkey (falls back to the literal for plain-text rows).
         var roleMap = roles.ToDictionary(r => LocalizedJson.Extract(r.Name, "en"), r => r.Id);
-        var resourceMap = resources.ToDictionary(r => (r.Module.ModuleKey, r.Key));
+        var resourceMap = resources.GroupBy(r => (r.Module.ModuleKey, r.Key)).ToDictionary(g => g.Key, g => g.First());
 
         // Per-action rows. Existing rows are keyed by (RoleId, ResourceId, Action)
         // to respect the IX_RolePermissions_RoleId_ResourceId_Action unique index.
@@ -710,7 +722,7 @@ public static class DataSeeder
         var nodes = await context.StructureNodes.ToListAsync();
         StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
 
-        var adminPwd = passwordHasher.HashPassword("123456");
+        var adminPwd = passwordHasher.HashPassword("admin123");
         // JobTitle values are bilingual JSON; the Name and Role columns stay
         // literal because they're personal names / unique role identifiers.
         var defs = new (string Emp, string Name, string NID, DateTime DOB, string Phone, string Email, string Role, string Job, string NodeName)[]

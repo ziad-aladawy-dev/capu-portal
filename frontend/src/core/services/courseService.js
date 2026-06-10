@@ -57,3 +57,18 @@ export async function bulkDeleteCourses(ids) {
   const { data } = await api.post("/courses/delete", { ids });
   return data;
 }
+
+export async function fetchRegisteredCourses() {
+  const { data } = await api.get("/courses/registered");
+  return data;
+}
+
+export async function fetchRegistrationHistory() {
+  const { data } = await api.get("/courses/history");
+  return data;
+}
+
+export async function fetchCourseAttempts(courseId) {
+  const { data } = await api.get(`/courses/${courseId}/attempts`);
+  return data;
+}

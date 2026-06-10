@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Edit2, Save, X, AlertCircle } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
 import * as studentService from "../../../core/services/studentService";
 import "../styles/studentProfile.css";
 
 function StudentProfile() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [studentData, setStudentData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -44,7 +46,7 @@ function StudentProfile() {
           });
         }
       } catch (err) {
-        setError(err.message || "Failed to load profile data");
+        setError(err.message || t("failed_to_load_data"));
       } finally {
         setLoading(false);
       }
@@ -68,11 +70,11 @@ function StudentProfile() {
     try {
       await studentService.updateStudent(user.id, formData);
       setStudentData({ ...studentData, ...formData });
-      setSuccess("Profile updated successfully!");
+      setSuccess(t("profile_updated"));
       setIsEditing(false);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err.message || "Failed to update profile");
+      setError(err.message || t("failed_to_load_data"));
     } finally {
       setSaving(false);
     }
@@ -83,7 +85,7 @@ function StudentProfile() {
       <div className="student-profile-container">
         <div className="sp-loading">
           <div className="spinner"></div>
-          <p>Loading profile...</p>
+          <p>{t("loading_profile")}</p>
         </div>
       </div>
     );
@@ -92,7 +94,7 @@ function StudentProfile() {
   return (
     <div className="student-profile-container">
       <div className="sp-header">
-        <h1>My Profile</h1>
+        <h1>{t("student_profile")}</h1>
         <button
           className={`btn-edit-profile ${isEditing ? "editing" : ""}`}
           onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
@@ -100,11 +102,11 @@ function StudentProfile() {
         >
           {isEditing ? (
             <>
-              <Save size={18} /> {saving ? "Saving..." : "Save Changes"}
+              <Save size={18} /> {saving ? t("saving") : t("save_changes")}
             </>
           ) : (
             <>
-              <Edit2 size={18} /> Edit Profile
+              <Edit2 size={18} /> {t("edit_profile")}
             </>
           )}
         </button>
@@ -114,7 +116,7 @@ function StudentProfile() {
             onClick={() => setIsEditing(false)}
             disabled={saving}
           >
-            <X size={18} /> Cancel
+            <X size={18} /> {t("cancel")}
           </button>
         )}
       </div>
@@ -148,10 +150,10 @@ function StudentProfile() {
       {/* Form */}
       <div className="sp-form">
         <div className="form-section">
-          <h3>Personal Information</h3>
+          <h3>{t("personal_details")}</h3>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="firstName">First Name</label>
+              <label htmlFor="firstName">{t("first_name")}</label>
               <input
                 id="firstName"
                 type="text"
@@ -162,7 +164,7 @@ function StudentProfile() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="lastName">Last Name</label>
+              <label htmlFor="lastName">{t("last_name")}</label>
               <input
                 id="lastName"
                 type="text"
@@ -176,7 +178,7 @@ function StudentProfile() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="dateOfBirth">Date of Birth</label>
+              <label htmlFor="dateOfBirth">{t("date_of_birth")}</label>
               <input
                 id="dateOfBirth"
                 type="date"
@@ -187,7 +189,7 @@ function StudentProfile() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="studentNumber">Student Number</label>
+              <label htmlFor="studentNumber">{t("student_number")}</label>
               <input
                 id="studentNumber"
                 type="text"
@@ -201,10 +203,10 @@ function StudentProfile() {
         </div>
 
         <div className="form-section">
-          <h3>Contact Information</h3>
+          <h3>{t("contact_details")}</h3>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">{t("email")}</label>
               <input
                 id="email"
                 type="email"
@@ -215,7 +217,7 @@ function StudentProfile() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="phoneNumber">Phone Number</label>
+              <label htmlFor="phoneNumber">{t("phone_number")}</label>
               <input
                 id="phoneNumber"
                 type="tel"
@@ -229,9 +231,9 @@ function StudentProfile() {
         </div>
 
         <div className="form-section">
-          <h3>Address</h3>
+          <h3>{t("address")}</h3>
           <div className="form-group">
-            <label htmlFor="address">Street Address</label>
+            <label htmlFor="address">{t("address")}</label>
             <input
               id="address"
               type="text"
@@ -244,7 +246,7 @@ function StudentProfile() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="city">City</label>
+              <label htmlFor="city">{t("city")}</label>
               <input
                 id="city"
                 type="text"
@@ -255,7 +257,7 @@ function StudentProfile() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="country">Country</label>
+              <label htmlFor="country">{t("country")}</label>
               <input
                 id="country"
                 type="text"

@@ -200,7 +200,7 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
                     .ToList()
                 : new List<ResourcePermissionTreeDto>();
 
-            if (resourceDtos.Count == 0) continue;
+
 
             result.Add(new ModulePermissionTreeDto
             {
@@ -274,7 +274,7 @@ public class PermissionTreeQueryHandler : IPermissionTreeQueryHandler
                     .ToList()
                 : new List<ResourcePermissionTreeDto>();
 
-            if (resourceDtos.Count == 0) continue;
+
 
             result.Add(new ModulePermissionTreeDto
             {

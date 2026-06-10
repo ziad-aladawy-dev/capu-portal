@@ -642,7 +642,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
+  opacity: 0.5;
   transition: all 0.15s;
 }
 
@@ -818,4 +818,575 @@
 
 .aplans-view-toggle button:hover:not(.active) {
   color: #1a1f5e;
+}
+
+/* ── Spin utility ── */
+.aplans-spin {
+  animation: aplans-spin 0.9s linear infinite;
+}
+
+/* ── Scope context bar ── */
+.aplans-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.aplans-scope-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1a1f5e;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.aplans-scope-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aplans-scope-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.aplans-scope-arrow {
+  color: #c4c7d4;
+  flex-shrink: 0;
+}
+
+.aplans-scope-programs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.aplans-scope-loading,
+.aplans-scope-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.aplans-program-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #e5e7eb;
+  background: #fcfcfe;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  max-width: 240px;
+}
+
+.aplans-program-chip span,
+.aplans-program-chip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aplans-program-chip:hover {
+  border-color: #c9a84c;
+  color: #1a1f5e;
+}
+
+.aplans-program-chip.active {
+  background: #1a1f5e;
+  border-color: #1a1f5e;
+  color: #e0c06a;
+  box-shadow: 0 2px 8px rgba(26, 31, 94, 0.18);
+}
+
+.aplans-scope-refresh {
+  flex-shrink: 0;
+  padding: 6px 12px !important;
+  font-size: 12px;
+}
+
+.aplans-scope-prompt {
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  color: #7a6a2e;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ── Read-only / drawer context notes ── */
+.aplans-readonly-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.aplans-drawer-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(26, 31, 94, 0.05);
+  border: 1px solid rgba(26, 31, 94, 0.12);
+  color: #1a1f5e;
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ── Grid: clickable mandatory/elective tag + drag-move states ── */
+.aplans-grid-course-tag {
+  font-size: 8px;
+  font-weight: 800;
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s;
+}
+
+.aplans-grid-course-tag:hover:not(:disabled) {
+  transform: scale(1.15);
+}
+
+.aplans-grid-course-tag:disabled {
+  cursor: default;
+}
+
+.aplans-grid-course-tag.mandatory {
+  background: #2e3591;
+  color: white;
+}
+
+.aplans-grid-course-tag.elective {
+  background: #c9a84c;
+  color: white;
+}
+
+.aplans-grid-course-badge[draggable="true"] {
+  cursor: grab;
+}
+
+.aplans-grid-course-badge.dragging {
+  opacity: 0.4;
+}
+
+.aplans-grid-cell.is-target {
+  background: rgba(201, 168, 76, 0.12);
+  box-shadow: inset 0 0 0 2px #c9a84c;
+}
+
+.aplans-grid-cell.is-dragover {
+  background: rgba(46, 53, 145, 0.1);
+  box-shadow: inset 0 0 0 2px #2e3591;
+}
+
+/* ── Shared add-course panel (Grid + Table) ── */
+.aplans-add-panel {
+  margin-top: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 8px 24px rgba(15, 17, 47, 0.1);
+  overflow: hidden;
+}
+
+.aplans-add-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #1a1f5e;
+  color: #e0c06a;
+}
+
+.aplans-add-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.aplans-add-panel-close {
+  background: transparent;
+  border: none;
+  color: #e0c06a;
+  cursor: pointer;
+  display: flex;
+  padding: 2px;
+  border-radius: 5px;
+}
+
+.aplans-add-panel-close:hover {
+  background: rgba(224, 192, 106, 0.18);
+}
+
+.aplans-add-panel-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f1f8;
+  flex-wrap: wrap;
+}
+
+.aplans-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.aplans-add-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1a1f5e;
+  background: white;
+  min-width: 64px;
+}
+
+.aplans-add-toggle {
+  display: inline-flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.aplans-add-toggle button {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.aplans-add-toggle button.active {
+  background: white;
+  color: #1a1f5e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.aplans-add-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f1f8;
+  color: #6b7280;
+}
+
+.aplans-add-search input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1a1f5e;
+  background: transparent;
+}
+
+.aplans-add-search-clear {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  padding: 2px;
+}
+
+.aplans-add-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.aplans-add-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: white;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #1a1f5e;
+  border-bottom: 1px solid #f9fafb;
+  transition: background 0.1s;
+}
+
+.aplans-add-item:hover:not(:disabled) {
+  background: #f0f1f8;
+}
+
+.aplans-add-item:disabled {
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.aplans-add-item.in-plan {
+  background: #f3fdf3;
+}
+
+.aplans-add-item-code {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.aplans-add-item-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.aplans-add-item-credits {
+  font-size: 11px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.aplans-add-item-check {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.aplans-add-empty {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 12.5px;
+}
+
+/* ── Shared credit/course summary bar ── */
+.aplans-summary-bar {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #f8f9fc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  font-size: 12.5px;
+  color: #374151;
+}
+
+.aplans-summary-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.aplans-summary-primary {
+  color: #1a1f5e;
+}
+
+.aplans-summary-mandatory strong {
+  color: #2e3591;
+}
+
+.aplans-summary-elective strong {
+  color: #9a7b1f;
+}
+
+.aplans-summary-divider {
+  width: 1px;
+  align-self: stretch;
+  background: #e5e7eb;
+}
+
+.aplans-summary-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* ── Curriculum Table editor ── */
+.aplans-ctable-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.aplans-ctable-add {
+  padding: 7px 14px !important;
+}
+
+.aplans-ctable-hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.aplans-ctable-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+}
+
+.aplans-ctable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.aplans-ctable-th {
+  background: #1a1f5e;
+  color: #e0c06a;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.aplans-ctable-th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.aplans-ctable-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.aplans-ctable-sort-idle {
+  opacity: 0.45;
+}
+
+.aplans-ctable-row {
+  border-bottom: 1px solid #f0f1f8;
+  transition: background 0.12s;
+}
+
+.aplans-ctable-row:hover {
+  background: #f8f9fd;
+}
+
+.aplans-ctable td {
+  padding: 7px 12px;
+  vertical-align: middle;
+}
+
+.aplans-ctable-code {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1a1f5e;
+  white-space: nowrap;
+}
+
+.aplans-ctable-title {
+  color: #374151;
+}
+
+.aplans-ctable-select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #1a1f5e;
+  background: white;
+  cursor: pointer;
+}
+
+.aplans-ctable-select:focus {
+  outline: none;
+  border-color: #c9a84c;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15);
+}
+
+.aplans-type-pill {
+  border: none;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s;
+}
+
+.aplans-type-pill:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.aplans-type-pill:disabled {
+  cursor: default;
+}
+
+.aplans-type-pill.mandatory {
+  background: rgba(46, 53, 145, 0.12);
+  color: #2e3591;
+}
+
+.aplans-type-pill.elective {
+  background: rgba(201, 168, 76, 0.18);
+  color: #9a7b1f;
 }

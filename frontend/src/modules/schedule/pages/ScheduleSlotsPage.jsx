@@ -1,12 +1,11 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Clock, Plus, Edit2, Trash2, AlertTriangle, RefreshCw, Lock, Unlock, Layers, X, Save, AlertCircle } from "lucide-react";
+import { Clock, Plus, Trash2, AlertTriangle, RefreshCw, Layers, X, Save, AlertCircle } from "lucide-react";
 import { useDomain } from "../../../core/contexts/DomainContext";
 import { useAcademic } from "../../../core/contexts/AcademicContext";
-import { DAY_LABELS, SLOT_KIND_LABELS, SLOT_KINDS } from "../../../core/services/scheduleService";
+import { DAY_LABELS, SLOT_KIND_LABELS } from "../../../core/services/scheduleService";
 import { useToast } from "../../../core/components/Toast";
 import EmptyState from "../../../core/components/EmptyState";
-import StatusBadge from "../../../core/components/StatusBadge";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import Drawer from "../../../core/components/Drawer";
 import PermissionGate from "../../../core/auth/PermissionGate";
@@ -15,15 +14,10 @@ import {
   useCloseSlot, useOpenSlot, useBatchCreateSlots,
   useOfferingsForSchedule,
 } from "../../../core/query/useScheduleSlots";
-import {
-  findOverlappingSlots, findAllOverlaps, hasOverlap,
-  getSlotKindClass, generateTimeIntervals, timeToGridPosition, timeToRowSpan,
-} from "../../../core/utils/scheduleOverlap";
+import { useActiveCourses } from "../../../core/query/useCourses";
+import { findOverlappingSlots, findAllOverlaps } from "../../../core/utils/scheduleOverlap";
 import DraggableScheduleGrid from "../components/DraggableScheduleGrid";
 import "../styles/scheduleSlots.css";
-
-const START_HOUR = 7;
-const END_HOUR = 22;
 
 const EMPTY_BATCH_ENTRY = { dayOfWeek: 0, startTime: "08:00", endTime: "09:00", kind: 0, location: "" };
 
@@ -35,8 +29,15 @@ function ScheduleSlotsPage() {
 
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
 
-  const { data: slots = [], isLoading: slotsLoading } = useScheduleSlots(selectedOfferingId);
+  const { data: slots = [], isLoading: slotsLoading, refetch: refetchSlots } = useScheduleSlots(selectedOfferingId);
   const { data: offerings = [] } = useOfferingsForSchedule(scopeNode?.id, selectedSemesterObj?.id);
+  const { data: courses = [] } = useActiveCourses();
+
+  const courseById = useMemo(() => {
+    const m = {};
+    for (const c of courses) m[c.id] = c;
+    return m;
+  }, [courses]);
 
   const createSlot = useCreateSlot();
   const updateSlot = useUpdateSlot();
@@ -54,9 +55,6 @@ function ScheduleSlotsPage() {
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [batchEntries, setBatchEntries] = useState([{ ...EMPTY_BATCH_ENTRY }]);
   const [batchOverlaps, setBatchOverlaps] = useState({});
-
-  const intervals = useMemo(() => generateTimeIntervals(START_HOUR, END_HOUR), []);
-  const days = useMemo(() => [0, 1, 2, 3, 4, 5, 6], []);
 
   const selectedOffering = useMemo(
     () => offerings.find((o) => o.id === selectedOfferingId) || null,
@@ -115,10 +113,10 @@ function ScheduleSlotsPage() {
       notes: slotForm.notes,
     };
 
-    if (!formData.dayOfWeek && formData.dayOfWeek !== 0) { setDrawerError("Day is required"); return; }
-    if (!formData.startTime) { setDrawerError("Start time is required"); return; }
-    if (!formData.endTime) { setDrawerError("End time is required"); return; }
-    if (formData.endTime <= formData.startTime) { setDrawerError("End time must be after start time"); return; }
+    if (!formData.dayOfWeek && formData.dayOfWeek !== 0) { setDrawerError(t("day_required")); return; }
+    if (!formData.startTime) { setDrawerError(t("start_time_required")); return; }
+    if (!formData.endTime) { setDrawerError(t("end_time_required")); return; }
+    if (formData.endTime <= formData.startTime) { setDrawerError(t("end_time_after_start")); return; }
 
     const overlapCheck = findOverlappingSlots(
       { dayOfWeek: formData.dayOfWeek, startTime: formData.startTime, endTime: formData.endTime, excludeId: editSlot?.id },
@@ -139,17 +137,17 @@ function ScheduleSlotsPage() {
         if (formData.location !== editSlot.location) body.location = formData.location;
         if (formData.notes !== editSlot.notes) body.notes = formData.notes;
         await updateSlot.mutateAsync({ id: editSlot.id, ...body });
-        addToast("Slot updated", "success");
+        addToast(t("slot_updated"), "success");
       } else {
         await createSlot.mutateAsync({
           courseOfferingId: selectedOfferingId,
           ...formData,
         });
-        addToast("Slot created", "success");
+        addToast(t("slot_created"), "success");
       }
       closeDrawer();
     } catch (err) {
-      setDrawerError(err.message || "Failed to save slot");
+      setDrawerError(err.message || t("failed_to_save_slot"));
     }
   };
 
@@ -164,9 +162,9 @@ function ScheduleSlotsPage() {
     }
     try {
       await createSlot.mutateAsync(formData);
-      addToast("Slot created via drag-and-drop", "success");
+      addToast(t("slot_created_drag"), "success");
     } catch (err) {
-      addToast(err.message || "Failed to create slot", "error");
+      addToast(err.message || t("failed_to_create_slot"), "error");
     }
   };
 
@@ -174,10 +172,10 @@ function ScheduleSlotsPage() {
     if (!deleteTarget) return;
     try {
       await deleteSlot.mutateAsync(deleteTarget.id);
-      addToast("Slot deleted", "success");
+      addToast(t("slot_deleted"), "success");
       setDeleteTarget(null);
     } catch (err) {
-      addToast(err.message || "Failed to delete slot", "error");
+      addToast(err.message || t("failed_to_delete_slot"), "error");
       setDeleteTarget(null);
     }
   };
@@ -190,10 +188,10 @@ function ScheduleSlotsPage() {
     if (!confirmTarget) return;
     try {
       await closeSlotMut.mutateAsync(confirmTarget.id);
-      addToast("Slot closed", "success");
+      addToast(t("slot_closed"), "success");
       setConfirmTarget(null);
     } catch (err) {
-      addToast(err.message || "Failed to close slot", "error");
+      addToast(err.message || t("failed_to_close_slot"), "error");
       setConfirmTarget(null);
     }
   };
@@ -202,10 +200,10 @@ function ScheduleSlotsPage() {
     if (!confirmTarget) return;
     try {
       await openSlotMut.mutateAsync(confirmTarget.id);
-      addToast("Slot reopened", "success");
+      addToast(t("slot_reopened"), "success");
       setConfirmTarget(null);
     } catch (err) {
-      addToast(err.message || "Failed to reopen slot", "error");
+      addToast(err.message || t("failed_to_reopen_slot"), "error");
       setConfirmTarget(null);
     }
   };
@@ -236,14 +234,14 @@ function ScheduleSlotsPage() {
   const validateBatchEntries = useCallback(() => {
     const valid = batchEntries.filter((e) => e.startTime && e.endTime && e.endTime > e.startTime);
     if (valid.length === 0) {
-      addToast("No valid entries to create", "warning");
+      addToast(t("no_valid_entries"), "warning");
       return null;
     }
     const allExisting = [...slots];
     const overlaps = findAllOverlaps(valid, allExisting);
     setBatchOverlaps(overlaps);
     if (Object.keys(overlaps).length > 0) {
-      addToast(`${Object.keys(overlaps).length} entry(s) have time conflicts. Review highlights.`, "warning");
+      addToast(t("entries_have_conflicts", { count: Object.keys(overlaps).length }), "warning");
       return null;
     }
     return valid;
@@ -265,10 +263,10 @@ function ScheduleSlotsPage() {
         })),
       });
       const count = result?.succeeded?.length || valid.length;
-      addToast(`${count} slot(s) created`, "success");
+      addToast(t("slots_created_count", { count }), "success");
       setShowBatchForm(false);
     } catch (err) {
-      addToast(err.message || "Batch create failed", "error");
+      addToast(err.message || t("batch_create_failed"), "error");
     }
   };
 
@@ -283,7 +281,7 @@ function ScheduleSlotsPage() {
         {drawerMode === "edit" && editSlot ? (
           <>
             <div className="form-group">
-              <label>Day</label>
+              <label>{t("day")}</label>
               <select value={formData.dayOfWeek} onChange={(e) => setForm((p) => ({ ...p, dayOfWeek: e.target.value }))}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }}>
                 {Object.entries(DAY_LABELS).map(([val, label]) => (
@@ -293,18 +291,18 @@ function ScheduleSlotsPage() {
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <div className="form-group" style={{ flex: 1 }}>
-                <label>Start Time</label>
+                <label>{t("start_time")}</label>
                 <input type="time" value={formData.startTime} onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
-                <label>End Time</label>
+                <label>{t("end_time")}</label>
                 <input type="time" value={formData.endTime} onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
               </div>
             </div>
             <div className="form-group">
-              <label>Kind</label>
+              <label>{t("kind")}</label>
               <select value={formData.kind} onChange={(e) => setForm((p) => ({ ...p, kind: e.target.value }))}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }}>
                 {Object.entries(SLOT_KIND_LABELS).map(([val, label]) => (
@@ -313,13 +311,13 @@ function ScheduleSlotsPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Room</label>
+              <label>{t("room")}</label>
               <input type="text" value={formData.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-                placeholder="e.g. A201"
+                placeholder={t("room_placeholder")}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
             </div>
             <div className="form-group">
-              <label>Notes</label>
+              <label>{t("notes")}</label>
               <textarea value={formData.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
                 rows={2} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit", resize: "vertical" }} />
             </div>
@@ -327,10 +325,10 @@ function ScheduleSlotsPage() {
         ) : (
           <>
             <div className="form-group">
-              <label>Day *</label>
+              <label>{t("day_asterisk")}</label>
               <select value={formData.dayOfWeek} onChange={(e) => setForm((p) => ({ ...p, dayOfWeek: e.target.value }))}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }}>
-                <option value="">Select day...</option>
+                <option value="">{t("select_day")}</option>
                 {Object.entries(DAY_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
                 ))}
@@ -338,18 +336,18 @@ function ScheduleSlotsPage() {
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <div className="form-group" style={{ flex: 1 }}>
-                <label>Start Time *</label>
+                <label>{t("start_time_asterisk")}</label>
                 <input type="time" value={formData.startTime} onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
               </div>
               <div className="form-group" style={{ flex: 1 }}>
-                <label>End Time *</label>
+                <label>{t("end_time_asterisk")}</label>
                 <input type="time" value={formData.endTime} onChange={(e) => setForm((p) => ({ ...p, endTime: e.target.value }))}
                   style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
               </div>
             </div>
             <div className="form-group">
-              <label>Kind</label>
+              <label>{t("kind")}</label>
               <select value={formData.kind} onChange={(e) => setForm((p) => ({ ...p, kind: e.target.value }))}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }}>
                 {Object.entries(SLOT_KIND_LABELS).map(([val, label]) => (
@@ -358,9 +356,9 @@ function ScheduleSlotsPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Room</label>
+              <label>{t("room")}</label>
               <input type="text" value={formData.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-                placeholder="e.g. A201"
+                placeholder={t("room_placeholder")}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
             </div>
           </>
@@ -382,7 +380,7 @@ function ScheduleSlotsPage() {
         <div style={{ display: "flex", gap: 8 }}>
           <PermissionGate resource="schedule.schedule-slots" minLevel={2}>
             <button className="sch-btn sch-btn-primary" onClick={openBatchForm} disabled={!selectedOfferingId}>
-              <Layers size={16} /> Batch
+              <Layers size={16} /> {t("batch")}
             </button>
           </PermissionGate>
           <PermissionGate resource="schedule.schedule-slots" minLevel={2}>
@@ -395,13 +393,16 @@ function ScheduleSlotsPage() {
 
       <div className="sch-toolbar">
         <select className="sch-offering-select" value={selectedOfferingId}
-          onChange={(e) => setSelectedOfferingId(e.target.value)} aria-label="Select course offering">
+          onChange={(e) => setSelectedOfferingId(e.target.value)} aria-label={t("select_course_offering_aria")}>
           <option value="">{t("select_course_offering")}</option>
-          {offerings.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.courseCode || "—"} — {o.courseTitle || t("unknown")} ({o.sectionCode})
-            </option>
-          ))}
+          {offerings.map((o) => {
+            const course = courseById[o.courseId];
+            return (
+              <option key={o.id} value={o.id}>
+                {course?.code || "—"} — {course?.title || t("unknown")} ({o.sectionCode})
+              </option>
+            );
+          })}
         </select>
         {selectedOfferingId && selectedOffering && (
           <div className="sch-offering-badge">
@@ -410,7 +411,7 @@ function ScheduleSlotsPage() {
         )}
         {selectedOfferingId && (
           <button className="sch-btn sch-btn-primary" style={{ padding: "6px 12px", fontSize: 12 }}
-            onClick={() => { }} title="Refresh">
+            onClick={() => refetchSlots()} title={t("refresh")} aria-label={t("refresh")}>
             <RefreshCw size={12} />
           </button>
         )}
@@ -418,27 +419,27 @@ function ScheduleSlotsPage() {
 
       <div aria-live="polite" className="sr-only">
         {slots.length > 0
-          ? `${slots.length} slot(s) scheduled. ${Object.keys(slotOverlaps).length} overlap(s) detected.`
-          : "No slots scheduled"}
+          ? `${slots.length} ${t("slots_scheduled")}. ${Object.keys(slotOverlaps).length} ${t("overlapping_slots_detected")}`
+          : t("no_slots_scheduled")}
       </div>
 
       {/* Overlap warning banner */}
       {Object.keys(slotOverlaps).length > 0 && (
         <div className="sch-alert sch-alert-warning" role="alert" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <AlertCircle size={16} />
-          <span style={{ fontSize: 13 }}><strong>{Object.keys(slotOverlaps).length}</strong> overlapping slot(s) detected in the timetable.</span>
+          <span style={{ fontSize: 13 }}><strong>{Object.keys(slotOverlaps).length}</strong> {t("overlapping_slots_detected")}</span>
         </div>
       )}
 
       {!selectedOfferingId ? (
-        <EmptyState icon={Clock} title="Select an Offering" message={t("select_offering_first")} />
+        <EmptyState icon={Clock} title={t("select_an_offering")} message={t("select_offering_first")} />
       ) : slotsLoading ? (
         <div className="sch-empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
           <RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} />
           <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>{t("loading_timetable")}</p>
         </div>
       ) : slots.length === 0 ? (
-        <EmptyState icon={Clock} title="No Slots Yet" message={t("no_slots_yet")}
+        <EmptyState icon={Clock} title={t("no_slots_title")} message={t("no_slots_yet")}
           actionLabel={t("add_slot")} onAction={openCreateDrawer} />
       ) : (
         <DraggableScheduleGrid
@@ -461,14 +462,14 @@ function ScheduleSlotsPage() {
       <Drawer
         open={!!drawerMode}
         onClose={closeDrawer}
-        title={drawerMode === "create" ? "Create Slot" : "Edit Slot"}
+        title={drawerMode === "create" ? t("create_schedule_slot") : t("edit_schedule_slot")}
         width={440}
         loading={createSlot.isPending || updateSlot.isPending}
         footer={
           <>
-            <button className="btn-cancel" onClick={closeDrawer}>Cancel</button>
+            <button className="btn-cancel" onClick={closeDrawer}>{t("cancel")}</button>
             <button className="btn-primary" onClick={handleDrawerSave} disabled={createSlot.isPending || updateSlot.isPending}>
-              <Save size={14} /> {createSlot.isPending || updateSlot.isPending ? "Saving..." : drawerMode === "create" ? "Create" : "Update"}
+              <Save size={14} /> {createSlot.isPending || updateSlot.isPending ? t("saving") : drawerMode === "create" ? t("create") : t("update")}
             </button>
           </>
         }
@@ -486,9 +487,9 @@ function ScheduleSlotsPage() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title="Delete Slot"
-        message={`Delete ${DAY_LABELS[deleteTarget?.dayOfWeek]} ${deleteTarget?.startTime?.slice(0, 5)}-${deleteTarget?.endTime?.slice(0, 5)}?`}
-        confirmLabel="Delete"
+        title={t("delete_slot")}
+        message={t("delete_slot_confirm", { day: DAY_LABELS[deleteTarget?.dayOfWeek], start: deleteTarget?.startTime?.slice(0, 5), end: deleteTarget?.endTime?.slice(0, 5) })}
+        confirmLabel={t("delete")}
         variant="danger"
         loading={deleteSlot.isPending}
       />
@@ -498,23 +499,23 @@ function ScheduleSlotsPage() {
         open={!!confirmTarget}
         onClose={() => setConfirmTarget(null)}
         onConfirm={confirmTarget?.isClosed ? handleOpen : handleClose}
-        title={confirmTarget?.isClosed ? "Reopen Slot" : "Close Slot"}
-        message={`${confirmTarget?.isClosed ? "Reopen" : "Close"} ${DAY_LABELS[confirmTarget?.dayOfWeek]} ${confirmTarget?.startTime?.slice(0, 5)}-${confirmTarget?.endTime?.slice(0, 5)}?`}
-        confirmLabel={confirmTarget?.isClosed ? "Reopen" : "Close"}
+        title={confirmTarget?.isClosed ? t("reopen_slot") : t("close_slot")}
+        message={`${confirmTarget?.isClosed ? t("reopen") : t("close")} ${DAY_LABELS[confirmTarget?.dayOfWeek]} ${confirmTarget?.startTime?.slice(0, 5)}-${confirmTarget?.endTime?.slice(0, 5)}?`}
+        confirmLabel={confirmTarget?.isClosed ? t("reopen") : t("close")}
         variant={confirmTarget?.isClosed ? "default" : "warning"}
         loading={closeSlotMut.isPending || openSlotMut.isPending}
       />
 
       {/* Batch Create Form */}
       {showBatchForm && (
-        <div className="sch-confirm-overlay" role="dialog" aria-modal="true" aria-label="Batch create slots" onClick={() => !batchCreate.isPending && setShowBatchForm(false)}>
+        <div className="sch-confirm-overlay" role="dialog" aria-modal="true" aria-label={t("batch_create_slots")} onClick={() => !batchCreate.isPending && setShowBatchForm(false)}>
           <div className="sch-confirm-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: "80vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ margin: 0 }}>Batch Create Slots</h3>
+              <h3 style={{ margin: 0 }}>{t("batch_create_slots")}</h3>
               <button className="btn-cancel" style={{ padding: "4px 8px" }} onClick={() => setShowBatchForm(false)}><X size={16} /></button>
             </div>
             <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 16px" }}>
-              Add multiple schedule slots for the selected offering. Red-bordered entries have time conflicts.
+              {t("batch_create_desc")}
             </p>
 
             {batchEntries.map((entry, idx) => {
@@ -527,7 +528,7 @@ function ScheduleSlotsPage() {
                   boxShadow: hasConflict ? "0 0 0 1px #ef4444" : undefined,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>Day</label>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>{t("day")}</label>
                     <select value={entry.dayOfWeek} onChange={(e) => updateBatchEntry(idx, "dayOfWeek", e.target.value)}
                       style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }}>
                       {Object.entries(DAY_LABELS).map(([val, label]) => (
@@ -536,17 +537,17 @@ function ScheduleSlotsPage() {
                     </select>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>Start</label>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>{t("start_time")}</label>
                     <input type="time" value={entry.startTime} onChange={(e) => updateBatchEntry(idx, "startTime", e.target.value)}
                       style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>End</label>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>{t("end_time")}</label>
                     <input type="time" value={entry.endTime} onChange={(e) => updateBatchEntry(idx, "endTime", e.target.value)}
                       style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>Kind</label>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>{t("kind")}</label>
                     <select value={entry.kind} onChange={(e) => updateBatchEntry(idx, "kind", e.target.value)}
                       style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }}>
                       {Object.entries(SLOT_KIND_LABELS).map(([val, label]) => (
@@ -555,15 +556,15 @@ function ScheduleSlotsPage() {
                     </select>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>Room</label>
+                    <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 2 }}>{t("room")}</label>
                     <input type="text" value={entry.location} onChange={(e) => updateBatchEntry(idx, "location", e.target.value)}
-                      placeholder="e.g. A201"
+                      placeholder={t("room_placeholder")}
                       style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }} />
                   </div>
                   {hasConflict && (
                     <div style={{ flexShrink: 0, color: "#dc2626", fontSize: 10, fontWeight: 600, textAlign: "center" }}>
                       <AlertCircle size={14} />
-                      <span>Conflict</span>
+                      <span>{t("conflict")}</span>
                     </div>
                   )}
                   <button className="sch-slot-action-btn danger" onClick={() => removeBatchEntry(idx)}
@@ -576,21 +577,21 @@ function ScheduleSlotsPage() {
 
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <button className="btn-cancel" style={{ fontSize: 12 }} onClick={addBatchEntry}>
-                <Plus size={12} /> Add Row
+                <Plus size={12} /> {t("add_row")}
               </button>
             </div>
 
             {Object.keys(batchOverlaps).length > 0 && (
               <div style={{ marginTop: 12, padding: "8px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", fontSize: 12, color: "#b91c1c" }}>
                 <AlertTriangle size={12} style={{ marginRight: 4 }} />
-                {Object.keys(batchOverlaps).length} entry(s) have time conflicts with existing slots.
+                {t("entries_have_conflicts", { count: Object.keys(batchOverlaps).length })}
               </div>
             )}
 
             <div className="sch-confirm-actions" style={{ marginTop: 16 }}>
-              <button className="btn-cancel" onClick={() => setShowBatchForm(false)} disabled={batchCreate.isPending}>Cancel</button>
+              <button className="btn-cancel" onClick={() => setShowBatchForm(false)} disabled={batchCreate.isPending}>{t("cancel")}</button>
               <button className="btn-primary" onClick={handleBatchSubmit} disabled={batchCreate.isPending}>
-                <Save size={14} /> {batchCreate.isPending ? "Creating..." : `Create ${batchEntries.length} Slot(s)`}
+                <Save size={14} /> {batchCreate.isPending ? t("creating") : t("create")}
               </button>
             </div>
           </div>

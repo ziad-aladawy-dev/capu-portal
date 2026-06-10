@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
 import * as scheduleService from "../../../core/services/scheduleService";
@@ -33,6 +34,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function StudentSchedule() {
+  const { t } = useTranslation();
   const { activeScope } = useAuth();
   const [scheduleData, setScheduleData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ function StudentSchedule() {
 
       if (!nodeId || !semesterId) {
         if (!cancelled) {
-          setError("Academic scope not configured");
+          setError(t("academic_scope_not_configured"));
           setLoading(false);
         }
         return;
@@ -123,8 +125,8 @@ function StudentSchedule() {
               start: formatTime(slot.startTime),
               end: formatTime(slot.endTime),
               code: course.code || "?",
-              title: course.title || "Unknown",
-              room: slot.location || "TBD",
+              title: course.title || t("unknown"),
+              room: slot.location || t("not_specified"),
               color: hashColor(course.code || "?"),
               sectionCode: offering.sectionCode,
               isClosed: slot.isClosed,
@@ -138,7 +140,7 @@ function StudentSchedule() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err.message || "Failed to load schedule");
+          setError(err.message || t("failed_to_load_data"));
           setLoading(false);
         }
       }
@@ -177,8 +179,8 @@ function StudentSchedule() {
     return (
       <div className="student-schedule-container">
         <div className="ss-header">
-          <h1>My Schedule</h1>
-          <p>Loading your schedule...</p>
+          <h1>{t("my_schedule")}</h1>
+          <p>{t("loading_schedule")}</p>
         </div>
         <div className="ss-status">
           <div className="ss-spinner" />
@@ -191,15 +193,15 @@ function StudentSchedule() {
     return (
       <div className="student-schedule-container">
         <div className="ss-header">
-          <h1>My Schedule</h1>
-          <p>Weekly class schedule and timetable</p>
+          <h1>{t("my_schedule")}</h1>
+          <p>{t("class_timetable")}</p>
         </div>
         <div className="ss-status">
           <AlertCircle size={48} color="#dc2626" />
-          <h3>Unable to load schedule</h3>
+          <h3>{t("failed_to_load_data")}</h3>
           <p className="ss-status-text">{error}</p>
           <button className="ss-retry-btn" onClick={() => window.location.reload()}>
-            Try Again
+            {t("retry")}
           </button>
         </div>
       </div>
@@ -210,12 +212,12 @@ function StudentSchedule() {
     return (
       <div className="student-schedule-container">
         <div className="ss-header">
-          <h1>My Schedule</h1>
-          <p>Weekly class schedule and timetable</p>
+          <h1>{t("my_schedule")}</h1>
+          <p>{t("class_timetable")}</p>
         </div>
         <div className="ss-status">
-          <h3>No schedule data</h3>
-          <p className="ss-status-text">There are no scheduled classes for your current academic scope.</p>
+          <h3>{t("no_schedule")}</h3>
+          <p className="ss-status-text">{t("no_schedule_message")}</p>
         </div>
       </div>
     );
@@ -236,18 +238,18 @@ function StudentSchedule() {
   return (
     <div className="student-schedule-container">
       <div className="ss-header">
-        <h1>My Schedule</h1>
-        <p>Weekly class schedule and timetable</p>
+        <h1>{t("my_schedule")}</h1>
+        <p>{t("class_timetable")}</p>
       </div>
 
       <div className="ss-content">
         <div className="ss-weekly">
-          <h2>Weekly Timetable</h2>
+          <h2>{t("weekly_timetable")}</h2>
           <div className="ss-timetable">
             <div className="ss-time-header">
               <div className="time-label-header"></div>
               {DAYS.map(day => (
-                <div key={day} className="day-header">{day}</div>
+                <div key={day} className="day-header">{t("day_" + day.toLowerCase())}</div>
               ))}
             </div>
 
@@ -294,11 +296,11 @@ function StudentSchedule() {
         <div className="ss-calendar">
           <div className="calendar-header">
             <button onClick={prevMonth}><ChevronLeft size={20} /></button>
-            <h3>{MONTHS[currentMonth]} {currentYear}</h3>
+            <h3>{t(`month_${currentMonth + 1}`)} {currentYear}</h3>
             <button onClick={nextMonth}><ChevronRight size={20} /></button>
           </div>
           <div className="calendar-weekdays">
-            {WEEKDAYS.map(d => <div key={d} className="weekday">{d}</div>)}
+            {WEEKDAYS.map(d => <div key={d} className="weekday">{t("day_short_" + d.toLowerCase())}</div>)}
           </div>
           <div className="calendar-grid">
             {calendarDays.map((day, i) => (
@@ -311,20 +313,20 @@ function StudentSchedule() {
       </div>
 
       <div className="ss-section">
-        <h2>Course Schedule Details</h2>
+        <h2>{t("course_schedule_details")}</h2>
         <div className="ss-details-list">
           {uniqueCourses.map((course, i) => (
             <div key={i} className="ss-detail-card">
               <div className="detail-color" style={{ backgroundColor: course.color }}></div>
               <div className="detail-info">
                 <h4>{course.title}</h4>
-                <p>{course.code}{course.slots[0]?.sectionCode ? ` (Section ${course.slots[0].sectionCode})` : ""}</p>
+                <p>{course.code}{course.slots[0]?.sectionCode ? ` (${t("section")} ${course.slots[0].sectionCode})` : ""}</p>
               </div>
               <div className="detail-times">
                 {course.slots.map((s, j) => (
                   <div key={j} className="time-chip">
                     <Clock size={12} />
-                    <span>{s.day} {s.start}-{s.end}</span>
+                    <span>{t("day_" + s.day.toLowerCase())} {s.start}-{s.end}</span>
                   </div>
                 ))}
               </div>

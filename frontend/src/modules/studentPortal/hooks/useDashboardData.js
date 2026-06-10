@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../core/api/apiClient";
 import * as courseService from "../../../core/services/courseService";
-import * as invoiceService from "../../../core/services/invoiceService";
+import * as treasuryService from "../../../core/services/treasuryService";
 import * as scheduleService from "../../../core/services/scheduleService";
 import { fetchUnreadNotifications } from "../../../core/services/notificationService";
 import { getAvailableServicesForStudent } from "../../studentServices/services/studentServicesService";
@@ -81,27 +81,33 @@ export function useGradesSummary() {
   });
 }
 
-/** Outstanding balance + totals derived from the student's invoices. */
+/** Outstanding balance + totals derived from Treasury fees and orders. */
 export function useFinancialSnapshot(studentId) {
   return useQuery({
     queryKey: ["dashboard", "financial", studentId],
     enabled: Boolean(studentId),
     staleTime: STALE,
     queryFn: async () => {
-      let invoices = [];
+      let fees;
+      let orders;
       try {
-        const data = await invoiceService.fetchInvoicesForStudent(studentId);
-        invoices = Array.isArray(data) ? data : data?.items || [];
+        [fees, orders] = await Promise.all([
+          treasuryService.fetchUnpaidFees(studentId),
+          treasuryService.fetchOrdersForStudent(studentId),
+        ]);
+        fees = Array.isArray(fees) ? fees : [];
+        orders = Array.isArray(orders) ? orders : [];
       } catch {
-        invoices = [];
+        // the student role may not hold the payments permission
+        fees = [];
+        orders = [];
       }
-      const total = invoices.reduce((s, i) => s + (i.totalAmount ?? i.amount ?? 0), 0);
-      const paid = invoices.reduce((s, i) => s + (i.paidAmount ?? 0), 0);
-      const outstanding = invoices.reduce(
-        (s, i) => s + (i.outstandingAmount ?? Math.max(0, (i.totalAmount ?? i.amount ?? 0) - (i.paidAmount ?? 0))),
-        0
-      );
-      return { total, paid, outstanding, invoiceCount: invoices.length };
+      const outstanding = fees.reduce((s, f) => s + Number(f.totalAmount ?? 0), 0);
+      const paid = orders
+        .filter((o) => o.status === treasuryService.ORDER_STATUS.Paid)
+        .reduce((s, o) => s + Number(o.totalAmount ?? 0), 0);
+      const total = outstanding + paid;
+      return { total, paid, outstanding, invoiceCount: fees.length + orders.length };
     },
   });
 }

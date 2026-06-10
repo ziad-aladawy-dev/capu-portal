@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   FileText, ArrowLeft, Plus, Edit2, Trash2, X, AlertTriangle, ShieldCheck,
   RefreshCw, Lock,
@@ -26,6 +27,7 @@ function prettifyJson(value) {
 }
 
 function StudentProfileRecordsPage() {
+  const { t } = useTranslation();
   const { studentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -152,25 +154,25 @@ function StudentProfileRecordsPage() {
   return (
     <div className="spr-page">
       <button className="spr-back" onClick={() => navigate(-1)}>
-        <ArrowLeft size={14} /> Back
+        <ArrowLeft size={14} /> {t("back")}
       </button>
 
       <div className="spr-header">
         <div className="spr-header-left">
           <FileText size={22} />
           <div>
-            <h1>Profile Records</h1>
+            <h1>{t("profile_records")}</h1>
             <p>
-              {student ? <>For <strong>{student.name || student.fullNameEn}</strong>{student.studentCode && <> · {student.studentCode}</>}</> : `Student ${studentId.slice(0, 8)}…`}
+              {student ? <>{t("for_student")} <strong>{student.name || student.fullNameEn}</strong>{student.studentCode && <> · {student.studentCode}</>}</> : t("student_id_short", { id: studentId.slice(0, 8) })}
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="spr-btn spr-btn-outline" onClick={load}>
-            <RefreshCw size={13} /> Refresh
+            <RefreshCw size={13} /> {t("refresh")}
           </button>
           <button className="spr-btn spr-btn-primary" onClick={openCreate}>
-            <Plus size={13} /> Add Record
+            <Plus size={13} /> {t("add_record")}
           </button>
         </div>
       </div>
@@ -191,15 +193,15 @@ function StudentProfileRecordsPage() {
       {loading ? (
         <div className="spr-loading">
           <div className="spr-spinner" />
-          <p>Loading profile records…</p>
+          <p>{t("loading_profile_records")}</p>
         </div>
       ) : records.length === 0 ? (
         <div className="spr-empty">
           <FileText size={40} />
-          <h3>No profile records yet</h3>
-          <p>Add the first record — military, vaccination, emergency contact, etc.</p>
+          <h3>{t("no_profile_records_yet")}</h3>
+          <p>{t("add_first_record_hint")}</p>
           <button className="spr-btn spr-btn-primary" onClick={openCreate}>
-            <Plus size={13} /> Add Record
+            <Plus size={13} /> {t("add_record")}
           </button>
         </div>
       ) : (
@@ -224,7 +226,7 @@ function StudentProfileRecordsPage() {
                     <button
                       className="spr-action-btn verify"
                       onClick={() => handleVerify(r)}
-                      title="Verify"
+                      title={t("verify")}
                     >
                       <ShieldCheck size={13} />
                     </button>
@@ -232,14 +234,14 @@ function StudentProfileRecordsPage() {
                   <button
                     className="spr-action-btn edit"
                     onClick={() => openEdit(r)}
-                    title="Edit"
+                    title={t("edit")}
                   >
                     <Edit2 size={13} />
                   </button>
                   <button
                     className="spr-action-btn delete"
                     onClick={() => setDeleteTarget(r)}
-                    title="Delete"
+                    title={t("delete")}
                   >
                     <Trash2 size={13} />
                   </button>
@@ -250,18 +252,18 @@ function StudentProfileRecordsPage() {
                 <span
                   className={`spr-badge ${r.verifiedAt ? "spr-badge-verified" : "spr-badge-unverified"}`}
                 >
-                  {r.verifiedAt ? "Verified" : "Unverified"}
+                  {r.verifiedAt ? t("verified") : t("unverified")}
                 </span>
-                {r.isSensitive && <span className="spr-badge spr-badge-sensitive">Sensitive</span>}
+                {r.isSensitive && <span className="spr-badge spr-badge-sensitive">{t("sensitive")}</span>}
                 <span className="spr-badge spr-badge-unverified">v{r.schemaVersion}</span>
               </div>
 
               <pre>{prettifyJson(r.dataJson)}</pre>
 
               <div className="spr-record-meta">
-                Created {new Date(r.createdAt).toLocaleDateString()}
+                {t("created_date", { date: new Date(r.createdAt).toLocaleDateString() })}
                 {r.updatedAt && r.updatedAt !== r.createdAt && (
-                  <> · Updated {new Date(r.updatedAt).toLocaleDateString()}</>
+                  <> · {t("updated_date", { date: new Date(r.updatedAt).toLocaleDateString() })}</>
                 )}
               </div>
             </div>
@@ -273,7 +275,7 @@ function StudentProfileRecordsPage() {
         <div className="spr-modal-overlay" onClick={closeModal}>
           <div className="spr-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spr-modal-header">
-              <h2>{modalMode === "create" ? "Add Profile Record" : "Edit Profile Record"}</h2>
+              <h2>{modalMode === "create" ? t("add_profile_record") : t("edit_profile_record")}</h2>
               <button className="spr-modal-close" onClick={closeModal}>
                 <X size={16} />
               </button>
@@ -282,7 +284,7 @@ function StudentProfileRecordsPage() {
               <div className="spr-modal-body">
                 <div className="spr-form-row">
                   <div className="spr-form-group">
-                    <label>Category</label>
+                    <label>{t("category")}</label>
                     <select
                       className="spr-form-select"
                       value={form.category}
@@ -299,7 +301,7 @@ function StudentProfileRecordsPage() {
                     </select>
                   </div>
                   <div className="spr-form-group">
-                    <label>Schema Version</label>
+                    <label>{t("schema_version")}</label>
                     <input
                       type="number"
                       className="spr-form-input"
@@ -314,7 +316,7 @@ function StudentProfileRecordsPage() {
 
                 {Number(form.category) === studentProfileService.STUDENT_PROFILE_CATEGORY.Custom && (
                   <div className="spr-form-group">
-                    <label>Custom Category Key</label>
+                    <label>{t("custom_category_key")}</label>
                     <input
                       type="text"
                       className="spr-form-input"
@@ -322,14 +324,14 @@ function StudentProfileRecordsPage() {
                       onChange={(e) =>
                         setForm((p) => ({ ...p, customCategoryKey: e.target.value }))
                       }
-                      placeholder="e.g. transcript-2024"
+                      placeholder={t("custom_category_key_placeholder")}
                       disabled={modalMode === "edit"}
                     />
                   </div>
                 )}
 
                 <div className="spr-form-group">
-                  <label>Data Payload (JSON)</label>
+                  <label>{t("data_payload_json")}</label>
                   <textarea
                     className="spr-form-textarea"
                     rows={9}
@@ -339,7 +341,7 @@ function StudentProfileRecordsPage() {
                     }
                   />
                   <span style={{ fontSize: 11, color: "#6b7280" }}>
-                    Schema is category-specific. Stored verbatim.
+                    {t("schema_category_specific")}
                   </span>
                 </div>
 
@@ -351,7 +353,7 @@ function StudentProfileRecordsPage() {
                       setForm((p) => ({ ...p, isSensitive: e.target.checked }))
                     }
                   />
-                  Mark as sensitive (restricts who can read)
+                  {t("mark_as_sensitive")}
                 </label>
 
                 {formError && <span className="spr-form-error">{formError}</span>}
@@ -363,14 +365,14 @@ function StudentProfileRecordsPage() {
                   onClick={closeModal}
                   disabled={saving}
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   className="spr-btn spr-btn-primary"
                   disabled={saving}
                 >
-                  {saving ? "Saving…" : modalMode === "create" ? "Create" : "Save"}
+                  {saving ? t("saving") : modalMode === "create" ? t("create") : t("save")}
                 </button>
               </div>
             </form>
@@ -382,7 +384,7 @@ function StudentProfileRecordsPage() {
         <div className="spr-modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="spr-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spr-modal-header">
-              <h2>Delete Profile Record</h2>
+              <h2>{t("delete_profile_record")}</h2>
               <button className="spr-modal-close" onClick={() => setDeleteTarget(null)}>
                 <X size={16} />
               </button>
@@ -390,14 +392,10 @@ function StudentProfileRecordsPage() {
             <div style={{ padding: "20px 22px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
               <AlertTriangle size={32} color="#dc2626" />
               <p style={{ margin: 0 }}>
-                Delete{" "}
-                <strong>
-                  {studentProfileService.getProfileCategoryLabel(deleteTarget.category)}
-                </strong>{" "}
-                record?
+                {t("delete_record_confirm", { category: studentProfileService.getProfileCategoryLabel(deleteTarget.category) })}
               </p>
               <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>
-                This action cannot be undone.
+                {t("cannot_undo")}
               </p>
             </div>
             <div className="spr-modal-footer">
@@ -405,10 +403,10 @@ function StudentProfileRecordsPage() {
                 className="spr-btn spr-btn-outline"
                 onClick={() => setDeleteTarget(null)}
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button className="spr-btn spr-btn-danger" onClick={handleDelete}>
-                Delete
+                {t("delete")}
               </button>
             </div>
           </div>

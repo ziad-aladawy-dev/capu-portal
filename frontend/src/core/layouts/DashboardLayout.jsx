@@ -25,7 +25,9 @@ function DashboardLayout() {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > MOBILE_BREAKPOINT);
-  const [secondaryOpen, setSecondaryOpen] = useState(false);
+  const [secondaryOpen, setSecondaryOpen] = useState(() => {
+    try { return localStorage.getItem("capu_secondary_sidebar_open") === "1"; } catch { return false; }
+  });
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
@@ -75,7 +77,11 @@ function DashboardLayout() {
   };
 
   const toggleSecondary = () => {
-    setSecondaryOpen((prev) => !prev);
+    setSecondaryOpen((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("capu_secondary_sidebar_open", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
   };
 
   const closeSidebar = () => {

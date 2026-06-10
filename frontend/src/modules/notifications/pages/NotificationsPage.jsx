@@ -30,7 +30,7 @@ function NotificationsPage() {
         : await notificationService.fetchAllNotifications();
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Failed to load notifications");
+      setError(err.message || t("failed_to_load_notifications"));
       setItems([]);
     } finally {
       setLoading(false);
@@ -51,7 +51,7 @@ function NotificationsPage() {
           : prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {
-      setError(err.message || "Failed to mark as read");
+      setError(err.message || t("failed_to_mark_read"));
     } finally {
       setMarking(null);
     }
@@ -66,7 +66,7 @@ function NotificationsPage() {
       );
       await load();
     } catch (err) {
-      setError(err.message || "Failed to mark all as read");
+      setError(err.message || t("failed_to_mark_all_read"));
     }
   };
 

@@ -418,7 +418,7 @@ public class StudentServiceTests
 
         var dto = await sut.GetByIdAsync(student.Id);
 
-        dto!.Name.Should().Be("Name");
+        dto!.LocalizedName.Should().Be("Name");
         dto.LevelName.Should().Be("Level 1");
         dto.ProgramName.Should().Be("Software");
         dto.FacultyName.Should().Be("Engineering");
@@ -455,7 +455,7 @@ public class StudentServiceTests
         var all = await sut.GetAllAsync();
 
         all.Should().HaveCount(2);
-        all[0].Name.Should().Be("Name");
+        all[0].LocalizedName.Should().Be("Name");
     }
 
     [Fact]
@@ -485,19 +485,12 @@ public class StudentServiceTests
     public async Task GetStatisticsAsync_CountsActiveAndInactive()
     {
         var (sut, repo, _, _) = Build();
-        repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>()))
-            .ReturnsAsync(new PagedResult<Student>
+        repo.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>()))
+            .ReturnsAsync(new UserStatisticsDto
             {
-                Items = new List<Student>
-                {
-                    ExistingStudent(isActive: true),
-                    ExistingStudent(isActive: true),
-                    ExistingStudent(isActive: false),
-                },
-                Page = 1,
-                PageSize = int.MaxValue,
-                TotalCount = 3,
-                TotalPages = 1,
+                TotalStudents = 3,
+                ActiveStudents = 2,
+                InactiveStudents = 1
             });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest());

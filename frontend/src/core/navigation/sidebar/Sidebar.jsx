@@ -135,8 +135,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
                         to={item.path}
                         end={
                           item.path === "/admin/dashboard" ||
-                          item.path === "/admin/users" ||
-                          item.path === "/admin/finance"
+                          item.path === "/admin/users"
                         }
                         onClick={handleFeatureClick}
                         className={({ isActive }) =>

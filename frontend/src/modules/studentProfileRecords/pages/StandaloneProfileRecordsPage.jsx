@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FileText, Plus, Edit2, Trash2, X, AlertTriangle, ShieldCheck,
   RefreshCw, Lock, Search, UserCheck,
@@ -27,6 +28,7 @@ function prettifyJson(value) {
 }
 
 function StandaloneProfileRecordsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const searchRef = useRef(null);
 
@@ -201,14 +203,14 @@ function StandaloneProfileRecordsPage() {
         <div className="spr-header-left">
           <FileText size={22} />
           <div>
-            <h1>Profile Records</h1>
-            <p>Manage student profile records across all categories</p>
+            <h1>{t("profile_records")}</h1>
+            <p>{t("manage_profile_records")}</p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           {selectedStudent && (
             <button className="spr-btn spr-btn-outline" onClick={() => loadRecords(selectedStudent.id)}>
-              <RefreshCw size={13} /> Refresh
+              <RefreshCw size={13} /> {t("refresh")}
             </button>
           )}
         </div>
@@ -221,7 +223,7 @@ function StandaloneProfileRecordsPage() {
             ref={searchRef}
             type="text"
             className="sprs-search-input"
-            placeholder="Search for a student by name or code…"
+            placeholder={t("search_student_placeholder")}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -262,11 +264,11 @@ function StandaloneProfileRecordsPage() {
         <div className="sprs-selected-student">
           <FileText size={15} />
           <span>
-            Viewing records for <strong>{selectedStudent.name || selectedStudent.fullNameEn}</strong>
+            {t("viewing_records_for")} <strong>{selectedStudent.name || selectedStudent.fullNameEn}</strong>
             {selectedStudent.studentCode && <> · {selectedStudent.studentCode}</>}
           </span>
           <button className="sprs-selected-clear" onClick={clearStudent}>
-            <X size={13} /> Change
+            <X size={13} /> {t("change_student")}
           </button>
         </div>
       )}
@@ -284,23 +286,23 @@ function StandaloneProfileRecordsPage() {
       {!selectedStudent && !error && (
         <div className="sprs-select-hint">
           <Search size={32} />
-          <h3>Select a student</h3>
-          <p>Search for a student above to view and manage their profile records.</p>
+          <h3>{t("select_student")}</h3>
+          <p>{t("select_student_hint")}</p>
         </div>
       )}
 
       {selectedStudent && loading && (
         <div className="spr-loading">
           <div className="spr-spinner" />
-          <p>Loading profile records…</p>
+          <p>{t("loading_profile_records")}</p>
         </div>
       )}
 
       {selectedStudent && !loading && records.length === 0 && (
         <div className="spr-empty">
           <FileText size={40} />
-          <h3>No profile records yet</h3>
-          <p>This student has no profile records. Add the first one.</p>
+          <h3>{t("no_profile_records_yet")}</h3>
+          <p>{t("no_records_for_student")}</p>
           <PermissionGate resource="student-information.profile-records" minLevel={2}>
             <button className="spr-btn spr-btn-primary" onClick={openCreate}>
               <Plus size={13} /> Add Record
@@ -312,10 +314,10 @@ function StandaloneProfileRecordsPage() {
       {selectedStudent && !loading && records.length > 0 && (
         <>
           <div className="sprs-actions-bar">
-            <span className="sprs-record-count">{records.length} record{records.length !== 1 ? "s" : ""}</span>
+            <span className="sprs-record-count">{t(records.length === 1 ? "records_count" : "records_count_plural", { count: records.length })}</span>
             <PermissionGate resource="student-information.profile-records" minLevel={2}>
               <button className="spr-btn spr-btn-primary" onClick={openCreate}>
-                <Plus size={13} /> Add Record
+            <Plus size={13} /> {t("add_record")}
               </button>
             </PermissionGate>
           </div>
@@ -335,18 +337,18 @@ function StandaloneProfileRecordsPage() {
                   <div className="spr-record-actions">
                     <PermissionGate resource="student-information.profile-records" minLevel={3}>
                       {!r.verifiedAt && (
-                        <button className="spr-action-btn verify" onClick={() => handleVerify(r)} title="Verify">
+                        <button className="spr-action-btn verify" onClick={() => handleVerify(r)} title={t("verify")}>
                           <ShieldCheck size={13} />
                         </button>
                       )}
                     </PermissionGate>
                     <PermissionGate resource="student-information.profile-records" minLevel={3}>
-                      <button className="spr-action-btn edit" onClick={() => openEdit(r)} title="Edit">
+                      <button className="spr-action-btn edit" onClick={() => openEdit(r)} title={t("edit")}>
                         <Edit2 size={13} />
                       </button>
                     </PermissionGate>
                     <PermissionGate resource="student-information.profile-records" minLevel={5}>
-                      <button className="spr-action-btn delete" onClick={() => setDeleteTarget(r)} title="Delete">
+                      <button className="spr-action-btn delete" onClick={() => setDeleteTarget(r)} title={t("delete")}>
                         <Trash2 size={13} />
                       </button>
                     </PermissionGate>
@@ -354,16 +356,16 @@ function StandaloneProfileRecordsPage() {
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <span className={`spr-badge ${r.verifiedAt ? "spr-badge-verified" : "spr-badge-unverified"}`}>
-                    {r.verifiedAt ? "Verified" : "Unverified"}
+                    {r.verifiedAt ? t("verified") : t("unverified")}
                   </span>
-                  {r.isSensitive && <span className="spr-badge spr-badge-sensitive">Sensitive</span>}
+                  {r.isSensitive && <span className="spr-badge spr-badge-sensitive">{t("sensitive")}</span>}
                   <span className="spr-badge spr-badge-unverified">v{r.schemaVersion}</span>
                 </div>
                 <pre>{prettifyJson(r.dataJson)}</pre>
                 <div className="spr-record-meta">
-                  Created {new Date(r.createdAt).toLocaleDateString()}
+                  {t("created_date", { date: new Date(r.createdAt).toLocaleDateString() })}
                   {r.updatedAt && r.updatedAt !== r.createdAt && (
-                    <> · Updated {new Date(r.updatedAt).toLocaleDateString()}</>
+                    <> · {t("updated_date", { date: new Date(r.updatedAt).toLocaleDateString() })}</>
                   )}
                 </div>
               </div>
@@ -376,14 +378,14 @@ function StandaloneProfileRecordsPage() {
         <div className="spr-modal-overlay" onClick={closeModal}>
           <div className="spr-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spr-modal-header">
-              <h2>{modalMode === "create" ? "Add Profile Record" : "Edit Profile Record"}</h2>
+              <h2>{modalMode === "create" ? t("add_profile_record") : t("edit_profile_record")}</h2>
               <button className="spr-modal-close" onClick={closeModal}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="spr-modal-body">
                 <div className="spr-form-row">
                   <div className="spr-form-group">
-                    <label>Category</label>
+                    <label>{t("category")}</label>
                     <select
                       className="spr-form-select"
                       value={form.category}
@@ -396,7 +398,7 @@ function StandaloneProfileRecordsPage() {
                     </select>
                   </div>
                   <div className="spr-form-group">
-                    <label>Schema Version</label>
+                    <label>{t("schema_version")}</label>
                     <input
                       type="number"
                       className="spr-form-input"
@@ -408,19 +410,19 @@ function StandaloneProfileRecordsPage() {
                 </div>
                 {Number(form.category) === studentProfileService.STUDENT_PROFILE_CATEGORY.Custom && (
                   <div className="spr-form-group">
-                    <label>Custom Category Key</label>
+                    <label>{t("custom_category_key")}</label>
                     <input
                       type="text"
                       className="spr-form-input"
                       value={form.customCategoryKey}
                       onChange={(e) => setForm((p) => ({ ...p, customCategoryKey: e.target.value }))}
-                      placeholder="e.g. transcript-2024"
+                      placeholder={t("custom_category_key_placeholder")}
                       disabled={modalMode === "edit"}
                     />
                   </div>
                 )}
                 <div className="spr-form-group">
-                  <label>Data Payload (JSON)</label>
+                  <label>{t("data_payload_json")}</label>
                   <textarea
                     className="spr-form-textarea"
                     rows={9}
@@ -428,7 +430,7 @@ function StandaloneProfileRecordsPage() {
                     onChange={(e) => setForm((p) => ({ ...p, dataJson: e.target.value }))}
                   />
                   <span style={{ fontSize: 11, color: "#6b7280" }}>
-                    Schema is category-specific. Stored verbatim.
+                    {t("schema_category_specific")}
                   </span>
                 </div>
                 <label className="spr-checkbox-row">
@@ -437,16 +439,16 @@ function StandaloneProfileRecordsPage() {
                     checked={form.isSensitive}
                     onChange={(e) => setForm((p) => ({ ...p, isSensitive: e.target.checked }))}
                   />
-                  Mark as sensitive (restricts who can read)
+                  {t("mark_as_sensitive")}
                 </label>
                 {formError && <span className="spr-form-error">{formError}</span>}
               </div>
               <div className="spr-modal-footer">
                 <button type="button" className="spr-btn spr-btn-outline" onClick={closeModal} disabled={saving}>
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button type="submit" className="spr-btn spr-btn-primary" disabled={saving}>
-                  {saving ? "Saving…" : modalMode === "create" ? "Create" : "Save"}
+                  {saving ? t("saving") : modalMode === "create" ? t("create") : t("save")}
                 </button>
               </div>
             </form>
@@ -458,19 +460,19 @@ function StandaloneProfileRecordsPage() {
         <div className="spr-modal-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="spr-modal" onClick={(e) => e.stopPropagation()}>
             <div className="spr-modal-header">
-              <h2>Delete Profile Record</h2>
+              <h2>{t("delete_profile_record")}</h2>
               <button className="spr-modal-close" onClick={() => setDeleteTarget(null)}><X size={16} /></button>
             </div>
             <div style={{ padding: "20px 22px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
               <AlertTriangle size={32} color="#dc2626" />
               <p style={{ margin: 0 }}>
-                Delete <strong>{studentProfileService.getProfileCategoryLabel(deleteTarget.category)}</strong> record?
+                {t("delete_record_confirm", { category: studentProfileService.getProfileCategoryLabel(deleteTarget.category) })}
               </p>
-              <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>This action cannot be undone.</p>
+              <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>{t("cannot_undo")}</p>
             </div>
             <div className="spr-modal-footer">
-              <button className="spr-btn spr-btn-outline" onClick={() => setDeleteTarget(null)}>Cancel</button>
-              <button className="spr-btn spr-btn-danger" onClick={handleDelete}>Delete</button>
+              <button className="spr-btn spr-btn-outline" onClick={() => setDeleteTarget(null)}>{t("cancel")}</button>
+              <button className="spr-btn spr-btn-danger" onClick={handleDelete}>{t("delete")}</button>
             </div>
           </div>
         </div>

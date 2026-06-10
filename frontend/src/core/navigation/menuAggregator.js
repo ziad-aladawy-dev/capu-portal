@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   Package,
   GitBranch,
+  HandCoins,
+  ReceiptText,
 } from "lucide-react";
 import { getGroupedMenuItems } from "../router/routeRegistry";
 
@@ -53,6 +55,8 @@ const ICON_MAP = {
   ShieldCheck,
   Package,
   GitBranch,
+  HandCoins,
+  ReceiptText,
 };
 
 const CATEGORY_ICONS = {

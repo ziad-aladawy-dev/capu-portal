@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search, X, Users,
   CalendarRange, BookOpen, User, RotateCcw,
   GraduationCap, ChevronDown, Eye, Building2,
+  UserSearch, Wallet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -57,6 +59,7 @@ const TABS = [
 
 function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { scopeNode } = useDomain();
   const { preferredUserTab } = useScopeAwareUI();
   const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
@@ -300,20 +303,62 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
 
       {/* ── Pinned User Card (above results) ── */}
       {isActive && (
-        <div className="sec-pinned-card">
-          <div className="sec-pinned-avatar">
-            {selected.name?.charAt(0).toUpperCase()}
+        <div className="sec-pinned-wrap">
+          <div
+            className="sec-pinned-card is-clickable"
+            role="button"
+            tabIndex={0}
+            title={t("open_profile")}
+            onClick={() => navigate(selected.type === "student" ? `/admin/students/${selected.id}` : `/admin/users/${selected.id}`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate(selected.type === "student" ? `/admin/students/${selected.id}` : `/admin/users/${selected.id}`);
+              }
+            }}
+          >
+            <div className="sec-pinned-avatar">
+              {selected.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="sec-pinned-info">
+              <span className="sec-pinned-name">{selected.name}</span>
+              <span className="sec-pinned-code">{selected.code}</span>
+            </div>
+            <span className={`sec-pinned-badge type-${selected.type}`}>
+              {selected.type === "staff" ? t("user_type_staff") : t("user_type_student")}
+            </span>
+            <button
+              className="sec-pinned-clear"
+              onClick={(e) => { e.stopPropagation(); clear(); }}
+              title={t("clear_selection")}
+            >
+              <X size={11} />
+            </button>
           </div>
-          <div className="sec-pinned-info">
-            <span className="sec-pinned-name">{selected.name}</span>
-            <span className="sec-pinned-code">{selected.code}</span>
+          <div className="sec-pinned-actions">
+            <button
+              className="sec-pinned-action"
+              onClick={() => navigate(selected.type === "student" ? `/admin/students/${selected.id}` : `/admin/users/${selected.id}`)}
+            >
+              <UserSearch size={11} /> {t("profile")}
+            </button>
+            {selected.type === "student" && (
+              <>
+                <button
+                  className="sec-pinned-action"
+                  onClick={() => navigate(`/admin/students/${selected.id}/academics`)}
+                >
+                  <GraduationCap size={11} /> {t("academic_hub")}
+                </button>
+                <button
+                  className="sec-pinned-action"
+                  onClick={() => navigate(`/admin/finance/treasury?studentId=${selected.id}`)}
+                >
+                  <Wallet size={11} /> {t("finance")}
+                </button>
+              </>
+            )}
           </div>
-          <span className={`sec-pinned-badge type-${selected.type}`}>
-            {selected.type === "staff" ? t("staff") : t("student")}
-          </span>
-          <button className="sec-pinned-clear" onClick={clear} title={t("clear_selection")}>
-            <X size={11} />
-          </button>
         </div>
       )}
 
@@ -334,7 +379,14 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
         <div className="sec-results-list">
           {results.length === 0 && !resultsLoading && (
             <div className="sec-results-empty">
-              {searchQuery || hasActiveFilters ? t("no_results") : <><Search size={20} /><span>{t("search_hint")}</span></>}
+              {searchQuery || hasActiveFilters
+                ? t("no_results")
+                : <><Search size={20} /><span>{t("search_hint")}</span></>}
+              {scopeNode && (
+                <span className="sec-results-scope-hint">
+                  {t("scoped_to")} {scopeDisplayName} — {t("scope_may_hide_results")}
+                </span>
+              )}
             </div>
           )}
           {resultsLoading && (

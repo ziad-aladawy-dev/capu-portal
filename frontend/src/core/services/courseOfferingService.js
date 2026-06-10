@@ -39,7 +39,9 @@ export async function fetchOfferingsForNodeSemester(structureNodeId, semesterId,
 }
 
 export async function fetchOfferingsForCourse(courseId, semesterId) {
-  const { data } = await api.get("/course-offerings/by-course", { params: { courseId, semesterId } });
+  const { data } = await api.get("/course-offerings", {
+    params: { courseId, semesterId, page: 1, pageSize: 100 },
+  });
   return data;
 }
 
