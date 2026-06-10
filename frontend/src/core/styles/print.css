@@ -1,0 +1,75 @@
+/* ============================================================
+   Print stylesheet — supports the document export / "print
+   official document" feature (transcripts, invoices, receipts,
+   schedules). Hides app chrome and forces a light, paper layout.
+   ============================================================ */
+
+@media print {
+  /* Always print on white paper regardless of active theme. */
+  :root,
+  :root.dark {
+    --color-surface: #ffffff;
+    --color-background: #ffffff;
+    --color-text-primary: #000000;
+    --color-text-secondary: #333333;
+    --color-border: #cccccc;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide app chrome — navigation, sidebars, toasts, floating UI. */
+  .navbar,
+  .sidebar,
+  .bulk-bar,
+  [data-no-print],
+  [role="navigation"],
+  [role="toolbar"] {
+    display: none !important;
+  }
+
+  /* Use the full page width for printable content. */
+  #root,
+  main,
+  .printable {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Avoid awkward breaks inside cards, table rows and headings. */
+  tr,
+  img,
+  .card,
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Show link targets for paper. */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #555;
+  }
+
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after {
+    content: "";
+  }
+
+  @page {
+    margin: 1.5cm;
+  }
+}

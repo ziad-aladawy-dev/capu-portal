@@ -17,7 +17,7 @@ CapitalUniversity/
 │   ├── 4.Modules/        # Independent plug-in modules (e.g., Student, Enrollment, Complaints)
 │   └── 5.Application/    # Cross-module orchestration, sagas, and read models
 ├── tests/                # Unit, integration, contract, and architecture tests
-├── frontend/             # Modular frontend application (Vue/Vite-based)
+├── frontend/             # Modular frontend application (React 19 + Vite)
 ├── docs/                 # System architecture, standards, and guides
 └── deployment/           # Docker and Nginx configuration
 ```
@@ -37,8 +37,8 @@ CapitalUniversity/
 ## 🛠️ Technology Stack
 
 * **Backend:** .NET 9+ (C#), ASP.NET Core, Entity Framework Core, Redis, and MediatR.
-* **Frontend:** Vue 3, Vite, Pinia, Vue Router, and Axios.
-* **Database:** PostgreSQL / SQL Server.
+* **Frontend:** React 19, Vite 8, TanStack Query, Zustand, react-router v7, i18next, and Axios. See `frontend/README.md`.
+* **Database:** SQL Server.
 * **Containerization:** Docker & Docker Compose.
 
 ---
@@ -84,8 +84,10 @@ The solution is backed by a robust testing strategy to ensure compliance and arc
 
 ## 📚 Documentation
 
-For further information on development standards, consult the `docs/` folder:
+For further information, consult the `docs/` folder:
 
-* `docs/ARCHITECTURE.md` — Deep dive into the modular architecture.
-* `docs/MODULE_DEVELOPER_GUIDE.md` — Step-by-step instructions for adding new modules.
-* `docs/CODING_STANDARDS.md` — Formatting and architecture enforcement rules.
+* `docs/MASTER_SPECIFICATION.md` — Authoritative portal development blueprint.
+* `docs/payment/` — Payment domain model, processing flow, and Treasury APIs.
+* `docs/CrossCutting/` — Authentication, authorization, and request-pipeline models.
+* `docs/Courses/`, `docs/Grades/`, `docs/Schedules_Model.md` — Academic domain models.
+* `frontend/README.md` — Frontend setup, structure, and translation workflow.

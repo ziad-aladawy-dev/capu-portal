@@ -6,7 +6,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 
 import App from "./App";
 
+import "./core/styles/tokens.css";
 import "./index.css";
+import "./core/styles/print.css";
 
 import { DomainProvider } from "./core/contexts/DomainContext";
 import { AcademicProvider } from "./core/contexts/AcademicContext";
