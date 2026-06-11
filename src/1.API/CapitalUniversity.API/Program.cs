@@ -21,9 +21,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using System.Data;
-using System.Data.Common;
 using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +34,22 @@ builder.Services.AddOptions<JwtSettings>()
     .ValidateOnStart();
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+
+// B4 — The committed appsettings ship a development PLACEHOLDER signing key.
+// MinLength(32) on JwtSettings.Key only checks length, so the placeholder
+// passes ValidateOnStart and would silently sign production tokens with a
+// publicly-known secret (full auth-bypass via forged HS256 tokens). Fail fast
+// outside Development unless a real, unique key is supplied via env/secret
+// store. The constant below MUST match the placeholder in appsettings.json.
+const string JwtDevPlaceholderKey = "YourSuperSecretKeyAtLeast32CharactersLong!";
+if (!builder.Environment.IsDevelopment()
+    && (string.IsNullOrWhiteSpace(jwtSettings?.Key) || jwtSettings.Key == JwtDevPlaceholderKey))
+{
+    throw new InvalidOperationException(
+        "Jwt:Key is unset or is the built-in development placeholder. Supply a unique " +
+        "secret of at least 32 characters via environment variable or secret store " +
+        "(e.g. Jwt__Key) before running outside the Development environment.");
+}
 
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -138,20 +154,100 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// B6 — CORS origins. Outside Development, AllowedOrigins MUST be configured
+// explicitly (deployment-specific). The previous localhost fallback meant a
+// production deploy with no AllowedOrigins silently allowed only localhost —
+// blocking the real SPA — or invited a permissive "*" workaround. Fail fast in
+// non-Development if origins are missing; keep the localhost dev fallback.
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+if (!builder.Environment.IsDevelopment() && (allowedOrigins is null || allowedOrigins.Length == 0))
+{
+    throw new InvalidOperationException(
+        "AllowedOrigins is not configured. Set the AllowedOrigins array (the SPA's " +
+        "public origin(s), e.g. https://portal.example.edu) via configuration or " +
+        "environment (AllowedOrigins__0) before running outside the Development environment.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? ["http://localhost:5173" , "http://localhost:5174"])
+        policy.WithOrigins(allowedOrigins ?? ["http://localhost:5173", "http://localhost:5174"])
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
 
+// H6 — Rate limiting for the anonymous auth surface (login/refresh/forgot/reset),
+// which was previously unthrottled and brute-forceable. Fixed window per client
+// IP (honouring X-Forwarded-For's first hop behind a reverse proxy). Disabled
+// under Testing so the auth-heavy integration suite isn't throttled.
+var rateLimitIsTesting = builder.Environment.EnvironmentName == "Testing";
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+    {
+        if (rateLimitIsTesting)
+            return RateLimitPartition.GetNoLimiter("testing");
+
+        var forwarded = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        var key = string.IsNullOrWhiteSpace(forwarded)
+            ? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"
+            : forwarded.Split(',')[0].Trim();
+
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+});
+
 var app = builder.Build();
+
+// H4 — Treasury is a phased integration, so an unconfigured Treasury does not
+// block startup (the webhook fail-closes and initiation throws at call time).
+// But surface it loudly instead of silently: warn at boot outside Development
+// when the outbound URL or webhook secret are missing.
+if (!app.Environment.IsDevelopment())
+{
+    var treasury = app.Configuration
+        .GetSection(CapitalUniversity.Modules.Payments.Abstractions.Treasury.TreasuryOptions.SectionName)
+        .Get<CapitalUniversity.Modules.Payments.Abstractions.Treasury.TreasuryOptions>()
+        ?? new CapitalUniversity.Modules.Payments.Abstractions.Treasury.TreasuryOptions();
+    if (string.IsNullOrWhiteSpace(treasury.BaseUrl) || string.IsNullOrWhiteSpace(treasury.WebhookSecret))
+    {
+        app.Logger.LogWarning(
+            "Treasury integration is not fully configured (Treasury:BaseUrl and/or Treasury:WebhookSecret are empty). " +
+            "Payment initiation will fail and inbound Treasury webhooks will be rejected until both are set. " +
+            "This is expected ONLY if payments are intentionally disabled for this deployment.");
+    }
+}
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
+
+// H7 — Security response headers + HSTS. TLS termination/redirect is owned by the
+// reverse proxy in front of this API (the deploy target is out of repo scope), so
+// we do not UseHttpsRedirection here (it would loop behind a TLS-terminating
+// proxy); HSTS is emitted outside Development to instruct browsers to stay on
+// HTTPS. The static headers are safe in every environment.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["X-Permitted-Cross-Domain-Policies"] = "none";
+    await next();
+});
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
@@ -162,92 +258,41 @@ using (var scope = app.Services.CreateScope())
     var actionExpander = scope.ServiceProvider.GetRequiredService<CapitalUniversity.Core.Infrastructure.Services.Authorization.Manifest.ManifestActionExpander>();
     var studentServicesDbContext = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
 
-    // Ensure database schema is created. There are no migration files, so
-    // EnsureCreatedAsync creates all tables + indexes from the model.
-    // If the database was previously touched by MigrateAsync (which creates
-    // __EFMigrationsHistory but no app tables), drop that tracking table first
-    // so EnsureCreated sees a clean slate.
+    // B5 — Schema is managed by EF Core migrations (data-preserving upgrades).
+    // CoreDbContext and StudentServicesDbContext share one physical database but
+    // each owns a separate migrations-history table — StudentServices uses
+    // "__EFMigrationsHistory_StudentServices" in its own schema (see
+    // StudentServices/DependencyInjection.cs) — so applying both is collision-free.
+    // MigrateAsync creates the database if absent, applies pending migrations,
+    // and preserves existing data. Schema creation for the StudentServices.*
+    // namespace is handled by EnsureSchema inside its initial migration.
+    // Guarded by IsRelational() so the in-memory provider used in tests skips it.
     var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
+    var isTesting = builder.Environment.EnvironmentName == "Testing";
+    // CoreDbContext is normally in-memory under Testing (IsRelational == false →
+    // skipped). The benchmark test re-points it at the shared SQL database, which
+    // is EnsureCreated-provisioned without a migrations-history row — so use the
+    // idempotent EnsureCreated there too; real deployments apply migrations.
     if (autoMigrate && db.Database.IsRelational())
     {
-        // CanConnect returns false when the database does not exist yet,
-        // which is the common case on first startup.  Skip the migration
-        // history cleanup in that case — EnsureCreatedAsync below will
-        // create both the database and the schema from scratch.
-        if (db.Database.CanConnect())
-        {
-            await db.Database.ExecuteSqlRawAsync("""
-                IF OBJECT_ID('__EFMigrationsHistory') IS NOT NULL
-                    DROP TABLE __EFMigrationsHistory;
-                """);
-        }
-        await db.Database.EnsureCreatedAsync();
-
-        // Create performance indexes that are defined in entity configurations
-        // but may not exist on databases that were created before the index
-        // definitions were added. Guarded with OBJECT_ID so they run safely
-        // on any existing database.
-        await db.Database.ExecuteSqlRawAsync("""
-            IF OBJECT_ID('Students') IS NOT NULL
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Students_Email' AND object_id = OBJECT_ID('Students'))
-                    CREATE INDEX IX_Students_Email ON Students (Email);
-                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Students_StructureNodeId' AND object_id = OBJECT_ID('Students'))
-                    CREATE INDEX IX_Students_StructureNodeId ON Students (StructureNodeId);
-            END
-            IF OBJECT_ID('Staffs') IS NOT NULL
-            BEGIN
-                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Staffs_Email' AND object_id = OBJECT_ID('Staffs'))
-                    CREATE INDEX IX_Staffs_Email ON Staffs (Email);
-                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Staffs_StructureNodeId' AND object_id = OBJECT_ID('Staffs'))
-                    CREATE INDEX IX_Staffs_StructureNodeId ON Staffs (StructureNodeId);
-            END
-            """);
+        if (isTesting)
+            await db.Database.EnsureCreatedAsync();
+        else
+            await db.Database.MigrateAsync();
     }
 
-    // StudentServicesDbContext uses the same database but a different schema
-    // (StudentServices.*).  EnsureCreatedAsync skips when ANY tables exist, so
-    // we cannot rely on it for the 2nd context.  Instead we generate the CREATE
-    // script from the model and run it, guarded by a schema-scoped table check.
+    // The Testing host points StudentServicesDbContext at the shared SQL database
+    // (CoreDbContext is swapped to in-memory by the test fixtures, but the
+    // StudentServices context is not). That database is provisioned by earlier
+    // runs WITHOUT a migrations-history row, so MigrateAsync would try to
+    // re-CREATE existing tables. Use idempotent EnsureCreated there (matches the
+    // pre-migration self-provisioning behavior); real deployments use migrations.
     if (autoMigrate && studentServicesDbContext.Database.IsRelational())
     {
-        await studentServicesDbContext.Database.ExecuteSqlRawAsync("""
-            IF SCHEMA_ID('StudentServices') IS NULL
-                EXEC('CREATE SCHEMA StudentServices');
-            """);
-
-        var hasTables = false;
-        var conn = studentServicesDbContext.Database.GetDbConnection();
-        if (conn.State != ConnectionState.Open)
-            await conn.OpenAsync();
-        await using (var cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = """
-                SELECT CASE WHEN EXISTS (
-                    SELECT 1 FROM sys.tables t
-                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-                    WHERE s.name = 'StudentServices'
-                ) THEN 1 ELSE 0 END
-                """;
-            hasTables = (int)(await cmd.ExecuteScalarAsync())! == 1;
-        }
-
-        if (!hasTables)
-        {
-            var script = studentServicesDbContext.Database.GenerateCreateScript();
-            if (!string.IsNullOrWhiteSpace(script))
-            {
-                var batches = script.Split(
-                    ["\nGO\n", "\nGO\r\n", "\r\nGO\r\n", "\r\nGO\n"],
-                    StringSplitOptions.RemoveEmptyEntries);
-                foreach (var batch in batches)
-                {
-                    var trimmed = batch.Trim();
-                    if (trimmed.Length > 0)
-                        await studentServicesDbContext.Database.ExecuteSqlRawAsync(trimmed);
-                }
-            }
-        }
+        if (isTesting)
+            await studentServicesDbContext.Database.EnsureCreatedAsync();
+        else
+            await studentServicesDbContext.Database.MigrateAsync();
     }
 
     // Reconcile manifest-declared permissions against the DB first, so that
@@ -257,7 +302,16 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifestSynchronizer>();
     await manifestSync.SynchronizeAsync();
 
-    await UniversityStructureSeeder.SeedAsync(db);
+    // NOTE: UniversityStructureSeeder (an Engineering/Business node tree) is
+    // intentionally NOT called here. DataSeeder.SeedAsync owns the canonical
+    // university structure (Capital University → Home Economics / Mataria /
+    // Helwan) via its one-shot StructureNodes step, and every downstream
+    // seeder (staff FAC-001, students, roles, MassiveDataSeeder programs)
+    // resolves node names against THAT tree. Running UniversityStructureSeeder
+    // first populated StructureNodes with an incompatible tree, which caused
+    // DataSeeder's one-shot structure step to skip, FAC-001 to be dropped, and
+    // SeedNotificationsAsync to throw "Staff 'FAC-001' not found" — crashing
+    // startup on every clean database.
     await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
     //await IdentitySeeder.SeedUsersAsync(db, passwordHasher);
     await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
@@ -277,6 +331,7 @@ app.UseMiddleware<SessionVersionMiddleware>();
 // touch its synchronous accessors; eliminates the sync-over-async hot path.
 app.UseMiddleware<UserScopePreloadMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // Health endpoint (anonymous).
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

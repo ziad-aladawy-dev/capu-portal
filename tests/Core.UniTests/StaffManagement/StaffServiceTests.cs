@@ -364,12 +364,15 @@ public class StaffServiceTests
     public async Task GetStatistics_CountsActiveAndInactiveSeparately()
     {
         var (sut, staff, _, _, _) = Build();
-        var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"N\",\"en\":\"N\"}" };
-        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>())).ReturnsAsync(new UserStatisticsDto
+        // Service derives stats from SearchAsync results (in-memory IsActive
+        // count); there is no repository GetStatisticsAsync in the contract.
+        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>())).ReturnsAsync(new PagedResult<Staff>
         {
-            TotalStaff = 3,
-            ActiveStaff = 2,
-            InactiveStaff = 1
+            Items = new List<Staff> { MakeStaff(true), MakeStaff(true), MakeStaff(false) },
+            Page = 1,
+            PageSize = int.MaxValue,
+            TotalCount = 3,
+            TotalPages = 1,
         });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest());
@@ -379,17 +382,33 @@ public class StaffServiceTests
         stats.InactiveStaff.Should().Be(1);
     }
 
+    private static Staff MakeStaff(bool isActive) => new()
+    {
+        Id = Guid.NewGuid(),
+        EmployeeCode = "E1",
+        Name = "{\"ar\":\"ن\",\"en\":\"N\"}",
+        NationalId = "1",
+        Email = "e@x",
+        PhoneNumber = "1",
+        Role = "r",
+        JobTitle = "{\"ar\":\"و\",\"en\":\"J\"}",
+        IsActive = isActive,
+    };
+
     [Fact]
     public async Task GetStatistics_RequestsAllPages_NotJustFirstPage()
     {
         var (sut, staff, _, _, _) = Build();
-        UserStatisticsRequest? observed = null;
-        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>()))
-            .Callback<UserStatisticsRequest>(q => observed = q)
-            .ReturnsAsync(new UserStatisticsDto());
+        // Stats must count across the whole tenant, so the service requests an
+        // unbounded page from SearchAsync (PageSize == int.MaxValue), not page 1.
+        StaffQueryRequest? observed = null;
+        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>()))
+            .Callback<StaffQueryRequest>(q => observed = q)
+            .ReturnsAsync(new PagedResult<Staff> { Items = new List<Staff>() });
 
         await sut.GetStatisticsAsync(new UserStatisticsRequest());
 
         observed.Should().NotBeNull();
+        observed!.PageSize.Should().Be(int.MaxValue);
     }
 }

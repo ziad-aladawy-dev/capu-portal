@@ -61,10 +61,22 @@ public sealed class SettlementService : ISettlementService
             return;
         }
 
-        var idempotencyKey = $"{source}:{outcome}";
+        // H3 — A Paid notification whose reported amount does not match the order
+        // total is recorded but NOT settled (the D9 block below). It must use a
+        // DISTINCT idempotency key: if a benign mismatch consumed the canonical
+        // "{source}:{outcome}" key, a later CORRECTED notification with the right
+        // amount would be deduped here and the order could never settle.
+        var isAmountMismatch = outcome == SettlementOutcome.Paid
+            && reportedAmount.HasValue
+            && reportedAmount.Value != order.TotalAmount;
+
+        var idempotencyKey = isAmountMismatch
+            ? $"{source}:{outcome}:amount-mismatch"
+            : $"{source}:{outcome}";
+
         if (await _transactions.ExistsAsync(merchantOrderId, idempotencyKey, cancellationToken))
         {
-            // This exact outcome was already processed for this order.
+            // This exact outcome (or this exact mismatch) was already processed.
             return;
         }
 
@@ -74,13 +86,17 @@ public sealed class SettlementService : ISettlementService
             MerchantOrderId = merchantOrderId,
             Gateway = order.Gateway,
             Type = source,
-            Status = outcome switch
-            {
-                SettlementOutcome.Paid => GatewayTransactionStatus.Succeeded,
-                SettlementOutcome.Failed or SettlementOutcome.Expired => GatewayTransactionStatus.Failed,
-                _ => GatewayTransactionStatus.Pending,
-            },
-            Amount = order.TotalAmount,
+            Status = isAmountMismatch
+                ? GatewayTransactionStatus.Failed
+                : outcome switch
+                {
+                    SettlementOutcome.Paid => GatewayTransactionStatus.Succeeded,
+                    SettlementOutcome.Failed or SettlementOutcome.Expired => GatewayTransactionStatus.Failed,
+                    _ => GatewayTransactionStatus.Pending,
+                },
+            // Record the REPORTED amount for a mismatch (aids reconciliation);
+            // otherwise the order total.
+            Amount = isAmountMismatch ? reportedAmount!.Value : order.TotalAmount,
             RawResponse = string.IsNullOrEmpty(rawPayload) ? "{}" : rawPayload,
             IdempotencyKey = idempotencyKey,
         }, cancellationToken);

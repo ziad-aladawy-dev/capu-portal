@@ -91,6 +91,14 @@ public class AuthenticationService : IAuthenticationService
             return false;
         }
 
+        // H5 — Enforce password-complexity server-side (the SPA check is
+        // bypassable). A non-compliant new password is rejected the same way
+        // as any other invalid change request.
+        if (!PasswordPolicy.IsCompliant(request.NewPassword))
+        {
+            return false;
+        }
+
         var updated = await _credentialResolver.UpdatePasswordAsync(
             userId,
             request.CurrentPassword,

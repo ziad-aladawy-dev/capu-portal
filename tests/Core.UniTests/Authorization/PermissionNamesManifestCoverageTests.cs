@@ -110,7 +110,7 @@ public class PermissionNamesManifestCoverageTests
             typeof(CapitalUniversity.Modules.Payments.Abstractions.Manifest.PaymentsPermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Schedule.Abstractions.Manifest.SchedulePermissionManifest).Assembly,
             typeof(CapitalUniversity.Modules.Student.Abstractions.Manifest.StudentInformationPermissionManifest).Assembly,
-            typeof(CapitalUniversity.Modules.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest).Assembly
+            typeof(CapitalUniversity.Module.StudentServices.Abstractions.Manifest.StudentServicesPermissionManifest).Assembly
         );
     }
 

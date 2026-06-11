@@ -36,6 +36,12 @@ public static class PaymentsModuleExtensions
         services.AddScoped<Abstractions.Treasury.ISettlementService, Application.Treasury.SettlementService>();
         services.AddScoped<Abstractions.Treasury.IReconciliationService, Application.Treasury.ReconciliationService>();
 
+        // B7 — Drains the "payments.fee.paid" outbox stream that SettlementService
+        // publishes on every settlement. Without a handler for this MessageType the
+        // dispatcher poisons one message per paid fee. See FeePaidEventHandler.
+        services.AddScoped<Core.Abstractions.CrossCutting.Outbox.IOutboxMessageHandler,
+            Application.Treasury.FeePaidEventHandler>();
+
         // Permission manifest — registered before the PermissionManifestRegistry
         // singleton is first resolved.
         services.AddSingleton<IPermissionManifest, PaymentsPermissionManifest>();
