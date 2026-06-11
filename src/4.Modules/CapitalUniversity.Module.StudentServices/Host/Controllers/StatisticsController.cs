@@ -20,6 +20,7 @@ public class StatisticsController : ControllerBase
     }
 
     [HttpGet("staff")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetStaffStatistics(CancellationToken cancellationToken)
     {
         var result = await _statisticsService.GetStaffStatisticsAsync(cancellationToken);
@@ -34,6 +35,7 @@ public class StatisticsController : ControllerBase
     }
 
     [HttpGet("student/{studentId:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetStudentStatisticsById(Guid studentId, CancellationToken cancellationToken)
     {
         var result = await _statisticsService.GetStudentStatisticsAsync(studentId, cancellationToken);
@@ -41,6 +43,7 @@ public class StatisticsController : ControllerBase
     }
 
     [HttpGet("staff/recent-requests")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetRecentRequests([FromQuery] int count = 5, CancellationToken cancellationToken = default)
     {
         var result = await _statisticsService.GetRecentRequestsAsync(count, cancellationToken);

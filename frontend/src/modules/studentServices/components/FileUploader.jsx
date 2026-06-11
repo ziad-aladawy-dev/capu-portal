@@ -10,38 +10,51 @@ const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
   const fileInputRef = useRef(null);
   const [uploadingIds, setUploadingIds] = useState([]);
 
+  const safeValue = Array.isArray(value) ? value : [];
+
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
-    const newFiles = [];
+    const newFiles = [...safeValue];
+    
     for (const file of files) {
       const tempId = Date.now() + Math.random();
-      newFiles.push({ id: tempId, name: file.name, size: file.size, file, uploading: true });
-      setUploadingIds((prev) => [...prev, tempId]);
-      onChange([...value, ...newFiles.filter(f => f.id === tempId)]);
+      const newFile = { 
+        id: tempId, 
+        name: file.name, 
+        size: file.size, 
+        file, 
+        uploading: true,
+        uploaded: false
+      };
+      newFiles.push(newFile);
+      onChange(newFiles);
+      setUploadingIds(prev => [...prev, tempId]);
+      
       try {
         const result = await upload(requestId, stepKey, file);
-        const finalFile = {
-          id: result.attachmentId,
-          name: file.name,
-          size: file.size,
-          attachmentId: result.attachmentId,
+        const finalFile = { 
+          id: result.attachmentId, 
+          name: file.name, 
+          size: file.size, 
+          attachmentId: result.attachmentId, 
           uploaded: true,
+          uploading: false
         };
-        onChange((prev) => prev.map(f => f.id === tempId ? finalFile : f));
+        const updatedFiles = newFiles.map(f => f.id === tempId ? finalFile : f);
+        onChange(updatedFiles);
       } catch (err) {
-        onChange((prev) => prev.filter(f => f.id !== tempId));
+        const updatedFiles = newFiles.filter(f => f.id !== tempId);
+        onChange(updatedFiles);
       } finally {
-        setUploadingIds((prev) => prev.filter(id => id !== tempId));
+        setUploadingIds(prev => prev.filter(id => id !== tempId));
       }
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeFile = async (file) => {
-    if (file.attachmentId) {
-      await remove(file.attachmentId);
-    }
-    onChange(value.filter(f => f.id !== file.id));
+  const removeFile = (file) => {
+    const updated = safeValue.filter(f => f.id !== file.id);
+    onChange(updated);
   };
 
   const formatFileSize = (bytes) => {
@@ -56,36 +69,20 @@ const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
   return (
     <div className="fu-container">
       <div className="fu-dropzone" onClick={() => fileInputRef.current?.click()}>
-        <Upload size={32} />
-        <p>{t("drag_drop_or_click")}</p>
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          style={{ display: "none" }}
-          disabled={uploading}
-        />
+        <Upload size={32} /><p>{t("drag_drop_or_click")}</p>
+        <input type="file" multiple ref={fileInputRef} onChange={handleFileSelect} style={{ display: "none" }} disabled={uploading} />
       </div>
       {error && <div className="fu-error">{error}</div>}
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div className="fu-list">
-          {value.map((file) => (
+          {safeValue.map(file => (
             <div key={file.id} className="fu-item">
-              {isUploading(file) ? (
-                <Loader2 size={18} className="fu-spinner" />
-              ) : (
-                <File size={18} />
-              )}
+              {isUploading(file) ? <Loader2 size={18} className="fu-spinner" /> : <File size={18} />}
               <div className="fu-file-info">
                 <span className="fu-file-name">{file.name}</span>
                 <span className="fu-file-size">{formatFileSize(file.size)}</span>
               </div>
-              <button
-                onClick={() => removeFile(file)}
-                className="fu-remove-btn"
-                disabled={isUploading(file)}
-              >
+              <button onClick={() => removeFile(file)} className="fu-remove-btn" disabled={isUploading(file)}>
                 <X size={14} />
               </button>
             </div>

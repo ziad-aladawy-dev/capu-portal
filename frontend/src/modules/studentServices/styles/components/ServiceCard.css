@@ -1,44 +1,106 @@
 .service-card {
   background: white;
-  border-radius: 1rem;
-  padding: 1rem;
+  border-radius: 16px;
+  padding: 20px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 18px rgba(26, 31, 94, 0.03);
+  transition: all 0.25s ease;
 }
+
 .service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 14px 30px rgba(26, 31, 94, 0.08);
+  border-color: rgba(201, 168, 76, 0.3);
 }
-.service-card-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+
+.service-card-top-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1a1f5e 0%, #c9a84c 100%);
 }
+
+.service-card-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(26, 31, 94, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  transition: all 0.25s ease;
+}
+
+.service-card:hover .service-card-icon-wrapper {
+  background: rgba(201, 168, 76, 0.15);
+}
+
+.service-lucide-icon {
+  color: #1a1f5e;
+  transition: all 0.25s ease;
+}
+
+.service-card:hover .service-lucide-icon {
+  color: #c9a84c;
+  transform: scale(1.05);
+}
+
 .service-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  margin: 0 0 6px 0;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1f5e;
 }
+
 .service-card p {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: #6b7280;
-  margin-bottom: 0.75rem;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  flex-grow: 1;
 }
+
 .service-card-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 12px;
+  border-top: 1px dashed #f0f0f0;
 }
+
 .service-price.paid {
-  color: #c9a84c;
+  color: #1a1f5e;
+  background: rgba(26, 31, 94, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 700;
 }
+
 .service-price.free {
   color: #16a34a;
+  background: rgba(22, 163, 74, 0.09);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 700;
 }
+
 .service-category {
   background: #f3f4f6;
-  padding: 0.2rem 0.6rem;
-  border-radius: 1rem;
-  font-size: 0.7rem;
+  color: #4b5563;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }

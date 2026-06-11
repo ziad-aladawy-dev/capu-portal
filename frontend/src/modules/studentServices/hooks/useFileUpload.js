@@ -1,9 +1,5 @@
 import { useState, useCallback } from "react";
-import {
-  uploadFile,
-  downloadFile,
-  deleteFile,
-} from "../services/studentServicesService";
+import { uploadFile, downloadFile, deleteFile } from "../services/studentServicesService";
 
 export const useFileUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -12,60 +8,29 @@ export const useFileUpload = () => {
 
   const upload = useCallback(async (requestId, stepKey, file) => {
     setUploading(true);
-    setError(null);
     try {
       const result = await uploadFile(requestId, stepKey, file);
       return result;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Upload failed";
-      setError(msg);
-      throw new Error(msg);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { setError(err.message); throw err; }
+    finally { setUploading(false); }
   }, []);
 
-  const download = useCallback(async (attachmentId, fileName = "file") => {
+  const download = useCallback(async (id, name = "file") => {
     setDownloading(true);
-    setError(null);
     try {
-      const blob = await downloadFile(attachmentId);
-      const url = window.URL.createObjectURL(blob);
+      const blob = await downloadFile(id);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      return true;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Download failed";
-      setError(msg);
-      throw new Error(msg);
-    } finally {
-      setDownloading(false);
-    }
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) { setError(err.message); throw err; }
+    finally { setDownloading(false); }
   }, []);
 
-  const remove = useCallback(async (attachmentId) => {
-    setError(null);
-    try {
-      await deleteFile(attachmentId);
-      return true;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Delete failed";
-      setError(msg);
-      throw new Error(msg);
-    }
+  const remove = useCallback(async (id) => {
+    await deleteFile(id);
   }, []);
 
-  return {
-    upload,
-    download,
-    remove,
-    uploading,
-    downloading,
-    error,
-  };
+  return { upload, download, remove, uploading, downloading, error };
 };

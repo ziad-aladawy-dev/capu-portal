@@ -738,7 +738,7 @@ public static class DataSeeder
             ("FAC-002",   "Dr. Ahmed Abdel-Rahman","27807071234567", new(1970, 8, 18),  "01111111117", "ahmed.abdelrahman@capital.edu.eg", "Faculty Admin",    LocalizedJson.Of("وكيل الكلية للشؤون الأكاديمية","Vice Dean for Academic Affairs"), "Mataria"),
         };
 
-        var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
+        var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode, s => s);
         var added = 0;
         var updated = 0;
         foreach (var d in defs)
@@ -1050,7 +1050,11 @@ public static class DataSeeder
         var staff = await context.Staffs.ToListAsync();
         var adminId = staff.First(s => s.EmployeeCode == "ADMIN-001").Id;
         var regId = staff.First(s => s.EmployeeCode == "REG-001").Id;
-        var facId = staff.First(s => s.EmployeeCode == "FAC-001").Id;
+        var facAdmin = staff.FirstOrDefault(s => s.EmployeeCode == "FAC-001");
+        if (facAdmin == null)
+            throw new InvalidOperationException("SeedData: Staff with EmployeeCode 'FAC-001' not found. Ensure SeedStaffAsync runs before SeedStaffPermissionOverridesAsync.");
+
+        var facId = facAdmin.Id;
 
         // Title and Message are bilingual JSON. NotificationService decodes
         // both via ILocalizationService.Get<string>(json) on every read.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Package, ClipboardList, Clock, CheckCircle, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Package, ClipboardList, Clock, CheckCircle, ArrowRight } from "lucide-react";
 import { getAvailableServicesForStudent } from "../../services/studentServicesService";
 import { useStudentStatistics } from "../../hooks/useStatistics";
 import { useAuth } from "../../../../core/contexts/AuthContext";
@@ -19,9 +19,8 @@ const StudentDashboard = () => {
   const [loadingServices, setLoadingServices] = useState(true);
 
   useEffect(() => {
-    const loadServices = async () => {
+    const load = async () => {
       if (!user?.id) return;
-      setLoadingServices(true);
       try {
         const data = await getAvailableServicesForStudent(user.id);
         setServices(Array.isArray(data) ? data : []);
@@ -31,50 +30,56 @@ const StudentDashboard = () => {
         setLoadingServices(false);
       }
     };
-    loadServices();
+    load();
   }, [user?.id]);
 
+  const initials = typeof user?.name === "string" && user.name.trim()
+    ? user.name.trim().split(/\s+/).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "ST";
+
   const statsCards = [
-    { label: t("available_services"), value: services.length, icon: Package, color: "blue" },
-    { label: t("active_requests"), value: studentStats?.activeRequests || 0, icon: ClipboardList, color: "navy" },
-    { label: t("pending_requests"), value: studentStats?.pendingRequests || 0, icon: Clock, color: "orange" },
-    { label: t("completed_requests"), value: studentStats?.completedRequests || 0, icon: CheckCircle, color: "green" },
+    { label: t("available_services"), value: services.length, icon: Package, colorClass: "ic-blue", accentBg: "#2563eb" },
+    { label: t("active_requests"), value: studentStats?.activeRequests || 0, icon: ClipboardList, colorClass: "ic-navy", accentBg: "#1a1f5e" },
+    { label: t("pending_requests"), value: studentStats?.pendingRequests || 0, icon: Clock, colorClass: "ic-amber", accentBg: "#f59e0b" },
+    { label: t("completed_requests"), value: studentStats?.completedRequests || 0, icon: CheckCircle, colorClass: "ic-green", accentBg: "#16a34a" },
   ];
 
   if ((statsLoading || loadingServices) && !services.length && !studentStats) return <LoadingSpinner />;
 
   return (
-    <div className="std-dashboard">
-      <div className="std-welcome">
-        <h1>{t("welcome_back_student")}</h1>
-        <p>{t("student_dashboard_subtitle")}</p>
+    <div className="std-dashboard-page">
+      <div className="std-dashboard-header">
+        <div className="std-dashboard-title-box">
+          <div className="std-hero-eyebrow">{t("student_portal")}</div>
+          <h1>{t("welcome_back_student")}, <em>{user?.name && typeof user.name === "string" ? user.name.split(" ")[0] : ""}</em></h1>
+          <div className="std-hero-meta">
+            <div className="std-hero-pill">{t("status")}: <b>{t("active_student")}</b></div>
+          </div>
+        </div>
+        <div className="std-welcome-block">
+          <div className="std-hero-illus"><div className="std-hero-ring">{initials}</div></div>
+          <button className="std-quick-action-pill-btn" onClick={() => navigate("/student/requests")}>
+            <span>{t("my_requests")}</span><ArrowRight size={14} className="std-arrow-icon" />
+          </button>
+        </div>
       </div>
+
       <div className="std-stats-grid">
         {statsCards.map((stat, idx) => (
-          <div key={idx} className={`std-stat-card ${stat.color}`}>
-            <div className="std-stat-icon"><stat.icon size={22} /></div>
-            <div className="std-stat-content">
-              <span>{stat.label}</span>
-              <h3>{stat.value}</h3>
-            </div>
+          <div key={idx} className="std-stat-card">
+            <div className="std-stat-card-accent" style={{ backgroundColor: stat.accentBg }}></div>
+            <div className="std-stat-card-top"><span>{stat.label}</span><div className={`std-stat-icon ${stat.colorClass}`}><stat.icon size={16} /></div></div>
+            <h2>{stat.value}</h2>
           </div>
         ))}
       </div>
-      <div className="std-services-header">
-        <h2>{t("services_catalog")}</h2>
-        <button className="std-view-requests" onClick={() => navigate("/student/requests")}>
-          <Eye size={16} /> {t("my_requests")}
-        </button>
+
+      <div className="std-dashboard-card">
+        <div className="std-card-header"><h3>{t("services_catalog")}</h3><span className="std-card-badge">{services.length} {t("services")}</span></div>
+        {services.length === 0 ? <EmptyState message={t("no_services_available")} /> : (
+          <div className="std-services-grid">{services.map(service => <ServiceCard key={service.id} service={service} />)}</div>
+        )}
       </div>
-      {services.length === 0 ? (
-        <EmptyState message={t("no_services_available")} />
-      ) : (
-        <div className="std-services-grid">
-          {services.map(service => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
-        </div>
-      )}
     </div>
   );
 };

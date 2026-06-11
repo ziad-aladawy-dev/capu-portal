@@ -1,14 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  getWorkflows,
-  getWorkflowById,
-  createWorkflow,
-  updateWorkflow,
-  deleteWorkflow,
-  addWorkflowStep,
-  updateWorkflowStep,
-  deleteWorkflowStep,
-} from "../services/studentServicesService";
+import { getWorkflows, getWorkflowById, createWorkflow, updateWorkflow, deleteWorkflow, addWorkflowStep, updateWorkflowStep, deleteWorkflowStep } from "../services/studentServicesService";
 
 export const useWorkflows = () => {
   const [workflows, setWorkflows] = useState([]);
@@ -18,128 +9,59 @@ export const useWorkflows = () => {
 
   const loadWorkflows = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await getWorkflows();
       setWorkflows(Array.isArray(data) ? data : []);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to load workflows";
-      setError(msg);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const getWorkflow = useCallback(async (id) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getWorkflowById(id);
-      setCurrentWorkflow(data);
-      return data;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to load workflow";
-      setError(msg);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const data = await getWorkflowById(id);
+    setCurrentWorkflow(data);
+    return data;
   }, []);
 
   const addWorkflow = async (data) => {
-    setError(null);
-    try {
-      const newWf = await createWorkflow(data);
-      await loadWorkflows();
-      return newWf;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to create workflow";
-      setError(msg);
-      throw new Error(msg);
-    }
+    const newWf = await createWorkflow(data);
+    await loadWorkflows();
+    return newWf;
   };
 
   const editWorkflow = async (id, data) => {
-    setError(null);
-    try {
-      await updateWorkflow(id, data);
-      await loadWorkflows();
-      if (currentWorkflow?.id === id) setCurrentWorkflow({ ...currentWorkflow, ...data });
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to update workflow";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await updateWorkflow(id, data);
+    await loadWorkflows();
+    if (currentWorkflow?.id === id) setCurrentWorkflow({ ...currentWorkflow, ...data });
   };
 
   const removeWorkflow = async (id) => {
-    setError(null);
-    try {
-      await deleteWorkflow(id);
-      await loadWorkflows();
-      if (currentWorkflow?.id === id) setCurrentWorkflow(null);
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to delete workflow";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await deleteWorkflow(id);
+    await loadWorkflows();
+    if (currentWorkflow?.id === id) setCurrentWorkflow(null);
   };
 
   const addStep = async (workflowId, stepData) => {
-    setError(null);
-    try {
-      await addWorkflowStep(workflowId, stepData);
-      await loadWorkflows();
-      if (currentWorkflow?.id === workflowId) await getWorkflow(workflowId);
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to add step";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await addWorkflowStep(workflowId, stepData);
+    await loadWorkflows();
+    if (currentWorkflow?.id === workflowId) await getWorkflow(workflowId);
   };
 
   const editStep = async (stepId, stepData) => {
-    setError(null);
-    try {
-      await updateWorkflowStep(stepId, stepData);
-      await loadWorkflows();
-      if (currentWorkflow) await getWorkflow(currentWorkflow.id);
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to update step";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await updateWorkflowStep(stepId, stepData);
+    await loadWorkflows();
+    if (currentWorkflow) await getWorkflow(currentWorkflow.id);
   };
 
   const removeStep = async (stepId) => {
-    setError(null);
-    try {
-      await deleteWorkflowStep(stepId);
-      await loadWorkflows();
-      if (currentWorkflow) await getWorkflow(currentWorkflow.id);
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to delete step";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await deleteWorkflowStep(stepId);
+    await loadWorkflows();
+    if (currentWorkflow) await getWorkflow(currentWorkflow.id);
   };
 
-  useEffect(() => {
-    loadWorkflows();
-  }, [loadWorkflows]);
+  useEffect(() => { loadWorkflows(); }, [loadWorkflows]);
 
-  return {
-    workflows,
-    currentWorkflow,
-    loading,
-    error,
-    getWorkflow,
-    addWorkflow,
-    editWorkflow,
-    removeWorkflow,
-    addStep,
-    editStep,
-    removeStep,
-    refresh: loadWorkflows,
-  };
+  return { workflows, currentWorkflow, loading, error, getWorkflow, addWorkflow, editWorkflow, removeWorkflow, addStep, editStep, removeStep, refresh: loadWorkflows };
 };

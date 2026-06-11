@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFormFieldsToService : Migration
+    public partial class first1 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -59,22 +59,9 @@
   display: none;
 }
 @media (max-width: 640px) {
-  .stepper-line {
-    display: none;
-  }
-  .stepper {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .stepper-step {
-    flex-direction: row;
-    gap: 0.5rem;
-    width: 100%;
-  }
-  .stepper-circle {
-    margin-bottom: 0;
-  }
-  .stepper-label {
-    text-align: left;
-  }
+  .stepper-line { display: none; }
+  .stepper { flex-direction: column; align-items: flex-start; }
+  .stepper-step { flex-direction: row; gap: 0.5rem; width: 100%; }
+  .stepper-circle { margin-bottom: 0; }
+  .stepper-label { text-align: left; }
 }

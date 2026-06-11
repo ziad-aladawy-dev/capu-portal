@@ -21,14 +21,8 @@
   font-size: 0.8rem;
   color: #6b7280;
 }
-.rs-step.active {
-  background: #1a1f5e;
-  color: white;
-}
-.rs-step.completed {
-  background: #c9a84c;
-  color: #1a1f5e;
-}
+.rs-step.active { background: #1a1f5e; color: white; }
+.rs-step.completed { background: #c9a84c; color: #1a1f5e; }
 .rs-step-number {
   display: inline-block;
   width: 24px;
@@ -53,41 +47,19 @@
   border-radius: 0.75rem;
   text-align: center;
 }
-.rs-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.rs-actions button {
-  padding: 0.6rem 1.5rem;
-  border-radius: 2rem;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-.rs-btn-secondary {
-  background: #e5e7eb;
-  color: #1f2937;
-}
-.rs-btn-primary {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
-}
-.rs-error {
-  background: #fee2e2;
-  color: #dc2626;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-}
+.rs-actions { display: flex; justify-content: space-between; gap: 1rem; }
+.rs-actions button { padding: 0.6rem 1.5rem; border-radius: 2rem; border: none; font-weight: 600; cursor: pointer; }
+.rs-btn-secondary { background: #e5e7eb; color: #1f2937; }
+.rs-btn-primary { background: linear-gradient(135deg, #c9a84c, #e0c06a); color: #1a1f5e; }
+.rs-error { background: #fee2e2; color: #dc2626; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+.review-data { display: flex; flex-direction: column; gap: 8px; background: #f8f9fb; border-radius: 12px; padding: 12px; }
+.review-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #edf0f5; }
+.review-row strong { color: #1a1f5e; font-weight: 700; }
+.review-row span { color: #4b5563; }
+.pay-now-btn { background: linear-gradient(135deg, #c9a84c, #e0c06a); border: none; border-radius: 24px; padding: 8px 20px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+.payment-success { color: #16a34a; font-weight: 700; margin-top: 12px; }
 @media (max-width: 640px) {
-  .rs-container {
-    padding: 1rem;
-  }
-  .rs-actions {
-    flex-direction: column;
-  }
-  .rs-actions button {
-    width: 100%;
-  }
+  .rs-container { padding: 1rem; }
+  .rs-actions { flex-direction: column; }
+  .rs-actions button { width: 100%; }
 }

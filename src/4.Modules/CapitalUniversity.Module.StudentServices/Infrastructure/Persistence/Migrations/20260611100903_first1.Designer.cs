@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(StudentServicesDbContext))]
-    [Migration("20260610115927_AddFormFieldsToService")]
-    partial class AddFormFieldsToService
+    [Migration("20260611100903_first1")]
+    partial class first1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
