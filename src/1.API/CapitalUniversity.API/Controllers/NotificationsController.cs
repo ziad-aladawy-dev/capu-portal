@@ -10,7 +10,11 @@ using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 namespace CapitalUniversity.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+// Explicit lowercase route (was "api/[controller]" → "api/Notifications"). ASP.NET
+// routing is case-insensitive so the SPA's "/api/notifications" already matched on
+// every OS, but this aligns with the kebab/lowercase convention used by every other
+// controller and removes the lone [controller]-token outlier.
+[Route("api/notifications")]
 [Authorize]
 public class NotificationsController : ControllerBase
 {

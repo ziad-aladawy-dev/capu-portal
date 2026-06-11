@@ -23,8 +23,6 @@ public class CurrentUser : ICurrentUser
         }
     }
 
-    public string Email => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-
     public string Role => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
 
     public Guid? StructureNodeId
