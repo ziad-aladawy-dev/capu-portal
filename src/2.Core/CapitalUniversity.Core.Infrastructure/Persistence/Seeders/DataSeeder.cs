@@ -16,8 +16,21 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher, ManifestActionExpander actionExpander)
+    /// <param name="seedDemoData">
+    /// B3 — When false (production), the demo people + their dependent rows
+    /// (staff/students with built-in passwords, staff role assignments, permission
+    /// overrides, welcome notifications) are NOT seeded. Platform data (structure,
+    /// roles, auth modules/resources/role-permissions) and reference data (academic
+    /// calendar, course catalog, academic plans) are always seeded so the system is
+    /// functional. Defaults true to preserve dev/test behaviour.
+    /// </param>
+    public static async Task SeedAsync(
+        CoreDbContext context,
+        IPasswordHasher passwordHasher,
+        ManifestActionExpander actionExpander,
+        bool seedDemoData = true)
     {
+        // ── Platform + reference data — always seeded. ──
         // Tables that are "one-shot" (skip if any rows exist).
         await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
         await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
@@ -27,11 +40,17 @@ public static class DataSeeder
         await RunStepAsync("Modules",   () => SeedAuthModulesAsync(context));
         await RunStepAsync("Resources", () => SeedAuthResourcesAsync(context));
         await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context, actionExpander));
-        await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
-        await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
-        await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
-        await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
-        await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
+
+        // ── Demo accounts + their dependents — development/test only. ──
+        if (seedDemoData)
+        {
+            await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
+            await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
+            await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
+            await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
+            await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
+        }
+
         await RunStepAsync("Courses", () => SeedCoursesAsync(context));
         await RunOnceAsync("AcademicPlans", context.AcademicPlans, () => SeedAcademicPlansAsync(context));
     }
@@ -760,8 +779,9 @@ public static class DataSeeder
                 current.Role = d.Role;
                 current.JobTitle = d.Job;
                 current.StructureNodeId = node.Id;
-                current.PasswordHash = adminPwd;
-                current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
+                // B3 — Do NOT re-apply the password on update: re-seeding on every
+                // boot must not silently reset a password the user has since
+                // changed. The hash is set only on initial insert (below).
                 current.IsActive = true;
                 updated++;
             }
@@ -861,8 +881,8 @@ public static class DataSeeder
                     current.PhoneNumber = d.Phone;
                     current.Email = d.Email;
                     current.StructureNodeId = node.Id;
-                    current.PasswordHash = pwd;
-                    current.PasswordExpiry = DateTime.UtcNow.AddYears(5);
+                    // B3 — Do NOT re-apply the password on update (see SeedStaffAsync):
+                    // re-seeding must not reset a password the user has changed.
                     current.IsActive = true;
                     updated++;
                 }

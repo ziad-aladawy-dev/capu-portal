@@ -312,10 +312,25 @@ using (var scope = app.Services.CreateScope())
     // DataSeeder's one-shot structure step to skip, FAC-001 to be dropped, and
     // SeedNotificationsAsync to throw "Staff 'FAC-001' not found" — crashing
     // startup on every clean database.
-    await DataSeeder.SeedAsync(db, passwordHasher, actionExpander);
+    // B3 — Demo data (built-in accounts with documented passwords + the bulk
+    // MassiveDataSeeder roster) seeds everywhere EXCEPT Production, unless
+    // explicitly toggled via Seeding:DemoData. Platform + reference data always
+    // seed (see DataSeeder.SeedAsync). Tests run under "Testing" (not Production),
+    // so they keep the demo accounts they depend on.
+    var seedDemoData = builder.Configuration.GetValue("Seeding:DemoData", !app.Environment.IsProduction());
+
+    await DataSeeder.SeedAsync(db, passwordHasher, actionExpander, seedDemoData);
     //await IdentitySeeder.SeedUsersAsync(db, passwordHasher);
-    await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
-    await MassiveDataSeeder.SeedAsync(db, passwordHasher);
+
+    // Bootstrap a config-driven Super Admin for environments without demo data
+    // (no-ops if a Super Admin already exists or if Seeding:Admin:* is unset).
+    await ProductionAdminSeeder.SeedAsync(db, passwordHasher, builder.Configuration);
+
+    if (seedDemoData)
+    {
+        await StudentServicesSeeder.SeedAsync(scope.ServiceProvider);
+        await MassiveDataSeeder.SeedAsync(db, passwordHasher);
+    }
 }
 
 if (app.Environment.IsDevelopment())
