@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BookOpen, Layers, Clock, MapPin, ChevronDown, ChevronRight, Send, Ban,
-  CalendarDays, AlertTriangle, RefreshCw,
+  CalendarDays, RefreshCw,
 } from "lucide-react";
+import ErrorMessage from "../../../../core/components/ErrorMessage";
 import StatusBadge from "../../../../core/components/StatusBadge";
 import CapacityBar from "../../../../core/components/CapacityBar";
 import ConfirmDialog from "../../../../core/components/ConfirmDialog";
@@ -116,9 +117,9 @@ function OfferingsTab({ course, semester }) {
       {!semester && <div className={shared.emptyInline}>{t("common.noSemester")}</div>}
 
       {error && (
-        <div className={shared.errorBanner} role="alert">
-          <AlertTriangle size={14} /> {error.message}
-          <button className="btn-cancel" style={{ marginLeft: "auto", padding: "3px 8px", fontSize: 11 }} onClick={() => refetch()}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <ErrorMessage message={error.message} />
+          <button className="btn-cancel" style={{ alignSelf: "flex-start", padding: "3px 8px", fontSize: 11 }} onClick={() => refetch()}>
             <RefreshCw size={11} /> {t("common.retry")}
           </button>
         </div>

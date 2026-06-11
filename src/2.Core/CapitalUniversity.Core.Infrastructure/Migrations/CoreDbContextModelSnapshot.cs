@@ -381,6 +381,37 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.CoursePrerequisite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PrerequisiteCourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrerequisiteCourseId");
+
+                    b.HasIndex("CourseId", "PrerequisiteCourseId")
+                        .IsUnique();
+
+                    b.ToTable("CoursePrerequisites", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.PasswordResetToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1078,6 +1109,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("InstructorId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
 
@@ -1114,6 +1148,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InstructorId")
+                        .HasFilter("[InstructorId] IS NOT NULL");
 
                     b.HasIndex("SemesterId");
 
@@ -1762,6 +1799,21 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         });
 
                     b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.CoursePrerequisite", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("PrerequisiteCourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

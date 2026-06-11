@@ -527,12 +527,12 @@ function PermissionsEditor({ user, tree, assignment }) {
       {/* ─── Action bar ─── */}
       <div className="perm-header-actions" style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         {dirty && (
-          <button className="perm-btn perm-btn-outline" onClick={handleReset} disabled={saving}>
+          <button className="btn-outline" onClick={handleReset} disabled={saving}>
             <RotateCcw size={13} /> {t("reset")}
           </button>
         )}
         <button
-          className={`perm-btn perm-btn-primary ${!dirty || saving ? "disabled" : ""}`}
+          className={`btn-primary ${!dirty || saving ? "disabled" : ""}`}
           onClick={handleSave}
           disabled={!canEditPerms || !dirty || saving}
           title={editDisabledTitle}
@@ -542,11 +542,7 @@ function PermissionsEditor({ user, tree, assignment }) {
       </div>
 
       {outOfScopeAssignments.length > 0 && (
-        <div className="perm-banner perm-banner-warning" role="alert" style={{
-          display: "flex", alignItems: "flex-start", gap: 8,
-          background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8,
-          padding: "10px 12px", fontSize: 12, color: "#92400e",
-        }}>
+        <div className="perm-banner perm-banner-warning" role="alert">
           <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
             {t("out_of_scope_warning", {
@@ -664,7 +660,7 @@ function PermissionsEditor({ user, tree, assignment }) {
                           title={outside
                             ? t("scope_outside_active", { defaultValue: "Outside your active scope" })
                             : t("assignment_scope")}
-                          style={outside ? { borderColor: "#f59e0b", background: "#fef3c7", color: "#92400e" } : undefined}
+                          style={outside ? { borderColor: "var(--color-warning)", background: "var(--color-warning-soft)", color: "var(--color-warning)" } : undefined}
                         >
                           <span className="perm-assigned-scope-icon">
                             {outside ? <AlertTriangle size={10} /> : nodeId ? <Building2 size={10} /> : <Globe size={10} />}
@@ -932,8 +928,8 @@ function PermissionsEditor({ user, tree, assignment }) {
               {scopeModalNodeOutside && (
                 <div role="alert" style={{
                   display: "flex", alignItems: "flex-start", gap: 8,
-                  background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8,
-                  padding: "8px 10px", fontSize: 12, color: "#92400e", marginBottom: 10,
+                  background: "var(--color-warning-soft)", border: "1px solid #fde68a", borderRadius: 8,
+                  padding: "8px 10px", fontSize: 12, color: "var(--color-warning)", marginBottom: 10,
                 }}>
                   <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                   <span>

@@ -1,5 +1,6 @@
 import { lazy } from "react";
 
+const AcademicDashboardPage = lazy(() => import("./pages/Dashboard/AcademicDashboardPage"));
 const CourseCatalogPage = lazy(() => import("./pages/CourseCatalog/CourseCatalogPage"));
 const CourseOfferingsPage = lazy(() => import("./pages/CourseOfferings/CourseOfferingsPage"));
 const AcademicPlansPage = lazy(() => import("./pages/AcademicPlans/AcademicPlansPage"));
@@ -7,10 +8,23 @@ const ProgramsPage = lazy(() => import("./pages/Programs/ProgramsPage"));
 const ScheduleSlotsPage = lazy(() => import("./pages/Schedule/ScheduleSlotsPage"));
 const SchedulingMatrixPage = lazy(() => import("./pages/Schedule/SchedulingMatrixPage"));
 
-// Unified Academic Suite. Every page wraps itself in <AcademicShell> (the
-// registry renders flat routes, so the sub-tab bar is a component, not a
-// router layout). Old module paths redirect below so bookmarks survive.
+// Unified Academic Suite. The category tab bar is rendered once by
+// DashboardLayout (core/components/CategoryTabs) from menuItem metadata —
+// pages no longer wrap themselves. Old module paths redirect below so
+// bookmarks survive.
 export default [
+  {
+    path: "/admin/academic/dashboard",
+    component: AcademicDashboardPage,
+    permission: "dashboard.dashboard.view",
+    pageType: "management",
+    applicableTo: "both",
+    menuItem: {
+      category: "Academic",
+      label: "Overview",
+      icon: "BarChart3",
+    },
+  },
   {
     path: "/admin/academic/courses",
     component: CourseCatalogPage,

@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { X, Shield, Save, AlertCircle } from "lucide-react";
+import { X, Shield, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useRolePermissions, useUpdateRolePermissions } from "../../../core/query/usePermissionsData";
 import { usePermission } from "../../../core/auth/usePermission";
+import { useToast } from "../../../core/components/Toast";
 import {
   LEVEL_TO_ACTION, PERMISSION_RESOURCES, computeResourceLevel,
 } from "../../../core/constants/permissionLevels";
@@ -12,13 +13,13 @@ import "../styles/roles.css";
 function RolePermissionsModal({ role, onClose }) {
   const { t } = useTranslation();
   const { can } = usePermission();
+  const { addToast } = useToast();
   const canEdit = can(PERMISSION_RESOURCES.ROLES, 3);
 
   const permsQuery = useRolePermissions(role.id);
   const modules = useMemo(() => permsQuery.data ?? [], [permsQuery.data]);
   const updateRolePerms = useUpdateRolePermissions();
   const [pendingLevels, setPendingLevels] = useState({});
-  const [error, setError] = useState(null);
 
   const originalLevels = useMemo(() => {
     const levels = {};
@@ -51,7 +52,6 @@ function RolePermissionsModal({ role, onClose }) {
 
   const handleSave = () => {
     if (saving) return;
-    setError(null);
     const resources = Object.entries(displayLevels)
       .filter(([, level]) => level > 0)
       .map(([compositeKey, level]) => ({
@@ -60,7 +60,7 @@ function RolePermissionsModal({ role, onClose }) {
       }));
     updateRolePerms.mutate({ roleId: role.id, resources }, {
       onSuccess: () => onClose(),
-      onError: (err) => setError(err.message || "Failed to save permissions"),
+      onError: (err) => addToast(err.message || "Failed to save permissions", "error"),
     });
   };
 
@@ -82,13 +82,6 @@ function RolePermissionsModal({ role, onClose }) {
         </div>
 
         <div className="roles-modal-body">
-          {error && (
-            <div className="roles-permission-error">
-              <AlertCircle size={14} />
-              <span>{error}</span>
-            </div>
-          )}
-
           {permsQuery.isPending ? (
             <div className="roles-loading" style={{ padding: "40px 0" }}>
               <div className="roles-spinner" />
@@ -108,15 +101,15 @@ function RolePermissionsModal({ role, onClose }) {
             />
           )}
 
-          <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: "var(--gray-400)", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
             {t("resources_configured", { configured: totalConfigured, total: totalResources })}
           </div>
         </div>
 
         <div className="roles-modal-footer">
-          <button className="roles-btn roles-btn-outline" onClick={onClose} disabled={saving}>{t("cancel")}</button>
+          <button className="btn-outline" onClick={onClose} disabled={saving}>{t("cancel")}</button>
           <button
-            className="roles-btn roles-btn-primary"
+            className="btn-primary"
             onClick={handleSave}
             disabled={!canEdit || saving || permsQuery.isPending}
             title={canEdit ? undefined : t("requires_permission_level", { defaultValue: 'Requires "Edit" access on roles', level: t("edit") })}

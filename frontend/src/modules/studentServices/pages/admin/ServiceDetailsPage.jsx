@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DollarSign, Calendar, MapPin, Layers, ToggleRight, FileText } from "lucide-react";
 import { getServiceById } from "../../services/studentServicesService";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import "../../styles/admin/ServiceDetailsPage.css";
 
 const ServiceDetailsPage = () => {

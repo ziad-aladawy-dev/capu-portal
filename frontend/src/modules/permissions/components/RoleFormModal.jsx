@@ -54,8 +54,8 @@ function RoleFormModal({ title, initialName = "", submitLabel, pending, serverEr
             </div>
           </div>
           <div className="roles-modal-footer">
-            <button type="button" className="roles-btn roles-btn-outline" onClick={onClose} disabled={busy}>{t("cancel")}</button>
-            <button type="submit" className="roles-btn roles-btn-primary" disabled={busy}>
+            <button type="button" className="btn-outline" onClick={onClose} disabled={busy}>{t("cancel")}</button>
+            <button type="submit" className="btn-primary" disabled={busy}>
               {busy ? t("saving") : submitLabel}
             </button>
           </div>

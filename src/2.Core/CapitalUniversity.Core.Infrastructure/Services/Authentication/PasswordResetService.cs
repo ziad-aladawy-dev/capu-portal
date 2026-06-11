@@ -72,7 +72,8 @@ public class PasswordResetService : IPasswordResetService
     public async Task<bool> ResetAsync(string rawToken, string newPassword, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(rawToken) || string.IsNullOrWhiteSpace(newPassword)) return false;
-        if (newPassword.Length < Math.Max(1, _settings.MinPasswordLength)) return false;
+        // H5 — Enforce the full complexity policy server-side, not just length.
+        if (!CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication.PasswordPolicy.IsCompliant(newPassword)) return false;
 
         var hash = Hash(rawToken);
         var token = await _dbContext.Set<PasswordResetToken>()

@@ -7,7 +7,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   box-shadow: 0 4px 18px rgba(26, 31, 94, 0.03);
   transition: all 0.25s ease;
 }
@@ -24,7 +24,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #1a1f5e 0%, #c9a84c 100%);
+  background: linear-gradient(90deg, var(--navy-primary) 0%, var(--gold) 100%);
 }
 
 .service-card-icon-wrapper {
@@ -44,12 +44,12 @@
 }
 
 .service-lucide-icon {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   transition: all 0.25s ease;
 }
 
 .service-card:hover .service-lucide-icon {
-  color: #c9a84c;
+  color: var(--gold);
   transform: scale(1.05);
 }
 
@@ -58,12 +58,12 @@
   font-family: "DM Sans", sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 .service-card p {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   line-height: 1.5;
   margin: 0 0 16px 0;
   flex-grow: 1;
@@ -78,7 +78,7 @@
 }
 
 .service-price.paid {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   background: rgba(26, 31, 94, 0.08);
   padding: 4px 10px;
   border-radius: 999px;
@@ -87,7 +87,7 @@
 }
 
 .service-price.free {
-  color: #16a34a;
+  color: var(--color-success);
   background: rgba(22, 163, 74, 0.09);
   padding: 4px 10px;
   border-radius: 999px;

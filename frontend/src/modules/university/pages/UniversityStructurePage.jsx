@@ -5,19 +5,21 @@ import { Network, Search, Plus, ExternalLink } from "lucide-react";
 import TreeNode from "../components/TreeNode";
 import { AddEditNodeModal } from "../components/AddEditNodeModal";
 import { MoveNodeModal } from "../components/MoveNodeModal";
-import { ConfirmDeleteModal } from "../components/ConfirmDeleteModal";
+import ConfirmDialog from "../../../core/components/ConfirmDialog";
+import { useToast } from "../../../core/components/Toast";
 import { useUniversityStructure } from "../hooks/useUniversityStructure";
 import { universityStructureService } from "../services/universityStructureService";
 import { getLocalized } from "../../../core/utils/getLocalized";
-import { canMoveToParent, getContextualActions } from "../utils/nodeTypeHelpers";
+import { canMoveToParent, getContextualActions } from "../../../core/constants/nodeTypeRegistry";
 import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
 import PermissionGate from "../../../core/auth/PermissionGate";
+import PageHeader from "../../../core/components/PageHeader";
 import "../styles/universityStructure.css";
-import "../styles/scopeModal.css";
 
 const UniversityStructurePage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const {
     treeData,
     loading,
@@ -113,7 +115,7 @@ const UniversityStructurePage = () => {
   const handleSaveAdd = async (request) => {
     const result = await createNode(request);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
   };
 
@@ -129,7 +131,7 @@ const UniversityStructurePage = () => {
   const handleSaveEdit = async (request, nodeId) => {
     const result = await updateNode(nodeId, request);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
   };
 
@@ -142,12 +144,12 @@ const UniversityStructurePage = () => {
     const targetParentNode = newParentId ? findNodeInTree(treeData, newParentId) : null;
     const targetParentType = targetParentNode?.type || null;
     if (!canMoveToParent(selectedNode.type, targetParentType)) {
-      alert(`${t("cannot_move")} ${selectedNode.type} ${t("under")} ${targetParentType || t("root")}`);
+      addToast(`${t("cannot_move")} ${selectedNode.type} ${t("under")} ${targetParentType || t("root")}`, "error");
       return;
     }
     const result = await moveNode(selectedNode.id, newParentId, order);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
   };
 
@@ -157,12 +159,12 @@ const UniversityStructurePage = () => {
     if (!draggedNode || !targetNode) return;
     const targetParentType = targetNode.type;
     if (!canMoveToParent(draggedNode.type, targetParentType)) {
-      alert(`${t("cannot_move")} ${draggedNode.type} ${t("under")} ${targetParentType}`);
+      addToast(`${t("cannot_move")} ${draggedNode.type} ${t("under")} ${targetParentType}`, "error");
       return;
     }
     const result = await moveNode(draggedNodeId, targetNodeId, newOrder);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
   };
 
@@ -178,7 +180,7 @@ const UniversityStructurePage = () => {
     if (!nodeToDelete) return;
     const result = await deleteNode(nodeToDelete.id);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
     setNodeToDelete(null);
     setShowDeleteConfirm(false);
@@ -202,7 +204,7 @@ const UniversityStructurePage = () => {
     else return;
     const result = await reorderNode(nodeId, newOrder);
     if (!result.success) {
-      alert(`${t("error")}: ${result.error}`);
+      addToast(`${t("error")}: ${result.error}`, "error");
     }
   };
 
@@ -215,21 +217,19 @@ const UniversityStructurePage = () => {
 
   return (
     <div className="structure-page">
-      <div className="structure-header">
-        <div className="structure-title">
-          <div className="structure-title-icon"><Network size={20} /></div>
-          <div>
-            <span>{t("university_module")}</span>
-            <h1>{t("university_structure")}</h1>
-            <p>{t("manage_structure")}</p>
-          </div>
-        </div>
-        <PermissionGate resource="structure.structure" minLevel={2}>
-          <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
-            <Plus size={16} /> {t("add_root")}
-          </button>
-        </PermissionGate>
-      </div>
+      <PageHeader
+        icon={Network}
+        kicker={t("university_module")}
+        title={t("university_structure")}
+        subtitle={t("manage_structure")}
+        actions={
+          <PermissionGate resource="structure.structure" minLevel={2}>
+            <button className="structure-add-btn" onClick={() => handleAddClick(null, treeData.length, null)}>
+              <Plus size={16} /> {t("add_root")}
+            </button>
+          </PermissionGate>
+        }
+      />
 
       {breadcrumb.length > 0 && (
         <div className="breadcrumb-bar page-card">
@@ -352,11 +352,19 @@ const UniversityStructurePage = () => {
             onMove={handleMove}
             currentNode={selectedNode}
           />
-          <ConfirmDeleteModal
-            isOpen={showDeleteConfirm}
+          <ConfirmDialog
+            open={showDeleteConfirm}
             onClose={() => setShowDeleteConfirm(false)}
             onConfirm={handleConfirmDelete}
-            nodeName={nodeToDelete?.localizedName || nodeToDelete?.name}
+            title={t("delete_node")}
+            message={t("confirm_delete_message", {
+              name: nodeToDelete
+                ? nodeToDelete.localizedName || getLocalized(nodeToDelete.name, i18n.language)
+                : "",
+            })}
+            confirmLabel={t("delete")}
+            cancelLabel={t("cancel")}
+            variant="danger"
           />
         </>
       )}

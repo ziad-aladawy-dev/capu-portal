@@ -5,7 +5,7 @@
   top: 0;
   inset-inline-start: 0;
   inset-inline-end: 0;
-  z-index: 9998;
+  z-index: 2200; /* session-timeout: always on top */
   display: flex;
   justify-content: center;
   padding: 0 20px;
@@ -22,7 +22,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 18px;
-  background: linear-gradient(135deg, #1a1f5e, #2e3591);
+  background: linear-gradient(135deg, var(--navy-primary), var(--navy-accent));
   border-radius: 0 0 10px 10px;
   color: #e8e6e3;
   font-size: 13px;
@@ -47,7 +47,7 @@
   background: rgba(201, 168, 76, 0.15);
   border: 1px solid rgba(201, 168, 76, 0.3);
   border-radius: 6px;
-  color: #c9a84c;
+  color: var(--gold);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -81,7 +81,7 @@
 .kbd-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 2100; /* global tool overlay (matches command palette) */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,7 +226,7 @@
 
 .error-page-icon.not-found {
   background: rgba(201, 168, 76, 0.08);
-  color: #c9a84c;
+  color: var(--gold);
 }
 
 .error-page-icon.forbidden {
@@ -238,7 +238,7 @@
   font-family: "Space Mono", monospace;
   font-size: 56px;
   font-weight: 700;
-  color: var(--navy-primary, #1a1f5e);
+  color: var(--navy-primary, var(--navy-primary));
   margin: 0;
   line-height: 1;
 }
@@ -246,13 +246,13 @@
 .error-page-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--navy-primary, #1a1f5e);
+  color: var(--navy-primary, var(--navy-primary));
   margin: 8px 0 12px;
 }
 
 .error-page-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -260,7 +260,7 @@
 .error-page-link {
   display: inline-block;
   font-size: 13px;
-  color: var(--gold, #c9a84c);
+  color: var(--gold, var(--gold));
   text-decoration: none;
   font-weight: 500;
   padding: 8px 20px;
@@ -300,13 +300,13 @@
 .empty-state-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--navy-primary, #1a1f5e);
+  color: var(--navy-primary, var(--navy-primary));
   margin: 0 0 8px;
 }
 
 .empty-state-message {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   max-width: 340px;
   line-height: 1.5;
   margin-bottom: 20px;
@@ -317,7 +317,7 @@
   align-items: center;
   gap: 6px;
   padding: 9px 20px;
-  background: var(--navy-primary, #1a1f5e);
+  background: var(--navy-primary, var(--navy-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -329,5 +329,173 @@
 }
 
 .empty-state-action:hover {
-  background: var(--navy-accent, #2e3591);
+  background: var(--navy-accent, var(--navy-accent));
+}
+
+/* ── Page Header (shared by all admin pages) ─────────────── */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.page-header-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: rgba(26, 31, 94, 0.08);
+  color: var(--color-text-primary);
+}
+
+.page-header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.page-header-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Canonical button family (single source — module css must
+     not redefine these; tone-extend only, e.g. .btn-icon.edit) ── */
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-cancel,
+.btn-danger,
+.btn-ghost,
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(201, 168, 76, 0.3);
+}
+
+.btn-secondary {
+  background: #f0f1f8;
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e4e6f2;
+}
+
+.btn-cancel,
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-cancel:hover:not(:disabled),
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-cancel:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled,
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.page-header-kicker {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 2px;
 }

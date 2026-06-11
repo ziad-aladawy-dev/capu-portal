@@ -22,7 +22,6 @@ import {
   useToggleOfferingLifecycle, useBulkPublishOfferings, useBulkCancelOfferings,
   useOfferingStats,
 } from "../../../../core/query/useCourseOfferings";
-import AcademicShell from "../../layout/AcademicShell";
 import OfferingFormDrawer from "./OfferingFormDrawer";
 import BatchSectionsWizard from "./BatchSectionsWizard";
 import { useStaffOptions } from "./useStaffOptions";
@@ -252,7 +251,7 @@ export default function CourseOfferingsPage() {
 
   if (!selectedSemesterObj) {
     return (
-      <AcademicShell>
+      <>
         <div className={shared.header}>
           <div className={shared.headerLeft}>
             <CalendarCheck size={20} />
@@ -283,14 +282,14 @@ export default function CourseOfferingsPage() {
             </select>
           </div>
         )}
-      </AcademicShell>
+      </>
     );
   }
 
   const canEdit3 = "course-offerings.course-offerings";
 
   return (
-    <AcademicShell>
+    <>
       <div className={shared.header}>
         <div className={shared.headerLeft}>
           <CalendarCheck size={20} />
@@ -557,6 +556,6 @@ export default function CourseOfferingsPage() {
           />
         </div>
       </ConfirmDialog>
-    </AcademicShell>
+    </>
   );
 }

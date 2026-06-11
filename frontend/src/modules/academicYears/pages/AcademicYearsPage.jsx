@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus, Edit2, Trash2, AlertTriangle, Calendar, Clock, Search, X,
-  ChevronLeft, ChevronRight, ArrowLeft,
+  ChevronLeft, ChevronRight, ArrowLeft, CalendarRange,
 } from "lucide-react";
 import PermissionGate from "../../../core/auth/PermissionGate";
+import PageHeader from "../../../core/components/PageHeader";
+import EmptyState from "../../../core/components/EmptyState";
 import { useToast } from "../../../core/components/Toast";
 import StatusBadge from "../../../core/components/StatusBadge";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
@@ -107,11 +109,11 @@ function AcademicYearsPage() {
           } catch {}
         }
       }
-      addToast("Academic year created with semesters", "success");
+      addToast(t("ay_created_with_semesters"), "success");
       setShowWizard(false);
       refreshAcademicYears();
     } catch (err) {
-      addToast(err.message || "Failed to create academic year", "error");
+      addToast(err.message || t("ay_create_failed"), "error");
     }
   };
 
@@ -128,11 +130,11 @@ function AcademicYearsPage() {
   };
 
   const handleEditYearSave = async () => {
-    if (!editYearForm.name.trim()) { setEditYearError("Name is required"); return; }
-    if (!editYearForm.startDate) { setEditYearError("Start date is required"); return; }
-    if (!editYearForm.endDate) { setEditYearError("End date is required"); return; }
+    if (!editYearForm.name.trim()) { setEditYearError(t("ay_name_required")); return; }
+    if (!editYearForm.startDate) { setEditYearError(t("ay_start_date_required")); return; }
+    if (!editYearForm.endDate) { setEditYearError(t("ay_end_date_required")); return; }
     if (new Date(editYearForm.startDate) >= new Date(editYearForm.endDate)) {
-      setEditYearError("End date must be after start date"); return;
+      setEditYearError(t("ay_end_after_start")); return;
     }
     try {
       // The API stores names as {"ar","en"} JSON but returns them localized, so
@@ -144,11 +146,11 @@ function AcademicYearsPage() {
         payload.name = toLocalizedJson(nameAr, name);
       }
       await updateYear.mutateAsync(payload);
-      addToast("Academic year updated", "success");
+      addToast(t("ay_updated"), "success");
       setEditYearDrawer(null);
       refreshAcademicYears();
     } catch (err) {
-      setEditYearError(err.message || "Failed to update");
+      setEditYearError(err.message || t("ay_update_failed"));
     }
   };
 
@@ -156,12 +158,12 @@ function AcademicYearsPage() {
     if (!confirmAction) return;
     try {
       await deleteYear.mutateAsync(confirmAction.id);
-      addToast("Academic year deleted", "success");
+      addToast(t("ay_deleted"), "success");
       setSelectedIds((prev) => { const n = new Set(prev); n.delete(confirmAction.id); return n; });
       setConfirmAction(null);
       refreshAcademicYears();
     } catch (err) {
-      addToast(err.message || "Failed to delete", "error");
+      addToast(err.message || t("ay_delete_failed"), "error");
       setConfirmAction(null);
     }
   };
@@ -169,10 +171,10 @@ function AcademicYearsPage() {
   const handleSetCurrent = async (year) => {
     try {
       await setCurrentYear.mutateAsync();
-      addToast(`${year.name} set as current year`, "success");
+      addToast(t("ay_set_current", { name: year.name }), "success");
       refreshAcademicYears();
     } catch (err) {
-      addToast(err.message || "Failed to set current year", "error");
+      addToast(err.message || t("ay_set_current_failed"), "error");
     }
   };
 
@@ -180,21 +182,21 @@ function AcademicYearsPage() {
     if (!cascadeTarget) return;
     try {
       await closeYear.mutateAsync(cascadeTarget.id);
-      addToast(`${cascadeTarget.name} closed`, "success");
+      addToast(t("ay_closed", { name: cascadeTarget.name }), "success");
       setCascadeTarget(null);
       refreshAcademicYears();
     } catch (err) {
-      addToast(err.message || "Failed to close year", "error");
+      addToast(err.message || t("ay_close_failed"), "error");
     }
   };
 
   const handleReopenYear = async (year) => {
     try {
       await reopenYear.mutateAsync(year.id);
-      addToast(`${year.name} reopened`, "success");
+      addToast(t("ay_reopened", { name: year.name }), "success");
       refreshAcademicYears();
     } catch (err) {
-      addToast(err.message || "Failed to reopen", "error");
+      addToast(err.message || t("ay_reopen_failed"), "error");
     }
   };
 
@@ -205,11 +207,11 @@ function AcademicYearsPage() {
       for (const id of ids) {
         await deleteYear.mutateAsync(id);
       }
-      addToast(`${ids.length} year(s) deleted`, "success");
+      addToast(t("ay_bulk_deleted", { count: ids.length }), "success");
       setSelectedIds(new Set());
       refreshAcademicYears();
     } catch (err) {
-      addToast(`Bulk delete failed: ${err.message}`, "error");
+      addToast(t("ay_bulk_delete_failed", { message: err.message }), "error");
     }
   };
 
@@ -239,17 +241,17 @@ function AcademicYearsPage() {
   };
 
   const validateSemForm = () => {
-    if (!semForm.name.trim()) { setSemFormError("Semester name is required"); return false; }
-    if (!semForm.startDate) { setSemFormError("Start date is required"); return false; }
-    if (!semForm.endDate) { setSemFormError("End date is required"); return false; }
+    if (!semForm.name.trim()) { setSemFormError(t("ay_semester_name_required")); return false; }
+    if (!semForm.startDate) { setSemFormError(t("ay_start_date_required")); return false; }
+    if (!semForm.endDate) { setSemFormError(t("ay_end_date_required")); return false; }
     if (new Date(semForm.startDate) >= new Date(semForm.endDate)) {
-      setSemFormError("End date must be after start date"); return false;
+      setSemFormError(t("ay_end_after_start")); return false;
     }
     if (semesterDateBounds.minDate && semForm.startDate < semesterDateBounds.minDate) {
-      setSemFormError("Start date must be within the academic year"); return false;
+      setSemFormError(t("ay_start_within_year")); return false;
     }
     if (semesterDateBounds.maxDate && semForm.endDate > semesterDateBounds.maxDate) {
-      setSemFormError("End date must be within the academic year"); return false;
+      setSemFormError(t("ay_end_within_year")); return false;
     }
     setSemFormError("");
     return true;
@@ -266,7 +268,7 @@ function AcademicYearsPage() {
           ...dates,
           academicYearId: semesterYear.id,
         });
-        addToast("Semester created", "success");
+        addToast(t("ay_semester_created"), "success");
       } else if (semDrawer === "edit" && editSem) {
         // Only resend the name when edited (or an Arabic name was provided) —
         // the API returns names localized, so blind resends clobber the other language.
@@ -275,7 +277,7 @@ function AcademicYearsPage() {
           payload.name = toLocalizedJson(nameAr, name);
         }
         await updateSem.mutateAsync(payload);
-        addToast("Semester updated", "success");
+        addToast(t("ay_semester_updated"), "success");
       }
       closeSemDrawer();
     } catch (err) {
@@ -289,7 +291,7 @@ function AcademicYearsPage() {
       await deleteSem.mutateAsync({ id: semDelete.id, academicYearId: semesterYear.id });
       setSemDelete(null);
     } catch (err) {
-      addToast(err.message || "Failed to delete semester", "error");
+      addToast(err.message || t("ay_semester_delete_failed"), "error");
     }
   };
 
@@ -297,29 +299,28 @@ function AcademicYearsPage() {
   if (semesterYear) {
     return (
       <div className="academic-years-container">
-        <div className="ay-header">
-          <div className="ay-header-left">
-            <button className="btn-back" onClick={() => setSemesterYear(null)} style={{ marginRight: 12 }}>
+        <PageHeader
+          leading={
+            <button className="btn-back" onClick={() => setSemesterYear(null)}>
               <ArrowLeft size={20} />
             </button>
-            <div>
-              <h1>{t("manage_semesters")} — {semesterYear.name}</h1>
-              <p>{t("manage_semesters_for")}</p>
-            </div>
-          </div>
-          <PermissionGate resource="academics.academic-years" minLevel={2}>
-            <button className="btn-create" onClick={openCreateSemDrawer}>
-              <Plus size={18} /> {t("new_semester")}
-            </button>
-          </PermissionGate>
-        </div>
+          }
+          title={`${t("manage_semesters")} — ${semesterYear.name}`}
+          subtitle={t("manage_semesters_for")}
+          actions={
+            <PermissionGate resource="academics.academic-years" minLevel={2}>
+              <button className="btn-create" onClick={openCreateSemDrawer}>
+                <Plus size={18} /> {t("new_semester")}
+              </button>
+            </PermissionGate>
+          }
+        />
 
         {semsLoading ? (
           <div className="loading-container"><div className="spinner" /><p>{t("loading_semesters")}</p></div>
         ) : semesters.length === 0 ? (
-          <div className="empty-state">
-            <Clock size={40} />
-            <p>{t("no_semesters_yet")}</p>
+          <div style={{ textAlign: "center" }}>
+            <EmptyState icon={Clock} title={t("no_semesters_yet")} />
             <PermissionGate resource="academics.academic-years" minLevel={2}>
               <button className="btn-primary" onClick={openCreateSemDrawer}>{t("create_first_semester")}</button>
             </PermissionGate>
@@ -339,10 +340,10 @@ function AcademicYearsPage() {
               { key: "actions", label: t("actions"), render: (_, row) => (
                 <div style={{ display: "flex", gap: 4 }}>
                   <PermissionGate resource="academics.academic-years" minLevel={3}>
-                    <button className="btn-icon edit" onClick={() => openEditSemDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
+                    <button className="ay-icon-btn edit" onClick={() => openEditSemDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
                   </PermissionGate>
                   <PermissionGate resource="academics.academic-years" minLevel={5}>
-                    <button className="btn-icon delete" onClick={() => setSemDelete(row)} title={t("delete")}><Trash2 size={16} /></button>
+                    <button className="ay-icon-btn delete" onClick={() => setSemDelete(row)} title={t("delete")}><Trash2 size={16} /></button>
                   </PermissionGate>
                 </div>
               ), nowrap: true },
@@ -428,33 +429,34 @@ function AcademicYearsPage() {
 
   return (
     <div className="academic-years-container">
-      <div className="ay-header">
-        <div>
-          <h1>{t("academic_years_management")}</h1>
-          <p>{t("manage_academic_years")}</p>
-        </div>
-        <div className="ay-header-actions">
-          <div className="ay-view-toggle" role="group" aria-label="View mode">
-            <button
-              className={`ay-toggle-btn ${viewMode === "table" ? "active" : ""}`}
-              onClick={() => { setViewMode("table"); setSelectedIds(new Set()); }}
-              title={t("table_view")}
-              aria-pressed={viewMode === "table"}
-            ><Clock size={16} /></button>
-            <button
-              className={`ay-toggle-btn ${viewMode === "timeline" ? "active" : ""}`}
-              onClick={() => { setViewMode("timeline"); setSelectedIds(new Set()); }}
-              title={t("timeline_view")}
-              aria-pressed={viewMode === "timeline"}
-            ><ChevronLeft size={16} /></button>
-          </div>
-          <PermissionGate resource="academics.academic-years" minLevel={2}>
-            <button className="btn-create" onClick={() => setShowWizard(true)}>
-              <Plus size={18} /> {t("new_academic_year")}
-            </button>
-          </PermissionGate>
-        </div>
-      </div>
+      <PageHeader
+        icon={CalendarRange}
+        title={t("academic_years_management")}
+        subtitle={t("manage_academic_years")}
+        actions={
+          <>
+            <div className="ay-view-toggle" role="group" aria-label="View mode">
+              <button
+                className={`ay-toggle-btn ${viewMode === "table" ? "active" : ""}`}
+                onClick={() => { setViewMode("table"); setSelectedIds(new Set()); }}
+                title={t("table_view")}
+                aria-pressed={viewMode === "table"}
+              ><Clock size={16} /></button>
+              <button
+                className={`ay-toggle-btn ${viewMode === "timeline" ? "active" : ""}`}
+                onClick={() => { setViewMode("timeline"); setSelectedIds(new Set()); }}
+                title={t("timeline_view")}
+                aria-pressed={viewMode === "timeline"}
+              ><ChevronLeft size={16} /></button>
+            </div>
+            <PermissionGate resource="academics.academic-years" minLevel={2}>
+              <button className="btn-create" onClick={() => setShowWizard(true)}>
+                <Plus size={18} /> {t("new_academic_year")}
+              </button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       {queryError && (
         <div className="alert alert-error" role="alert">
@@ -468,7 +470,7 @@ function AcademicYearsPage() {
 
       {viewMode === "timeline" ? (
         allYears.length === 0 ? (
-          <div className="empty-state"><Calendar size={40} /><p>{t("no_academic_years_yet")}</p></div>
+          <EmptyState icon={Calendar} title={t("no_academic_years_yet")} />
         ) : (
           <AcademicTimeline
             years={allYears}
@@ -531,28 +533,28 @@ function AcademicYearsPage() {
                 <div style={{ display: "flex", gap: 4 }} onClick={(e) => e.stopPropagation()}>
                   {!row.isCurrent && !row.isClosed && (
                     <PermissionGate resource="academics.academic-years" minLevel={3}>
-                      <button className="btn-icon set-current" onClick={() => handleSetCurrent(row)}
+                      <button className="ay-icon-btn set-current" onClick={() => handleSetCurrent(row)}
                         disabled={setCurrentYear.isPending} title={t("set_as_current_year")}>
                         <Clock size={16} />
                       </button>
                     </PermissionGate>
                   )}
                   <PermissionGate resource="academics.academic-years" minLevel={3}>
-                    <button className="btn-icon edit" onClick={() => openEditYearDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
+                    <button className="ay-icon-btn edit" onClick={() => openEditYearDrawer(row)} title={t("edit")}><Edit2 size={16} /></button>
                   </PermissionGate>
                   {row.isClosed ? (
                     <PermissionGate resource="academics.academic-years" minLevel={4}>
-                      <button className="btn-icon reopen" onClick={() => handleReopenYear(row)}
+                      <button className="ay-icon-btn reopen" onClick={() => handleReopenYear(row)}
                         disabled={reopenYear.isPending} title={t("reopen_year")}><Clock size={16} /></button>
                     </PermissionGate>
                   ) : (
                     <PermissionGate resource="academics.academic-years" minLevel={3}>
-                      <button className="btn-icon close" onClick={() => setCascadeTarget(row)}
+                      <button className="ay-icon-btn close" onClick={() => setCascadeTarget(row)}
                         disabled={closeYear.isPending} title={t("close_year")}><Clock size={16} /></button>
                     </PermissionGate>
                   )}
                   <PermissionGate resource="academics.academic-years" minLevel={5}>
-                    <button className="btn-icon delete" onClick={() => setConfirmAction({ type: "delete", id: row.id, name: row.name })}
+                    <button className="ay-icon-btn delete" onClick={() => setConfirmAction({ type: "delete", id: row.id, name: row.name })}
                       title={t("delete")}><Trash2 size={16} /></button>
                   </PermissionGate>
                 </div>
@@ -562,9 +564,9 @@ function AcademicYearsPage() {
             loading={isLoading}
             error={queryError?.message}
             emptyIcon={Calendar}
-            emptyTitle="No Academic Years Found"
-            emptyMessage="Create your first academic year to get started"
-            emptyActionLabel="Create Academic Year"
+            emptyTitle={t("ay_empty_title")}
+            emptyMessage={t("ay_empty_message")}
+            emptyActionLabel={t("create_academic_year")}
             emptyAction={() => setShowWizard(true)}
             pagination={{ pageNumber: page, totalPages }}
             onPageChange={setPage}
@@ -586,8 +588,8 @@ function AcademicYearsPage() {
 
           {selectedIds.size > 0 && (
             <div className="bulk-bar">
-              <span>{selectedIds.size} selected</span>
-              <button onClick={() => setSelectedIds(new Set())}>Clear</button>
+              <span>{t("ay_selected_count", { count: selectedIds.size })}</span>
+              <button onClick={() => setSelectedIds(new Set())}>{t("clear")}</button>
               <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                 <PermissionGate resource="academics.academic-years" minLevel={5}>
                   <button className="bulk-danger" onClick={handleBulkDelete}>
@@ -612,13 +614,13 @@ function AcademicYearsPage() {
       <Drawer
         open={!!editYearDrawer}
         onClose={() => setEditYearDrawer(null)}
-        title="Edit Academic Year"
+        title={t("ay_edit_year")}
         width={420}
         loading={updateYear.isPending}
         footer={
           <>
-            <button className="btn-cancel" onClick={() => setEditYearDrawer(null)}>Cancel</button>
-            <button className="btn-primary" onClick={handleEditYearSave} disabled={updateYear.isPending}>Save</button>
+            <button className="btn-cancel" onClick={() => setEditYearDrawer(null)}>{t("cancel")}</button>
+            <button className="btn-primary" onClick={handleEditYearSave} disabled={updateYear.isPending}>{t("save")}</button>
           </>
         }
       >
@@ -669,7 +671,7 @@ function AcademicYearsPage() {
         open={!!cascadeTarget}
         onClose={() => setCascadeTarget(null)}
         onConfirm={handleCloseYear}
-        title="Close Academic Year"
+        title={t("ay_close_year")}
         entityName={cascadeTarget?.name}
         impacts={[
           { count: semesters?.length || 0, label: "Semester(s)" },
@@ -682,10 +684,10 @@ function AcademicYearsPage() {
         open={confirmAction?.type === "delete"}
         onClose={() => setConfirmAction(null)}
         onConfirm={handleDeleteYear}
-        title="Delete Academic Year"
+        title={t("ay_delete_year")}
         message={`Are you sure you want to delete ${confirmAction?.name}?`}
         detail="This action cannot be undone."
-        confirmLabel="Delete"
+        confirmLabel={t("delete")}
         variant="danger"
         loading={deleteYear.isPending}
       />

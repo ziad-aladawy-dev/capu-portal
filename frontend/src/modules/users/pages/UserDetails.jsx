@@ -16,7 +16,7 @@ import { SkeletonCard, SkeletonStats } from "../../../core/components/Skeleton";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
 import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
-import ErrorMessage from "../components/ErrorMessage";
+import ErrorMessage from "../../../core/components/ErrorMessage";
 import userService from "../services/userService";
 import {
   ProfileHero, StatCard, TabBar, Panel, Field, EmptyState,

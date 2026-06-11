@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../../../core/components/Toast";
 import {
   User, Mail, Lock, Phone, CheckCircle2, Save, KeyRound, BookOpen,
   Building2, Calendar, Award, Hash, Globe, Users, Camera, RefreshCw,
   AlertCircle, UserCircle2, XCircle
 } from "lucide-react";
 import userService from "../services/userService";
-import LoadingSpinner from "../components/LoadingSpinner";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
 import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
 import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
@@ -15,6 +16,7 @@ import "../styles/userForms.css";
 
 const EditStudent = () => {
   const { t } = useTranslation();
+  const { addToast } = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const steps = [t("basic_information"), t("academic_information")];
@@ -203,7 +205,7 @@ const EditStudent = () => {
       setShowSuccess(true);
       setTimeout(() => navigate(`/admin/users/${id}`), 1400);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      addToast(err.response?.data?.message || err.message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -414,11 +416,11 @@ const EditStudent = () => {
                         const file = e.target.files?.[0];
                         if (file) {
                           if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-                            alert(t('invalid_image_type'));
+                            addToast(t('invalid_image_type'), "error");
                             return;
                           }
                           if (file.size > 5 * 1024 * 1024) {
-                            alert(t('image_too_large'));
+                            addToast(t('image_too_large'), "error");
                             return;
                           }
                           setPhotoPreview(URL.createObjectURL(file));

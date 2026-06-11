@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
-import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeRegistry";
+import { getNodeTypeConfig } from "../../constants/nodeTypeRegistry";
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useStickySelection } from "../../contexts/StickySelectionContext";

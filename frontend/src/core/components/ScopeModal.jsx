@@ -8,7 +8,7 @@ import * as structureService from "../services/structureService";
 import { getLocalized } from "../utils/getLocalized";
 import { useDomain } from "../contexts/DomainContext";
 import { useAcademic } from "../contexts/AcademicContext";
-import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
+import { getNodeTypeConfig } from "../constants/nodeTypeRegistry";
 import NodeTypeBadge from "./NodeTypeBadge";
 import "./scopeModal.css";
 

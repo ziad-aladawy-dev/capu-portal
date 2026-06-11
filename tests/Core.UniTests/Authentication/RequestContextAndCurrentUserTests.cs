@@ -120,12 +120,8 @@ public class RequestContextAndCurrentUserTests
         Assert.Equal(Guid.Empty, u.Id);
     }
 
-    [Fact]
-    public void CurrentUser_Email_FromClaim()
-    {
-        var u = new CurrentUser(BuildAccessor(new[] { new Claim(ClaimTypes.Email, "x@y.z") }));
-        Assert.Equal("x@y.z", u.Email);
-    }
+    // M4 — CurrentUser.Email removed: PII no longer travels in the JWT and the
+    // property had no consumers. (Test for it deleted along with the property.)
 
     [Fact]
     public void CurrentUser_Role_FromClaim()

@@ -72,31 +72,13 @@
 
 /* ============================================================
    Dark theme token overrides
-   ============================================================ */
-
-/* Reusable block applied to both auto (prefers) and manual (.dark). */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --navbar-height: 74px;
-
-    --text-h: #e8eaf2;
-    --code-bg: #1e2347;
-
-    --color-surface: #1b1f3a;
-    --color-surface-raised: #232850;
-    --color-background: #111426;
-    --color-text-primary: #e8eaf2;
-    --color-text-secondary: #9aa0bd;
-    --color-border: #2c3160;
-
-    --color-primary: #3a43b5;
-    --color-primary-hover: #4a55d6;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
-  }
-}
+   ============================================================
+   Dark is OPT-IN via <html class="dark"> only. The previous
+   @media (prefers-color-scheme: dark) auto-block is removed:
+   no theme toggle exists in the app and most module CSS is
+   light-only, so OS-dark users got a half-dark mixed render
+   once components started consuming tokens. Re-add auto dark
+   only after full dark coverage exists. */
 
 :root.dark {
   --navbar-height: 74px;

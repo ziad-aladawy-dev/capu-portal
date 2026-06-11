@@ -1,14 +1,14 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
 
 :root {
-  --users-navy: #1a1f5e;
-  --users-navy-2: #2e3591;
-  --users-gold: #c9a84c;
-  --users-gold-light: #e0c06a;
+  --users-navy: var(--navy-primary);
+  --users-navy-2: var(--navy-accent);
+  --users-gold: var(--gold);
+  --users-gold-light: var(--gold-light);
   --users-bg: #f5f6fa;
   --users-card: #ffffff;
   --users-muted: #6b7280;
-  --users-border: #e5e7eb;
+  --users-border: var(--color-border);
   --users-soft: #f8f9fb;
   --users-shadow: 0 8px 22px rgba(26, 31, 94, 0.07);
 }
@@ -226,9 +226,9 @@
   flex-shrink: 0;
 }
 .users-stat-icon.navy { background: rgba(26, 31, 94, 0.09); color: var(--users-navy); }
-.users-stat-icon.green { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
-.users-stat-icon.red { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
-.users-stat-icon.blue { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+.users-stat-icon.green { background: rgba(22, 163, 74, 0.12); color: var(--color-success); }
+.users-stat-icon.red { background: rgba(220, 38, 38, 0.1); color: var(--color-error); }
+.users-stat-icon.blue { background: rgba(37, 99, 235, 0.1); color: var(--color-info); }
 .users-stat-icon.purple { background: rgba(124, 58, 237, 0.1); color: #7c3aed; }
 
 .users-tabs {
@@ -304,7 +304,7 @@
 .users-filter-field select:focus,
 .page-size-control select:focus {
   border-color: var(--users-gold);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
 }
 

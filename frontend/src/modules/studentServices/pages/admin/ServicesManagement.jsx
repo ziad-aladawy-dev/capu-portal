@@ -3,16 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Edit3, Trash2, Power, Eye, Search, Briefcase } from "lucide-react";
 import { getAllServices, deleteService, toggleServiceStatus } from "../../services/studentServicesService";
-import EmptyState from "../../components/EmptyState";
+import { getLocalized } from "../../../../core/utils/getLocalized";
+import EmptyState from "../../../../core/components/EmptyState";
+import StatusBadge from "../../../../core/components/StatusBadge";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
+import PageHeader from "../../../../core/components/PageHeader";
+import ConfirmDialog from "../../../../core/components/ConfirmDialog";
+import { useToast } from "../../../../core/components/Toast";
 import "../../styles/admin/ServicesManagement.css";
 
 const ServicesManagement = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => { loadServices(); }, []);
 
@@ -25,14 +33,13 @@ const ServicesManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm(t("confirm_delete_message", { name: "" }))) {
-      try { await deleteService(id); await loadServices(); } catch (err) { alert(err.message); }
-    }
+  const handleConfirmDelete = async () => {
+    try { await deleteService(deleteId); await loadServices(); } catch (err) { addToast(err.message, "error"); }
+    setDeleteId(null);
   };
 
   const handleToggleStatus = async (id) => {
-    try { await toggleServiceStatus(id); await loadServices(); } catch (err) { alert(err.message); }
+    try { await toggleServiceStatus(id); await loadServices(); } catch (err) { addToast(err.message, "error"); }
   };
 
   const getServiceTypeLabel = (type) => {
@@ -41,25 +48,37 @@ const ServicesManagement = () => {
     return labels[type] || type;
   };
 
-  const filteredServices = services.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()));
+  const filteredServices = services.filter(s => getLocalized(s.name, i18n.language)?.toLowerCase().includes(search.toLowerCase()));
 
-  if (loading && services.length === 0) return <div className="table-container loading-state"><div className="loading-spinner"></div><span>{t("loading...")}</span></div>;
-  if (error) return <div className="table-container error-state">{error}</div>;
+  if (loading && services.length === 0) return <LoadingSpinner fullPage />;
+  if (error) return <div className="ssm-error">{error}</div>;
 
   return (
-    <div className="users-page">
-      <div className="users-page-header">
-        <div className="users-page-title"><div className="users-page-icon"><Briefcase size={20} /></div><div><span className="users-page-kicker">{t("system_services")}</span><h1>{t("services_management")}</h1></div></div>
-        <div className="users-page-actions"><button className="users-primary-btn" onClick={() => navigate("/admin/student-services/services/create")}>{t("create_service")}</button></div>
-      </div>
-      <div className="users-filter-card"><div className="users-filter-row"><div className="users-search-box"><Search size={16} className="users-search-icon" /><input type="text" placeholder={t("search_services")} value={search} onChange={e => setSearch(e.target.value)} /></div></div></div>
-      {filteredServices.length === 0 ? <div className="table-container empty-state"><EmptyState message={t("no_services")} /></div> : (
-        <div className="table-container"><table className="users-table"><thead><tr><th style={{textAlign:"center", width:"60px"}}>#</th><th>{t("service_name")}</th><th>{t("type")}</th><th>{t("pricing")}</th><th style={{textAlign:"center"}}>{t("status")}</th><th style={{textAlign:"center"}}>{t("actions")}</th></tr></thead><tbody>
+    <div className="ssm-page">
+      <PageHeader
+        icon={Briefcase}
+        kicker={t("system_services")}
+        title={t("services_management")}
+        actions={<button className="btn-primary" onClick={() => navigate("/admin/student-services/services/create")}>{t("create_service")}</button>}
+      />
+      <div className="ssm-filter-card"><div className="ssm-search"><Search size={16} className="ssm-search-icon" /><input type="text" placeholder={t("search_services")} value={search} onChange={e => setSearch(e.target.value)} /></div></div>
+      {filteredServices.length === 0 ? <div className="ssm-table-card"><EmptyState title={t("no_services")} /></div> : (
+        <div className="ssm-table-card"><table className="ssm-table"><thead><tr><th style={{textAlign:"center", width:"60px"}}>#</th><th>{t("service_name")}</th><th>{t("type")}</th><th>{t("pricing")}</th><th style={{textAlign:"center"}}>{t("status")}</th><th style={{textAlign:"center"}}>{t("actions")}</th></tr></thead><tbody>
           {filteredServices.map((service, idx) => (
-            <tr key={service.id}><td style={{textAlign:"center"}}>{idx+1}</td><td><div style={{fontWeight:"700",fontSize:"14px"}}>{service.name}</div><div style={{fontSize:"11px",color:"#6b7280",marginTop:"2px"}}>{service.description}</div></td><td><span className={`role-badge ${service.type===1||service.type==='General'?'role-student':service.type===2||service.type==='Specialized'?'role-professor':'role-admin'}`}>{getServiceTypeLabel(service.type)}</span></td><td><span className={`password-badge ${service.isPaid?'password-expired':'password-valid'}`}>{service.isPaid?`$${service.price}`:t("free")}</span></td><td style={{textAlign:"center"}}><span className={`status-badge ${service.isActive?"status-active":"status-inactive"}`}><span className="status-dot"></span>{service.isActive?t("active"):t("inactive")}</span></td><td style={{textAlign:"center"}}><div className="action-buttons" style={{justifyContent:"center"}}><button className="action-btn edit-btn" onClick={() => navigate(`/admin/student-services/services/edit/${service.id}`)} title={t("edit")}><Edit3 size={14} /></button><button className="action-btn info-btn" onClick={() => navigate(`/admin/student-services/services/${service.id}`)} title={t("details")}><Eye size={14} /></button><button className="action-btn toggle-btn" onClick={() => handleToggleStatus(service.id)} title={t("toggle_status")}><Power size={14} /></button><button className="action-btn delete-btn" onClick={() => handleDelete(service.id)} title={t("delete")}><Trash2 size={14} /></button></div></td></tr>
+            <tr key={service.id}><td style={{textAlign:"center"}}>{idx+1}</td><td><div style={{fontWeight:"700",fontSize:"14px"}}>{getLocalized(service.name, i18n.language)}</div><div style={{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"2px"}}>{getLocalized(service.description, i18n.language)}</div></td><td><span className={`ssm-type-badge ${service.type===1||service.type==='General'?'ssm-type-general':service.type===2||service.type==='Specialized'?'ssm-type-specialized':'ssm-type-admin'}`}>{getServiceTypeLabel(service.type)}</span></td><td><span className={`ssm-price-badge ${service.isPaid?'paid':'free'}`}>{service.isPaid?`$${service.price}`:t("free")}</span></td><td style={{textAlign:"center"}}><StatusBadge status={service.isActive?"active":"inactive"} label={service.isActive?t("active"):t("inactive")} /></td><td style={{textAlign:"center"}}><div className="ssm-actions"><button className="ssm-action-btn edit" onClick={() => navigate(`/admin/student-services/services/edit/${service.id}`)} title={t("edit")}><Edit3 size={14} /></button><button className="ssm-action-btn info" onClick={() => navigate(`/admin/student-services/services/${service.id}`)} title={t("details")}><Eye size={14} /></button><button className="ssm-action-btn toggle" onClick={() => handleToggleStatus(service.id)} title={t("toggle_status")}><Power size={14} /></button><button className="ssm-action-btn delete" onClick={() => setDeleteId(service.id)} title={t("delete")}><Trash2 size={14} /></button></div></td></tr>
           ))}
         </tbody></table></div>
       )}
+      <ConfirmDialog
+        open={deleteId != null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+        title={t("delete")}
+        message={t("confirm_delete_message", { name: "" })}
+        confirmLabel={t("delete")}
+        cancelLabel={t("cancel")}
+        variant="danger"
+      />
     </div>
   );
 };

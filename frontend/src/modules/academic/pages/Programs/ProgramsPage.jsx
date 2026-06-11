@@ -9,7 +9,7 @@ import {
   Building2, Layers, Library, ClipboardList,
 } from "lucide-react";
 import * as structureService from "../../../../core/services/structureService";
-import { getNodeTypeValue } from "../../../university/utils/nodeTypeHelpers";
+import { getNodeTypeValue } from "../../../../core/constants/nodeTypeRegistry";
 import PermissionGate from "../../../../core/auth/PermissionGate";
 import { useToast } from "../../../../core/components/Toast";
 import { getLocalized } from "../../../../core/utils/getLocalized";

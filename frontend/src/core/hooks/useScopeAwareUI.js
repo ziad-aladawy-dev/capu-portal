@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useDomain } from "../contexts/DomainContext";
-import { getNodeCapabilities, getContextualActions } from "../../modules/university/utils/nodeTypeRegistry";
+import { getNodeCapabilities, getContextualActions } from "../constants/nodeTypeRegistry";
 
 export function useScopeAwareUI() {
   const { scopeNode } = useDomain();

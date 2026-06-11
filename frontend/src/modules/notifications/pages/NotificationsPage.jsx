@@ -4,6 +4,9 @@ import {
   Bell, Info, AlertTriangle, AlertCircle, CheckCheck, RefreshCw, X,
 } from "lucide-react";
 import PermissionGate from "../../../core/auth/PermissionGate";
+import PageHeader from "../../../core/components/PageHeader";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
+import EmptyState from "../../../core/components/EmptyState";
 import * as notificationService from "../../../core/services/notificationService";
 import "../styles/notifications.css";
 
@@ -88,30 +91,28 @@ function NotificationsPage() {
 
   return (
     <div className="notifications-page">
-      <div className="notifications-header">
-        <div className="notifications-header-left">
-          <Bell size={22} />
-          <div>
-            <h1>{t("notifications")}</h1>
-            <p>{t("notifications_desc")}</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="notifications-btn notifications-btn-outline" onClick={load}>
-            <><RefreshCw size={13} /> {t("refresh")}</>
-          </button>
-          {unreadCount > 0 && (
-            <PermissionGate resource="notifications.notifications" minLevel={2}>
-              <button
-                className="notifications-btn notifications-btn-outline"
-                onClick={handleMarkAllRead}
-              >
-                <><CheckCheck size={13} /> {t("mark_all_read")}</>
-              </button>
-            </PermissionGate>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        icon={Bell}
+        title={t("notifications")}
+        subtitle={t("notifications_desc")}
+        actions={
+          <>
+            <button className="notifications-btn notifications-btn-outline" onClick={load}>
+              <><RefreshCw size={13} /> {t("refresh")}</>
+            </button>
+            {unreadCount > 0 && (
+              <PermissionGate resource="notifications.notifications" minLevel={2}>
+                <button
+                  className="notifications-btn notifications-btn-outline"
+                  onClick={handleMarkAllRead}
+                >
+                  <><CheckCheck size={13} /> {t("mark_all_read")}</>
+                </button>
+              </PermissionGate>
+            )}
+          </>
+        }
+      />
 
       <div className="notifications-toolbar">
         <button
@@ -142,20 +143,13 @@ function NotificationsPage() {
       )}
 
       {loading ? (
-        <div className="notifications-loading">
-          <div className="notifications-spinner" />
-          <p>{t("loading_notifications")}</p>
-        </div>
+        <LoadingSpinner message={t("loading_notifications")} />
       ) : items.length === 0 ? (
-        <div className="notifications-empty">
-          <Bell size={40} />
-          <h3>{tab === "unread" ? t("no_unread_notifications") : t("no_notifications")}</h3>
-          <p>
-            {tab === "unread"
-              ? t("all_caught_up")
-              : t("no_notifications_message")}
-          </p>
-        </div>
+        <EmptyState
+          icon={Bell}
+          title={tab === "unread" ? t("no_unread_notifications") : t("no_notifications")}
+          message={tab === "unread" ? t("all_caught_up") : t("no_notifications_message")}
+        />
       ) : (
         <div className="notifications-list">
           {items.map((n) => {

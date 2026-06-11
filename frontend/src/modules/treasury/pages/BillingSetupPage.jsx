@@ -5,6 +5,7 @@ import {
   ReceiptText, Link2, Search, RefreshCw, Plus, PowerOff,
   AlertCircle, CloudDownload, CheckCircle2, X,
 } from "lucide-react";
+import PageHeader from "../../../core/components/PageHeader";
 import DataTable from "../../../core/components/DataTable";
 import Drawer from "../../../core/components/Drawer";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
@@ -33,17 +34,11 @@ export default function BillingSetupPage() {
 
   return (
     <div className="ty-page">
-      <div className="ty-header">
-        <div className="ty-header-left">
-          <span className="ty-header-icon" aria-hidden="true">
-            <ReceiptText size={22} />
-          </span>
-          <div>
-            <h1>{t("treasury_billing_setup_title")}</h1>
-            <p>{t("treasury_billing_setup_subtitle")}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={ReceiptText}
+        title={t("treasury_billing_setup_title")}
+        subtitle={t("treasury_billing_setup_subtitle")}
+      />
 
       <div className="ty-tabs" role="tablist">
         <button

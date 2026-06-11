@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Check } from "lucide-react";
 import { getLocalized } from "../utils/getLocalized";
-import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
+import { getNodeTypeConfig } from "../constants/nodeTypeRegistry";
 import NodeTypeBadge from "./NodeTypeBadge";
 import "./structureTree.css";
 

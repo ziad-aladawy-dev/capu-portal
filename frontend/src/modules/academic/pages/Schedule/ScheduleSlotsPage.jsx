@@ -1,22 +1,25 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { Clock, Plus, Trash2, AlertTriangle, RefreshCw, Layers, X, Save, AlertCircle } from "lucide-react";
+import { Clock, Plus, Trash2, AlertTriangle, RefreshCw, Layers, X, Save, AlertCircle, CalendarDays } from "lucide-react";
 import { useDomain } from "../../../../core/contexts/DomainContext";
 import { useAcademic } from "../../../../core/contexts/AcademicContext";
 import { useToast } from "../../../../core/components/Toast";
 import EmptyState from "../../../../core/components/EmptyState";
+import ErrorMessage from "../../../../core/components/ErrorMessage";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import ConfirmDialog from "../../../../core/components/ConfirmDialog";
 import Drawer from "../../../../core/components/Drawer";
 import PermissionGate from "../../../../core/auth/PermissionGate";
+import { getLocalized } from "../../../../core/utils/getLocalized";
 import {
   useScheduleSlots, useCreateSlot, useUpdateSlot, useDeleteSlot,
   useCloseSlot, useOpenSlot, useBatchCreateSlots,
-  useOfferingsForSchedule,
+  useOfferingsForSchedule, useSlotsForOfferings,
 } from "../../../../core/query/useScheduleSlots";
 import { useActiveCourses } from "../../../../core/query/useCourses";
-import { findOverlappingSlots, findAllOverlaps } from "../../../../core/utils/scheduleOverlap";
-import AcademicShell from "../../layout/AcademicShell";
+import { useStaffOptions } from "../CourseOfferings/useStaffOptions";
+import { findOverlappingSlots, findAllOverlaps, findIntraBatchOverlaps } from "../../../../core/utils/scheduleOverlap";
 import DraggableScheduleGrid from "./DraggableScheduleGrid";
 import ScheduleSlotForm from "./ScheduleSlotForm";
 import "./scheduleSlots.css";
@@ -24,7 +27,7 @@ import "./scheduleSlots.css";
 const EMPTY_BATCH_ENTRY = { dayOfWeek: 0, startTime: "08:00", endTime: "09:00", kind: 0, location: "" };
 
 function ScheduleSlotsPage() {
-  const { t } = useTranslation("academic");
+  const { t, i18n } = useTranslation("academic");
   const { addToast } = useToast();
   const { scopeNode } = useDomain();
   const { selectedSemesterObj } = useAcademic();
@@ -32,9 +35,20 @@ function ScheduleSlotsPage() {
 
   const [selectedOfferingId, setSelectedOfferingId] = useState(searchParams.get("offeringId") || "");
 
-  const { data: slots = [], isLoading: slotsLoading, refetch: refetchSlots } = useScheduleSlots(selectedOfferingId);
-  const { data: offerings = [] } = useOfferingsForSchedule(scopeNode?.id, selectedSemesterObj?.id);
+  const {
+    data: slots = [],
+    isLoading: slotsLoading,
+    isError: slotsError,
+    refetch: refetchSlots,
+  } = useScheduleSlots(selectedOfferingId);
+  const { data: offerings = [], isLoading: offeringsLoading } =
+    useOfferingsForSchedule(scopeNode?.id, selectedSemesterObj?.id);
   const { data: courses = [] } = useActiveCourses();
+
+  // Slots of EVERY offering in scope — feeds the sidebar's per-offering slot
+  // counts, the ghost blocks on the grid, and cross-offering room clashes.
+  const offeringIds = useMemo(() => offerings.map((o) => o.id), [offerings]);
+  const { slotsByOffering } = useSlotsForOfferings(offeringIds);
 
   // Deep link from the Offerings page (?offeringId=…) — honour once on load.
   useEffect(() => {
@@ -53,6 +67,23 @@ function ScheduleSlotsPage() {
     for (const c of courses) m[c.id] = c;
     return m;
   }, [courses]);
+
+  // Instructor names for section rows — sections of one course often differ
+  // only by who teaches them (Dr. Ahmed's 8:00 vs Dr. Sara's 9:45).
+  const { data: staffOptions = [] } = useStaffOptions();
+  const staffById = useMemo(() => {
+    const m = {};
+    for (const s of staffOptions) m[s.id] = s;
+    return m;
+  }, [staffOptions]);
+
+  // Human-readable "Lecture Monday 10:00–12:00 • Lab …" list for conflict
+  // feedback — every clash, not just the first.
+  const describeConflicts = (conflicts) =>
+    conflicts
+      .map((c) =>
+        `${t(`schedule.kinds.${c.kind}`)} ${t(`schedule.days.${c.dayOfWeek}`)} ${String(c.startTime).slice(0, 5)}–${String(c.endTime).slice(0, 5)}`)
+      .join(" • ");
 
   const createSlot = useCreateSlot();
   const updateSlot = useUpdateSlot();
@@ -77,6 +108,70 @@ function ScheduleSlotsPage() {
     [offerings, selectedOfferingId]
   );
 
+  // Sidebar payload: offerings carrying their course identity + live slot
+  // count, so the panel reads "CS101 — Intro to CS (B) · 2 slots" instead of
+  // a bare section letter.
+  const enrichedOfferings = useMemo(
+    () =>
+      offerings.map((o) => {
+        const course = courseById[o.courseId];
+        return {
+          ...o,
+          courseCode: course?.code || "—",
+          courseTitle: course?.title || "",
+          instructorName: o.instructorId ? staffById[o.instructorId]?.name || "" : "",
+          slotCount: (slotsByOffering[o.id] || []).filter((s) => !s.isClosed).length,
+        };
+      }),
+    [offerings, courseById, slotsByOffering, staffById]
+  );
+
+  // Open slots of every OTHER offering — rendered as read-only ghost blocks
+  // so the scheduler sees the week's real occupancy while editing one offering.
+  const backgroundSlots = useMemo(() => {
+    const out = [];
+    for (const o of enrichedOfferings) {
+      if (o.id === selectedOfferingId) continue;
+      for (const s of slotsByOffering[o.id] || []) {
+        if (!s.isClosed) out.push({ ...s, courseCode: o.courseCode, sectionCode: o.sectionCode });
+      }
+    }
+    return out;
+  }, [enrichedOfferings, slotsByOffering, selectedOfferingId]);
+
+  const [showOthers, setShowOthers] = useState(true);
+
+  // Dropdown mirror of the sidebar's course grouping: one <optgroup> per
+  // course, sections (A/B/EVE-1 …) as its options in natural order.
+  const dropdownGroups = useMemo(() => {
+    const byCourse = new Map();
+    for (const o of enrichedOfferings) {
+      if (!byCourse.has(o.courseId)) {
+        byCourse.set(o.courseId, {
+          courseId: o.courseId, courseCode: o.courseCode, courseTitle: o.courseTitle, sections: [],
+        });
+      }
+      byCourse.get(o.courseId).sections.push(o);
+    }
+    const groups = [...byCourse.values()];
+    for (const g of groups) {
+      g.sections.sort((a, b) =>
+        String(a.sectionCode).localeCompare(String(b.sectionCode), undefined, { numeric: true }));
+    }
+    groups.sort((a, b) => String(a.courseCode).localeCompare(String(b.courseCode)));
+    return groups;
+  }, [enrichedOfferings]);
+
+  // Cross-offering room guard: same room, intersecting window, any offering.
+  // The backend stores location as free text and does not police rooms, so
+  // this is the only line of defence against double-booking a room.
+  const findRoomClashes = ({ dayOfWeek, startTime, endTime, location, excludeId }) => {
+    if (!location) return [];
+    const all = [...slots, ...backgroundSlots];
+    return findOverlappingSlots({ dayOfWeek, startTime, endTime, excludeId }, all)
+      .filter((s) => (s.location || "").trim().toLowerCase() === location.trim().toLowerCase());
+  };
+
   const slotOverlaps = useMemo(() => {
     const conflictMap = {};
     for (let i = 0; i < slots.length; i++) {
@@ -91,9 +186,27 @@ function ScheduleSlotsPage() {
     return conflictMap;
   }, [slots]);
 
-  const openCreateDrawer = () => { setEditSlot(null); setDrawerError(""); setDrawerMode("create"); };
+  // createPrefill: pseudo-slot used to pre-seed the create form when the user
+  // clicks an empty timetable cell (drag-free scheduling path).
+  const [createPrefill, setCreatePrefill] = useState(null);
+
+  const openCreateDrawer = (prefill = null) => {
+    setEditSlot(null);
+    setCreatePrefill(prefill);
+    setDrawerError("");
+    setDrawerMode("create");
+  };
   const openEditDrawer = (slot) => { setEditSlot(slot); setDrawerError(""); setDrawerMode("edit"); };
-  const closeDrawer = () => { setDrawerMode(null); setEditSlot(null); setDrawerError(""); };
+  const closeDrawer = () => { setDrawerMode(null); setEditSlot(null); setCreatePrefill(null); setDrawerError(""); };
+
+  // Click an empty grid cell → create drawer pre-filled with that day/time.
+  const handleCellClick = (dayOfWeek, startTime, endTime) => {
+    if (!selectedOfferingId) {
+      addToast(t("schedule.noOffering"), "info");
+      return;
+    }
+    openCreateDrawer({ dayOfWeek, startTime, endTime });
+  };
 
   const handleDrawerSubmit = async (formData) => {
     setDrawerError("");
@@ -103,10 +216,21 @@ function ScheduleSlotsPage() {
       slots
     );
     if (overlapCheck.length > 0) {
-      const c = overlapCheck[0];
-      setDrawerError(t("schedule.overlapWarning", {
-        code: t(`schedule.kinds.${c.kind}`),
-        day: t(`schedule.days.${formData.dayOfWeek}`),
+      setDrawerError(
+        `${t("schedule.conflicts", { count: overlapCheck.length })}: ${describeConflicts(overlapCheck)}`
+      );
+      return;
+    }
+
+    const roomClash = findRoomClashes({
+      dayOfWeek: formData.dayOfWeek, startTime: formData.startTime, endTime: formData.endTime,
+      location: formData.location, excludeId: editSlot?.id,
+    });
+    if (roomClash.length > 0) {
+      const c = roomClash[0];
+      setDrawerError(t("schedule.roomClash", {
+        room: formData.location,
+        code: c.courseCode || t("schedule.anotherOffering"),
         start: String(c.startTime).slice(0, 5),
         end: String(c.endTime).slice(0, 5),
       }));
@@ -143,12 +267,49 @@ function ScheduleSlotsPage() {
       slots
     );
     if (overlapCheck.length > 0) {
-      addToast(t("schedule.conflicts", { count: overlapCheck.length }), "warning");
+      addToast(`${t("schedule.conflicts", { count: overlapCheck.length })} — ${describeConflicts(overlapCheck)}`, "warning");
       return;
     }
     try {
       await createSlot.mutateAsync(formData);
       addToast(t("schedule.slotCreated"), "success");
+      // Dropping an offering that wasn't the selected one: select it so the
+      // freshly created slot is immediately visible and editable.
+      if (formData.courseOfferingId && formData.courseOfferingId !== selectedOfferingId) {
+        pickOffering(formData.courseOfferingId);
+      }
+    } catch (err) {
+      addToast(err.message || t("courses.saveFailed"), "error");
+    }
+  };
+
+  // Drag an existing slot to another grid cell — keeps the slot's duration,
+  // pre-checks overlaps (every clash listed), then PATCHes day/start/end.
+  const handleMoveSlot = async ({ slot, dayOfWeek, startTime, endTime }) => {
+    const conflicts = findOverlappingSlots(
+      { dayOfWeek, startTime, endTime, excludeId: slot.id },
+      slots
+    );
+    if (conflicts.length > 0) {
+      addToast(`${t("schedule.conflicts", { count: conflicts.length })} — ${describeConflicts(conflicts)}`, "warning");
+      return;
+    }
+    const roomClash = findRoomClashes({
+      dayOfWeek, startTime, endTime, location: slot.location, excludeId: slot.id,
+    });
+    if (roomClash.length > 0) {
+      const c = roomClash[0];
+      addToast(t("schedule.roomClash", {
+        room: slot.location,
+        code: c.courseCode || t("schedule.anotherOffering"),
+        start: String(c.startTime).slice(0, 5),
+        end: String(c.endTime).slice(0, 5),
+      }), "warning");
+      return;
+    }
+    try {
+      await updateSlot.mutateAsync({ id: slot.id, dayOfWeek, startTime, endTime });
+      addToast(t("schedule.slotMoved"), "success");
     } catch (err) {
       addToast(err.message || t("courses.saveFailed"), "error");
     }
@@ -200,18 +361,32 @@ function ScheduleSlotsPage() {
   };
 
   const validateBatchEntries = useCallback(() => {
-    const valid = batchEntries.filter((e) => e.startTime && e.endTime && e.endTime > e.startTime);
-    if (valid.length === 0) {
+    // 1) Every row needs a valid time range — flag offenders by ORIGINAL index
+    //    so the red border lands on the right row.
+    const invalid = {};
+    batchEntries.forEach((e, idx) => {
+      if (!e.startTime || !e.endTime || e.endTime <= e.startTime) invalid[idx] = ["time"];
+    });
+    if (Object.keys(invalid).length > 0) {
+      setBatchOverlaps(invalid);
       addToast(t("schedule.validation.endAfterStart"), "warning");
       return null;
     }
-    const overlaps = findAllOverlaps(valid, [...slots]);
-    setBatchOverlaps(overlaps);
-    if (Object.keys(overlaps).length > 0) {
-      addToast(t("schedule.conflicts", { count: Object.keys(overlaps).length }), "warning");
+    // 2) Conflicts against existing slots (index-aligned with batchEntries)…
+    const existing = findAllOverlaps(batchEntries, slots);
+    // 3) …and against EACH OTHER — the server applies rows one by one, so an
+    //    internally clashing batch would otherwise half-succeed.
+    const intra = findIntraBatchOverlaps(batchEntries);
+    const merged = { ...existing };
+    for (const [idx, others] of Object.entries(intra)) {
+      merged[idx] = [...(merged[idx] || []), ...others];
+    }
+    setBatchOverlaps(merged);
+    if (Object.keys(merged).length > 0) {
+      addToast(t("schedule.conflicts", { count: Object.keys(merged).length }), "warning");
       return null;
     }
-    return valid;
+    return batchEntries;
   }, [batchEntries, slots, addToast, t]);
 
   const handleBatchSubmit = async () => {
@@ -237,7 +412,7 @@ function ScheduleSlotsPage() {
   };
 
   return (
-    <AcademicShell>
+    <>
     <div className="sch-page" style={{ padding: 0 }}>
       <div className="sch-header">
         <div className="sch-header-left">
@@ -254,7 +429,7 @@ function ScheduleSlotsPage() {
             </button>
           </PermissionGate>
           <PermissionGate resource="schedule.schedule-slots" minLevel={2}>
-            <button className="sch-btn sch-btn-primary" onClick={openCreateDrawer} disabled={!selectedOfferingId}>
+            <button className="sch-btn sch-btn-primary" onClick={() => openCreateDrawer()} disabled={!selectedOfferingId}>
               <Plus size={16} /> {t("schedule.addSlot")}
             </button>
           </PermissionGate>
@@ -262,17 +437,38 @@ function ScheduleSlotsPage() {
       </div>
 
       <div className="sch-toolbar">
-        <select className="sch-offering-select" value={selectedOfferingId}
-          onChange={(e) => pickOffering(e.target.value)} aria-label={t("schedule.selectOffering")}>
-          <option value="">{t("schedule.selectOffering")}</option>
-          {offerings.map((o) => {
-            const course = courseById[o.courseId];
-            return (
-              <option key={o.id} value={o.id}>
-                {course?.code || "—"} — {course?.title || ""} ({o.sectionCode})
-              </option>
-            );
-          })}
+        {/* Active semester context — the offering list is scoped to it, so
+            make the scope visible instead of implicit. */}
+        <div className={`sch-context-chip${selectedSemesterObj ? "" : " is-missing"}`}
+          title={t("common.semester")}>
+          <CalendarDays size={13} />
+          <span>
+            {selectedSemesterObj
+              ? getLocalized(selectedSemesterObj.name, i18n.language)
+              : t("common.noSemester")}
+          </span>
+        </div>
+
+        <label className="sch-select-label" htmlFor="sch-offering-select">
+          {t("schedule.offering")}
+        </label>
+        <select id="sch-offering-select" className="sch-offering-select" value={selectedOfferingId}
+          onChange={(e) => pickOffering(e.target.value)} aria-label={t("schedule.selectOffering")}
+          disabled={!selectedSemesterObj}>
+          <option value="">
+            {t("schedule.selectOffering")}{offerings.length ? ` (${offerings.length})` : ""}
+          </option>
+          {dropdownGroups.map((g) => (
+            <optgroup key={g.courseId} label={`${g.courseCode} — ${g.courseTitle}`}>
+              {g.sections.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {t("schedule.section")} {o.sectionCode}
+                  {o.instructorName ? ` · ${o.instructorName}` : ""}
+                  {o.slotCount > 0 ? ` — ${t("schedule.slotsCount", { count: o.slotCount })}` : ` — ${t("schedule.unscheduled")}`}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </select>
         {selectedOfferingId && selectedOffering && (
           <div className="sch-offering-badge">
@@ -285,7 +481,13 @@ function ScheduleSlotsPage() {
             <RefreshCw size={12} />
           </button>
         )}
+        <label className="sch-others-toggle">
+          <input type="checkbox" checked={showOthers} onChange={(e) => setShowOthers(e.target.checked)} />
+          {t("schedule.showOthers")}
+        </label>
       </div>
+
+      <p className="sch-howto">{t("schedule.howTo")}</p>
 
       <div aria-live="polite" className="sr-only">
         {slots.length > 0
@@ -301,26 +503,35 @@ function ScheduleSlotsPage() {
         </div>
       )}
 
-      {!selectedOfferingId ? (
-        <EmptyState icon={Clock} title={t("schedule.offering")} message={t("schedule.noOffering")} />
-      ) : slotsLoading ? (
-        <div className="sch-empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <RefreshCw size={24} style={{ animation: "spin 1s linear infinite" }} />
-          <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>{t("common.loading")}</p>
-        </div>
-      ) : slots.length === 0 ? (
-        <EmptyState icon={Clock} title={t("schedule.noSlots")} message={t("schedule.noSlots")}
-          actionLabel={t("schedule.addSlot")} onAction={openCreateDrawer} />
+      {!selectedSemesterObj ? (
+        <EmptyState icon={CalendarDays} title={t("common.semester")} message={t("common.noSemester")} />
+      ) : offeringsLoading ? (
+        <LoadingSpinner />
+      ) : offerings.length === 0 ? (
+        <EmptyState icon={Clock} title={t("schedule.offering")} message={t("schedule.noOfferingsInScope")} />
+      ) : slotsError ? (
+        <EmptyState
+          icon={AlertTriangle}
+          title={t("schedule.loadFailed")}
+          message={t("schedule.loadFailedHint")}
+          actionLabel={t("common.retry")}
+          onAction={() => refetchSlots()}
+        />
+      ) : slotsLoading && selectedOfferingId ? (
+        <LoadingSpinner />
       ) : (
         <DraggableScheduleGrid
-          slots={slots}
-          offerings={offerings}
+          slots={selectedOfferingId ? slots : []}
+          offerings={enrichedOfferings}
+          backgroundSlots={showOthers ? backgroundSlots : []}
           selectedOfferingId={selectedOfferingId}
           onSelectOffering={pickOffering}
           onEditSlot={openEditDrawer}
           onDeleteSlot={setDeleteTarget}
           onToggleLifecycle={handleToggleLifecycle}
           onCreateSlot={handleDragDropCreate}
+          onMoveSlot={handleMoveSlot}
+          onCellClick={handleCellClick}
           slotOverlaps={slotOverlaps}
           openLoading={openSlotMut.isPending}
           closeLoading={closeSlotMut.isPending}
@@ -346,7 +557,10 @@ function ScheduleSlotsPage() {
       >
         {drawerMode && (
           <ScheduleSlotForm
-            slot={drawerMode === "edit" ? editSlot : null}
+            key={drawerMode === "edit"
+              ? `edit-${editSlot?.id}`
+              : `create-${createPrefill ? `${createPrefill.dayOfWeek}-${createPrefill.startTime}` : "blank"}`}
+            slot={drawerMode === "edit" ? editSlot : createPrefill}
             onSubmit={handleDrawerSubmit}
             submitRef={submitRef}
             extraError={drawerError}
@@ -468,7 +682,7 @@ function ScheduleSlotsPage() {
         </div>
       )}
     </div>
-    </AcademicShell>
+    </>
   );
 }
 

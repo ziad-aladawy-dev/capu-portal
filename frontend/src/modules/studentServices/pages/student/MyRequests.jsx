@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useStudentRequests } from "../../hooks/useStudentRequests";
-import LoadingSpinner from "../../components/LoadingSpinner";
-import EmptyState from "../../components/EmptyState";
-import StatusBadge from "../../components/StatusBadge";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
+import EmptyState from "../../../../core/components/EmptyState";
+import StatusBadge from "../../../../core/components/RequestStatusBadge";
 import "../../styles/student/MyRequests.css";
 
 const MyRequests = () => {
@@ -59,11 +59,11 @@ const MyRequests = () => {
         <div className="mr-search-box"><Search size={16} /><input type="text" placeholder={t("search_by_request_number")} value={searchTerm} onChange={handleSearchChange} /></div>
         <div className="mr-status-filter"><select value={filterStatus} onChange={handleFilterChange}><option value="">{t("all_statuses")}</option><option value="Draft">{t("draft")}</option><option value="Pending">{t("pending")}</option><option value="UnderReview">{t("under_review")}</option><option value="Approved">{t("approved")}</option><option value="Rejected">{t("rejected")}</option><option value="Completed">{t("completed")}</option></select></div>
       </div>
-      {paginatedItems.length === 0 ? <EmptyState message={t("no_requests")} /> : (
+      {paginatedItems.length === 0 ? <EmptyState title={t("no_requests")} /> : (
         <>
           <div className="mr-table-container"><table className="mr-table"><thead><tr><th>{t("request_number")}</th><th>{t("service")}</th><th>{t("status")}</th><th>{t("submitted_date")}</th><th>{t("payment_status")}</th><th>{t("actions")}</th></tr></thead><tbody>
             {paginatedItems.map(req => (
-              <tr key={req.id}><td className="mr-number">{req.requestNumber}</td><td>{req.serviceName}</td><td><StatusBadge status={req.status} /></td><td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "-"}</td><td><StatusBadge status={req.paymentStatus} /></td><td><button className="mr-review-btn" onClick={() => navigate(`/student/requests/${req.id}`)}>{t("view_details")}</button></td></tr>
+              <tr key={req.id}><td className="mr-number">{req.requestNumber}</td><td>{req.serviceName}</td><td><StatusBadge status={req.status} /></td><td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "-"}</td><td><StatusBadge status={req.paymentStatus} type="payment" /></td><td><button className="mr-review-btn" onClick={() => navigate(`/student/requests/${req.id}`)}>{t("view_details")}</button></td></tr>
             ))}
           </tbody></table></div>
           <div className="mr-pagination-footer">

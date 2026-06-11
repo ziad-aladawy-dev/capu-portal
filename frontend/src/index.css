@@ -79,16 +79,8 @@ code {
   background: var(--code-bg);
 }
 
-/* RTL Support */
-body.rtl {
-  direction: rtl;
-  text-align: right;
-}
-
-body.rtl .landing-page {
-  direction: rtl;
-  text-align: right;
-}
+/* RTL comes from the dir attribute i18n.js sets on <html>;
+   direction/text-align inherit natively — no body.rtl class exists. */
 
 /* Bulk action bar */
 .bulk-bar {

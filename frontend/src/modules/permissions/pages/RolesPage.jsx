@@ -5,6 +5,7 @@ import {
   Save, Info, Users, Settings, X, Search, RotateCcw, UserPlus, UserMinus, Loader2,
 } from "lucide-react";
 import { usePermission } from "../../../core/auth/usePermission";
+import { useToast } from "../../../core/components/Toast";
 import { getLocalized } from "../../../core/utils/getLocalized";
 import * as staffService from "../../../core/services/staffService";
 import {
@@ -15,8 +16,11 @@ import {
 import {
   LEVEL_TO_ACTION, PERMISSION_RESOURCES, computeResourceLevel,
 } from "../../../core/constants/permissionLevels";
+import PageHeader from "../../../core/components/PageHeader";
 import VirtualList from "../../../core/components/VirtualList";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
+import EmptyState from "../../../core/components/EmptyState";
 import PermissionMatrix from "../components/PermissionMatrix";
 import RoleFormModal from "../components/RoleFormModal";
 import "../styles/roles.css";
@@ -27,6 +31,7 @@ const EMPTY = [];
 function RolesPage() {
   const { t, i18n } = useTranslation();
   const { can } = usePermission();
+  const { addToast } = useToast();
 
   // Defensive UI: controls render disabled with an explanation instead of
   // disappearing when the viewer lacks the level.
@@ -41,7 +46,6 @@ function RolesPage() {
 
   const [selectedRoleId, setSelectedRoleId] = useState(null);
   const [activeTab, setActiveTab] = useState("general");
-  const [error, setError] = useState(null);
 
   const [formName, setFormName] = useState("");
   const [formError, setFormError] = useState("");
@@ -132,7 +136,7 @@ function RolesPage() {
       }));
     updateRolePerms.mutate({ roleId: selectedRole.id, resources }, {
       onSuccess: () => setPendingLevels({}),
-      onError: (err) => setError(err.message || "Failed to save permissions"),
+      onError: (err) => addToast(err.message || t("save_failed", { defaultValue: "Failed to save permissions" }), "error"),
     });
   };
 
@@ -185,7 +189,7 @@ function RolesPage() {
       },
       onError: (err) => {
         setDeleteTarget(null);
-        setError(err.message || "Failed to delete role");
+        addToast(err.message || "Failed to delete role", "error");
       },
     });
   };
@@ -224,7 +228,7 @@ function RolesPage() {
         setMemberSearch("");
         setMemberSearchResults([]);
       },
-      onError: (err) => setError(err.message || "Failed to add member"),
+      onError: (err) => addToast(err.message || "Failed to add member", "error"),
     });
   };
 
@@ -234,7 +238,7 @@ function RolesPage() {
       onSuccess: () => setRemoveMemberTarget(null),
       onError: (err) => {
         setRemoveMemberTarget(null);
-        setError(err.message || "Failed to remove member");
+        addToast(err.message || "Failed to remove member", "error");
       },
     });
   };
@@ -248,7 +252,7 @@ function RolesPage() {
   const formatDate = (iso) => {
     if (!iso) return "—";
     try {
-      return new Date(iso).toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
+      return new Date(iso).toLocaleDateString(i18n.language, { year: "numeric", month: "short", day: "numeric" });
     } catch { return "—"; }
   };
 
@@ -280,10 +284,7 @@ function RolesPage() {
   if (rolesQuery.isPending) {
     return (
       <div className="roles-page">
-        <div className="roles-loading">
-          <div className="roles-spinner" />
-          <p>{t("loading_roles")}</p>
-        </div>
+        <LoadingSpinner message={t("loading_roles")} />
       </div>
     );
   }
@@ -291,20 +292,12 @@ function RolesPage() {
   if (rolesQuery.isError && roles.length === 0) {
     return (
       <div className="roles-page">
-        <div className="roles-header">
-          <div className="roles-header-left">
-            <UserCog size={20} />
-            <div>
-              <h1>{t("roles")}</h1>
-              <p>{t("manage_roles")}</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader icon={UserCog} title={t("roles")} subtitle={t("manage_roles")} />
         <div className="roles-error">
           <AlertTriangle size={36} className="roles-error-icon" />
           <h3>{t("failed_to_load_roles")}</h3>
           <p>{rolesQuery.error?.message}</p>
-          <button className="roles-btn roles-btn-outline" onClick={() => rolesQuery.refetch()}>
+          <button className="btn-outline" onClick={() => rolesQuery.refetch()}>
             <><RefreshCw size={13} /> {t("retry")}</>
           </button>
         </div>
@@ -314,33 +307,21 @@ function RolesPage() {
 
   return (
     <div className="roles-page">
-      <div className="roles-header">
-        <div className="roles-header-left">
-          <UserCog size={20} />
-          <div>
-            <h1>{t("roles")}</h1>
-            <p>{t("manage_roles")}</p>
-          </div>
-        </div>
-        <div className="roles-header-actions">
+      <PageHeader
+        icon={UserCog}
+        title={t("roles")}
+        subtitle={t("manage_roles")}
+        actions={
           <button
-            className="roles-btn roles-btn-primary"
+            className="btn-primary"
             onClick={() => { setCreateError(""); setCreateModalOpen(true); }}
             disabled={!canCreate}
             title={needLevelTitle(canCreate, t("insert"))}
           >
             <><Plus size={14} /> {t("create_role")}</>
           </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="perm-banner perm-banner-error" style={{ marginBottom: 16 }}>
-          <AlertTriangle size={15} />
-          <span>{error}</span>
-          <button onClick={() => setError(null)}><X size={13} /></button>
-        </div>
-      )}
+        }
+      />
 
       <div className="roles-content">
         <div className="roles-sidebar">
@@ -350,10 +331,10 @@ function RolesPage() {
           <div style={{ padding: "6px 8px 0" }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: "#fff", border: "1px solid #e5e7eb",
+              background: "var(--color-surface)", border: "1px solid var(--color-border)",
               borderRadius: 6, padding: "6px 10px",
             }}>
-              <Search size={13} color="#9ca3af" />
+              <Search size={13} color="var(--gray-400)" />
               <input
                 type="text"
                 placeholder={t("search_roles")}
@@ -362,14 +343,14 @@ function RolesPage() {
                 style={{
                   border: "none", outline: "none", flex: 1,
                   background: "transparent", fontSize: 12,
-                  fontFamily: "Outfit, sans-serif", color: "#1a1f5e",
+                  fontFamily: "Outfit, sans-serif", color: "var(--color-primary)",
                 }}
               />
             </div>
           </div>
           <div className="roles-sidebar-list">
             {filteredRoles.length === 0 && roleSearch && (
-              <div style={{ padding: 20, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+              <div style={{ padding: 20, textAlign: "center", color: "var(--gray-400)", fontSize: 12 }}>
                 {t("no_roles_match", { search: roleSearch })}
               </div>
             )}
@@ -391,11 +372,11 @@ function RolesPage() {
 
         <div className="roles-detail">
           {!selectedRole ? (
-            <div className="roles-not-selected">
-              <Shield size={40} color="#d1d5db" />
-              <h3>{t("select_role")}</h3>
-              <p>{t("select_role_desc")}</p>
-            </div>
+            <EmptyState
+              icon={Shield}
+              title={t("select_role")}
+              message={t("select_role_desc")}
+            />
           ) : (
             <>
               <div className="roles-detail-tabs">
@@ -410,7 +391,7 @@ function RolesPage() {
                   onClick={() => setActiveTab("permissions")}
                 >
                   <><ShieldCheck size={13} /> {t("permissions")}</>
-                  {permDirty && <span style={{ marginLeft: 4, width: 6, height: 6, borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />}
+                  {permDirty && <span style={{ marginLeft: 4, width: 6, height: 6, borderRadius: "50%", background: "var(--gold)", display: "inline-block" }} />}
                 </button>
                 <button
                   className={`roles-detail-tab ${activeTab === "members" ? "active" : ""}`}
@@ -437,7 +418,7 @@ function RolesPage() {
                           disabled={!canEdit}
                         />
                         <button
-                          className="roles-btn roles-btn-primary"
+                          className="btn-primary"
                           onClick={handleUpdateName}
                           disabled={!canEdit || updateRole.isPending || formName === selectedRole.name}
                           title={needLevelTitle(canEdit, t("edit"))}
@@ -461,9 +442,9 @@ function RolesPage() {
                     </p>
 
                     {!selectedRole.isSystemRole && (
-                      <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
-                        <h4 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 8px", color: "#dc2626" }}>{t("danger_zone")}</h4>
-                        <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 12px" }}>
+                      <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 16 }}>
+                        <h4 style={{ fontSize: 13, fontWeight: 600, margin: "0 0 8px", color: "var(--color-error)" }}>{t("danger_zone")}</h4>
+                        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "0 0 12px" }}>
                           {t("delete_role_warning")}
                         </p>
                         <button
@@ -483,22 +464,22 @@ function RolesPage() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                       <div>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "#1a1f5e" }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--color-primary)" }}>
                           <ShieldCheck size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
                           {t("role_permissions_title", { name: selectedRole.name })}
                         </h3>
-                        <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
+                        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "4px 0 0" }}>
                           {t("resources_configured", { configured: totalConfigured, total: totalResources })}
                         </p>
                       </div>
                       <div className="roles-header-actions">
                         {permDirty && (
-                          <button className="roles-btn roles-btn-outline" onClick={handleResetPermissions} disabled={updateRolePerms.isPending}>
+                          <button className="btn-outline" onClick={handleResetPermissions} disabled={updateRolePerms.isPending}>
                             <><RotateCcw size={13} /> {t("reset")}</>
                           </button>
                         )}
                         <button
-                          className={`roles-btn roles-btn-primary ${!permDirty || updateRolePerms.isPending ? "disabled" : ""}`}
+                          className={`btn-primary ${!permDirty || updateRolePerms.isPending ? "disabled" : ""}`}
                           onClick={handleSavePermissions}
                           disabled={!canEdit || !permDirty || updateRolePerms.isPending}
                           title={needLevelTitle(canEdit, t("edit"))}
@@ -529,16 +510,16 @@ function RolesPage() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                       <div>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "#1a1f5e" }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--color-primary)" }}>
                           <Users size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
                           {t("members_title", { name: selectedRole.name })}
                         </h3>
-                        <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
+                        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "4px 0 0" }}>
                           {t("members_count", { count: members.length })}
                         </p>
                       </div>
                       <button
-                        className="roles-btn roles-btn-primary"
+                        className="btn-primary"
                         onClick={() => setAddMemberModalOpen(true)}
                         disabled={!canEdit}
                         title={needLevelTitle(canEdit, t("edit"))}
@@ -554,7 +535,7 @@ function RolesPage() {
                         </div>
                       ) : members.length === 0 ? (
                         <div className="role-members-empty">
-                          <Users size={32} color="#d1d5db" style={{ marginBottom: 8 }} />
+                          <Users size={32} color="var(--gray-300)" style={{ marginBottom: 8 }} />
                           <p>{t("no_members")}</p>
                         </div>
                       ) : members.length > MEMBER_VIRTUALIZE_THRESHOLD ? (
@@ -619,7 +600,7 @@ function RolesPage() {
           <div className="roles-modal roles-modal-wide" onClick={(e) => e.stopPropagation()}>
             <div className="roles-modal-header">
               <div className="roles-modal-header-left">
-                <UserPlus size={18} color="#1a1f5e" />
+                <UserPlus size={18} color="var(--color-primary)" />
                 <div>
                   <h2>{t("add_member_to_role", { name: selectedRole.name })}</h2>
                   <p className="roles-modal-subtitle">{t("add_member_subtitle")}</p>
@@ -629,7 +610,7 @@ function RolesPage() {
             </div>
             <div className="roles-modal-body">
               <div className="role-add-member-search">
-                <Search size={14} color="#9ca3af" />
+                <Search size={14} color="var(--gray-400)" />
                 <input
                   type="text"
                   className="role-add-member-input"
@@ -643,12 +624,12 @@ function RolesPage() {
               <div className="role-add-member-results">
                 {memberSearchResults.length === 0 && memberSearch.trim() && !memberSearching ? (
                   <div className="role-add-member-empty">
-                    <Users size={24} color="#d1d5db" />
+                    <Users size={24} color="var(--gray-300)" />
                     <p>{t("no_staff_found")}</p>
                   </div>
                 ) : memberSearchResults.length === 0 && !memberSearch.trim() && !memberSearching ? (
                   <div className="role-add-member-empty">
-                    <UserPlus size={24} color="#d1d5db" />
+                    <UserPlus size={24} color="var(--gray-300)" />
                     <p>{t("type_to_search_staff")}</p>
                   </div>
                 ) : (

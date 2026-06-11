@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  BookOpen, Plus, Edit2, Trash2, X, Search, AlertTriangle, RefreshCw, Lock, Unlock,
+  BookOpen, Plus, Edit2, Trash2, X, Search, RefreshCw, Lock, Unlock,
 } from "lucide-react";
 import PermissionGate from "../../../../core/auth/PermissionGate";
+import ErrorMessage from "../../../../core/components/ErrorMessage";
 import { useToast } from "../../../../core/components/Toast";
 import StatusBadge from "../../../../core/components/StatusBadge";
 import ConfirmDialog from "../../../../core/components/ConfirmDialog";
@@ -15,7 +16,6 @@ import {
   useCourses, useCreateCourse, useUpdateCourse, useDeleteCourse,
   useCloseCourse, useOpenCourse, useBulkDeleteCourses, useAllPrerequisitePairs,
 } from "../../../../core/query/useCourses";
-import AcademicShell from "../../layout/AcademicShell";
 import CourseDetailPanel from "./CourseDetailPanel";
 import CourseFormDrawer from "./CourseFormDrawer";
 import CatalogHealth from "./CatalogHealth";
@@ -212,7 +212,7 @@ export default function CourseCatalogPage() {
   ];
 
   return (
-    <AcademicShell>
+    <>
       <div className={shared.header}>
         <div className={shared.headerLeft}>
           <BookOpen size={22} />
@@ -229,16 +229,6 @@ export default function CourseCatalogPage() {
           </PermissionGate>
         </div>
       </div>
-
-      {error && (
-        <div className={shared.errorBanner} role="alert">
-          <AlertTriangle size={16} />
-          <span style={{ flex: 1 }}>{error.message}</span>
-          <button className="btn-cancel" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => refetch()}>
-            <RefreshCw size={11} /> {t("common.retry")}
-          </button>
-        </div>
-      )}
 
       <div className={shared.statsBar}>
         <div className={shared.stat}><span className={shared.statValue}>{totalCount}</span><span className={shared.statLabel}>{t("courses.totalCourses")}</span></div>
@@ -285,11 +275,18 @@ export default function CourseCatalogPage() {
 
       <div className={styles.split}>
         <div className={styles.splitTable}>
+          {error ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <ErrorMessage message={error.message} />
+              <button className="btn-primary" style={{ alignSelf: "flex-start" }} onClick={() => refetch()}>
+                <RefreshCw size={13} /> {t("common.retry")}
+              </button>
+            </div>
+          ) : (
           <DataTable
             columns={columns}
             data={courses}
             loading={isLoading}
-            error={error?.message}
             emptyIcon={BookOpen}
             emptyTitle={t("courses.noCourses")}
             emptyMessage={t("courses.noCoursesHint")}
@@ -314,6 +311,7 @@ export default function CourseCatalogPage() {
             compact
             tableLabel={t("courses.title")}
           />
+          )}
 
           {selectedIds.size > 0 && (
             <div className={shared.bulkBar}>
@@ -373,6 +371,6 @@ export default function CourseCatalogPage() {
         variant={confirmAction?.type === "close" ? "warning" : "default"}
         loading={closeCourse.isPending || openCourse.isPending}
       />
-    </AcademicShell>
+    </>
   );
 }

@@ -7,31 +7,10 @@
 .ty-page {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 /* ── Header ── */
-.ty-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.ty-header-left { display: flex; align-items: flex-start; gap: 14px; }
-.ty-header-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1a1f5e, #2e3591);
-  color: #e0c06a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.ty-header-left h1 { font-size: 22px; font-weight: 700; margin: 0; color: #1a1f5e; }
-.ty-header-left p { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
 
 /* ── Buttons ── */
 .ty-btn {
@@ -40,7 +19,7 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   background: white;
   color: #374151;
   font-size: 13px;
@@ -52,8 +31,8 @@
 }
 .ty-btn:hover:not(:disabled) { background: #f9fafb; }
 .ty-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.ty-btn-primary { background: #1a1f5e; border-color: #1a1f5e; color: white; }
-.ty-btn-primary:hover:not(:disabled) { background: #2e3591; }
+.ty-btn-primary { background: var(--color-primary); border-color: var(--color-text-primary); color: white; }
+.ty-btn-primary:hover:not(:disabled) { background: var(--navy-accent); }
 .ty-btn-danger-ghost { color: #b91c1c; border-color: #fecaca; }
 .ty-btn-danger-ghost:hover:not(:disabled) { background: #fef2f2; }
 .ty-btn-block { width: 100%; justify-content: center; }
@@ -68,16 +47,16 @@
   border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast, 150ms ease);
 }
-.ty-icon-btn:hover { background: #f3f4f6; color: #1a1f5e; }
+.ty-icon-btn:hover { background: #f3f4f6; color: var(--color-text-primary); }
 
 .ty-link-btn {
   background: none;
   border: none;
-  color: #2e3591;
+  color: var(--navy-accent);
   font-size: 12px;
   font-family: inherit;
   font-weight: 600;
@@ -90,9 +69,9 @@
 .ty-chip-btn {
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   background: white;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-family: inherit;
   font-weight: 600;
@@ -100,13 +79,13 @@
   transition: all var(--transition-fast, 150ms ease);
 }
 .ty-chip-btn:hover { border-color: #c7cbe8; }
-.ty-chip-btn.active { background: #1a1f5e; border-color: #1a1f5e; color: white; }
+.ty-chip-btn.active { background: var(--color-primary); border-color: var(--color-text-primary); color: white; }
 
 /* ── Shared atoms ── */
 .ty-currency {
   font-size: 0.72em;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin-inline-start: 4px;
   letter-spacing: 0.03em;
 }
@@ -115,7 +94,7 @@
   font-size: 11px;
   font-weight: 700;
   background: #eef0fb;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   padding: 2px 8px;
   border-radius: 6px;
   max-width: 220px;
@@ -139,13 +118,13 @@
   font-size: 11px;
   font-weight: 700;
   background: #eef0fb;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   border-radius: 999px;
   padding: 1px 8px;
   margin-inline-start: 8px;
   vertical-align: middle;
 }
-.ty-cell-strong { font-weight: 600; color: #1a1f5e; }
+.ty-cell-strong { font-weight: 600; color: var(--color-text-primary); }
 .ty-amount-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
 .ty-money-list { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ty-warn { color: #b45309; }
@@ -182,26 +161,26 @@
   width: 520px;
   max-width: 100%;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 28px;
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
 }
-.ty-hero-card h2 { margin: 0 0 4px; font-size: 17px; color: #1a1f5e; }
-.ty-hero-card > p { margin: 0 0 16px; font-size: 13px; color: #6b7280; }
+.ty-hero-card h2 { margin: 0 0 4px; font-size: 17px; color: var(--color-text-primary); }
+.ty-hero-card > p { margin: 0 0 16px; font-size: 13px; color: var(--color-text-secondary); }
 
 /* ── Student picker ── */
 .ty-picker-search {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 10px 14px;
   background: #fbfcfe;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
-.ty-picker-search:focus-within { border-color: #2e3591; background: white; }
+.ty-picker-search:focus-within { border-color: var(--navy-accent); background: white; }
 .ty-picker-search input {
   border: none;
   outline: none;
@@ -209,7 +188,7 @@
   font-size: 14px;
   font-family: inherit;
   background: transparent;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .ty-picker-results, .ty-picker-recents { margin-top: 12px; }
 .ty-picker-section-label {
@@ -243,14 +222,14 @@
   height: 32px;
   border-radius: 50%;
   background: #eef0fb;
-  color: #2e3591;
+  color: var(--navy-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 .ty-picker-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ty-picker-name { font-size: 13px; font-weight: 600; color: #1a1f5e; }
+.ty-picker-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .ty-picker-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ty-picker-email { font-size: 11px; color: #9ca3af; }
 .ty-picker-chevron { color: #d1d5db; flex-shrink: 0; }
@@ -264,7 +243,7 @@
   align-items: center;
   gap: 14px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 16px;
@@ -275,20 +254,20 @@
   height: 42px;
   border-radius: 50%;
   background: linear-gradient(135deg, #eef0fb, #e0e3f7);
-  color: #2e3591;
+  color: var(--navy-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 .ty-student-id { min-width: 180px; }
-.ty-student-name { font-size: 15px; font-weight: 700; color: #1a1f5e; }
+.ty-student-name { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
 .ty-student-sub {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin-top: 3px;
   flex-wrap: wrap;
 }
@@ -302,7 +281,7 @@
 .ty-banner-stat-value {
   font-size: 16px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
@@ -329,7 +308,7 @@
 /* ── Cards ── */
 .ty-card {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 16px 18px;
 }
@@ -347,7 +326,7 @@
   gap: 7px;
   font-size: 14px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -364,7 +343,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #2e3591;
+  color: var(--navy-accent);
   background: #eef0fb;
   padding: 2px 8px;
   border-radius: 6px;
@@ -382,17 +361,17 @@
   background: white;
 }
 .ty-fee-row:hover:not(.disabled) { border-color: #c7cbe8; background: #fbfcfe; }
-.ty-fee-row.selected { border-color: #1a1f5e; box-shadow: 0 0 0 1px #1a1f5e; background: #fbfcff; }
+.ty-fee-row.selected { border-color: var(--color-text-primary); box-shadow: 0 0 0 1px var(--navy-primary); background: #fbfcff; }
 .ty-fee-row.disabled { opacity: 0.5; cursor: not-allowed; }
-.ty-fee-row input[type="checkbox"] { accent-color: #1a1f5e; width: 15px; height: 15px; flex-shrink: 0; }
+.ty-fee-row input[type="checkbox"] { accent-color: var(--color-text-primary); width: 15px; height: 15px; flex-shrink: 0; }
 .ty-fee-main { flex: 1; min-width: 0; }
-.ty-fee-name { display: block; font-size: 13px; font-weight: 600; color: #1a1f5e; }
+.ty-fee-name { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .ty-fee-sub {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 11.5px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin-top: 3px;
   flex-wrap: wrap;
   font-variant-numeric: tabular-nums;
@@ -401,7 +380,7 @@
 .ty-fee-amount {
   font-size: 14px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -441,19 +420,19 @@
   white-space: nowrap;
   color: #374151;
 }
-.ty-builder-fee-amount { font-variant-numeric: tabular-nums; font-weight: 600; color: #1a1f5e; }
+.ty-builder-fee-amount { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--color-text-primary); }
 .ty-builder-total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   padding: 10px 2px 14px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 .ty-builder-total-value {
   font-size: 20px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .ty-gateway-label {
@@ -473,7 +452,7 @@
   align-items: center;
   text-align: start;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: white;
   cursor: pointer;
@@ -481,15 +460,15 @@
   transition: all var(--transition-fast, 150ms ease);
   color: #374151;
 }
-.ty-gateway-card svg { grid-row: span 2; color: #6b7280; }
+.ty-gateway-card svg { grid-row: span 2; color: var(--color-text-secondary); }
 .ty-gateway-card:hover { border-color: #c7cbe8; }
 .ty-gateway-card.selected {
-  border-color: #1a1f5e;
-  box-shadow: 0 0 0 1px #1a1f5e;
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 0 1px var(--navy-primary);
   background: #fbfcff;
 }
-.ty-gateway-card.selected svg { color: #1a1f5e; }
-.ty-gateway-name { font-size: 13px; font-weight: 600; color: #1a1f5e; }
+.ty-gateway-card.selected svg { color: var(--color-text-primary); }
+.ty-gateway-name { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .ty-gateway-desc { font-size: 11px; color: #9ca3af; }
 .ty-builder-hint {
   font-size: 11.5px;
@@ -513,14 +492,14 @@
   transition: all var(--transition-fast, 150ms ease);
 }
 .ty-order-row:hover { border-color: #c7cbe8; background: #fbfcfe; }
-.ty-order-row:focus-visible { outline: 2px solid #2e3591; outline-offset: 1px; }
+.ty-order-row:focus-visible { outline: 2px solid var(--navy-accent); outline-offset: 1px; }
 .ty-order-row-main { flex: 1; min-width: 0; }
 .ty-order-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ty-order-row-sub { font-size: 11.5px; color: #9ca3af; margin-top: 4px; }
 .ty-order-row-amount {
   font-size: 15px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -539,7 +518,7 @@
 .ty-order-detail-amount {
   font-size: 26px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .ty-order-detail-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -564,7 +543,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #2563eb;
+  background: var(--color-info);
   animation: tyPulse 1.4s ease-in-out infinite;
 }
 @keyframes tyPulse {
@@ -572,12 +551,12 @@
   50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(37, 99, 235, 0); }
 }
 .ty-paylink-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.ty-paylink-note { font-size: 11.5px; color: #6b7280; margin: 10px 0 0; }
+.ty-paylink-note { font-size: 11.5px; color: var(--color-text-secondary); margin: 10px 0 0; }
 
 .ty-section-title {
   font-size: 13px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   margin: 4px 0 10px;
 }
 .ty-order-fees { margin-bottom: 14px; }
@@ -589,13 +568,13 @@
   border-bottom: 1px solid #f3f4f6;
 }
 .ty-order-fee-main { flex: 1; min-width: 0; }
-.ty-order-fee-name { display: block; font-size: 13px; font-weight: 600; color: #1a1f5e; }
+.ty-order-fee-name { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .ty-order-fee-sub {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 11.5px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin-top: 2px;
   flex-wrap: wrap;
   font-variant-numeric: tabular-nums;
@@ -609,7 +588,7 @@
 .ty-order-fee-amount {
   font-size: 13px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -643,7 +622,7 @@
 .ty-tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 18px;
 }
 .ty-tab {
@@ -654,7 +633,7 @@
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -662,14 +641,14 @@
   margin-bottom: -1px;
   transition: all var(--transition-fast, 150ms ease);
 }
-.ty-tab:hover { color: #1a1f5e; }
-.ty-tab.active { color: #1a1f5e; border-bottom-color: #c9a84c; }
+.ty-tab:hover { color: var(--color-text-primary); }
+.ty-tab.active { color: var(--color-text-primary); border-bottom-color: var(--gold); }
 
 .ty-stats {
   display: flex;
   align-items: stretch;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 16px;
@@ -679,11 +658,11 @@
 .ty-stat-value {
   font-size: 19px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.ty-stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+.ty-stat-label { font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 .ty-stat-divider { width: 1px; background: #f1f5f9; margin: 6px 0; }
 
 .ty-toolbar {
@@ -700,10 +679,10 @@
   align-items: center;
   gap: 8px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   padding: 8px 12px;
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 .ty-search input {
   border: none;
@@ -712,12 +691,12 @@
   font-size: 13px;
   font-family: inherit;
   background: transparent;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 /* ── Drift panel ── */
 .ty-drift-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: #fbfcfe;
   padding: 14px 16px;
@@ -730,7 +709,7 @@
   gap: 8px;
   margin-bottom: 10px;
   font-size: 13px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .ty-drift-row {
   display: flex;
@@ -746,7 +725,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
   flex-wrap: wrap;
 }
@@ -754,17 +733,17 @@
 /* ── Forms (mapping drawer) ── */
 .ty-form { display: flex; flex-direction: column; gap: 16px; }
 .ty-field { display: flex; flex-direction: column; gap: 6px; border: none; margin: 0; padding: 0; }
-.ty-field-label { font-size: 12px; font-weight: 700; color: #1a1f5e; }
+.ty-field-label { font-size: 12px; font-weight: 700; color: var(--color-text-primary); }
 .ty-field select {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 13px;
   font-family: inherit;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   background: white;
 }
-.ty-field select:focus { outline: none; border-color: #2e3591; }
+.ty-field select:focus { outline: none; border-color: var(--navy-accent); }
 .ty-field-hint { display: block; font-size: 11.5px; color: #9ca3af; font-weight: 400; }
 .ty-radio-row {
   display: flex;
@@ -777,8 +756,8 @@
   font-size: 13px;
   color: #374151;
 }
-.ty-radio-row:has(input:checked) { border-color: #1a1f5e; background: #fbfcff; }
-.ty-radio-row input { accent-color: #1a1f5e; margin-top: 3px; }
+.ty-radio-row:has(input:checked) { border-color: var(--color-text-primary); background: #fbfcff; }
+.ty-radio-row input { accent-color: var(--color-text-primary); margin-top: 3px; }
 .ty-mapping-preview {
   background: #fdf9ee;
   border: 1px solid #e8d9a8;

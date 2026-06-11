@@ -7,7 +7,7 @@ import {
 import * as courseService from "../../../../core/services/courseService";
 import { useDomain } from "../../../../core/contexts/DomainContext";
 import { useScopePrograms } from "../../../../core/query/useScopePrograms";
-import { getNodeTypeConfig, getNodeTypeLabel } from "../../../university/utils/nodeTypeRegistry";
+import { getNodeTypeConfig, getNodeTypeLabel } from "../../../../core/constants/nodeTypeRegistry";
 import { getLocalized, toLocalizedJson } from "../../../../core/utils/getLocalized";
 import PermissionGate from "../../../../core/auth/PermissionGate";
 import { useToast } from "../../../../core/components/Toast";

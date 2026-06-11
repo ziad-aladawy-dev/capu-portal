@@ -72,7 +72,7 @@ const CATEGORY_ICONS = {
   Student: GraduationCap,
 };
 
-function resolveIcon(iconName) {
+export function resolveIcon(iconName) {
   return ICON_MAP[iconName] || LayoutDashboard;
 }
 

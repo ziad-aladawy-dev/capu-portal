@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { parseLocalizedValue } from "../../../core/utils/getLocalized";
-import { normalizeType, getAllowedChildTypes, getNodeTypeValue, getNodeMetadataFields } from "../utils/nodeTypeHelpers";
-import { ALL_NODE_TYPES_LIST, NODE_TYPES, getNodeTypeLabel } from "../utils/nodeTypeRegistry";
+import { normalizeType, getAllowedChildTypes, getNodeTypeValue, getNodeMetadataFields } from "../../../core/constants/nodeTypeRegistry";
+import { ALL_NODE_TYPES_LIST, NODE_TYPES, getNodeTypeLabel } from "../../../core/constants/nodeTypeRegistry";
 
 const METADATA_INPUT_CONFIG = {
   durationYears: { labelKey: "duration_years", type: "number", min: 1, max: 10 },

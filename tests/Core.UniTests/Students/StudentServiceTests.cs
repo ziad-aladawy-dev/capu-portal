@@ -487,6 +487,8 @@ public class StudentServiceTests
         // Statistics aggregate over the service's own SearchAsync (full result
         // set, PageSize = int.MaxValue) — the repository has no statistics API.
         var (sut, repo, _, _) = Build();
+        // Service computes stats from SearchAsync results, counting IsActive in
+        // memory — there is no repository GetStatisticsAsync in the contract.
         repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>()))
             .ReturnsAsync(new PagedResult<Student>
             {

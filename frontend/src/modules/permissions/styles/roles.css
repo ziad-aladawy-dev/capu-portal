@@ -1,29 +1,7 @@
 .roles-page {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
-}
-.roles-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-.roles-header-left {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-.roles-header-left h1 {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0;
-  color: #1a1f5e;
-}
-.roles-header-left p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 4px 0 0;
+  color: var(--color-text-primary);
 }
 .roles-header-actions {
   display: flex;
@@ -43,8 +21,8 @@
   font-family: "Outfit", sans-serif;
 }
 .roles-btn-primary {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
   box-shadow: 0 3px 12px rgba(201,168,76,0.3);
 }
 .roles-btn-primary:hover:not(:disabled) {
@@ -57,28 +35,28 @@
 }
 .roles-btn-outline {
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   border: 1.5px solid #d1d5db;
 }
 .roles-btn-outline:hover {
-  border-color: #1a1f5e;
-  color: #1a1f5e;
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 .roles-btn-danger {
   background: transparent;
-  color: #dc2626;
+  color: var(--color-error);
   border: 1.5px solid #fecaca;
 }
 .roles-btn-danger:hover {
   background: #fef2f2;
-  border-color: #dc2626;
+  border-color: var(--color-error);
 }
 
 .roles-content {
   display: flex;
   gap: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(26,31,94,0.04);
@@ -89,7 +67,7 @@
   width: 260px;
   flex-shrink: 0;
   background: #f8f9fd;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
 }
@@ -98,12 +76,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 .roles-sidebar-list {
   flex: 1;
@@ -119,7 +97,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 500;
   font-family: "Outfit", sans-serif;
@@ -132,8 +110,8 @@
   background: rgba(26,31,94,0.05);
 }
 .roles-sidebar-item.active {
-  background: #1a1f5e;
-  color: #e0c06a;
+  background: var(--color-primary);
+  color: var(--gold-light);
   font-weight: 600;
 }
 .roles-sidebar-indicator {
@@ -141,10 +119,10 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #c9a84c;
+  background: var(--gold);
 }
 .roles-sidebar-item.active .roles-sidebar-indicator {
-  background: #e0c06a;
+  background: var(--gold-light);
 }
 .roles-sidebar-item.system-role {
   opacity: 0.7;
@@ -162,7 +140,7 @@
 
 .roles-detail-tabs {
   display: flex;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   padding: 0 20px;
   gap: 0;
   flex-shrink: 0;
@@ -174,7 +152,7 @@
   padding: 12px 16px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
   font-family: "Outfit", sans-serif;
@@ -184,12 +162,12 @@
   transition: all 0.12s;
 }
 .roles-detail-tab:hover {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .roles-detail-tab.active {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-weight: 600;
-  border-bottom-color: #c9a84c;
+  border-bottom-color: var(--gold);
 }
 
 .roles-detail-body {
@@ -212,31 +190,31 @@
 .role-form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .role-form-input {
   padding: 10px 14px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-family: "Outfit", sans-serif;
   background: #f0f1f8;
 }
 .role-form-input:focus {
   outline: none;
-  border-color: #c9a84c;
-  background: #fff;
+  border-color: var(--gold);
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
 .role-form-input.error {
-  border-color: #dc2626;
+  border-color: var(--color-error);
   background: #fef2f2;
 }
 .role-form-error {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--color-error);
 }
 .role-form-hint {
   font-size: 12px;
@@ -247,8 +225,8 @@
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  background: #1a1f5e;
-  color: #e0c06a;
+  background: var(--color-primary);
+  color: var(--gold-light);
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
@@ -266,8 +244,8 @@
   padding: 8px 16px;
   border: 1.5px solid #fecaca;
   border-radius: 8px;
-  background: #fff;
-  color: #dc2626;
+  background: var(--color-surface);
+  color: var(--color-error);
   font-size: 13px;
   font-weight: 600;
   font-family: "Outfit", sans-serif;
@@ -281,7 +259,7 @@
 .perm-tree-layout {
   display: flex;
   gap: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
   min-height: 360px;
@@ -290,7 +268,7 @@
   width: 180px;
   flex-shrink: 0;
   background: #f8f9fd;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--color-border);
   padding: 6px 0;
 }
 .perm-tree-module-btn {
@@ -301,7 +279,7 @@
   padding: 9px 14px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 500;
   font-family: "Outfit", sans-serif;
@@ -312,11 +290,11 @@
 }
 .perm-tree-module-btn:hover {
   background: rgba(26,31,94,0.04);
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-tree-module-btn.active {
-  background: #fff;
-  color: #1a1f5e;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 .perm-tree-module-btn.active::before {
@@ -327,7 +305,7 @@
   bottom: 4px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #c9a84c;
+  background: var(--gold);
 }
 
 .perm-tree-resources {
@@ -349,7 +327,7 @@
 .perm-tree-resource-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   flex: 1;
   min-width: 0;
 }
@@ -360,9 +338,9 @@
 }
 .perm-lvl-btn {
   padding: 4px 10px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: 10px;
   font-weight: 600;
@@ -373,18 +351,18 @@
   text-align: center;
 }
 .perm-lvl-btn:hover {
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  border-color: var(--gold);
+  color: var(--color-text-primary);
 }
 .perm-lvl-btn.filled {
   background: rgba(201,168,76,0.12);
   border-color: rgba(201,168,76,0.35);
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-lvl-btn.current {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border-color: var(--gold);
+  color: var(--color-text-primary);
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(201,168,76,0.3);
 }
@@ -421,8 +399,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -433,7 +411,7 @@
 .role-member-info strong {
   display: block;
   font-size: 13px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .role-member-info span {
   font-size: 11px;
@@ -454,7 +432,7 @@
 }
 .role-member-scope-label {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 .role-member-scope {
@@ -462,7 +440,7 @@
   padding: 2px 8px;
   background: #e8eaf6;
   border-radius: 10px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -486,7 +464,7 @@
 }
 .role-member-remove-btn:hover {
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .roles-modal-wide {
@@ -498,14 +476,14 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   background: #f8f9fd;
   transition: all 0.2s;
 }
 .role-add-member-search:focus-within {
-  border-color: #c9a84c;
-  background: #fff;
+  border-color: var(--gold);
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
 .role-add-member-input {
@@ -515,7 +493,7 @@
   background: transparent;
   font-size: 14px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .role-add-member-input::placeholder {
   color: #9ca3af;
@@ -547,8 +525,8 @@
   padding: 5px 12px;
   border: 1.5px solid #d1d5db;
   border-radius: 6px;
-  background: #fff;
-  color: #1a1f5e;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font-size: 11px;
   font-weight: 600;
   font-family: "Outfit", sans-serif;
@@ -557,7 +535,7 @@
   flex-shrink: 0;
 }
 .role-add-member-add-btn:hover:not(:disabled) {
-  border-color: #c9a84c;
+  border-color: var(--gold);
   background: rgba(201,168,76,0.06);
 }
 .role-add-member-add-btn:disabled {
@@ -578,7 +556,7 @@
 }
 
 .roles-remove-member-icon {
-  color: #dc2626;
+  color: var(--color-error);
   margin-bottom: 12px;
 }
 
@@ -598,7 +576,7 @@
 .roles-not-selected h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 .roles-not-selected p {
@@ -617,8 +595,8 @@
 .roles-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #1a1f5e;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-text-primary);
   border-radius: 50%;
   animation: roles-spin 0.8s linear infinite;
 }
@@ -644,7 +622,7 @@
 .roles-empty h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 .roles-empty p {
@@ -661,17 +639,17 @@
   gap: 12px;
 }
 .roles-error-icon {
-  color: #dc2626;
+  color: var(--color-error);
 }
 .roles-error h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--color-error);
   margin: 0;
 }
 .roles-error p {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0;
   text-align: center;
   max-width: 400px;
@@ -692,7 +670,7 @@
   to { opacity: 1; }
 }
 .roles-modal {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 14px;
   width: 440px;
   max-width: 90vw;
@@ -715,7 +693,7 @@
 .roles-modal-header h2 {
   font-size: 17px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   margin: 0;
 }
 .roles-modal-header-left {
@@ -743,7 +721,7 @@
 }
 .roles-modal-close:hover {
   background: #f0f1f8;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .roles-modal-body {
   padding: 18px 22px;
@@ -764,31 +742,31 @@
 .roles-form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .roles-form-input {
   padding: 10px 14px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-family: "Outfit", sans-serif;
   background: #f0f1f8;
 }
 .roles-form-input:focus {
   outline: none;
-  border-color: #c9a84c;
-  background: #fff;
+  border-color: var(--gold);
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
 .roles-form-input.error {
-  border-color: #dc2626;
+  border-color: var(--color-error);
   background: #fef2f2;
 }
 .roles-form-error {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--color-error);
 }
 .roles-form-hint {
   font-size: 12px;
@@ -799,12 +777,12 @@
   text-align: center;
 }
 .roles-delete-icon {
-  color: #dc2626;
+  color: var(--color-error);
   margin-bottom: 12px;
 }
 .roles-delete-body p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0 0 4px;
 }
 .roles-delete-hint {
@@ -819,7 +797,7 @@
   .roles-sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
     max-height: 200px;
   }
   .perm-tree-layout { flex-direction: column; }
@@ -829,10 +807,10 @@
     flex-wrap: wrap;
     gap: 0;
     border-right: none;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
     padding: 4px;
   }
   .perm-tree-module-btn { width: auto; flex: 1; min-width: 80px; padding: 8px 10px; }
   .perm-tree-module-btn.active::before { display: none; }
-  .perm-tree-module-btn.active { border-bottom: 2px solid #c9a84c; background: transparent; }
+  .perm-tree-module-btn.active { border-bottom: 2px solid var(--gold); background: transparent; }
 }

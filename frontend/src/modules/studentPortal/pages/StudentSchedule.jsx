@@ -12,12 +12,15 @@ import PortalBadge from "../components/shared/PortalBadge";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
 import { useStudentSchedule, downloadIcs } from "../hooks/useStudentSchedule";
+import { SCHEDULE_START_HOUR, SCHEDULE_END_HOUR } from "../../../core/constants/scheduleConfig";
 import styles from "./StudentSchedule.module.css";
 
 const DAY_KEYS = { 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday", 7: "sunday" };
 const GRID_DAYS = [1, 2, 3, 4, 5]; // Mon–Fri teaching week
-const START_HOUR = 8;
-const END_HOUR = 18;
+// Shared campus window — admin schedules 7:00–22:00, so the student view must
+// span the same range or early/late slots silently disappear.
+const START_HOUR = SCHEDULE_START_HOUR;
+const END_HOUR = SCHEDULE_END_HOUR;
 const HOUR_PX = 64;
 
 const toMinutes = (time) => {

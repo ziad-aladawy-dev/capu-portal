@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { getNodeTypeConfig } from "../../modules/university/utils/nodeTypeRegistry";
+import { getNodeTypeConfig } from "../constants/nodeTypeRegistry";
 
 function NodeTypeBadge({ type, showIcon = true, showLabel = true, size = "sm" }) {
   const { t } = useTranslation();

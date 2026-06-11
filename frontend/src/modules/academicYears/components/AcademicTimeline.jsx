@@ -1,9 +1,12 @@
-import { CheckCircle, Lock, Unlock, Trash2, Clock } from "lucide-react";
+import { CheckCircle, Lock, Unlock, Trash2, Clock, Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import PermissionGate from "../../../core/auth/PermissionGate";
+import EmptyState from "../../../core/components/EmptyState";
 
 function AcademicTimeline({ years, onSetCurrent, onCloseYear, onReopenYear, onDeleteYear, onManageSemesters, lifecycleLoading }) {
+  const { t } = useTranslation();
   if (!years || years.length === 0) {
-    return <div className="empty-state"><p>No academic years to display.</p></div>;
+    return <EmptyState icon={Calendar} title={t("no_academic_years_yet")} />;
   }
 
   const allDates = years.flatMap((y) => [new Date(y.startDate).getTime(), new Date(y.endDate).getTime()]);

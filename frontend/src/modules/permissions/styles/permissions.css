@@ -1,33 +1,7 @@
 .perm-page {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
-}
-.perm-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-.perm-header-left {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-.perm-header-left h1 {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0;
-  color: #1a1f5e;
-}
-.perm-header-left p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 4px 0 0;
-}
-.perm-header-actions {
-  display: flex;
-  gap: 10px;
+  color: var(--color-text-primary);
 }
 .perm-btn {
   display: inline-flex;
@@ -43,8 +17,8 @@
   font-family: "Outfit", sans-serif;
 }
 .perm-btn-primary {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
   box-shadow: 0 3px 12px rgba(201,168,76,0.3);
 }
 .perm-btn-primary:hover:not(:disabled) {
@@ -57,12 +31,12 @@
 }
 .perm-btn-outline {
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   border: 1.5px solid #d1d5db;
 }
 .perm-btn-outline:hover {
-  border-color: #1a1f5e;
-  color: #1a1f5e;
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 .perm-btn-success {
   background: #059669;
@@ -109,7 +83,7 @@
   align-items: center;
   gap: 14px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #1a1f5e 0%, #2e3591 100%);
+  background: linear-gradient(135deg, var(--navy-primary) 0%, var(--navy-accent) 100%);
   border-radius: 14px;
   color: #fff;
   box-shadow: 0 4px 20px rgba(26,31,94,0.18);
@@ -118,8 +92,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +124,7 @@
 .perm-empty-state h3 {
   margin: 16px 0 4px;
   font-size: 16px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 .perm-empty-state p {
   font-size: 13px;
@@ -158,8 +132,8 @@
 }
 
 .perm-roles-section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   padding: 22px;
   box-shadow: 0 2px 12px rgba(26,31,94,0.04);
@@ -171,11 +145,11 @@
   font-size: 15px;
   font-weight: 700;
   margin: 0 0 4px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-section-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0 0 14px;
 }
 .perm-role-grid {
@@ -190,25 +164,25 @@
   padding: 6px 14px;
   border: 1.5px solid #d1d5db;
   border-radius: 20px;
-  background: #fff;
+  background: var(--color-surface);
   cursor: pointer;
   font-family: "Outfit", sans-serif;
   font-size: 13px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   transition: all 0.15s;
 }
 .perm-role-chip:hover {
-  border-color: #c9a84c;
+  border-color: var(--gold);
 }
 .perm-role-chip.is-assigned {
-  background: #1a1f5e;
-  border-color: #1a1f5e;
-  color: #e0c06a;
+  background: var(--color-primary);
+  border-color: var(--color-text-primary);
+  color: var(--gold-light);
 }
 .perm-role-chip.is-system.is-assigned {
-  background: #c9a84c;
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--color-text-primary);
 }
 .perm-role-chip-check {
   width: 16px;
@@ -260,8 +234,8 @@
   color: #c4c7cc;
 }
 .perm-assigned-role-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 12px 14px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -290,7 +264,7 @@
 .perm-assigned-role-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-assigned-role-badge {
   font-size: 9px;
@@ -324,7 +298,7 @@
 }
 .perm-assigned-role-remove:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--color-error);
 }
 .perm-assigned-scopes {
   display: flex;
@@ -342,9 +316,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   background: #f9fafb;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   max-width: 200px;
 }
@@ -359,8 +333,8 @@
   color: #3730a3;
 }
 .perm-assigned-scope:hover {
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  border-color: var(--gold);
+  color: var(--color-text-primary);
   background: #fffbeb;
 }
 .perm-assigned-scope-icon {
@@ -369,7 +343,7 @@
   opacity: 0.6;
 }
 .perm-assigned-scope.is-global .perm-assigned-scope-icon {
-  color: #16a34a;
+  color: var(--color-success);
   opacity: 1;
 }
 .perm-assigned-scope.is-scoped .perm-assigned-scope-icon {
@@ -396,10 +370,10 @@
   opacity: 1 !important;
 }
 .perm-assigned-scope.is-global .perm-assigned-scope-remove:hover {
-  color: #dc2626;
+  color: var(--color-error);
 }
 .perm-assigned-scope.is-scoped .perm-assigned-scope-remove:hover {
-  color: #dc2626;
+  color: var(--color-error);
 }
 .perm-assigned-scope-add {
   display: inline-flex;
@@ -434,7 +408,7 @@
   border: 1.5px dashed #d1d5db;
   border-radius: 10px;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
   font-family: "Outfit", sans-serif;
@@ -448,9 +422,9 @@
   background: #eef2ff;
 }
 .perm-picker {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 4px 20px rgba(26,31,94,0.08);
   overflow: hidden;
   animation: perm-scope-slideup 0.15s ease;
@@ -460,7 +434,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   color: #9ca3af;
   flex-shrink: 0;
 }
@@ -474,7 +448,7 @@
   font-size: 13px;
   font-family: "Outfit", sans-serif;
   outline: none;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-picker-search input::placeholder {
   color: #c4c7cc;
@@ -493,7 +467,7 @@
 }
 .perm-picker-close:hover {
   background: #f3f4f6;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-picker-list {
   max-height: 220px;
@@ -547,7 +521,7 @@
 .perm-picker-item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-picker-item-badge {
   font-size: 9px;
@@ -562,8 +536,8 @@
 }
 
 .perm-overrides-section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(26,31,94,0.04);
@@ -580,20 +554,20 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .perm-scope-check input {
-  accent-color: #c9a84c;
+  accent-color: var(--gold);
   width: 14px;
   height: 14px;
 }
 
 .perm-body {
   display: flex;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   min-height: 400px;
 }
 
@@ -601,7 +575,7 @@
   width: 200px;
   flex-shrink: 0;
   background: #f8f9fd;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--color-border);
   padding: 8px 0;
 }
 .perm-module-btn {
@@ -612,7 +586,7 @@
   padding: 10px 16px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
   font-family: "Outfit", sans-serif;
@@ -623,11 +597,11 @@
 }
 .perm-module-btn:hover {
   background: rgba(26,31,94,0.04);
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-module-btn.active {
-  background: #fff;
-  color: #1a1f5e;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 .perm-module-btn.active::before {
@@ -638,7 +612,7 @@
   bottom: 4px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #c9a84c;
+  background: var(--gold);
 }
 .perm-module-badge {
   display: inline-flex;
@@ -650,13 +624,13 @@
   border-radius: 9px;
   font-size: 10px;
   font-weight: 700;
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
   margin-left: auto;
 }
 .perm-module-btn.active .perm-module-badge {
-  background: #c9a84c;
-  color: #1a1f5e;
+  background: var(--gold);
+  color: var(--color-text-primary);
 }
 
 .perm-resource-area {
@@ -706,9 +680,9 @@
 }
 .perm-level-pill {
   padding: 4px 10px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: 10px;
   font-weight: 600;
@@ -717,18 +691,18 @@
   transition: all 0.12s;
 }
 .perm-level-pill:hover {
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  border-color: var(--gold);
+  color: var(--color-text-primary);
 }
 .perm-level-pill.filled {
   background: rgba(201,168,76,0.12);
   border-color: rgba(201,168,76,0.35);
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-level-pill.current {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border-color: var(--gold);
+  color: var(--color-text-primary);
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(201,168,76,0.3);
 }
@@ -744,9 +718,9 @@
 }
 .perm-pill {
   padding: 4px 10px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: 10px;
   font-weight: 600;
@@ -755,18 +729,18 @@
   transition: all 0.12s;
 }
 .perm-pill:hover {
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  border-color: var(--gold);
+  color: var(--color-text-primary);
 }
 .perm-pill.filled {
   background: rgba(201,168,76,0.12);
   border-color: rgba(201,168,76,0.35);
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-pill.current {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  border-color: var(--gold);
+  color: var(--color-text-primary);
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(201,168,76,0.3);
 }
@@ -776,7 +750,7 @@
   pointer-events: none;
 }
 .perm-pill.none.current {
-  background: #e5e7eb;
+  background: var(--color-border);
   border-color: #9ca3af;
   color: #374151;
   font-weight: 600;
@@ -810,9 +784,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #6b7280;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 600;
   font-family: "Outfit", sans-serif;
@@ -862,19 +836,19 @@
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-scope-chip button {
   background: none;
   border: none;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   padding: 0;
   display: flex;
   align-items: center;
 }
 .perm-scope-chip button:hover {
-  color: #dc2626;
+  color: var(--color-error);
 }
 .perm-scope-add-btn {
   display: inline-flex;
@@ -895,7 +869,7 @@
   color: #fff;
 }
 .perm-role-chip.is-assigned .perm-scope-add-btn {
-  color: #e0c06a;
+  color: var(--gold-light);
 }
 
 .perm-scope-badge-remove {
@@ -925,8 +899,8 @@
   height: 20px;
 }
 .perm-res-scope-add-btn:hover {
-  border-color: #c9a84c;
-  color: #c9a84c;
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .perm-inherited-hint {
@@ -950,18 +924,18 @@
     flex-wrap: wrap;
     gap: 0;
     border-right: none;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
     padding: 4px;
   }
   .perm-module-btn { width: auto; flex: 1; min-width: 100px; padding: 8px 12px; }
   .perm-module-btn.active::before { display: none; }
-  .perm-module-btn.active { border-bottom: 2px solid #c9a84c; }
+  .perm-module-btn.active { border-bottom: 2px solid var(--gold); }
   .perm-overrides-header { flex-direction: column; }
 }
 
 /* ─── resource cards (permission overrides) ─── */
 .perm-res-card {
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 10px;
   background: #fafbfc;
   overflow: hidden;
@@ -969,7 +943,7 @@
 }
 .perm-res-card.has-override {
   border-color: #fde68a;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 1px 8px rgba(251,191,36,0.1);
 }
 .perm-res-card.is-denied {
@@ -983,12 +957,12 @@
   padding: 10px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #1a1f5e;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 .perm-res-card-icon {
-  color: #c9a84c;
+  color: var(--gold);
   flex-shrink: 0;
 }
 /* ─── role badge in card header ─── */
@@ -998,7 +972,7 @@
   padding: 2px 8px;
   border-radius: 10px;
   background: #e8eaf6;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -1030,7 +1004,7 @@
 }
 .perm-role-chip.is-assigned .perm-scope-badge-btn {
   background: rgba(255,255,255,0.12);
-  color: #e0c06a;
+  color: var(--gold-light);
 }
 .perm-role-chip.is-assigned .perm-scope-badge-btn:hover {
   background: rgba(255,255,255,0.25);
@@ -1039,7 +1013,7 @@
   display: none;
 }
 .perm-role-chip.is-system.is-assigned .perm-scope-badge-btn {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   background: rgba(26,31,94,0.1);
 }
 .perm-role-chip.is-system.is-assigned .perm-scope-badge-btn:hover {
@@ -1048,7 +1022,7 @@
 
 /* ─── scope modal ─── */
 .perm-scope-modal {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 16px;
   width: 520px;
   max-width: 92vw;
@@ -1064,7 +1038,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 18px 24px 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 .perm-scope-modal-header-left {
@@ -1073,14 +1047,14 @@
   gap: 10px;
 }
 .perm-scope-modal-icon {
-  color: #c9a84c;
+  color: var(--gold);
   flex-shrink: 0;
 }
 .perm-scope-modal-header h3 {
   font-size: 16px;
   font-weight: 700;
   margin: 0;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-scope-modal-body {
   flex: 1;
@@ -1093,7 +1067,7 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -1123,7 +1097,7 @@
 .perm-scope-selected-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 /* Global scope button */
@@ -1133,9 +1107,9 @@
   gap: 12px;
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--color-surface);
   cursor: pointer;
   text-align: left;
   font-family: "Outfit", sans-serif;
@@ -1143,11 +1117,11 @@
   position: relative;
 }
 .perm-scope-global-btn:hover {
-  border-color: #c9a84c;
+  border-color: var(--gold);
   background: #fffbeb;
 }
 .perm-scope-global-btn.is-active {
-  border-color: #c9a84c;
+  border-color: var(--gold);
   background: #fffbeb;
   box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
@@ -1156,7 +1130,7 @@
   flex-shrink: 0;
 }
 .perm-scope-global-btn.is-active svg:first-child {
-  color: #c9a84c;
+  color: var(--gold);
 }
 .perm-scope-global-info {
   flex: 1;
@@ -1164,7 +1138,7 @@
 .perm-scope-global-info strong {
   display: block;
   font-size: 13px;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 .perm-scope-global-info span {
@@ -1174,7 +1148,7 @@
   margin-top: 1px;
 }
 .perm-scope-global-check {
-  color: #c9a84c;
+  color: var(--gold);
   flex-shrink: 0;
 }
 
@@ -1188,7 +1162,7 @@
 .perm-scope-divider-line {
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 .perm-scope-divider-label {
   font-size: 11px;
@@ -1201,7 +1175,7 @@
 
 /* Tree wrapper */
 .perm-scope-tree-wrapper {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: #fafbfc;
   max-height: 320px;
@@ -1219,14 +1193,14 @@
 
 /* ─── temporal scope section ─── */
 .perm-temporal-section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   padding: 18px 22px;
   box-shadow: 0 2px 12px rgba(26,31,94,0.04);
 }
 .perm-temporal-section .perm-section-title svg {
-  color: #c9a84c;
+  color: var(--gold);
 }
 .perm-temporal-status {
   display: inline-flex;
@@ -1262,7 +1236,7 @@
   background: #f3f4f6;
   border-radius: 8px;
   padding: 3px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
 }
 .perm-temporal-toggle-btn {
   padding: 7px 16px;
@@ -1273,16 +1247,16 @@
   font-family: "Outfit", sans-serif;
   cursor: pointer;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   transition: all 0.15s;
   white-space: nowrap;
 }
 .perm-temporal-toggle-btn:hover {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-temporal-toggle-btn.active {
-  background: #fff;
-  color: #1a1f5e;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 .perm-temporal-picker {
@@ -1293,19 +1267,19 @@
 }
 .perm-temporal-select {
   padding: 7px 12px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 8px;
   font-size: 13px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   cursor: pointer;
   min-width: 170px;
   transition: border-color 0.15s;
 }
 .perm-temporal-select:focus {
   outline: none;
-  border-color: #c9a84c;
+  border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
 .perm-temporal-info {
@@ -1328,8 +1302,8 @@
   font-size: 10px;
   font-weight: 600;
   background: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
   cursor: pointer;
   font-family: "Outfit", sans-serif;
   transition: all 0.15s;
@@ -1337,17 +1311,17 @@
   white-space: nowrap;
 }
 .perm-res-scope-badge:hover {
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  border-color: var(--gold);
+  color: var(--color-text-primary);
   background: #fffbeb;
 }
 .perm-res-scope-badge.is-global {
   background: #e8eaf6;
   border-color: #c5cae9;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .perm-res-scope-badge.is-scoped {
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 /* ─── Scope modal self-contained styles ─── */
@@ -1390,7 +1364,7 @@
 }
 .perm-scope-close-btn:hover {
   background: #f0f1f8;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 
 .perm-scope-btn {
@@ -1407,8 +1381,8 @@
   font-family: "Outfit", sans-serif;
 }
 .perm-scope-btn-primary {
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--color-text-primary);
   box-shadow: 0 3px 12px rgba(201,168,76,0.3);
 }
 .perm-scope-btn-primary:hover:not(:disabled) {
@@ -1422,19 +1396,19 @@
 }
 .perm-scope-btn-outline {
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   border: 1.5px solid #d1d5db;
 }
 .perm-scope-btn-outline:hover {
-  border-color: #1a1f5e;
-  color: #1a1f5e;
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .perm-scope-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #1a1f5e;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-text-primary);
   border-radius: 50%;
   animation: perm-scope-spin 0.8s linear infinite;
 }

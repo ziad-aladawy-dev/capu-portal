@@ -360,14 +360,6 @@ public class StaffServiceTests
         dto.Should().BeNull();
     }
 
-    private static Staff StaffMember(bool isActive) => new()
-    {
-        Id = Guid.NewGuid(),
-        EmployeeCode = "EMP-1",
-        Name = "{\"ar\":\"N\",\"en\":\"N\"}",
-        IsActive = isActive,
-    };
-
     [Fact]
     public async Task GetStatistics_CountsActiveAndInactiveSeparately()
     {
@@ -376,7 +368,7 @@ public class StaffServiceTests
         var (sut, staff, _, _, _) = Build();
         staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>())).ReturnsAsync(new PagedResult<Staff>
         {
-            Items = new List<Staff> { StaffMember(true), StaffMember(true), StaffMember(false) },
+            Items = new List<Staff> { MakeStaff(true), MakeStaff(true), MakeStaff(false) },
             Page = 1,
             PageSize = int.MaxValue,
             TotalCount = 3,
@@ -390,10 +382,25 @@ public class StaffServiceTests
         stats.InactiveStaff.Should().Be(1);
     }
 
+    private static Staff MakeStaff(bool isActive) => new()
+    {
+        Id = Guid.NewGuid(),
+        EmployeeCode = "E1",
+        Name = "{\"ar\":\"ن\",\"en\":\"N\"}",
+        NationalId = "1",
+        Email = "e@x",
+        PhoneNumber = "1",
+        Role = "r",
+        JobTitle = "{\"ar\":\"و\",\"en\":\"J\"}",
+        IsActive = isActive,
+    };
+
     [Fact]
     public async Task GetStatistics_RequestsAllPages_NotJustFirstPage()
     {
         var (sut, staff, _, _, _) = Build();
+        // Stats must count across the whole tenant, so the service requests an
+        // unbounded page from SearchAsync (PageSize == int.MaxValue), not page 1.
         StaffQueryRequest? observed = null;
         staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>()))
             .Callback<StaffQueryRequest>(q => observed = q)

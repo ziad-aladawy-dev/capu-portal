@@ -31,25 +31,22 @@ export default function ScheduleSlotForm({ slot, onSubmit, submitRef, extraError
     path: ["endTime"],
   });
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  // Values come in via mount-time defaults — the PARENT must remount this
+  // form per slot (key={slot?.id ?? prefill key}). The previous reset-in-
+  // useEffect pattern silently no-ops under the React Compiler (react-hook-
+  // form's ref-based reset doesn't retrigger the memoized inputs), which left
+  // the edit drawer showing 08:00–09:00 defaults for every slot.
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { dayOfWeek: 0, startTime: "08:00", endTime: "09:00", kind: 0, location: "", notes: "" },
+    defaultValues: {
+      dayOfWeek: slot?.dayOfWeek ?? 0,
+      startTime: fmtTime(slot?.startTime) || "08:00",
+      endTime: fmtTime(slot?.endTime) || "09:00",
+      kind: slot?.kind ?? 0,
+      location: slot?.location || "",
+      notes: slot?.notes || "",
+    },
   });
-
-  useEffect(() => {
-    if (slot) {
-      reset({
-        dayOfWeek: slot.dayOfWeek ?? 0,
-        startTime: fmtTime(slot.startTime) || "08:00",
-        endTime: fmtTime(slot.endTime) || "09:00",
-        kind: slot.kind ?? 0,
-        location: slot.location || "",
-        notes: slot.notes || "",
-      });
-    } else {
-      reset({ dayOfWeek: 0, startTime: "08:00", endTime: "09:00", kind: 0, location: "", notes: "" });
-    }
-  }, [slot, reset]);
 
   const submit = handleSubmit((values) =>
     onSubmit({

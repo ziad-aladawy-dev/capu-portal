@@ -4,10 +4,10 @@
    ══════════════════════════════════════════════════════════ */
 
 .secondary-sidebar {
-  --ss-navy: #1a1f5e;
-  --ss-navy-2: #2e3591;
-  --ss-gold: #c9a84c;
-  --ss-gold-light: #e0c06a;
+  --ss-navy: var(--navy-primary);
+  --ss-navy-2: var(--navy-accent);
+  --ss-gold: var(--gold);
+  --ss-gold-light: var(--gold-light);
   --ss-border: rgba(26, 31, 94, 0.08);
   --ss-muted: rgba(26, 31, 94, 0.4);
   --ss-soft: #f8f9fb;
@@ -180,7 +180,7 @@
 
 .sec-search-box:focus-within {
   border-color: var(--ss-gold);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
 }
 
@@ -254,7 +254,7 @@
 
 .sec-filter-select:focus {
   border-color: var(--ss-gold);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08);
 }
 
@@ -538,7 +538,7 @@
 
 .sec-pinned-badge.type-staff {
   background: rgba(22, 163, 74, 0.1);
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 .sec-pinned-badge.type-student {

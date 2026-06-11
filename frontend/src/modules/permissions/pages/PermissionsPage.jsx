@@ -8,6 +8,9 @@ import {
   useUserPermissionTree, usePermissionAssignment,
 } from "../../../core/query/usePermissionsData";
 import PermissionsEditor from "../components/PermissionsEditor";
+import PageHeader from "../../../core/components/PageHeader";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
+import EmptyState from "../../../core/components/EmptyState";
 import "../styles/permissions.css";
 import "../styles/roles.css";
 
@@ -85,31 +88,23 @@ function PermissionsPage() {
 
   return (
     <div className="perm-page">
-      <div className="perm-header">
-        <div className="perm-header-left">
-          <Shield size={20} />
-          <div>
-            <h1>{t("permissions_manager")}</h1>
-            <p>{t("permissions_manager_desc")}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={Shield} title={t("permissions_manager")} subtitle={t("permissions_manager_desc")} />
 
       <div className="perm-layout">
-        <div className="perm-search-box" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#f4f5f7", borderRadius: 8, color: "#6b7280" }}>
+        <div className="perm-search-box" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--color-background)", borderRadius: 8, color: "var(--color-text-secondary)" }}>
           <Search size={14} />
           <input
             type="text"
             placeholder={t("search_users_placeholder") || "Search users by name or ID…"}
             value={searchQuery}
             onChange={(e) => handleSearchInput(e.target.value)}
-            style={{ flex: 1, border: "none", background: "none", fontSize: 13, fontFamily: "Outfit, sans-serif", outline: "none", color: "#1a1f5e" }}
+            style={{ flex: 1, border: "none", background: "none", fontSize: 13, fontFamily: "Outfit, sans-serif", outline: "none", color: "var(--color-primary)" }}
           />
-          {searchQuery && <button style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }} onClick={() => handleSearchInput("")}><X size={12} /></button>}
+          {searchQuery && <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)" }} onClick={() => handleSearchInput("")}><X size={12} /></button>}
         </div>
-        {searching && <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 4px" }}>{t("searching") || "Searching…"}</div>}
+        {searching && <div style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "8px 4px" }}>{t("searching") || "Searching…"}</div>}
         {searchDone && !searching && searchQuery.trim() && searchResults.length === 0 && (
-          <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 4px" }}>
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "8px 4px" }}>
             {t("no_users_found_in_scope", {
               defaultValue: "No users match this search. Note: results are limited to the active scope.",
             })}
@@ -120,13 +115,13 @@ function PermissionsPage() {
             {searchResults.map((u) => (
               <button
                 key={`${u.type}-${u.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px", border: "none", background: selectedUser?.id === u.id ? "#e8eaf6" : "none", cursor: "pointer", borderRadius: 8, textAlign: "left", fontFamily: "Outfit, sans-serif", color: "#1a1f5e", transition: "background 0.15s" }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px", border: "none", background: selectedUser?.id === u.id ? "#e8eaf6" : "none", cursor: "pointer", borderRadius: 8, textAlign: "left", fontFamily: "Outfit, sans-serif", color: "var(--color-primary)", transition: "background 0.15s" }}
                 onClick={() => handleSelectUser(u)}
               >
                 <User size={14} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong style={{ display: "block", fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</strong>
-                  <span style={{ display: "block", fontSize: 11, color: "#6b7280" }}>{u.code} &middot; {u.type === "staff" ? t("staff") : t("student")}</span>
+                  <span style={{ display: "block", fontSize: 11, color: "var(--color-text-secondary)" }}>{u.code} &middot; {u.type === "staff" ? t("staff") : t("student")}</span>
                 </div>
                 {selectedUser?.id === u.id && <Check size={13} />}
               </button>
@@ -143,11 +138,7 @@ function PermissionsPage() {
             </div>
           </div>
         ) : (
-          <div className="perm-empty-state">
-            <User size={36} />
-            <h3>{t("select_user")}</h3>
-            <p>{t("select_user_desc")}</p>
-          </div>
+          <EmptyState icon={User} title={t("select_user")} message={t("select_user_desc")} />
         )}
 
         {isStudentSelected && (
@@ -158,12 +149,7 @@ function PermissionsPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="roles-loading" style={{ padding: 40 }}>
-            <div className="roles-spinner" />
-            <p>{t("loading_permissions")}</p>
-          </div>
-        )}
+        {loading && <LoadingSpinner message={t("loading_permissions")} />}
 
         {loadError && (
           <div className="perm-empty-state">

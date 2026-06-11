@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useStudentRequests } from "../../hooks/useStudentRequests";
 import { useFileUpload } from "../../hooks/useFileUpload";
 import { getServiceById } from "../../services/studentServicesService";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import DynamicFormRenderer from "../../components/DynamicFormRenderer";
 import FileUploader from "../../components/FileUploader";
 import "../../styles/student/RequestSubmission.css";

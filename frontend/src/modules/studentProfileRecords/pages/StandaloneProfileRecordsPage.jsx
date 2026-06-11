@@ -5,6 +5,7 @@ import * as studentService from "../../../core/services/studentService";
 import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
 import { getLocalized } from "../../../core/utils/getLocalized";
 import ProfileRecordsPanel from "../components/ProfileRecordsPanel";
+import PageHeader from "../../../core/components/PageHeader";
 import "../styles/studentProfileRecords.css";
 import "../styles/standaloneProfileRecords.css";
 
@@ -78,15 +79,11 @@ function StandaloneProfileRecordsPage() {
 
   return (
     <div className="spr-page">
-      <div className="spr-header">
-        <div className="spr-header-left">
-          <FileText size={22} />
-          <div>
-            <h1>{t("profile_records")}</h1>
-            <p>{t("manage_profile_records")}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title={t("profile_records")}
+        subtitle={t("manage_profile_records")}
+      />
 
       <div className="sprs-search-section">
         <div className="sprs-search-input-wrap">

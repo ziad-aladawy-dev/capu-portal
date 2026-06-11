@@ -15,11 +15,11 @@ import PermissionGate from "../../../../core/auth/PermissionGate";
 import { SkeletonCard } from "../../../../core/components/Skeleton";
 import ScheduleGrid from "../../../../core/components/ScheduleGrid";
 import { findConflicts } from "../../../../core/utils/scheduleConflicts";
+import { SCHEDULE_START_HOUR, SCHEDULE_END_HOUR } from "../../../../core/constants/scheduleConfig";
 import {
   useOfferingsForSchedule, useSlotsForOfferings, useUpdateSlot, useDeleteSlot,
 } from "../../../../core/query/useScheduleSlots";
 import { useActiveCourses } from "../../../../core/query/useCourses";
-import AcademicShell from "../../layout/AcademicShell";
 import ScheduleSlotForm from "./ScheduleSlotForm";
 import "./schedulingMatrix.css";
 
@@ -141,7 +141,7 @@ export default function SchedulingMatrixPage() {
 
   if (!scopeNode || !selectedSemesterObj) {
     return (
-      <AcademicShell>
+      <>
         <div className="sm-page" style={{ padding: 0 }}>
           <div className="sm-header">
             <div className="sm-header-left">
@@ -158,14 +158,14 @@ export default function SchedulingMatrixPage() {
             message={t("common.noSemester")}
           />
         </div>
-      </AcademicShell>
+      </>
     );
   }
 
   const isLoading = offeringsLoading || slotsLoading;
 
   return (
-    <AcademicShell>
+    <>
     <div className="sm-page" style={{ padding: 0 }}>
       <div className="sm-header">
         <div className="sm-header-left">
@@ -229,8 +229,8 @@ export default function SchedulingMatrixPage() {
           slots={enrichedSlots}
           renderSlot={renderSlot}
           onSlotClick={(s) => { setEditSlot(s); setDrawerError(""); }}
-          startHour={8}
-          endHour={21}
+          startHour={SCHEDULE_START_HOUR}
+          endHour={SCHEDULE_END_HOUR}
         />
       )}
 
@@ -265,6 +265,7 @@ export default function SchedulingMatrixPage() {
               )}
             </div>
             <ScheduleSlotForm
+              key={editSlot?.id}
               slot={editSlot}
               onSubmit={handleSave}
               submitRef={submitRef}
@@ -288,6 +289,6 @@ export default function SchedulingMatrixPage() {
         loading={deleteSlot.isPending}
       />
     </div>
-    </AcademicShell>
+    </>
   );
 }

@@ -10,8 +10,8 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { getLocalized } from "../../../core/utils/getLocalized";
-import { getAllowedChildTypes } from "../utils/nodeTypeHelpers";
-import { getNodeTypeConfig } from "../utils/nodeTypeRegistry";
+import { getAllowedChildTypes } from "../../../core/constants/nodeTypeRegistry";
+import { getNodeTypeConfig } from "../../../core/constants/nodeTypeRegistry";
 import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
 import PermissionGate from "../../../core/auth/PermissionGate";
 

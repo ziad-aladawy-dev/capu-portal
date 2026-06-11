@@ -74,15 +74,15 @@
 }
 
 .structure-tree-checkbox.checked {
-  background: #c9a84c;
-  border-color: #c9a84c;
-  color: #1a1f5e;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--color-text-primary);
 }
 
 .structure-tree-label {
   font-size: 12px;
   font-weight: 500;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -91,7 +91,7 @@
 }
 
 .structure-tree-check {
-  color: #c9a84c;
+  color: var(--gold);
   flex-shrink: 0;
 }
 

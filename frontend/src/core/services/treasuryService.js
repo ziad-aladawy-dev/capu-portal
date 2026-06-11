@@ -108,6 +108,12 @@ export async function fetchReceipts() {
   return data;
 }
 
+/** Institution-wide fee/order/revenue aggregates (finance dashboard). */
+export async function fetchTreasuryStats() {
+  const { data } = await api.get("/payments/fees/stats");
+  return data;
+}
+
 /** Live passthrough from the HU Treasury system — integer external ids. */
 export async function fetchLiveReceipts() {
   const { data } = await api.get("/treasury/receipts");

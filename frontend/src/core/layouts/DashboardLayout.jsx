@@ -5,6 +5,7 @@ import Navbar from "../navigation/navbar/Navbar";
 import Sidebar from "../navigation/sidebar/Sidebar";
 import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
 import Breadcrumbs from "../components/Breadcrumbs";
+import CategoryTabs from "../components/CategoryTabs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
 import { useAuth } from "../auth/useAuth";
 import { usePermission } from "../auth/usePermission";
@@ -173,6 +174,8 @@ function DashboardLayout() {
       >
 
         <Breadcrumbs />
+
+        <CategoryTabs />
 
         <main className="dashboard-page-content">
           <Outlet />

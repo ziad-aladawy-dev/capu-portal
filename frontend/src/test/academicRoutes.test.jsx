@@ -13,9 +13,10 @@ describe("academic module routes", () => {
   const pages = academicRoutes.filter((r) => !r.isRedirect);
   const redirects = academicRoutes.filter((r) => r.isRedirect);
 
-  it("declares all six suite pages under /admin/academic/", () => {
+  it("declares all suite pages under /admin/academic/", () => {
     const paths = pages.map((r) => r.path);
     expect(paths).toEqual([
+      "/admin/academic/dashboard",
       "/admin/academic/courses",
       "/admin/academic/offerings",
       "/admin/academic/plans",

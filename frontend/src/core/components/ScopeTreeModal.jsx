@@ -1,32 +1,32 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ChevronRight, ChevronDown } from "lucide-react";
-import { universityStructureService } from "../services/universityStructureService";
-import { getLocalized } from "../../../core/utils/getLocalized";
-import { getNodeTypeConfig } from "../utils/nodeTypeRegistry";
-import NodeTypeBadge from "../../../core/components/NodeTypeBadge";
-import "../styles/scopeModal.css";
+import { fetchStructureTree } from "../services/structureService";
+import { getLocalized } from "../utils/getLocalized";
+import { getNodeTypeConfig } from "../constants/nodeTypeRegistry";
+import NodeTypeBadge from "./NodeTypeBadge";
+import "./scopeTreeModal.css";
 
 function TreeNode({ node, onSelect, selectedId, level = 0 }) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [open, setOpen] = useState(level < 1);
   const hasChildren = node.children && node.children.length > 0;
   const typeConfig = getNodeTypeConfig(node.type);
   const Icon = typeConfig?.icon || null;
-  const typeColor = typeConfig?.color || "#6b7280";
+  const typeColor = typeConfig?.color || "var(--color-text-secondary)";
   const isSelected = selectedId === node.id;
   const displayName = node.localizedName || getLocalized(node.name, i18n.language);
 
   return (
-    <div className="scope-tree-node">
+    <div className="stm-node">
       <div
-        className={`scope-tree-item ${isSelected ? "selected" : ""}`}
-        style={{ paddingLeft: `${level * 20 + 12}px` }}
+        className={`stm-item ${isSelected ? "selected" : ""}`}
+        style={{ paddingInlineStart: `${level * 20 + 12}px` }}
         onClick={() => onSelect(node)}
       >
         {hasChildren && (
           <button
-            className="scope-tree-toggle"
+            className="stm-toggle"
             onClick={(e) => {
               e.stopPropagation();
               setOpen(!open);
@@ -35,17 +35,17 @@ function TreeNode({ node, onSelect, selectedId, level = 0 }) {
             {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         )}
-        {!hasChildren && <span className="scope-tree-placeholder" />}
+        {!hasChildren && <span className="stm-placeholder" />}
         {Icon && (
-          <div className="scope-tree-icon" style={{ color: typeColor }}>
+          <div className="stm-icon" style={{ color: typeColor }}>
             <Icon size={14} />
           </div>
         )}
-        <span className="scope-tree-name">{displayName}</span>
+        <span className="stm-name">{displayName}</span>
         <NodeTypeBadge type={node.type} size="xs" />
       </div>
       {hasChildren && open && (
-        <div className="scope-tree-children">
+        <div className="stm-children">
           {node.children.map((child) => (
             <TreeNode
               key={child.id}
@@ -67,22 +67,21 @@ export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(initialScopeId);
 
-  const fetchTreeData = async () => {
-    setLoading(true);
-    try {
-      const data = await universityStructureService.getTree();
-      setTree(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (isOpen) {
-      fetchTreeData();
-    }
+    if (!isOpen) return;
+    let cancelled = false;
+    setLoading(true);
+    fetchStructureTree()
+      .then((data) => {
+        if (!cancelled) setTree(data);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, i18n.language]);
 
   const handleSelect = (node) => {
@@ -102,17 +101,17 @@ export function ScopeTreeModal({ isOpen, onClose, onSelect, initialScopeId }) {
   if (!isOpen) return null;
 
   return (
-    <div className="scope-modal-overlay" onClick={onClose}>
-      <div className="scope-modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="scope-modal-header">
+    <div className="stm-overlay" onClick={onClose}>
+      <div className="stm-container" onClick={(e) => e.stopPropagation()}>
+        <div className="stm-header">
           <h3>{t("select_scope")}</h3>
-          <button className="scope-modal-close" onClick={onClose}><X size={18} /></button>
+          <button className="stm-close" onClick={onClose}><X size={18} /></button>
         </div>
-        <div className="scope-modal-body">
+        <div className="stm-body">
           {loading ? (
-            <div className="scope-loading">{t("loading")}...</div>
+            <div className="stm-loading">{t("loading")}...</div>
           ) : tree.length === 0 ? (
-            <div className="scope-empty">{t("no_structure")}</div>
+            <div className="stm-empty">{t("no_structure")}</div>
           ) : (
             tree.map((root) => (
               <TreeNode

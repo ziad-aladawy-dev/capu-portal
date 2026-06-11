@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DollarSign, Layers } from "lucide-react";
 import { getServiceById } from "../../services/studentServicesService";
-import LoadingSpinner from "../../components/LoadingSpinner";
-import StatusBadge from "../../components/StatusBadge";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
+import StatusBadge from "../../../../core/components/RequestStatusBadge";
 import "../../styles/student/StudentServiceDetailsPage.css";
 
 const ServiceDetails = () => {

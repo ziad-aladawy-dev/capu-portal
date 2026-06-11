@@ -24,11 +24,11 @@
 }
 
 .breadcrumb-item:hover {
-  color: var(--navy-primary, #1a1f5e);
+  color: var(--navy-primary, var(--navy-primary));
 }
 
 .breadcrumb-item.is-current {
-  color: var(--navy-primary, #1a1f5e);
+  color: var(--navy-primary, var(--navy-primary));
   font-weight: 600;
   pointer-events: none;
 }

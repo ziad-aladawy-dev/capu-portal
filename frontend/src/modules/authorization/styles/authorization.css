@@ -1,34 +1,7 @@
 .auth-tree-page {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
-}
-
-.auth-tree-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  gap: 10px;
-}
-
-.auth-tree-header-left {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.auth-tree-header h1 {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0;
-  color: #1a1f5e;
-}
-
-.auth-tree-header p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 4px 0 0;
+  color: var(--color-text-primary);
 }
 
 .auth-tree-toolbar {
@@ -42,12 +15,12 @@
 .auth-tree-toolbar select,
 .auth-tree-toolbar input {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   padding: 9px 12px;
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
   min-width: 220px;
 }
 
@@ -59,14 +32,14 @@
 
 .auth-tree-module {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
 }
 
 .auth-tree-module-head {
-  background: #1a1f5e;
-  color: #e0c06a;
+  background: var(--color-primary);
+  color: var(--gold-light);
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
@@ -91,7 +64,7 @@
 .auth-tree-resource > strong {
   display: block;
   font-size: 12px;
-  color: #2e3591;
+  color: var(--navy-accent);
   margin-bottom: 6px;
 }
 
@@ -111,7 +84,7 @@
   font-weight: 600;
   background: #f4f5fa;
   color: #475467;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
 }
 
 .auth-tree-action-chip.is-assigned {
@@ -122,45 +95,6 @@
 
 .auth-tree-action-chip.is-unassigned {
   opacity: 0.6;
-}
-
-.auth-tree-empty,
-.auth-tree-loading {
-  background: white;
-  border: 1px dashed #e5e7eb;
-  border-radius: 12px;
-  padding: 48px 32px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.auth-tree-empty h3 {
-  margin: 0;
-  color: #1a1f5e;
-}
-
-.auth-tree-empty p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.auth-tree-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #c9a84c;
-  border-radius: 50%;
-  animation: auth-tree-spin 0.9s linear infinite;
-}
-
-@keyframes auth-tree-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .auth-tree-error-banner {

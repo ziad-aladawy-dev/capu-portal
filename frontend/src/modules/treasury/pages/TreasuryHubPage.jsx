@@ -10,6 +10,7 @@ import {
 import { useToast } from "../../../core/components/Toast";
 import { useCanDo } from "../../../core/auth/usePermission";
 import StatusBadge from "../../../core/components/StatusBadge";
+import PageHeader from "../../../core/components/PageHeader";
 import EmptyState from "../../../core/components/EmptyState";
 import { SkeletonTable } from "../../../core/components/Skeleton";
 import StudentPicker from "../components/StudentPicker";
@@ -88,7 +89,6 @@ export default function TreasuryHubPage() {
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [gateway, setGateway] = useState(null);
-  const [builderError, setBuilderError] = useState("");
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [orderFilter, setOrderFilter] = useState("all");
@@ -133,7 +133,6 @@ export default function TreasuryHubPage() {
   if (builderStudentId !== activeStudentId) {
     setBuilderStudentId(activeStudentId);
     setSelectedIds(new Set());
-    setBuilderError("");
     setOrderFilter("all");
   }
 
@@ -219,7 +218,6 @@ export default function TreasuryHubPage() {
   /* Actions */
   const toggleFee = (fee) => {
     if (activeCurrency && fee.currency !== activeCurrency && !selectedIds.has(fee.id)) return;
-    setBuilderError("");
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(fee.id)) next.delete(fee.id);
@@ -229,13 +227,11 @@ export default function TreasuryHubPage() {
   };
 
   const selectAllInCurrency = (currency) => {
-    setBuilderError("");
     setSelectedIds(new Set(fees.filter((f) => f.currency === currency).map((f) => f.id)));
   };
 
   const handleCreateOrder = async () => {
     if (!selectedIds.size || gateway === null) return;
-    setBuilderError("");
     try {
       const order = await createOrder.mutateAsync({
         studentId: student.id,
@@ -247,7 +243,7 @@ export default function TreasuryHubPage() {
       setActiveOrderId(order.id);
       setDrawerOpen(true);
     } catch (err) {
-      setBuilderError(apiErrorMessage(err, t("treasury_create_order_failed")));
+      addToast(apiErrorMessage(err, t("treasury_create_order_failed")), "error");
     }
   };
 
@@ -259,23 +255,19 @@ export default function TreasuryHubPage() {
   /* ── Render ── */
   return (
     <div className="ty-page">
-      <div className="ty-header">
-        <div className="ty-header-left">
-          <span className="ty-header-icon" aria-hidden="true">
-            <HandCoins size={22} />
-          </span>
-          <div>
-            <h1>{t("treasury_hub_title")}</h1>
-            <p>{t("treasury_hub_subtitle")}</p>
-          </div>
-        </div>
-        {student && (
-          <button className="ty-btn" onClick={clearStudent}>
-            <ArrowLeftRight size={14} aria-hidden="true" />
-            {t("treasury_change_student")}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        icon={HandCoins}
+        title={t("treasury_hub_title")}
+        subtitle={t("treasury_hub_subtitle")}
+        actions={
+          student && (
+            <button className="ty-btn" onClick={clearStudent}>
+              <ArrowLeftRight size={14} aria-hidden="true" />
+              {t("treasury_change_student")}
+            </button>
+          )
+        }
+      />
 
       {!student ? (
         <div className="ty-hero">
@@ -495,13 +487,6 @@ export default function TreasuryHubPage() {
                     </button>
                   ))}
                 </div>
-
-                {builderError && (
-                  <div className="ty-alert ty-alert-error" role="alert">
-                    <AlertCircle size={14} aria-hidden="true" />
-                    <span>{builderError}</span>
-                  </div>
-                )}
 
                 <button
                   className="ty-btn ty-btn-primary ty-btn-block"

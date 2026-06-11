@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as structureService from "../services/structureService";
-import { normalizeType } from "../../modules/university/utils/nodeTypeRegistry";
+import { normalizeType } from "../constants/nodeTypeRegistry";
 
 /**
  * Recursively collect every Program node inside a structure subtree.

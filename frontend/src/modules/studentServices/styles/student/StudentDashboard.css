@@ -2,14 +2,14 @@
 
 .std-dashboard-page {
   padding: 22px;
-  background: #f4f5f7;
+  background: var(--color-background);
   min-height: 100vh;
   font-family: "DM Sans", sans-serif;
-  color: #1a1f5e;
+  color: var(--color-text-primary);
 }
 .std-dashboard-header {
   border-radius: 20px;
-  background: linear-gradient(135deg, #1a1f5e 0%, #2e3591 100%);
+  background: linear-gradient(135deg, var(--navy-primary) 0%, var(--navy-accent) 100%);
   padding: 26px 30px;
   margin-bottom: 18px;
   display: flex;
@@ -49,7 +49,7 @@
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: #e0c06a;
+  color: var(--gold-light);
   margin-bottom: 8px;
 }
 .std-dashboard-header h1 {
@@ -60,7 +60,7 @@
   margin: 0 0 12px;
 }
 .std-dashboard-header h1 em {
-  color: #e0c06a;
+  color: var(--gold-light);
   font-style: normal;
   font-weight: 700;
 }
@@ -85,7 +85,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e0c06a;
+  color: var(--gold-light);
   font-family: "Space Mono", monospace;
   font-weight: 700;
   font-size: 14px;
@@ -101,16 +101,16 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.std-quick-action-pill-btn span { font-size: 12px; font-weight: 800; color: #1a1f5e; }
-.std-arrow-icon { color: #c9a84c; transition: 0.2s ease; }
-.std-quick-action-pill-btn:hover { background: #fff; border-color: #c9a84c; transform: translateX(-3px); box-shadow: 0 4px 14px rgba(201,168,76,0.15); }
+.std-quick-action-pill-btn span { font-size: 12px; font-weight: 800; color: var(--color-text-primary); }
+.std-arrow-icon { color: var(--gold); transition: 0.2s ease; }
+.std-quick-action-pill-btn:hover { background: var(--color-surface); border-color: var(--gold); transform: translateX(-3px); box-shadow: 0 4px 14px rgba(201,168,76,0.15); }
 .std-quick-action-pill-btn:hover .std-arrow-icon { transform: translateX(3px); }
 .std-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
 .std-stat-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 18px rgba(26, 31, 94, 0.05);
@@ -122,14 +122,14 @@
 .std-stat-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .std-stat-card-top span { font-size: 11px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; color: #9ca3af; }
 .std-stat-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
-.ic-blue  { background: rgba(37, 99, 235, 0.09); color: #2563eb; }
-.ic-navy  { background: rgba(26, 31, 94, 0.09); color: #1a1f5e; }
+.ic-blue  { background: rgba(37, 99, 235, 0.09); color: var(--color-info); }
+.ic-navy  { background: rgba(26, 31, 94, 0.09); color: var(--color-text-primary); }
 .ic-amber { background: rgba(245, 158, 11, 0.09); color: #f59e0b; }
-.ic-green { background: rgba(22, 163, 74, 0.09); color: #16a34a; }
-.std-stat-card h2 { font-family: "Space Mono", monospace; font-size: 28px; color: #1a1f5e; line-height: 1; margin: 0; }
-.std-dashboard-card { background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 4px 18px rgba(26, 31, 94, 0.05); }
+.ic-green { background: rgba(22, 163, 74, 0.09); color: var(--color-success); }
+.std-stat-card h2 { font-family: "Space Mono", monospace; font-size: 28px; color: var(--color-text-primary); line-height: 1; margin: 0; }
+.std-dashboard-card { background: var(--color-surface); border-radius: 16px; border: 1px solid var(--color-border); padding: 20px; box-shadow: 0 4px 18px rgba(26, 31, 94, 0.05); }
 .std-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.std-card-header h3 { font-size: 15px; font-weight: 800; color: #1a1f5e; font-family: "Space Mono", monospace; margin: 0; }
+.std-card-header h3 { font-size: 15px; font-weight: 800; color: var(--color-text-primary); font-family: "Space Mono", monospace; margin: 0; }
 .std-card-badge { font-size: 9.5px; font-weight: 800; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.5px; text-transform: uppercase; background: rgba(201,168,76,0.15); color: #8a6a10; }
 .std-services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 @keyframes stdFadeDown { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }

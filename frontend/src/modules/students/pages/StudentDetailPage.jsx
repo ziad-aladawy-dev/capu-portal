@@ -14,7 +14,7 @@ import { useStickySelection } from "../../../core/contexts/StickySelectionContex
 import { useStudent, useUpdateStudent, useToggleStudentStatus, useDeleteStudent, studentKey } from "../../../core/query/useStudents";
 import { SkeletonCard, SkeletonStats } from "../../../core/components/Skeleton";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
-import ErrorMessage from "../../users/components/ErrorMessage";
+import ErrorMessage from "../../../core/components/ErrorMessage";
 import { getLocalized, parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../../users/services/userService";
 import * as treasuryService from "../../../core/services/treasuryService";

@@ -47,6 +47,30 @@ export function findAllOverlaps(proposedSlots, existing) {
 }
 
 /**
+ * Pairwise-validate a batch of proposed slots against EACH OTHER (the
+ * server accepts them one by one, so two overlapping rows in one batch
+ * would otherwise half-succeed). Returns map of index → array of other
+ * indexes it overlaps.
+ */
+export function findIntraBatchOverlaps(proposedSlots) {
+  const conflicts = {};
+  for (let i = 0; i < proposedSlots.length; i++) {
+    const a = proposedSlots[i];
+    if (!a.startTime || !a.endTime || a.endTime <= a.startTime) continue;
+    for (let j = i + 1; j < proposedSlots.length; j++) {
+      const b = proposedSlots[j];
+      if (!b.startTime || !b.endTime || b.endTime <= b.startTime) continue;
+      if (Number(a.dayOfWeek) !== Number(b.dayOfWeek)) continue;
+      if (toMinutes(a.startTime) < toMinutes(b.endTime) && toMinutes(a.endTime) > toMinutes(b.startTime)) {
+        (conflicts[i] = conflicts[i] || []).push(j);
+        (conflicts[j] = conflicts[j] || []).push(i);
+      }
+    }
+  }
+  return conflicts;
+}
+
+/**
  * Get CSS class for slot kind.
  */
 export function getSlotKindClass(kind) {
@@ -57,7 +81,7 @@ export function getSlotKindClass(kind) {
 /**
  * Convert time string "HH:mm" to minutes since midnight.
  */
-function toMinutes(timeStr) {
+export function toMinutes(timeStr) {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(":").map(Number);
   return h * 60 + m;

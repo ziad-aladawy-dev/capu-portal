@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import * as authorizationService from "../../../core/services/authorizationService";
 import * as permissionService from "../../../core/services/permissionService";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
+import EmptyState from "../../../core/components/EmptyState";
+import PageHeader from "../../../core/components/PageHeader";
 import "../styles/authorization.css";
 
 function PermissionTreePage() {
@@ -88,32 +91,30 @@ function PermissionTreePage() {
 
   return (
     <div className="auth-tree-page">
-      <div className="auth-tree-header">
-        <div className="auth-tree-header-left">
-          <FolderTree size={22} />
-          <div>
-            <h1>{t("permission_inspector")}</h1>
-            <p>{t("permission_inspector_desc")}</p>
-          </div>
-        </div>
-        <button className="spr-btn spr-btn-outline" onClick={load} style={{
-          border: "1.5px solid #d1d5db",
-          background: "transparent",
-          color: "#6b7280",
-          fontFamily: "Outfit",
-          fontSize: 13,
-          fontWeight: 600,
-          padding: "8px 16px",
-          borderRadius: 8,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-        }}>
-          <RefreshCw size={13} />
-          {t("refresh")}
-        </button>
-      </div>
+      <PageHeader
+        icon={FolderTree}
+        title={t("permission_inspector")}
+        subtitle={t("permission_inspector_desc")}
+        actions={
+          <button className="spr-btn spr-btn-outline" onClick={load} style={{
+            border: "1.5px solid #d1d5db",
+            background: "transparent",
+            color: "#6b7280",
+            fontFamily: "Outfit",
+            fontSize: 13,
+            fontWeight: 600,
+            padding: "8px 16px",
+            borderRadius: 8,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            <RefreshCw size={13} />
+            {t("refresh")}
+          </button>
+        }
+      />
 
       {error && (
         <div className="auth-tree-error-banner">
@@ -172,22 +173,19 @@ function PermissionTreePage() {
       </div>
 
       {loading ? (
-        <div className="auth-tree-loading">
-          <div className="auth-tree-spinner" />
-          <p>{t("loading_permission_tree")}</p>
-        </div>
+        <LoadingSpinner />
       ) : filtered.length === 0 ? (
-        <div className="auth-tree-empty">
-          <Shield size={40} />
-          <h3>{t("no_permissions_to_show")}</h3>
-          <p>
-            {tree.length === 0
+        <EmptyState
+          icon={Shield}
+          title={t("no_permissions_to_show")}
+          message={
+            tree.length === 0
               ? selectedRoleId
                 ? t("no_permission_rows")
                 : t("no_permissions_defined")
-              : t("no_permissions_filter")}
-          </p>
-        </div>
+              : t("no_permissions_filter")
+          }
+        />
       ) : (
         <div className="auth-tree-modules">
           {filtered.map((m) => (

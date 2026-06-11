@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { universityStructureService } from "../services/universityStructureService";
-import { canMoveToParent } from "../utils/nodeTypeHelpers";
+import { canMoveToParent } from "../../../core/constants/nodeTypeRegistry";
 
 const getNodePath = (node, allNodesMap) => {
   const parts = [];

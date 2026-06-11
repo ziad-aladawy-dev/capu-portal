@@ -552,8 +552,8 @@ public class StudentServiceCoreTests
         var active2 = StudentWithHierarchy(true, true);
         var inactive = StudentWithHierarchy(true, true);
         inactive.IsActive = false;
-        // Statistics aggregate over the service's own SearchAsync — the
-        // repository has no statistics API.
+        // Service derives stats from SearchAsync results (in-memory IsActive
+        // count); there is no repository GetStatisticsAsync in the contract.
         repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>())).ReturnsAsync(new PagedResult<Student>
         {
             Items = new List<Student> { active1, active2, inactive },

@@ -121,6 +121,24 @@ public static class PermissionNames
     }
 
     /// <summary>
+    /// Student self-service payment orders (B8). Distinct from the ops
+    /// <see cref="PaymentTransactions"/> resource: a student holds these
+    /// IMPLICITLY (<c>StudentSelfPermissions</c>) to view their own fees and
+    /// create/initiate orders for themselves; staff/ops receive them via the
+    /// Super Admin grant-all. Self-access is enforced in OrderService
+    /// (CanAccessStudentAsync on every operation). Declared by
+    /// <c>PaymentsPermissionManifest</c> (resource <c>orders</c>).
+    /// </summary>
+    public static class PaymentOrders
+    {
+        public const string View      = "payments.orders.View";
+        public const string Insert    = "payments.orders.Insert";
+        public const string EditClose = "payments.orders.EditClose";
+        public const string Open      = "payments.orders.Open";
+        public const string Delete    = "payments.orders.Delete";
+    }
+
+    /// <summary>
     /// Student Information profile records (sparse, JSON-backed sensitive data).
     /// Module = <c>student-information</c>, Resource = <c>profile-records</c>.
     /// Bound by <see cref="StudentProfileRecordsController"/>; declared by

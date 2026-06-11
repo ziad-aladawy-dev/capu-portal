@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace CapitalUniversity.API.Controllers;
@@ -61,7 +63,7 @@ public class PaymentsWebhookController : ControllerBase
         else
         {
             var provided = Request.Headers[SignatureHeader].ToString();
-            if (!string.Equals(provided, _options.WebhookSecret, StringComparison.Ordinal))
+            if (!FixedTimeSecretEquals(provided, _options.WebhookSecret))
             {
                 _logger.LogWarning("Treasury webhook rejected: missing or invalid {Header}.", SignatureHeader);
                 return Unauthorized();
@@ -87,5 +89,32 @@ public class PaymentsWebhookController : ControllerBase
 
         // Always 200 once accepted+audited so Treasury does not hammer retries.
         return Ok(new { received = true });
+    }
+
+    /// <summary>
+    /// Constant-time comparison of the presented secret against the configured
+    /// one (H2). Both are hashed to fixed-length SHA-256 digests first so neither
+    /// the secret's length nor its content leaks through response timing — the
+    /// previous Ordinal string compare short-circuited on the first mismatched
+    /// character.
+    ///
+    /// Note: this still authenticates a STATIC shared secret, not an HMAC over the
+    /// raw request body. A true body-bound signature (and timestamp/nonce replay
+    /// rejection) requires the HU Treasury signing contract, which is not defined
+    /// in this repository. Replay of an identical notification is already a no-op:
+    /// SettlementService dedups on (MerchantOrderId, "{source}:{outcome}").
+    /// </summary>
+    private static bool FixedTimeSecretEquals(string? provided, string? expected)
+    {
+        if (string.IsNullOrEmpty(provided) || string.IsNullOrEmpty(expected))
+        {
+            return false;
+        }
+
+        Span<byte> providedHash = stackalloc byte[32];
+        Span<byte> expectedHash = stackalloc byte[32];
+        SHA256.HashData(Encoding.UTF8.GetBytes(provided), providedHash);
+        SHA256.HashData(Encoding.UTF8.GetBytes(expected), expectedHash);
+        return CryptographicOperations.FixedTimeEquals(providedHash, expectedHash);
     }
 }

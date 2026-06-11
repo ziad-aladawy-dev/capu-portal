@@ -18,23 +18,22 @@ public class TokenService : ITokenService
 
     public string GenerateToken(IUserCredential user)
     {
+        // M4 — Keep PII out of the JWT. The national id and email were previously
+        // embedded here; a JWT is base64, trivially decoded in the browser, so any
+        // script in the page context could read them. Neither was consumed
+        // server-side (the only reader, CurrentUser.Email, had no consumers), so
+        // they are dropped outright rather than relocated. The display Name is
+        // retained: it is no government identifier and feeds the audit trail
+        // (LogEntry.UserName).
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim("Id", user.Id.ToString()), // Keep for compatibility if needed
-            new Claim("NationalId", user.Identifier),
-            // Full display name — captured into the audit trail (LogEntry.UserName)
-            // so audit records show who acted, and the read API can filter by name.
             new Claim(ClaimTypes.Name, user.Name ?? string.Empty),
             new Claim(ClaimTypes.Role, user.Role ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(SessionClaims.SessionVersion, user.SessionVersion.ToString())
         };
-
-        if (!string.IsNullOrEmpty(user.Email))
-        {
-            claims.Add(new Claim(ClaimTypes.Email, user.Email));
-        }
 
         if (user.StructureNodeId.HasValue)
         {

@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Activity, Settings, Trash2, RotateCcw } from "lucide-react";
 import api from "../../../core/api/apiClient";
 import PermissionGate from "../../../core/auth/PermissionGate";
+import LoadingSpinner from "../../../core/components/LoadingSpinner";
+import PageHeader from "../../../core/components/PageHeader";
+import EmptyState from "../../../core/components/EmptyState";
 import "../styles/sync.css";
 
 const STATUS_ICONS = { succeeded: CheckCircle, failed: XCircle, running: Activity, pending: Clock };
@@ -70,28 +73,26 @@ function SyncPage() {
 
   return (
     <div className="sync-page">
-      <div className="sync-header">
-        <div className="sync-header-left">
-          <RefreshCw size={24} />
-          <div>
-            <h1>{t("sis_integration")}</h1>
-            <p>{t("sis_integration_subtitle")}</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <PermissionGate resource="sync.sync" minLevel={2}>
-            <button className="btn btn-primary" onClick={handleSync} disabled={syncing}>
-              <RefreshCw size={16} className={syncing ? "spinning" : ""} />
-              {syncing ? t("syncing") : t("trigger_sync")}
-            </button>
-          </PermissionGate>
-          <PermissionGate resource="sync.sync" minLevel={3}>
-            <button className="btn btn-outline" onClick={() => {}} title={t("edit_config")}>
-              <Settings size={16} /> {t("edit_config")}
-            </button>
-          </PermissionGate>
-        </div>
-      </div>
+      <PageHeader
+        icon={RefreshCw}
+        title={t("sis_integration")}
+        subtitle={t("sis_integration_subtitle")}
+        actions={
+          <>
+            <PermissionGate resource="sync.sync" minLevel={2}>
+              <button className="btn btn-primary" onClick={handleSync} disabled={syncing}>
+                <RefreshCw size={16} className={syncing ? "spinning" : ""} />
+                {syncing ? t("syncing") : t("trigger_sync")}
+              </button>
+            </PermissionGate>
+            <PermissionGate resource="sync.sync" minLevel={3}>
+              <button className="btn btn-outline" onClick={() => {}} title={t("edit_config")}>
+                <Settings size={16} /> {t("edit_config")}
+              </button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       {error && (
         <div className="sync-alert sync-alert-warning">
@@ -124,13 +125,9 @@ function SyncPage() {
       </div>
 
       {loading ? (
-        <div className="sync-loading">{t("loading_sync_history")}</div>
+        <LoadingSpinner message={t("loading_sync_history")} />
       ) : history.length === 0 ? (
-        <div className="sync-empty">
-          <RefreshCw size={48} />
-          <h3>{t("no_sync_records")}</h3>
-          <p>{t("no_sync_records_message")}</p>
-        </div>
+        <EmptyState icon={RefreshCw} title={t("no_sync_records")} message={t("no_sync_records_message")} />
       ) : (
         <div className="sync-table-wrapper">
           <table>

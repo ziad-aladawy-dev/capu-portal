@@ -11,7 +11,7 @@ import { useAcademic } from "../../../../core/contexts/AcademicContext";
 import { getLocalized } from "../../../../core/utils/getLocalized";
 import PortalBadge from "../shared/PortalBadge";
 import PortalStatCard from "../shared/PortalStatCard";
-import { REQUEST_STATUS_LABELS } from "../../constants/requestStatus";
+import { REQUEST_STATUS_LABELS } from "../../../../core/constants/requestStatus";
 import WidgetShell from "./WidgetShell";
 import {
   useAcademicOverview, useGradesSummary, useFinancialSnapshot,

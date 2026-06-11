@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, CheckCheck, Info, AlertCircle, CheckCircle } from "lucide-react";
 import apiClient from "../../../../core/api/apiClient";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import "../../styles/student/StudentNotificationsCenter.css";
 
 const StudentNotificationsCenter = () => {
@@ -16,7 +16,7 @@ const StudentNotificationsCenter = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/api/notifications");
+      const response = await apiClient.get("/notifications");
       setNotifications(response.data.items || []);
     } catch (err) { console.error("Failed to load notifications", err); }
     finally { setLoading(false); }
@@ -31,7 +31,7 @@ const StudentNotificationsCenter = () => {
 
   const markAllAsRead = async () => {
     try {
-      await apiClient.put("/api/notifications/read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) });
+      await apiClient.put("/notifications/read", { ids: notifications.filter(n => !n.isRead).map(n => n.id) });
       await loadNotifications();
     } catch (err) { console.error(err); }
   };

@@ -131,7 +131,7 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
 
         var changed = await client.PostAsJsonAsync("/api/auth/change-password",
-            new ChangePasswordRequestDto { CurrentPassword = SuperAdminPwd, NewPassword = "new-password-1234" });
+            new ChangePasswordRequestDto { CurrentPassword = SuperAdminPwd, NewPassword = "New-Password-1234" });
         changed.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // The token used to make the call itself becomes invalid because the bump
@@ -144,7 +144,7 @@ public class SessionVersionTests : IClassFixture<WebApplicationFactory<ModulesRe
         // makes intent explicit.
         var freshClient = _factory.CreateClient();
         var reLogin = await freshClient.PostAsJsonAsync("/api/auth/login",
-            new LoginRequestDto { Identifier = SuperAdminNid, Password = "new-password-1234" });
+            new LoginRequestDto { Identifier = SuperAdminNid, Password = "New-Password-1234" });
         reLogin.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 

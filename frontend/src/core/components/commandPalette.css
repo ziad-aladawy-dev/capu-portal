@@ -3,7 +3,7 @@
 .cmd-palette-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 2100; /* global tool overlay */
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -157,7 +157,7 @@
 }
 .cmd-item-icon.type-page {
   background: rgba(201, 168, 76, 0.08);
-  color: #c9a84c;
+  color: var(--gold);
 }
 
 .cmd-item-text {
@@ -196,7 +196,7 @@
 .cmd-item-badge.type-staff   { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
 .cmd-item-badge.type-course  { background: rgba(34, 197, 94, 0.12);  color: #4ade80; }
 .cmd-item-badge.type-invoice { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
-.cmd-item-badge.type-page    { background: rgba(201, 168, 76, 0.08); color: #c9a84c; }
+.cmd-item-badge.type-page    { background: rgba(201, 168, 76, 0.08); color: var(--gold); }
 
 /* ── Empty / loading ── */
 .cmd-palette-empty {

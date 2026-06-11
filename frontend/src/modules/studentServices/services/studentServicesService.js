@@ -1,6 +1,6 @@
 import apiClient from "../../../core/api/apiClient";
 
-const BASE_URL = "/api/student-services";
+const BASE_URL = "/student-services";
 
 // ---------------------- Services (CRUD) ----------------------
 export const getServices = async () => {
@@ -210,7 +210,7 @@ export const deleteFile = async (attachmentId) => {
 
 // ---------------------- External APIs (Structure, Years, Semesters) ----------------------
 export const getAcademicYears = async () => {
-  const response = await apiClient.get("/api/academic-years");
+  const response = await apiClient.get("/academic-years");
   return response.data;
 };
 
@@ -220,7 +220,7 @@ export const getSemestersByYear = async (academicYearId) => {
 };
 
 export const getFaculties = async () => {
-  const response = await apiClient.get("/api/structure/lookups/faculties");
+  const response = await apiClient.get("/structure/lookups/faculties");
   return response.data;
 };
 

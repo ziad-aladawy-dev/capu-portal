@@ -49,7 +49,9 @@ public class TokenServiceTests
 
         var claims = token.Claims.ToList();
         Assert.Contains(claims, c => c.Type == "Id" && c.Value == id.ToString());
-        Assert.Contains(claims, c => c.Type == "NationalId" && c.Value == "admin123");
+        // M4 — PII must NOT be embedded in the JWT (national id / email).
+        Assert.DoesNotContain(claims, c => c.Type == "NationalId");
+        Assert.DoesNotContain(claims, c => c.Type == ClaimTypes.Email);
         Assert.Contains(claims, c => c.Type == ClaimTypes.Role && c.Value == "Admin");
         Assert.Contains(claims, c => c.Type == JwtRegisteredClaimNames.Jti);
     }

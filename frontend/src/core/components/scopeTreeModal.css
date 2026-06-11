@@ -1,0 +1,119 @@
+/* ScopeTreeModal — single-select structure-node picker.
+   z-index sits above form drawers/modals (1000) since it opens on top of them. */
+
+.stm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 30, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stm-container {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  width: min(90vw, 500px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.stm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stm-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stm-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.stm-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stm-node {
+  margin: 2px 0;
+}
+
+.stm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.stm-item:hover {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.stm-item.selected {
+  background: rgba(201, 168, 76, 0.15);
+  border-inline-start: 3px solid var(--gold);
+}
+
+.stm-toggle {
+  width: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stm-placeholder {
+  width: 20px;
+}
+
+.stm-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--color-background);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stm-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.stm-children {
+  margin-inline-start: 8px;
+}
+
+.stm-loading,
+.stm-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-secondary);
+}

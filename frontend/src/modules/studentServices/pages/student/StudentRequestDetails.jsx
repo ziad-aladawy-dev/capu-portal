@@ -3,9 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useStudentRequests } from "../../hooks/useStudentRequests";
 import { getStudentRequestAttachments } from "../../services/studentServicesService";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import RequestTimeline from "../../components/RequestTimeline";
-import StatusBadge from "../../components/StatusBadge";
+import StatusBadge from "../../../../core/components/RequestStatusBadge";
 import "../../styles/student/StudentRequestDetails.css";
 
 const StudentRequestDetails = () => {
@@ -59,7 +59,7 @@ const StudentRequestDetails = () => {
           <div className="srd-card"><h3>{t("service")}</h3><p>{getLocalizedText(currentRequest.serviceName)}</p></div>
           <div className="srd-card"><h3>{t("submitted_on")}</h3><p>{currentRequest.submittedAt ? new Date(currentRequest.submittedAt).toLocaleString() : "-"}</p></div>
           <div className="srd-card"><h3>{t("payment_info")}</h3>
-            <div className="srd-payment-row"><span>{t("payment_status")}:</span> <StatusBadge status={currentRequest.paymentStatus} /></div>
+            <div className="srd-payment-row"><span>{t("payment_status")}:</span> <StatusBadge status={currentRequest.paymentStatus} type="payment" /></div>
             {requiredAmount > 0 && (
               <>
                 <div className="srd-payment-row"><span>{t("required_amount")}:</span> <strong>${requiredAmount}</strong></div>

@@ -1,14 +1,16 @@
+import { Inbox } from "lucide-react";
+
 /**
  * Reusable empty state component used across all list pages.
- * 
+ *
  * Props:
- *   icon      — Lucide icon component
+ *   icon      — Lucide icon component (defaults to Inbox)
  *   title     — Heading (e.g. "No students yet")
  *   message   — Description text
  *   actionLabel — CTA button label (optional)
  *   onAction  — CTA button click handler (optional)
  */
-function EmptyState({ icon: Icon, title, message, actionLabel, onAction }) {
+function EmptyState({ icon: Icon = Inbox, title, message, actionLabel, onAction }) {
   return (
     <div className="empty-state">
       {Icon && (

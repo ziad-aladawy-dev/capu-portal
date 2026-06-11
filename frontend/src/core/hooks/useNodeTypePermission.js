@@ -1,5 +1,5 @@
 import { usePermission } from "../auth/usePermission";
-import { getNodeTypePermission } from "../../modules/university/utils/nodeTypeRegistry";
+import { getNodeTypePermission } from "../constants/nodeTypeRegistry";
 
 export function useNodeTypePermission() {
   const { can } = usePermission();

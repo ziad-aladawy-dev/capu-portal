@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as notificationService from "../../../core/services/notificationService";
 import { getStudentRequests } from "../../studentServices/services/studentServicesService";
-import { REQUEST_STATUS } from "../constants/requestStatus";
+import { REQUEST_STATUS } from "../../../core/constants/requestStatus";
 
 // Statuses a student still has to care about — drive the Requests tab badge.
 const OPEN_STATUSES = new Set([

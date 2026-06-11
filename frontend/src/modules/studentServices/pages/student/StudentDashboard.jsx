@@ -5,8 +5,8 @@ import { Package, ClipboardList, Clock, CheckCircle, ArrowRight } from "lucide-r
 import { getAvailableServicesForStudent } from "../../services/studentServicesService";
 import { useStudentStatistics } from "../../hooks/useStatistics";
 import { useAuth } from "../../../../core/contexts/AuthContext";
-import LoadingSpinner from "../../components/LoadingSpinner";
-import EmptyState from "../../components/EmptyState";
+import LoadingSpinner from "../../../../core/components/LoadingSpinner";
+import EmptyState from "../../../../core/components/EmptyState";
 import ServiceCard from "../../components/ServiceCard";
 import "../../styles/student/StudentDashboard.css";
 
@@ -76,7 +76,7 @@ const StudentDashboard = () => {
 
       <div className="std-dashboard-card">
         <div className="std-card-header"><h3>{t("services_catalog")}</h3><span className="std-card-badge">{services.length} {t("services")}</span></div>
-        {services.length === 0 ? <EmptyState message={t("no_services_available")} /> : (
+        {services.length === 0 ? <EmptyState title={t("no_services_available")} /> : (
           <div className="std-services-grid">{services.map(service => <ServiceCard key={service.id} service={service} />)}</div>
         )}
       </div>
