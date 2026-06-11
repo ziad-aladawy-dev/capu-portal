@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
+namespace CapitalUniversity.Core.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class first : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -110,6 +110,8 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     PoisonedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CorrelationId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Culture = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LockedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    LockedUntil = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
@@ -117,6 +119,25 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OutboxMessages", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasswordResetTokens",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    TokenHash = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ConsumedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetTokens", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -209,6 +230,31 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         principalTable: "StructureNodes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TreasuryReceipts",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ExternalId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    ExternalUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExternalVersion = table.Column<int>(type: "int", nullable: true),
+                    LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OriginSystem = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    ExternalReceiptId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ConnectionTypeId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    UnitAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TreasuryReceipts", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -368,6 +414,30 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                         name: "FK_Students_StructureNodes_StructureNodeId",
                         column: x => x.StructureNodeId,
                         principalTable: "StructureNodes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ServiceReceiptMappings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StudentServiceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReceiptId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    QuantityMode = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServiceReceiptMappings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ServiceReceiptMappings_TreasuryReceipts_ReceiptId",
+                        column: x => x.ReceiptId,
+                        principalTable: "TreasuryReceipts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -548,7 +618,7 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Invoices",
+                name: "AcademicSummarySnapshots",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -558,22 +628,53 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                     LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OriginSystem = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
-                    DueAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsClosed = table.Column<bool>(type: "bit", nullable: false),
-                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Gpa = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    Cgpa = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    EarnedCredits = table.Column<int>(type: "int", nullable: false),
+                    RemainingCredits = table.Column<int>(type: "int", nullable: false),
+                    PassedHours = table.Column<int>(type: "int", nullable: false),
+                    FailedHours = table.Column<int>(type: "int", nullable: false),
+                    AcademicStanding = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Invoices", x => x.Id);
+                    table.PrimaryKey("PK_AcademicSummarySnapshots", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Invoices_Students_StudentId",
+                        name: "FK_AcademicSummarySnapshots_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Gateway = table.Column<int>(type: "int", nullable: false),
+                    MerchantOrderId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    RedirectUrl = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: false),
+                    GatewaySessionRef = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReconciliationAttempts = table.Column<int>(type: "int", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Orders_Students_StudentId",
                         column: x => x.StudentId,
                         principalTable: "Students",
                         principalColumn: "Id",
@@ -610,42 +711,112 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InvoiceItems",
+                name: "StudentRegisteredCourses",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    InvoiceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    FeeType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    SourceModule = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    ReferenceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ExternalId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    ExternalUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExternalVersion = table.Column<int>(type: "int", nullable: true),
+                    LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OriginSystem = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CourseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SemesterId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StructureNodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AttemptNumber = table.Column<int>(type: "int", nullable: false),
+                    RegistrationStatus = table.Column<int>(type: "int", nullable: false),
+                    RegisteredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_InvoiceItems", x => x.Id);
+                    table.PrimaryKey("PK_StudentRegisteredCourses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_InvoiceItems_Invoices_InvoiceId",
-                        column: x => x.InvoiceId,
-                        principalTable: "Invoices",
+                        name: "FK_StudentRegisteredCourses_Courses_CourseId",
+                        column: x => x.CourseId,
+                        principalTable: "Courses",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StudentRegisteredCourses_Semesters_SemesterId",
+                        column: x => x.SemesterId,
+                        principalTable: "Semesters",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StudentRegisteredCourses_StructureNodes_StructureNodeId",
+                        column: x => x.StructureNodeId,
+                        principalTable: "StructureNodes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StudentRegisteredCourses_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "PaymentTransactions",
+                name: "StudentFees",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    InvoiceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Provider = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    ProviderTransactionId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    StudentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReceiptId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    UnitAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    RawPayloadJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceModule = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    SourceReferenceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentFees", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StudentFees_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_StudentFees_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StudentFees_TreasuryReceipts_ReceiptId",
+                        column: x => x.ReceiptId,
+                        principalTable: "TreasuryReceipts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TreasuryPaymentTransactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MerchantOrderId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Gateway = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    GatewayReference = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    RawResponse = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IdempotencyKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -653,13 +824,76 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PaymentTransactions", x => x.Id);
+                    table.PrimaryKey("PK_TreasuryPaymentTransactions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PaymentTransactions_Invoices_InvoiceId",
-                        column: x => x.InvoiceId,
-                        principalTable: "Invoices",
+                        name: "FK_TreasuryPaymentTransactions_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StudentAcademicResults",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ExternalId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    ExternalUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExternalVersion = table.Column<int>(type: "int", nullable: true),
+                    LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OriginSystem = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    StudentRegisteredCourseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Grade = table.Column<string>(type: "nvarchar(8)", maxLength: 8, nullable: true),
+                    NumericScore = table.Column<decimal>(type: "decimal(6,3)", precision: 6, scale: 3, nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreditsEarned = table.Column<int>(type: "int", nullable: false),
+                    IsLatestAttempt = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentAcademicResults", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StudentAcademicResults_StudentRegisteredCourses_StudentRegisteredCourseId",
+                        column: x => x.StudentRegisteredCourseId,
+                        principalTable: "StudentRegisteredCourses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FeeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Gateway = table.Column<int>(type: "int", nullable: false),
+                    MerchantOrderId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Payments_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payments_StudentFees_FeeId",
+                        column: x => x.FeeId,
+                        principalTable: "StudentFees",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -682,6 +916,19 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 name: "IX_AcademicPlans_StructureNodeId_IsActive",
                 table: "AcademicPlans",
                 columns: new[] { "StructureNodeId", "IsActive" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AcademicSummarySnapshots_ExternalId",
+                table: "AcademicSummarySnapshots",
+                column: "ExternalId",
+                unique: true,
+                filter: "[ExternalId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AcademicSummarySnapshots_StudentId",
+                table: "AcademicSummarySnapshots",
+                column: "StudentId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AcademicYears_IsCurrent",
@@ -738,28 +985,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 column: "IsActive");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InvoiceItems_InvoiceId",
-                table: "InvoiceItems",
-                column: "InvoiceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InvoiceItems_SourceModule_ReferenceId",
-                table: "InvoiceItems",
-                columns: new[] { "SourceModule", "ReferenceId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Invoices_ExternalId",
-                table: "Invoices",
-                column: "ExternalId",
-                unique: true,
-                filter: "[ExternalId] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Invoices_StudentId_Status",
-                table: "Invoices",
-                columns: new[] { "StudentId", "Status" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Modules_ModuleKey",
                 table: "Modules",
                 column: "ModuleKey",
@@ -778,6 +1003,23 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 column: "RecipientUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Orders_MerchantOrderId",
+                table: "Orders",
+                column: "MerchantOrderId",
+                unique: true,
+                filter: "[MerchantOrderId] <> ''");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_Status_ExpiresAt",
+                table: "Orders",
+                columns: new[] { "Status", "ExpiresAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_StudentId",
+                table: "Orders",
+                column: "StudentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessages_IsPoisoned_PoisonedAt",
                 table: "OutboxMessages",
                 columns: new[] { "IsPoisoned", "PoisonedAt" });
@@ -788,10 +1030,26 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 columns: new[] { "ProcessedAt", "EnqueuedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_PaymentTransactions_InvoiceId_IdempotencyKey",
-                table: "PaymentTransactions",
-                columns: new[] { "InvoiceId", "IdempotencyKey" },
+                name: "IX_PasswordResetTokens_TokenHash",
+                table: "PasswordResetTokens",
+                column: "TokenHash",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetTokens_UserId_ConsumedAt",
+                table: "PasswordResetTokens",
+                columns: new[] { "UserId", "ConsumedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_FeeId",
+                table: "Payments",
+                column: "FeeId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_OrderId",
+                table: "Payments",
+                column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_TokenHash",
@@ -856,6 +1114,18 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 columns: new[] { "AcademicYearId", "IsCurrent" },
                 unique: true,
                 filter: "[IsCurrent] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceReceiptMappings_ReceiptId",
+                table: "ServiceReceiptMappings",
+                column: "ReceiptId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceReceiptMappings_StudentServiceId",
+                table: "ServiceReceiptMappings",
+                column: "StudentServiceId",
+                unique: true,
+                filter: "[IsActive] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StaffPermissions_ResourceId",
@@ -937,6 +1207,44 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 column: "Type");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StudentAcademicResults_ExternalId",
+                table: "StudentAcademicResults",
+                column: "ExternalId",
+                unique: true,
+                filter: "[ExternalId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentAcademicResults_IsLatestAttempt",
+                table: "StudentAcademicResults",
+                column: "IsLatestAttempt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentAcademicResults_StudentRegisteredCourseId",
+                table: "StudentAcademicResults",
+                column: "StudentRegisteredCourseId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentFees_OrderId",
+                table: "StudentFees",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentFees_ReceiptId",
+                table: "StudentFees",
+                column: "ReceiptId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentFees_SourceModule_SourceReferenceId",
+                table: "StudentFees",
+                columns: new[] { "SourceModule", "SourceReferenceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentFees_StudentId_Status",
+                table: "StudentFees",
+                columns: new[] { "StudentId", "Status" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StudentProfileRecords_IsSensitive",
                 table: "StudentProfileRecords",
                 column: "IsSensitive",
@@ -953,6 +1261,44 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 columns: new[] { "StudentId", "Category", "CustomCategoryKey" },
                 unique: true,
                 filter: "[IsDeleted] = 0");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_CourseId",
+                table: "StudentRegisteredCourses",
+                column: "CourseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_ExternalId",
+                table: "StudentRegisteredCourses",
+                column: "ExternalId",
+                unique: true,
+                filter: "[ExternalId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_SemesterId",
+                table: "StudentRegisteredCourses",
+                column: "SemesterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_StructureNodeId",
+                table: "StudentRegisteredCourses",
+                column: "StructureNodeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_StudentId_CourseId_AttemptNumber",
+                table: "StudentRegisteredCourses",
+                columns: new[] { "StudentId", "CourseId", "AttemptNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_StudentId_RegistrationStatus",
+                table: "StudentRegisteredCourses",
+                columns: new[] { "StudentId", "RegistrationStatus" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentRegisteredCourses_StudentId_SemesterId",
+                table: "StudentRegisteredCourses",
+                columns: new[] { "StudentId", "SemesterId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Students_Email",
@@ -982,6 +1328,29 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 table: "Students",
                 column: "StudentCode",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TreasuryPaymentTransactions_MerchantOrderId_IdempotencyKey",
+                table: "TreasuryPaymentTransactions",
+                columns: new[] { "MerchantOrderId", "IdempotencyKey" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TreasuryPaymentTransactions_OrderId",
+                table: "TreasuryPaymentTransactions",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TreasuryReceipts_ConnectionTypeId_IsActive",
+                table: "TreasuryReceipts",
+                columns: new[] { "ConnectionTypeId", "IsActive" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TreasuryReceipts_ExternalId",
+                table: "TreasuryReceipts",
+                column: "ExternalId",
+                unique: true,
+                filter: "[ExternalId] IS NOT NULL");
         }
 
         /// <inheritdoc />
@@ -991,10 +1360,10 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 name: "AcademicPlanCourses");
 
             migrationBuilder.DropTable(
-                name: "CourseOfferings");
+                name: "AcademicSummarySnapshots");
 
             migrationBuilder.DropTable(
-                name: "InvoiceItems");
+                name: "CourseOfferings");
 
             migrationBuilder.DropTable(
                 name: "Notifications");
@@ -1003,7 +1372,10 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 name: "OutboxMessages");
 
             migrationBuilder.DropTable(
-                name: "PaymentTransactions");
+                name: "PasswordResetTokens");
+
+            migrationBuilder.DropTable(
+                name: "Payments");
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
@@ -1015,25 +1387,28 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 name: "ScheduleSlots");
 
             migrationBuilder.DropTable(
+                name: "ServiceReceiptMappings");
+
+            migrationBuilder.DropTable(
                 name: "StaffPermissions");
 
             migrationBuilder.DropTable(
                 name: "StaffRoles");
 
             migrationBuilder.DropTable(
+                name: "StudentAcademicResults");
+
+            migrationBuilder.DropTable(
                 name: "StudentProfileRecords");
+
+            migrationBuilder.DropTable(
+                name: "TreasuryPaymentTransactions");
 
             migrationBuilder.DropTable(
                 name: "AcademicPlans");
 
             migrationBuilder.DropTable(
-                name: "Courses");
-
-            migrationBuilder.DropTable(
-                name: "Semesters");
-
-            migrationBuilder.DropTable(
-                name: "Invoices");
+                name: "StudentFees");
 
             migrationBuilder.DropTable(
                 name: "Resources");
@@ -1045,13 +1420,28 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Migrations
                 name: "Staffs");
 
             migrationBuilder.DropTable(
-                name: "AcademicYears");
+                name: "StudentRegisteredCourses");
+
+            migrationBuilder.DropTable(
+                name: "Orders");
+
+            migrationBuilder.DropTable(
+                name: "TreasuryReceipts");
+
+            migrationBuilder.DropTable(
+                name: "Modules");
+
+            migrationBuilder.DropTable(
+                name: "Courses");
+
+            migrationBuilder.DropTable(
+                name: "Semesters");
 
             migrationBuilder.DropTable(
                 name: "Students");
 
             migrationBuilder.DropTable(
-                name: "Modules");
+                name: "AcademicYears");
 
             migrationBuilder.DropTable(
                 name: "StructureNodes");

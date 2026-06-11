@@ -1,11 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  getServices,
-  createService,
-  updateService,
-  deleteService,
-  toggleServiceStatus,
-} from "../services/studentServicesService";
+import { getServices, createService, updateService, deleteService, toggleServiceStatus } from "../services/studentServicesService";
 
 export const useServices = () => {
   const [services, setServices] = useState([]);
@@ -14,79 +8,38 @@ export const useServices = () => {
 
   const loadServices = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await getServices();
       setServices(Array.isArray(data) ? data : []);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to load services";
-      setError(msg);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const addService = async (data) => {
-    setError(null);
-    try {
-      const newService = await createService(data);
-      await loadServices();
-      return newService;
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to create service";
-      setError(msg);
-      throw new Error(msg);
-    }
+    const newService = await createService(data);
+    await loadServices();
+    return newService;
   };
 
   const editService = async (id, data) => {
-    setError(null);
-    try {
-      await updateService(id, data);
-      await loadServices();
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to update service";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await updateService(id, data);
+    await loadServices();
   };
 
   const removeService = async (id) => {
-    setError(null);
-    try {
-      await deleteService(id);
-      await loadServices();
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to delete service";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await deleteService(id);
+    await loadServices();
   };
 
   const toggleStatus = async (id) => {
-    setError(null);
-    try {
-      await toggleServiceStatus(id);
-      await loadServices();
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to toggle status";
-      setError(msg);
-      throw new Error(msg);
-    }
+    await toggleServiceStatus(id);
+    await loadServices();
   };
 
-  useEffect(() => {
-    loadServices();
-  }, [loadServices]);
+  useEffect(() => { loadServices(); }, [loadServices]);
 
-  return {
-    services,
-    loading,
-    error,
-    addService,
-    editService,
-    removeService,
-    toggleStatus,
-    refresh: loadServices,
-  };
+  return { services, loading, error, addService, editService, removeService, toggleStatus, refresh: loadServices };
 };

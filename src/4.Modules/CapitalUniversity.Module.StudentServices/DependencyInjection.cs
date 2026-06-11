@@ -1,4 +1,6 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Modules;
+using CapitalUniversity.Module.StudentServices.Abstractions.Manifest;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Application;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
@@ -30,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IWorkflowManagementService, WorkflowManagementService>();
         services.AddScoped<IDashboardStatisticsService, DashboardStatisticsService>();
         services.AddScoped<IFileUploadService, FileUploadService>();
+
+        services.AddSingleton<IPermissionManifest, StudentServicesPermissionManifest>();
 
         services.AddSingleton<IManifest, StudentServicesManifest>();
 

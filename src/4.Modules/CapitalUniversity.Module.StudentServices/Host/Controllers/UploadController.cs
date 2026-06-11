@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Module.StudentServices.Abstractions.Services;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using CapitalUniversity.Module.StudentServices.Domain;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,7 @@ public class UploadController : ControllerBase
     }
 
     [HttpPost("request/{requestId:guid}/step/{stepKey}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsEditClose)]
     public async Task<IActionResult> UploadFile(Guid requestId, string stepKey, IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -33,6 +35,7 @@ public class UploadController : ControllerBase
     }
 
     [HttpGet("attachment/{attachmentId:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> DownloadFile(Guid attachmentId, CancellationToken cancellationToken)
     {
         var fileBytes = await _fileUploadService.DownloadFileAsync(attachmentId, cancellationToken);
@@ -48,6 +51,7 @@ public class UploadController : ControllerBase
     }
 
     [HttpDelete("attachment/{attachmentId:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsEditClose)]
     public async Task<IActionResult> DeleteFile(Guid attachmentId, CancellationToken cancellationToken)
     {
         await _fileUploadService.DeleteFileAsync(attachmentId, cancellationToken);

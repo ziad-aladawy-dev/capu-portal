@@ -29,6 +29,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpGet("all")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetAllRequests(CancellationToken cancellationToken)
     {
         var result = await _requestService.GetAllRequestsForStaffAsync(cancellationToken);
@@ -36,6 +37,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _requestService.GetStudentRequestAsync(id, cancellationToken);
@@ -71,6 +73,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/assign")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsAssign)]
     public async Task<IActionResult> Assign(Guid id, [FromBody] AssignRequest request, CancellationToken cancellationToken)
     {
         var result = await _requestService.AssignToStaffAsync(id, request.StaffId, cancellationToken);
@@ -78,6 +81,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/status")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsEditClose)]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request, CancellationToken cancellationToken)
     {
         var result = await _requestService.UpdateStatusAsync(id, request.NewStatus, request.Comment, cancellationToken);
@@ -85,6 +89,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/comment")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsEditClose)]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken cancellationToken)
     {
         var result = await _requestService.AddCommentAsync(id, request.Comment, _currentUser.Id, _currentUser.Role, cancellationToken);
@@ -92,6 +97,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpGet("assigned-to-me")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetAssignedToMe(CancellationToken cancellationToken)
     {
         var result = await _requestService.GetPendingAssignmentsAsync(_currentUser.Id, cancellationToken);
@@ -99,6 +105,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpGet("staff/paged")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetPagedForStaff(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
@@ -112,6 +119,7 @@ public class StudentRequestsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/attachments")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetAttachments(Guid id, CancellationToken cancellationToken)
     {
         var attachments = await _requestService.GetAttachmentsByRequestIdAsync(id, cancellationToken);

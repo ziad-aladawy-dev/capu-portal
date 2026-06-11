@@ -770,7 +770,7 @@ public static class DataSeeder
             ("FAC-002",   "Dr. Ahmed Abdel-Rahman","27807071234567", new(1970, 8, 18),  "01111111117", "ahmed.abdelrahman@capital.edu.eg", "Faculty Admin",    LocalizedJson.Of("وكيل الكلية للشؤون الأكاديمية","Vice Dean for Academic Affairs"), "Mataria"),
         };
 
-        var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode);
+        var existing = await context.Staffs.ToDictionaryAsync(s => s.EmployeeCode, s => s);
         var added = 0;
         var updated = 0;
         foreach (var d in defs)

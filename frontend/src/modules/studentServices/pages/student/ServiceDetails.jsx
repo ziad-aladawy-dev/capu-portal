@@ -1,78 +1,87 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Clock, CreditCard, FileText, CheckCircle } from "lucide-react";
+import { DollarSign, Layers } from "lucide-react";
 import { getServiceById } from "../../services/studentServicesService";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import StatusBadge from "../../components/StatusBadge";
-import "../../styles/student/ServiceDetails.css";
+import "../../styles/student/StudentServiceDetailsPage.css";
 
 const ServiceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadService = async () => {
-      setLoading(true);
+    const load = async () => {
       try {
         const data = await getServiceById(id);
         setService(data);
       } catch (err) {
-        console.error(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    loadService();
+    load();
   }, [id]);
 
+  const getLocalized = (text) => {
+    if (!text) return "";
+    try {
+      const parsed = JSON.parse(text);
+      return i18n.language === "ar" ? parsed.ar || parsed.en : parsed.en || parsed.ar;
+    } catch { return text; }
+  };
+
+  const getTypeLabel = (type) => {
+    if (typeof type === "number") { const map = { 1: "General", 2: "Specialized", 3: "Administrative" }; type = map[type] || "General"; }
+    const labels = { General: t("general"), Specialized: t("specialized"), Administrative: t("administrative") };
+    return labels[type] || type;
+  };
+
   if (loading) return <LoadingSpinner />;
-  if (!service) return <div className="sd-notfound">{t("service_not_found")}</div>;
+  if (error) return <div className="error-state">{error}</div>;
+  if (!service) return <div className="error-state">{t("service_not_found")}</div>;
 
   return (
-    <div className="sd-container">
-      <button className="sd-back-btn" onClick={() => navigate("/student/dashboard")}>
-        <ArrowLeft size={16} /> {t("back_to_dashboard")}
-      </button>
-      <div className="sd-header">
-        <div className="sd-icon">📄</div>
-        <div className="sd-title">
-          <h1>{service.name}</h1>
-          <div className="sd-badges">
-            <StatusBadge status={service.isActive ? "active" : "inactive"} type="service" />
-            {service.isPaid ? <span className="sd-badge-paid">${service.price}</span> : <span className="sd-badge-free">{t("free")}</span>}
+    <div className="student-service-details-page">
+      <div className="details-container">
+        <div className="details-card">
+          <h1>{getLocalized(service.name)}</h1>
+          <div className="meta-row">
+            <span className="badge-type">{getTypeLabel(service.type)}</span>
+            <StatusBadge status={service.isActive ? "active" : "inactive"} />
           </div>
-        </div>
-      </div>
-      <div className="sd-content">
-        <div className="sd-main">
-          <div className="sd-card"><h3>{t("description")}</h3><p>{service.description}</p></div>
-          <div className="sd-card"><h3>{t("instructions")}</h3><p>{service.instructions || t("no_instructions")}</p></div>
-          <div className="sd-card"><h3>{t("requirements")}</h3><ul>{service.requirements?.map((r,i)=><li key={i}>{r}</li>)}</ul></div>
-          <div className="sd-card"><h3>{t("workflow_preview")}</h3>
-            <div className="sd-workflow">
-              {service.workflow?.steps?.map((step, idx) => (
-                <div key={idx} className="sd-workflow-step">
-                  <span className="sd-step-num">{idx+1}</span>
-                  <span>{step.title}</span>
-                  {idx < service.workflow.steps.length-1 && <span className="sd-step-arrow">→</span>}
-                </div>
-              ))}
+          <p className="description">{getLocalized(service.description) || t("no_description")}</p>
+          <div className="info-grid">
+            <div className="info-item">
+              <div className="info-icon"><DollarSign size={18} /></div>
+              <div><span className="info-label">{t("pricing")}</span><span className="info-value">{service.isPaid ? `$${service.price}` : t("free")}</span></div>
             </div>
           </div>
-        </div>
-        <div className="sd-sidebar">
-          <div className="sd-info-card">
-            <div><Clock size={18} /> {t("estimated_processing")}: {service.estimatedProcessingDays || 5} {t("days")}</div>
-            <div><CreditCard size={18} /> {service.isPaid ? `$${service.price}` : t("free")}</div>
-            <div><FileText size={18} /> {t("category")}: {service.category || t("general")}</div>
+          {service.workflow?.steps?.length > 0 && (
+            <div className="workflow-section">
+              <h3><Layers size={18} /> {t("workflow_steps")}</h3>
+              <div className="workflow-steps-list">
+                {service.workflow.steps.map((step, idx) => (
+                  <div key={idx} className="step-item">
+                    <span className="step-number">{idx+1}</span>
+                    <span className="step-title">{step.title}</span>
+                    {step.isRequired && <span className="step-required">{t("required")}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="apply-section">
+            <button className="apply-btn" onClick={() => navigate(`/student/services/${id}/apply`)} disabled={!service.isActive}>
+              {service.isActive ? t("apply_for_service") : t("service_closed")}
+            </button>
           </div>
-          <button className="sd-apply-btn" onClick={() => navigate(`/student/services/${id}/apply`)} disabled={!service.isActive}>
-            {service.isActive ? t("apply_for_service") : t("service_closed")}
-          </button>
         </div>
       </div>
     </div>

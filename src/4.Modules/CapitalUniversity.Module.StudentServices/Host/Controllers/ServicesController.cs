@@ -1,4 +1,5 @@
-﻿using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
 using CapitalUniversity.Module.StudentServices.Abstractions.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesView)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _service.GetAllActiveServicesAsync(cancellationToken);
@@ -25,6 +27,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet("all")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesView)]
     public async Task<IActionResult> GetAllServices(CancellationToken cancellationToken)
     {
         var result = await _service.GetAllServicesAsync(cancellationToken);
@@ -32,6 +35,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesView)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _service.GetServiceAsync(id, cancellationToken);
@@ -39,6 +43,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesInsert)]
     public async Task<IActionResult> Create([FromBody] CreateServiceDto dto, CancellationToken cancellationToken)
     {
         var id = await _service.CreateServiceAsync(dto, cancellationToken);
@@ -46,6 +51,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesEditClose)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateServiceDto dto, CancellationToken cancellationToken)
     {
         await _service.UpdateServiceAsync(id, dto, cancellationToken);
@@ -53,6 +59,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesDelete)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _service.DeleteServiceAsync(id, cancellationToken);
@@ -60,6 +67,7 @@ public class ServicesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/toggle")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.ServicesEditClose)]
     public async Task<IActionResult> ToggleStatus(Guid id, CancellationToken cancellationToken)
     {
         await _service.ToggleServiceStatusAsync(id, cancellationToken);

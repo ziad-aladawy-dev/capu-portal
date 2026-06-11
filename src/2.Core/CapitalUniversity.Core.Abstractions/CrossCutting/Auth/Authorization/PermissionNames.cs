@@ -254,4 +254,29 @@ public static class PermissionNames
     {
         public const string View = "system.audit-logs.View";
     }
+
+    public static class StudentServices
+    {
+        // Services
+        public const string ServicesView = "student-services.services.View";
+        public const string ServicesInsert = "student-services.services.Insert";
+        public const string ServicesEditClose = "student-services.services.EditClose";
+        public const string ServicesOpen = "student-services.services.Open";
+        public const string ServicesDelete = "student-services.services.Delete";
+
+        // Requests
+        public const string RequestsView = "student-services.requests.View";
+        public const string RequestsInsert = "student-services.requests.Insert";
+        public const string RequestsEditClose = "student-services.requests.EditClose";
+        public const string RequestsOpen = "student-services.requests.Open";
+        public const string RequestsDelete = "student-services.requests.Delete";
+        public const string RequestsAssign = "student-services.requests.Assign";
+
+        // Workflows
+        public const string WorkflowsView = "student-services.workflows.View";
+        public const string WorkflowsInsert = "student-services.workflows.Insert";
+        public const string WorkflowsEditClose = "student-services.workflows.EditClose";
+        public const string WorkflowsOpen = "student-services.workflows.Open";
+        public const string WorkflowsDelete = "student-services.workflows.Delete";
+    }
 }

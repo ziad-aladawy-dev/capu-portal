@@ -11,12 +11,12 @@ const RequestCard = ({ request, role = "student" }) => {
   return (
     <div className="request-card" onClick={() => navigate(`/${role}/requests/${request.id}`)}>
       <div className="request-card-header">
-        <span className="request-id">#{request.id}</span>
+        <span className="request-id">#{request.requestNumber}</span>
         <StatusBadge status={request.status} />
       </div>
       <div className="request-card-body">
         <h4>{request.serviceName}</h4>
-        <p>{t("submitted")}: {new Date(request.submittedDate).toLocaleDateString()}</p>
+        <p>{t("submitted")}: {new Date(request.submittedAt).toLocaleDateString()}</p>
         {role === "staff" && <p>{t("student")}: {request.studentName}</p>}
       </div>
     </div>
