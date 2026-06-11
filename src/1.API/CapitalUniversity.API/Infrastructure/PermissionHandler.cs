@@ -11,6 +11,7 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
     private readonly IPermissionManagementService _permissionService;
     private readonly ICurrentUser _currentUser;
     private readonly IEffectiveScope _scope;
+    private readonly IUserScope _userScope;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuthAuditLogger? _audit;
 
@@ -18,12 +19,14 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
         IPermissionManagementService permissionService,
         ICurrentUser currentUser,
         IEffectiveScope scope,
+        IUserScope userScope,
         IHttpContextAccessor httpContextAccessor,
         IAuthAuditLogger? audit = null)
     {
         _permissionService = permissionService;
         _currentUser = currentUser;
         _scope = scope;
+        _userScope = userScope;
         _httpContextAccessor = httpContextAccessor;
         _audit = audit;
     }
@@ -38,7 +41,17 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
         // Optimized hashtable lookup (HashSet)
         var permissions = await _permissionService.GetPermissionLookupAsync(_currentUser.Id);
 
-        if (!permissions.Contains(requirement.Permission))
+        // Students hold no role grants (context-scoped model), so a fixed set of
+        // self-service permissions is granted IMPLICITLY to IsStudent callers.
+        // Self-access is still enforced below by the scope binding (for
+        // Student-scoped endpoints) or by the controller binding studentId from
+        // the JWT. Without this, every student request 403'd — the "unauthorized
+        // login loop". The grant is narrow: only StudentSelfPermissions entries,
+        // never an ops/admin resource.
+        var hasPermission = permissions.Contains(requirement.Permission)
+            || (_userScope.IsStudent && StudentSelfPermissions.Contains(requirement.Permission));
+
+        if (!hasPermission)
         {
             if (_audit is not null)
             {
