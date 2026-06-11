@@ -72,7 +72,8 @@ public class PermissionManagementService : IPermissionManagementService
                 // header chip and welcome screen pick up "Menna Magdy"
                 // / "منة مجدى" without a follow-up GET.
                 Name = _localization.Get<string>(user.Name),
-                Email = user.Email
+                Email = user.Email,
+                Role = user.Role
             }
         };
 

@@ -66,6 +66,20 @@ public class StudentSelfAccessApiTests : IClassFixture<WebApplicationFactory<Mod
         return client;
     }
 
+    [Fact]
+    public async Task Login_ReturnsRole_SoTheSpaCanGateStudentRoutes()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequestDto { Identifier = StudentNid, Password = StudentPwd });
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
+        // The SPA reads user.role to recognise a context-scoped student (whose
+        // permission list is empty) and admit them to the student surface.
+        body!.User.Role.Should().Be("Student");
+    }
+
     [Theory]
     [InlineData("/api/grades/history")]
     [InlineData("/api/grades/summary")]

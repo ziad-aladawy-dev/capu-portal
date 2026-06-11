@@ -39,6 +39,15 @@ public class UserInfoDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The caller's role (e.g. "Student", "Super Admin"). Needed by the SPA to
+    /// pick the correct shell and gate routes — in particular, a Student is
+    /// context-scoped and holds no permission entries, so the client recognises
+    /// the role to grant access to the student surface. Not PII.
+    /// </summary>
+    public string Role { get; set; } = string.Empty;
+
     public UserAttributesDto Attributes { get; set; } = new();
 }
 

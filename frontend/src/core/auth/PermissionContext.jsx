@@ -57,7 +57,8 @@ function matchScope(p, scopeNode, selectedYearObj, selectedSemesterObj) {
 }
 
 function PermissionProvider({ children }) {
-  const { permissions } = useAuth();
+  const { permissions, user } = useAuth();
+  const isStudent = (user?.role || "").toLowerCase() === "student";
   const { scopeNode } = useDomain();
   const { selectedYearObj, selectedSemesterObj } = useAcademic();
 
@@ -89,6 +90,15 @@ function PermissionProvider({ children }) {
   };
 
   const can = (resource, minLevel = 1) => {
+    // Students are context-scoped: they hold no explicit permission entries, but
+    // are entitled to their own "student.*" surface. The backend enforces the
+    // actual (self-scoped) data access; the client only needs to let the student
+    // into their portal. Without this, a student's empty permission list makes
+    // every student route fail can() and bounces them to the login with
+    // ?session=unauthorized (the "unauthorized login loop").
+    if (isStudent && typeof resource === "string" && resource.startsWith("student.")) {
+      return true;
+    }
     if (!permissions || permissions.length === 0) {
       return false;
     }
