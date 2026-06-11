@@ -155,14 +155,16 @@ public class LocalizedJsonTests
     }
 
     [Fact]
-    public void CourseMapper_LocalizesCodeAndTitle_KeepsCreditHoursAndCategoryRaw()
+    public void CourseMapper_LocalizesTitleOnly_KeepsCodeCreditHoursAndCategoryRaw()
     {
-        // Mapper produces a Core Courses.Course. Code + Title are bilingual
-        // (matches Core CourseMapper.ForceNormalizeIncoming).
+        // Mapper produces a Core Courses.Course. Title is bilingual (matches
+        // Core CourseMapper.ForceNormalizeIncoming); Code is language-neutral
+        // plain text — JSON-wrapping it mangled the keys through Core's
+        // upper-casing setter and overflowed the nvarchar(32) column.
         var entity = new CourseMapper().Map(new ExternalCourse
         {
             ExternalCourseId = "EXT-C-0001",
-            Code = "MATH-101",
+            Code = "math-101",
             Title = "Intro to Mathematics",
             CreditHours = 3,
             Category = CourseCategory.ProgramRequirement,
@@ -172,9 +174,8 @@ public class LocalizedJsonTests
         });
 
         entity.ExternallySourced.ExternalId.Should().Be("EXT-C-0001");
-        // Core's Course.Code setter uppercases the value — the JSON literal flows
-        // through unchanged structurally; the test pins the bilingual shape.
-        entity.Code.Should().Be("{\"AR\":\"MATH-101\",\"EN\":\"MATH-101\"}");
+        // Core's Course.Code setter trims and upper-cases the bare code.
+        entity.Code.Should().Be("MATH-101");
         entity.Title.Should().Be("{\"ar\":\"Intro to Mathematics\",\"en\":\"Intro to Mathematics\"}");
         entity.CreditHours.Should().Be(3);
         entity.Category.Should().Be(CourseCategory.ProgramRequirement);

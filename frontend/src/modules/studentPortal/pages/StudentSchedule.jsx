@@ -1,340 +1,233 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react";
+import {
+  Calendar, CalendarDays, List, Clock, MapPin, Download, AlertCircle,
+} from "lucide-react";
 import { useAuth } from "../../../core/auth/useAuth";
-import * as scheduleService from "../../../core/services/scheduleService";
-import * as courseService from "../../../core/services/courseService";
-import api from "../../../core/api/apiClient";
-import "../styles/studentSchedule.css";
+import { useAcademic } from "../../../core/contexts/AcademicContext";
+import { getLocalized } from "../../../core/utils/getLocalized";
+import PortalPageShell from "../components/shared/PortalPageShell";
+import PortalCard from "../components/shared/PortalCard";
+import PortalBadge from "../components/shared/PortalBadge";
+import PortalSkeleton from "../components/shared/PortalSkeleton";
+import PortalEmptyState from "../components/shared/PortalEmptyState";
+import { useStudentSchedule, downloadIcs } from "../hooks/useStudentSchedule";
+import styles from "./StudentSchedule.module.css";
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const HOURS = ["8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+const DAY_KEYS = { 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday", 7: "sunday" };
+const GRID_DAYS = [1, 2, 3, 4, 5]; // Mon–Fri teaching week
+const START_HOUR = 8;
+const END_HOUR = 18;
+const HOUR_PX = 64;
 
-const SLOT_COLORS = [
-  "#1a1f5e", "#c9a84c", "#2563eb", "#059669", "#d97706",
-  "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#ca8a04",
-];
+const toMinutes = (time) => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + (m || 0);
+};
 
-function hashColor(code) {
-  let hash = 0;
-  for (let i = 0; i < code.length; i++) {
-    hash = code.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return SLOT_COLORS[Math.abs(hash) % SLOT_COLORS.length];
+function slotTop(start) {
+  return ((toMinutes(start) - START_HOUR * 60) / 60) * HOUR_PX;
 }
 
-function formatTime(timeStr) {
-  const parts = timeStr.split(":");
-  return `${parseInt(parts[0], 10)}:${parts[1] || "00"}`;
+function slotHeight(start, end) {
+  return Math.max(26, ((toMinutes(end) - toMinutes(start)) / 60) * HOUR_PX - 3);
 }
 
-const DAY_MAP = { 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday" };
-
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function StudentSchedule() {
-  const { t } = useTranslation();
-  const { activeScope } = useAuth();
-  const [scheduleData, setScheduleData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const now = new Date();
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
-  const [currentYear, setCurrentYear] = useState(now.getFullYear());
-
+/** Red "now" line; jsDay 0=Sun..6 → our dayNum 1=Mon..7. */
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchSchedule = async () => {
-      setLoading(true);
-      setError(null);
-
-      let nodeId = activeScope?.structural?.nodeId;
-      let semesterId = activeScope?.temporal?.semesterId;
-
-      if (!nodeId || !semesterId) {
-        try {
-          const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
-          const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
-          if (!nodeId && scopeNode?.id) nodeId = scopeNode.id;
-          if (!semesterId && semester?.id) semesterId = semester.id;
-        } catch { }
-      }
-
-      if (!nodeId || !semesterId) {
-        if (!cancelled) {
-          setError(t("academic_scope_not_configured"));
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const offeringsResp = await api.get(`/course-offerings/node/${nodeId}/semester/${semesterId}`);
-        const offerings = Array.isArray(offeringsResp.data) ? offeringsResp.data : [];
-
-        if (offerings.length === 0) {
-          if (!cancelled) { setScheduleData([]); setLoading(false); }
-          return;
-        }
-
-        const slotsResults = await Promise.allSettled(
-          offerings.map(o =>
-            scheduleService.fetchSlotsForOffering(o.id)
-              .then(slots => ({ offeringId: o.id, slots: Array.isArray(slots) ? slots : [] }))
-          )
-        );
-
-        const slotsByOffering = {};
-        slotsResults.forEach(r => {
-          if (r.status === "fulfilled") {
-            slotsByOffering[r.value.offeringId] = r.value.slots;
-          }
-        });
-
-        const courseIds = [...new Set(offerings.map(o => o.courseId))];
-        const courseResults = await Promise.allSettled(
-          courseIds.map(id => courseService.fetchCourse(id))
-        );
-        const courseMap = {};
-        courseIds.forEach((id, i) => {
-          if (courseResults[i].status === "fulfilled" && courseResults[i].value) {
-            courseMap[id] = courseResults[i].value;
-          }
-        });
-
-        const offeringMap = {};
-        offerings.forEach(o => { offeringMap[o.id] = o; });
-
-        const data = [];
-        Object.entries(slotsByOffering).forEach(([offeringId, slots]) => {
-          const offering = offeringMap[offeringId];
-          if (!offering) return;
-          const course = courseMap[offering.courseId];
-          if (!course) return;
-
-          slots.forEach(slot => {
-            const dayNum = typeof slot.dayOfWeek === "number" ? slot.dayOfWeek : parseInt(slot.dayOfWeek, 10);
-            const dayName = DAY_MAP[dayNum];
-            if (!dayName) return;
-
-            data.push({
-              day: dayName,
-              start: formatTime(slot.startTime),
-              end: formatTime(slot.endTime),
-              code: course.code || "?",
-              title: course.title || t("unknown"),
-              room: slot.location || t("not_specified"),
-              color: hashColor(course.code || "?"),
-              sectionCode: offering.sectionCode,
-              isClosed: slot.isClosed,
-            });
-          });
-        });
-
-        if (!cancelled) {
-          setScheduleData(data);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message || t("failed_to_load_data"));
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchSchedule();
-    return () => { cancelled = true; };
-  }, [activeScope]);
-
-  const prevMonth = () => {
-    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); }
-    else setCurrentMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); }
-    else setCurrentMonth(m => m + 1);
-  };
-
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const calendarDays = [];
-  for (let i = 0; i < firstDay; i++) calendarDays.push(null);
-  for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
-
-  const getSlotTop = (time) => {
-    const [h, m] = time.split(":").map(Number);
-    return ((h - 8) * 60 + m) / 60 * 80 + 40;
-  };
-  const getSlotHeight = (start, end) => {
-    const [sh, sm] = start.split(":").map(Number);
-    const [eh, em] = end.split(":").map(Number);
-    return ((eh * 60 + em) - (sh * 60 + sm)) / 60 * 80 - 4;
-  };
-
-  if (loading) {
-    return (
-      <div className="student-schedule-container">
-        <div className="ss-header">
-          <h1>{t("my_schedule")}</h1>
-          <p>{t("loading_schedule")}</p>
-        </div>
-        <div className="ss-status">
-          <div className="ss-spinner" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="student-schedule-container">
-        <div className="ss-header">
-          <h1>{t("my_schedule")}</h1>
-          <p>{t("class_timetable")}</p>
-        </div>
-        <div className="ss-status">
-          <AlertCircle size={48} color="#dc2626" />
-          <h3>{t("failed_to_load_data")}</h3>
-          <p className="ss-status-text">{error}</p>
-          <button className="ss-retry-btn" onClick={() => window.location.reload()}>
-            {t("retry")}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (scheduleData.length === 0) {
-    return (
-      <div className="student-schedule-container">
-        <div className="ss-header">
-          <h1>{t("my_schedule")}</h1>
-          <p>{t("class_timetable")}</p>
-        </div>
-        <div className="ss-status">
-          <h3>{t("no_schedule")}</h3>
-          <p className="ss-status-text">{t("no_schedule_message")}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const uniqueCourses = scheduleData.reduce((acc, s) => {
-    if (!acc.find(u => u.code === s.code)) {
-      acc.push({
-        code: s.code,
-        title: s.title,
-        color: s.color,
-        slots: scheduleData.filter(x => x.code === s.code),
-      });
-    }
-    return acc;
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
   }, []);
+  const dayNum = now.getDay() === 0 ? 7 : now.getDay();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  return { dayNum, minutes };
+}
+
+function SlotBlock({ s, t, compact = false }) {
+  return (
+    <div
+      className={`${styles.slot} ${s.isClosed ? styles.slotClosed : ""}`}
+      style={{ top: slotTop(s.start), height: slotHeight(s.start, s.end), background: s.color }}
+      title={`${s.code} · ${s.title} · ${s.start}–${s.end}${s.room ? ` · ${s.room}` : ""}`}
+    >
+      <strong>{s.code}</strong>
+      {!compact && <span className={styles.slotTitle}>{s.title}</span>}
+      <span className={styles.slotMeta}>
+        {s.start}–{s.end}{s.room ? ` · ${s.room}` : ""}
+      </span>
+      {s.isClosed && <span className={styles.slotMeta}>{t("portal_schedule.closed", { defaultValue: "Closed" })}</span>}
+    </div>
+  );
+}
+
+function TimeGrid({ days, rows, t, now }) {
+  const hours = [];
+  for (let h = START_HOUR; h <= END_HOUR; h++) hours.push(h);
+  const gridHeight = (END_HOUR - START_HOUR) * HOUR_PX;
+  const nowTop = ((now.minutes - START_HOUR * 60) / 60) * HOUR_PX;
+  const nowVisible = now.minutes >= START_HOUR * 60 && now.minutes <= END_HOUR * 60;
 
   return (
-    <div className="student-schedule-container">
-      <div className="ss-header">
-        <h1>{t("my_schedule")}</h1>
-        <p>{t("class_timetable")}</p>
+    <PortalCard padding="none" className={styles.gridCard}>
+      <div className={styles.gridHead} style={{ gridTemplateColumns: `52px repeat(${days.length}, 1fr)` }}>
+        <div />
+        {days.map((d) => (
+          <div key={d} className={`${styles.dayHead} ${d === now.dayNum ? styles.dayHeadToday : ""}`}>
+            {t(`portal_schedule.${DAY_KEYS[d]}`, { defaultValue: DAY_KEYS[d] })}
+          </div>
+        ))}
       </div>
-
-      <div className="ss-content">
-        <div className="ss-weekly">
-          <h2>{t("weekly_timetable")}</h2>
-          <div className="ss-timetable">
-            <div className="ss-time-header">
-              <div className="time-label-header"></div>
-              {DAYS.map(day => (
-                <div key={day} className="day-header">{t("day_" + day.toLowerCase())}</div>
-              ))}
-            </div>
-
-            <div className="ss-time-grid">
-              <div className="time-labels">
-                {HOURS.map((h, i) => (
-                  <div key={h} className="time-label" style={{ top: i * 80 + 40 }}>
-                    {h}
-                  </div>
-                ))}
-              </div>
-
-              <div className="ss-grid-body">
-                <div className="grid-lines">
-                  {HOURS.map((_, i) => (
-                    <div key={i} className="grid-line" style={{ top: i * 80 + 40 }}></div>
-                  ))}
-                </div>
-
-                {DAYS.map(day => (
-                  <div key={day} className="day-column">
-                    {scheduleData.filter(s => s.day === day).map((slot, i) => (
-                      <div
-                        key={i}
-                        className={`ss-slot${slot.isClosed ? " ss-slot-closed" : ""}`}
-                        style={{
-                          top: getSlotTop(slot.start),
-                          height: getSlotHeight(slot.start, slot.end),
-                          backgroundColor: slot.color,
-                        }}
-                      >
-                        <strong>{slot.code}</strong>
-                        <small>{slot.title}</small>
-                        <small>{slot.room} &middot; {slot.start}-{slot.end}</small>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="ss-calendar">
-          <div className="calendar-header">
-            <button onClick={prevMonth}><ChevronLeft size={20} /></button>
-            <h3>{t(`month_${currentMonth + 1}`)} {currentYear}</h3>
-            <button onClick={nextMonth}><ChevronRight size={20} /></button>
-          </div>
-          <div className="calendar-weekdays">
-            {WEEKDAYS.map(d => <div key={d} className="weekday">{t("day_short_" + d.toLowerCase())}</div>)}
-          </div>
-          <div className="calendar-grid">
-            {calendarDays.map((day, i) => (
-              <div key={i} className={`calendar-day ${day === null ? "empty" : day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear() ? "today" : ""}`}>
-                {day !== null && <span className="day-number">{day}</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="ss-section">
-        <h2>{t("course_schedule_details")}</h2>
-        <div className="ss-details-list">
-          {uniqueCourses.map((course, i) => (
-            <div key={i} className="ss-detail-card">
-              <div className="detail-color" style={{ backgroundColor: course.color }}></div>
-              <div className="detail-info">
-                <h4>{course.title}</h4>
-                <p>{course.code}{course.slots[0]?.sectionCode ? ` (${t("section")} ${course.slots[0].sectionCode})` : ""}</p>
-              </div>
-              <div className="detail-times">
-                {course.slots.map((s, j) => (
-                  <div key={j} className="time-chip">
-                    <Clock size={12} />
-                    <span>{t("day_" + s.day.toLowerCase())} {s.start}-{s.end}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+      <div className={styles.gridBody} style={{ gridTemplateColumns: `52px repeat(${days.length}, 1fr)`, height: gridHeight }}>
+        <div className={styles.timeCol}>
+          {hours.map((h) => (
+            <span key={h} className={styles.timeLabel} style={{ top: (h - START_HOUR) * HOUR_PX }}>
+              {String(h).padStart(2, "0")}:00
+            </span>
           ))}
         </div>
+        {days.map((d) => (
+          <div key={d} className={styles.dayCol}>
+            {hours.map((h) => (
+              <div key={h} className={styles.hourLine} style={{ top: (h - START_HOUR) * HOUR_PX }} />
+            ))}
+            {d === now.dayNum && nowVisible && (
+              <div className={styles.nowLine} style={{ top: nowTop }}>
+                <span className={styles.nowDot} />
+              </div>
+            )}
+            {rows.filter((s) => s.dayNum === d).map((s, i) => (
+              <SlotBlock key={s.id ?? i} s={s} t={t} compact={days.length > 1} />
+            ))}
+          </div>
+        ))}
       </div>
+    </PortalCard>
+  );
+}
+
+function ListView({ rows, t }) {
+  const byDay = useMemo(() => {
+    const m = new Map();
+    for (const s of rows) {
+      if (!m.has(s.dayNum)) m.set(s.dayNum, []);
+      m.get(s.dayNum).push(s);
+    }
+    return [...m.entries()].sort((a, b) => a[0] - b[0]);
+  }, [rows]);
+
+  return (
+    <div className={styles.list}>
+      {byDay.map(([d, slots]) => (
+        <PortalCard key={d}>
+          <h3 className={styles.listDay}>{t(`portal_schedule.${DAY_KEYS[d]}`, { defaultValue: DAY_KEYS[d] })}</h3>
+          <ul className={styles.listItems}>
+            {slots.map((s, i) => (
+              <li key={s.id ?? i} className={styles.listItem}>
+                <span className={styles.listDot} style={{ background: s.color }} />
+                <span className={styles.listTime}><Clock size={12} /> {s.start}–{s.end}</span>
+                <span className={styles.listCourse}>{s.code} · {s.title}</span>
+                {s.room && <span className={styles.listRoom}><MapPin size={11} /> {s.room}</span>}
+              </li>
+            ))}
+          </ul>
+        </PortalCard>
+      ))}
     </div>
+  );
+}
+
+function StudentSchedule() {
+  const { t, i18n } = useTranslation();
+  const { activeScope } = useAuth();
+  const { selectedSemesterObj } = useAcademic();
+  const schedule = useStudentSchedule(activeScope);
+  const now = useNow();
+  const [view, setView] = useState(() => (window.innerWidth < 700 ? "list" : "week"));
+
+  const rows = schedule.data || [];
+  const semesterLabel = selectedSemesterObj
+    ? `${getLocalized(selectedSemesterObj.name, i18n.language)} · ${new Date(selectedSemesterObj.startDate).toLocaleDateString()} – ${new Date(selectedSemesterObj.endDate).toLocaleDateString()}`
+    : null;
+
+  const scopeMissing = !schedule.isLoading && !schedule.isError && schedule.fetchStatus === "idle" && !schedule.data;
+
+  return (
+    <PortalPageShell
+      title={t("portal_schedule.title", { defaultValue: "My Schedule" })}
+      subtitle={semesterLabel || t("portal_schedule.subtitle", { defaultValue: "Your weekly class timetable" })}
+      actions={
+        rows.length > 0 ? (
+          <button
+            type="button"
+            className={styles.icsBtn}
+            onClick={() => downloadIcs(rows, selectedSemesterObj?.endDate)}
+          >
+            <Download size={14} /> {t("portal_schedule.add_to_calendar", { defaultValue: "Add to calendar" })}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className={styles.viewTabs}>
+        {[
+          { key: "week", Icon: CalendarDays, label: t("portal_schedule.week", { defaultValue: "Week" }) },
+          { key: "day", Icon: Calendar, label: t("portal_schedule.today", { defaultValue: "Today" }) },
+          { key: "list", Icon: List, label: t("portal_schedule.list", { defaultValue: "List" }) },
+        ].map(({ key, Icon, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={`${styles.viewTab} ${view === key ? styles.viewTabActive : ""}`}
+            onClick={() => setView(key)}
+          >
+            <Icon size={13} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {schedule.isLoading ? (
+        <PortalSkeleton variant="block" height={420} />
+      ) : scopeMissing ? (
+        <PortalEmptyState
+          icon={AlertCircle}
+          title={t("portal_schedule.no_scope", { defaultValue: "Academic scope not configured" })}
+          text={t("portal_schedule.no_scope_hint", { defaultValue: "Your semester isn't set yet — contact the administration if this persists." })}
+        />
+      ) : schedule.isError ? (
+        <PortalEmptyState
+          icon={AlertCircle}
+          title={t("portal_schedule.load_failed", { defaultValue: "Couldn't load your schedule" })}
+          onAction={() => schedule.refetch()}
+          actionLabel={t("retry", { defaultValue: "Retry" })}
+        />
+      ) : rows.length === 0 ? (
+        <PortalEmptyState
+          icon={Calendar}
+          title={t("portal_schedule.empty", { defaultValue: "No scheduled classes" })}
+          text={t("portal_schedule.empty_hint", { defaultValue: "Nothing is on your timetable for this semester yet." })}
+        />
+      ) : view === "list" ? (
+        <ListView rows={rows} t={t} />
+      ) : (
+        <TimeGrid
+          days={view === "day" ? [Math.min(Math.max(now.dayNum, 1), 7)] : GRID_DAYS}
+          rows={view === "day" ? rows.filter((s) => s.dayNum === now.dayNum) : rows.filter((s) => GRID_DAYS.includes(s.dayNum))}
+          t={t}
+          now={now}
+        />
+      )}
+
+      {rows.length > 0 && (
+        <div className={styles.legend}>
+          {[...new Map(rows.map((s) => [s.code, s])).values()].map((s) => (
+            <PortalBadge key={s.code} tone="neutral">
+              <span className={styles.legendDot} style={{ background: s.color }} /> {s.code}
+            </PortalBadge>
+          ))}
+        </div>
+      )}
+    </PortalPageShell>
   );
 }
 

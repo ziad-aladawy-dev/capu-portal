@@ -17,7 +17,7 @@ const MyRequests = lazy(() => import("./pages/MyRequests"));
 const StudentRequestDetails = lazy(() => import("./pages/StudentRequestDetails"));
 const StudentNotifications = lazy(() => import("./pages/StudentNotifications"));
 
-export default [
+const PORTAL_ROUTES = [
   {
     path: "/student",
     permission: "student.dashboard.view",
@@ -37,6 +37,7 @@ export default [
       label: "Dashboard",
       icon: "LayoutDashboard",
     },
+    meta: { title: "Dashboard", showInBottomNav: true, bottomNavIndex: 0, group: "main", skeleton: "dashboard" },
   },
   {
     path: "/student/profile",
@@ -49,6 +50,7 @@ export default [
       label: "Profile",
       icon: "UserCog",
     },
+    meta: { title: "Profile", group: "account", skeleton: "profile" },
   },
   {
     path: "/student/courses",
@@ -61,6 +63,7 @@ export default [
       label: "My Courses",
       icon: "BookOpen",
     },
+    meta: { title: "My Courses", showInBottomNav: true, bottomNavIndex: 1, group: "academic", skeleton: "cards" },
   },
   {
     path: "/student/courses/register",
@@ -80,6 +83,7 @@ export default [
       label: "My Grades",
       icon: "FileText",
     },
+    meta: { title: "My Grades", group: "academic", skeleton: "cards" },
   },
   {
     path: "/student/transcript",
@@ -92,6 +96,7 @@ export default [
       label: "Transcript",
       icon: "GraduationCap",
     },
+    meta: { title: "Transcript", group: "academic", skeleton: "document" },
   },
   {
     path: "/student/payments",
@@ -104,6 +109,7 @@ export default [
       label: "Payments & Fees",
       icon: "Receipt",
     },
+    meta: { title: "Payments & Fees", group: "account", skeleton: "cards" },
   },
   {
     path: "/student/payments/return",
@@ -123,6 +129,7 @@ export default [
       label: "Schedule",
       icon: "CalendarRange",
     },
+    meta: { title: "Schedule", group: "academic", skeleton: "calendar" },
   },
   {
     path: "/student/services",
@@ -135,6 +142,7 @@ export default [
       label: "Services",
       icon: "LayoutGrid",
     },
+    meta: { title: "Services", showInBottomNav: true, bottomNavIndex: 2, group: "services", skeleton: "cards", badge: "services" },
   },
   {
     path: "/student/services/:id",
@@ -161,6 +169,7 @@ export default [
       label: "My Requests",
       icon: "ClipboardList",
     },
+    meta: { title: "My Requests", showInBottomNav: true, bottomNavIndex: 3, group: "services", skeleton: "list", badge: "requests" },
   },
   {
     path: "/student/requests/:id",
@@ -180,5 +189,43 @@ export default [
       label: "Notifications",
       icon: "Bell",
     },
+    meta: { title: "Notifications", group: "account", skeleton: "list", badge: "notifications" },
   },
 ];
+
+export default PORTAL_ROUTES;
+
+/**
+ * menuItem labels are English phrases; translate via the same snake_case key
+ * convention the admin sidebar uses ("My Courses" → "my_courses"), with "&"
+ * normalized to "and" ("Payments & Fees" → "payments_and_fees").
+ */
+export function portalLabelKey(label) {
+  return label.toLowerCase().replace(/&/g, "and").replace(/\s+/g, "_");
+}
+
+/** Routes that appear anywhere in portal navigation (have a menuItem + meta). */
+export function getPortalNavRoutes() {
+  return PORTAL_ROUTES.filter((r) => r.menuItem && r.meta);
+}
+
+/** The 4 primary bottom-nav tabs, ordered by bottomNavIndex. */
+export function getBottomNavRoutes() {
+  return getPortalNavRoutes()
+    .filter((r) => r.meta.showInBottomNav)
+    .sort((a, b) => a.meta.bottomNavIndex - b.meta.bottomNavIndex);
+}
+
+/** Everything else — shown in the "More" sheet on mobile. */
+export function getMoreSheetRoutes() {
+  return getPortalNavRoutes().filter((r) => !r.meta.showInBottomNav);
+}
+
+/** Drawer groups for desktop: academic / services / account. */
+export function getDrawerGroups() {
+  const groups = { main: [], academic: [], services: [], account: [] };
+  for (const r of getPortalNavRoutes()) {
+    (groups[r.meta.group] || groups.main).push(r);
+  }
+  return groups;
+}

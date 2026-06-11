@@ -363,7 +363,7 @@ public class StaffService : IStaffService
             : string.Empty;
 
         string facultyName = string.Empty;
-        var currentNode = staff.StructureNode?.Parent;
+        var currentNode = staff.StructureNode;
 
         while (currentNode != null)
         {

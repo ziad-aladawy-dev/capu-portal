@@ -6,7 +6,7 @@ import "../../studentServices/styles/components/FileUploader.css";
 
 const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
   const { t } = useTranslation();
-  const { upload, uploading, error } = useFileUpload();
+  const { upload, remove, uploading, error } = useFileUpload();
   const fileInputRef = useRef(null);
   const [uploadingIds, setUploadingIds] = useState([]);
 

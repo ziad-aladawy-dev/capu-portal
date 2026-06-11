@@ -3,15 +3,17 @@ import { create } from "zustand";
 const STORAGE_KEY = "capu_dashboard_layout";
 
 // Canonical widget keys + default ordering. New widgets added here are appended
-// for users who already have a persisted layout (see hydrate()).
+// for users who already have a persisted layout (see hydrate()); keys removed
+// here are silently dropped from saved layouts.
 export const DEFAULT_WIDGET_ORDER = [
-  "profile",
-  "stats",
-  "actions",
   "schedule",
-  "financial",
-  "quicklinks",
-  "services",
+  "courses",
+  "grades",
+  "requests",
+  "fees",
+  "notifications",
+  "quickactions",
+  "calendar",
 ];
 
 function persist(state) {

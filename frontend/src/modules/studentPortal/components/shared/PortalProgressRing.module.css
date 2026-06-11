@@ -1,0 +1,30 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track {
+  stroke: var(--portal-border);
+}
+
+.fill {
+  stroke: var(--portal-primary);
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.fill.success { stroke: var(--portal-success); }
+.fill.warning { stroke: var(--portal-warning); }
+.fill.danger { stroke: var(--portal-danger); }
+.fill.accent { stroke: var(--portal-accent); }
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}

@@ -1,6 +1,7 @@
 {
     "permissions": "Permissions",
     "roles": "Roles",
+    "search_users_placeholder": "Search users by name or ID…",
     "select_structural_scope": "Select Structural Scope",
     "structural_scope": "Structural Scope",
     "temporal_scope": "Temporal Scope",

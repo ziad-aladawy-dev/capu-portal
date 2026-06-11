@@ -18,7 +18,9 @@ public class UserCredentialResolver : IUserCredentialResolver
     {
         var student = await _dbContext.Students
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.NationalId == identifier, cancellationToken);
+            .FirstOrDefaultAsync(s => s.NationalId == identifier
+                                   || s.Email == identifier
+                                   || s.StudentCode == identifier, cancellationToken);
 
         if (student != null)
         {
@@ -27,7 +29,9 @@ public class UserCredentialResolver : IUserCredentialResolver
 
         var staff = await _dbContext.Staffs
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.NationalId == identifier, cancellationToken);
+            .FirstOrDefaultAsync(s => s.NationalId == identifier
+                                   || s.Email == identifier
+                                   || s.EmployeeCode == identifier, cancellationToken);
 
         if (staff != null)
         {

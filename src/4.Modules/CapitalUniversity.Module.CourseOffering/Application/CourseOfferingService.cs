@@ -179,6 +179,7 @@ public class CourseOfferingService : ICourseOfferingService
             SectionCode = request.SectionCode,
             Status = request.Status,
             RegistrationState = request.RegistrationState,
+            InstructorId = NormalizeInstructor(request.InstructorId),
             // DTO retains the legacy ExternalSystemId name; entity now stores
             // it on the composed ExternallySourced.ExternalId block (same
             // physical column).
@@ -208,6 +209,7 @@ public class CourseOfferingService : ICourseOfferingService
         ApplyCapacity(offering, request);
         ApplyStatusChange(offering, request);
         ApplyRegistrationStateChange(offering, request);
+        ApplyInstructor(offering, request);
         ApplyExternalSyncMetadata(offering, request);
 
         offering.UpdatedAt = DateTime.UtcNow;
@@ -276,6 +278,21 @@ public class CourseOfferingService : ICourseOfferingService
     }
 
     /// <summary>
+    /// Instructor assignment with PATCH-sentinel semantics: omitted/null =
+    /// unchanged, <c>Guid.Empty</c> = clear, any other value = assign. The id
+    /// is a loose pointer to Staff (no FK, no existence check here — the staff
+    /// directory is a different module; the UI picks from a live list).
+    /// </summary>
+    private static void ApplyInstructor(CourseOfferingEntity offering, UpdateCourseOfferingRequest request)
+    {
+        if (!request.InstructorId.HasValue) return;
+        offering.InstructorId = NormalizeInstructor(request.InstructorId);
+    }
+
+    private static Guid? NormalizeInstructor(Guid? instructorId) =>
+        instructorId.HasValue && instructorId.Value == Guid.Empty ? null : instructorId;
+
+    /// <summary>
     /// Passive external-sync metadata. No invariants — just per-field
     /// "set when sent" semantics. Kept as its own helper so the orchestration
     /// reads as one statement per concern.
@@ -323,6 +340,7 @@ public class CourseOfferingService : ICourseOfferingService
         RegisteredCount = o.RegisteredCount,
         Status = o.Status,
         RegistrationState = o.RegistrationState,
+        InstructorId = o.InstructorId,
         // Legacy DTO field names; mapped from the composed ExternallySourced block.
         ExternalSystemId = o.ExternallySourced.ExternalId,
         ExternalSyncedAt = o.ExternallySourced.LastSyncedAt,
@@ -477,6 +495,127 @@ public class CourseOfferingService : ICourseOfferingService
         TotalCount = 0,
         TotalPages = 0,
     };
+
+    /// <summary>
+    /// Batch section creation. Generates section codes server-side (letter
+    /// series A, B, C… or <c>{prefix}{n}</c>), skipping codes already taken by
+    /// live siblings, then funnels each row through <see cref="CreateAsync"/>
+    /// so every per-row guard (validator, scope, uniqueness) applies. Per-row
+    /// commit — a failed section never rolls back its created peers.
+    /// </summary>
+    public async Task<BatchCreateOfferingsResult> BatchCreateAsync(BatchCreateCourseOfferingsRequest request, CancellationToken cancellationToken = default)
+    {
+        var count = Math.Clamp(request.Count, 1, 50);
+        var result = new BatchCreateOfferingsResult();
+
+        var existing = (await _offerings.GetForCourseAsync(request.CourseId, request.SemesterId, cancellationToken))
+            .Where(o => o.StructureNodeId == request.StructureNodeId)
+            .Select(o => o.SectionCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sectionCode in GenerateSectionCodes(request.SectionPrefix, count, existing))
+        {
+            try
+            {
+                var id = await CreateAsync(new CreateCourseOfferingRequest
+                {
+                    CourseId = request.CourseId,
+                    SemesterId = request.SemesterId,
+                    StructureNodeId = request.StructureNodeId,
+                    SectionCode = sectionCode,
+                    Capacity = request.Capacity,
+                    Status = request.Status,
+                    InstructorId = request.InstructorId,
+                }, cancellationToken);
+                result.Created.Add(new BatchCreatedOffering { Id = id, SectionCode = sectionCode });
+            }
+            catch (Exception ex) when (ex is NotFoundException or ConflictException or ValidationException)
+            {
+                result.Failures.Add(new BatchOfferingFailure { SectionCode = sectionCode, Message = ex.Message });
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Yields <paramref name="count"/> candidate codes not present in
+    /// <paramref name="taken"/>. Empty prefix → letter series (A…Z, AA, AB…);
+    /// otherwise numbered prefix (EVE-1, EVE-2…).
+    /// </summary>
+    private static IEnumerable<string> GenerateSectionCodes(string? prefix, int count, HashSet<string> taken)
+    {
+        var produced = 0;
+        if (string.IsNullOrWhiteSpace(prefix))
+        {
+            for (var i = 0; produced < count && i < 1000; i++)
+            {
+                var code = ToLetterSeries(i);
+                if (taken.Contains(code)) continue;
+                produced++;
+                yield return code;
+            }
+        }
+        else
+        {
+            var p = prefix.Trim();
+            for (var n = 1; produced < count && n < 1000; n++)
+            {
+                var code = $"{p}{n}";
+                if (code.Length > 32 || taken.Contains(code)) continue;
+                produced++;
+                yield return code;
+            }
+        }
+    }
+
+    /// <summary>0 → "A", 25 → "Z", 26 → "AA" — spreadsheet column naming.</summary>
+    private static string ToLetterSeries(int index)
+    {
+        var code = string.Empty;
+        index++;
+        while (index > 0)
+        {
+            index--;
+            code = (char)('A' + index % 26) + code;
+            index /= 26;
+        }
+        return code;
+    }
+
+    /// <summary>
+    /// Aggregate counters for the admin dashboard strip. Node-pinned requests
+    /// are scope-checked up front; un-pinned requests filter per row so the
+    /// counters reflect only offerings the caller can see.
+    /// </summary>
+    public async Task<CourseOfferingStatsResponse> GetStatsAsync(Guid semesterId, Guid? structureNodeId, CancellationToken cancellationToken = default)
+    {
+        var stats = new CourseOfferingStatsResponse();
+
+        if (!await _scope.CanAccessSemesterAsync(semesterId, cancellationToken)) return stats;
+        if (structureNodeId.HasValue && !await _scope.CanAccessStructureNodeAsync(structureNodeId.Value, cancellationToken)) return stats;
+
+        var rows = await _offerings.GetForSemesterAsync(semesterId, structureNodeId, cancellationToken);
+
+        foreach (var o in rows)
+        {
+            if (!structureNodeId.HasValue && !await _scope.CanAccessStructureNodeAsync(o.StructureNodeId, cancellationToken)) continue;
+
+            stats.Total++;
+            switch (o.Status)
+            {
+                case OfferingStatus.Draft: stats.DraftCount++; break;
+                case OfferingStatus.Open: stats.OpenCount++; break;
+                case OfferingStatus.Closed: stats.ClosedCount++; break;
+                case OfferingStatus.Cancelled: stats.CancelledCount++; break;
+            }
+            if (o.Capacity > 0 && o.RegisteredCount >= o.Capacity) stats.FullCount++;
+            stats.TotalCapacity += o.Capacity;
+            stats.TotalRegistered += o.RegisteredCount;
+        }
+
+        return stats;
+    }
 
     public Task<BulkActionResult> BulkPublishAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
         => BulkApplyAsync(ids, (o, _) => o.Activate(), reason: null, cancellationToken);

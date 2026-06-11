@@ -341,6 +341,43 @@ public class PermissionManagementService : IPermissionManagementService
             cacheKey,
             async ct =>
             {
+                // Students hold no role grants by design (context-scoped — see
+                // GetBootstrapContextAsync). Grant them a fixed self-service set:
+                // every endpoint involved either binds the studentId from the JWT
+                // (grades / transcript / registered-courses controllers) or carries
+                // a PermissionScopeKind.Student route binding that
+                // CanAccessStudentAsync restricts to the caller's own id
+                // (profile-records). Row-level safety therefore stays server-side.
+                var isStudent = await _dbContext.Students
+                    .AsNoTracking()
+                    .AnyAsync(s => s.Id == userId, ct);
+                if (isStudent)
+                {
+                    // Entries must round-trip through PermissionIdentity.Parse —
+                    // the policy requirement string is normalized (dashes folded,
+                    // PascalCased), so raw PermissionNames constants never match
+                    // the Ordinal lookup.
+                    return new HashSet<string>(new[]
+                    {
+                        PermissionNames.StudentProfileRecords.View,
+                        PermissionNames.StudentProfileRecords.Insert,
+                        PermissionNames.Grades.View,
+                        PermissionNames.Transcript.View,
+                        PermissionNames.RegisteredCourses.View,
+                        // Read-only reference data the portal renders for every
+                        // student: the course catalog, section offerings, and
+                        // their timetable slots. No write verbs.
+                        PermissionNames.Courses.View,
+                        PermissionNames.CourseOfferings.View,
+                        PermissionNames.Schedule.View,
+                        // Treasury self-service: fee/order services enforce
+                        // CanAccessStudentAsync row scope internally, so the
+                        // grant only opens the student's OWN fees and orders.
+                        PermissionNames.PaymentTransactions.View,
+                        PermissionNames.PaymentTransactions.Insert,
+                    }.Select(PermissionIdentity.Parse), StringComparer.Ordinal);
+                }
+
                 var scope = await _scopeResolver.ResolveAsync(userId, year, semester, structureNodeId, ct);
 
                 var rawPermissions = await _permissionService.GetAllPermissionsAsync(userId, scope, ct);

@@ -36,6 +36,41 @@ export function useActiveCourses() {
   });
 }
 
+// ---- Prerequisite graph ----------------------------------------------------
+
+const PREREQ_KEY = ["course-prerequisites"];
+
+// Whole catalog edge list — powers dependency badges, client-side cycle
+// previews and catalog health without per-course calls.
+export function useAllPrerequisitePairs() {
+  return useQuery({
+    queryKey: PREREQ_KEY,
+    queryFn: () => courseService.fetchAllPrerequisitePairs(),
+    select: (data) => (Array.isArray(data) ? data : []),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useCoursePrerequisites(courseId) {
+  return useQuery({
+    queryKey: ["course-prerequisites", courseId],
+    queryFn: () => courseService.fetchCoursePrerequisites(courseId),
+    enabled: !!courseId,
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
+}
+
+export function useSetCoursePrerequisites() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, prerequisiteCourseIds }) =>
+      courseService.setCoursePrerequisites(courseId, prerequisiteCourseIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PREREQ_KEY });
+    },
+  });
+}
+
 export function useCreateCourse() {
   const qc = useQueryClient();
   return useMutation({

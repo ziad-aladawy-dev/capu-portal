@@ -157,6 +157,8 @@ public static class DependencyInjection
         services.AddScoped<ISemesterService, SemesterService>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.ICourseService,
                            CapitalUniversity.Core.Application.Courses.CourseService>();
+        services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.ICoursePrerequisiteService,
+                           CapitalUniversity.Core.Application.Courses.CoursePrerequisiteService>();
         services.AddScoped<CapitalUniversity.Core.Application.Courses.AcademicPlanValidators>();
         services.AddScoped<CapitalUniversity.Core.Abstractions.Courses.IAcademicPlanService,
                            CapitalUniversity.Core.Application.Courses.AcademicPlanService>();

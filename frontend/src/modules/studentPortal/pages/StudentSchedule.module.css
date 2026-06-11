@@ -1,0 +1,238 @@
+.viewTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.viewTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-surface);
+  color: var(--portal-text-muted);
+  font-family: var(--portal-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewTabActive {
+  background: var(--portal-primary);
+  border-color: var(--portal-primary);
+  color: #fff;
+}
+
+.icsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-primary);
+  color: #fff;
+  font-family: var(--portal-font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.icsBtn:hover {
+  background: var(--portal-primary-strong);
+}
+
+/* ── Time grid ────────────────────────────────────────── */
+
+.gridCard {
+  overflow: hidden;
+}
+
+.gridHead {
+  display: grid;
+  border-bottom: 1px solid var(--portal-border);
+}
+
+.dayHead {
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--portal-text-muted);
+  text-transform: capitalize;
+}
+
+.dayHeadToday {
+  color: var(--portal-primary);
+}
+
+.gridBody {
+  position: relative;
+  display: grid;
+}
+
+.timeCol {
+  position: relative;
+}
+
+.timeLabel {
+  position: absolute;
+  inset-inline-end: 8px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--portal-text-muted);
+}
+
+.dayCol {
+  position: relative;
+  border-inline-start: 1px solid var(--portal-border);
+}
+
+.hourLine {
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+  background: var(--portal-border);
+  opacity: 0.55;
+}
+
+.nowLine {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--portal-danger);
+  z-index: 3;
+}
+
+.nowDot {
+  position: absolute;
+  top: -3px;
+  inset-inline-start: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--portal-danger);
+}
+
+.slot {
+  position: absolute;
+  inset-inline: 3px;
+  z-index: 2;
+  border-radius: 8px;
+  padding: 5px 7px;
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10.5px;
+  line-height: 1.25;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.slot strong {
+  font-size: 11px;
+}
+
+.slotTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.95;
+}
+
+.slotMeta {
+  opacity: 0.85;
+  font-size: 9.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slotClosed {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* ── List view ────────────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.listDay {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--portal-text);
+  text-transform: capitalize;
+}
+
+.listItems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+
+.listDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.listTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--portal-primary);
+  white-space: nowrap;
+}
+
+.listCourse {
+  flex: 1;
+  min-width: 140px;
+  color: var(--portal-text);
+  font-weight: 600;
+}
+
+.listRoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--portal-text-muted);
+  font-size: 11.5px;
+}
+
+/* ── Legend ───────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}

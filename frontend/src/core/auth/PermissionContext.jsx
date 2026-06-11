@@ -1,4 +1,4 @@
-import { createContext, useMemo } from "react";
+import { createContext, useCallback, useMemo } from "react";
 import { useAuth } from "./useAuth";
 import { useDomain } from "../contexts/DomainContext";
 import { useAcademic } from "../contexts/AcademicContext";
@@ -7,26 +7,6 @@ const PermissionContext = createContext(null);
 
 function hasRequiredLevel(userLevel, minLevel) {
   return userLevel >= minLevel;
-}
-
-function canView(level) {
-  return level >= 1;
-}
-
-function canInsert(level) {
-  return level >= 2;
-}
-
-function canEditClose(level) {
-  return level >= 3;
-}
-
-function canOpen(level) {
-  return level >= 4;
-}
-
-function canDelete(level) {
-  return level >= 5;
 }
 
 function matchScope(p, scopeNode, selectedYearObj, selectedSemesterObj) {
@@ -77,7 +57,9 @@ function PermissionProvider({ children }) {
     return map;
   }, [permissions, scopeNode, selectedYearObj, selectedSemesterObj]);
 
-  const getLevel = (resource) => {
+  // Stable identities: consumers (Sidebar menu, route guards) memoize on
+  // `can`, so it must only change when the underlying permission map does.
+  const getLevel = useCallback((resource) => {
     let level = permissionMap[resource] || 0;
     if (level > 0) return level;
     const dot = resource.lastIndexOf('.');
@@ -86,20 +68,22 @@ function PermissionProvider({ children }) {
       level = permissionMap[baseKey] || 0;
     }
     return level;
-  };
+  }, [permissionMap]);
 
-  const can = (resource, minLevel = 1) => {
-    if (!permissions || permissions.length === 0) {
+  const hasAnyPermissions = !!permissions && permissions.length > 0;
+
+  const can = useCallback((resource, minLevel = 1) => {
+    if (!hasAnyPermissions) {
       return false;
     }
     return hasRequiredLevel(getLevel(resource), minLevel);
-  };
+  }, [hasAnyPermissions, getLevel]);
 
-  const value = {
+  const value = useMemo(() => ({
     can,
     getLevel,
     permissions: permissionMap,
-  };
+  }), [can, getLevel, permissionMap]);
 
   return (
     <PermissionContext.Provider value={value}>

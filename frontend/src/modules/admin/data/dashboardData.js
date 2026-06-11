@@ -29,9 +29,9 @@ export const recentActivitiesData = [
 ];
 
 export const quickActionsConfig = [
-  { labelKey: "manage_departments", path: "/admin/departments" },
-  { labelKey: "add_new_user", path: "/admin/users/add" },
-  { labelKey: "add_new_faculty", path: "/admin/faculties/add" },
-  { labelKey: "add_new_course", path: "/admin/courses/add" },
-  { labelKey: "view_reports", path: "/admin/reports" },
+  { labelKey: "manage_departments", path: "/admin/university" },
+  { labelKey: "add_new_user", path: "/admin/users/staff/add" },
+  { labelKey: "add_new_faculty", path: "/admin/university" },
+  { labelKey: "add_new_course", path: "/admin/academic/courses" },
+  { labelKey: "view_reports", path: "/admin/system/audit-logs" },
 ];

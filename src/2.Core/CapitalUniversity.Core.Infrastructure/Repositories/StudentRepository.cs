@@ -32,6 +32,7 @@ public class StudentRepository : IStudentRepository
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x!.Parent)
+                        .ThenInclude(x => x!.Parent)
             .OrderBy(x => x.StudentCode)
             .ToListAsync();
     }
@@ -89,10 +90,19 @@ public class StudentRepository : IStudentRepository
 
         if (request.FacultyId.HasValue)
         {
-            query = query.Where(x =>
-                x.StructureNode.Parent != null &&
-                x.StructureNode.Parent.ParentId ==
-                request.FacultyId.Value);
+            var facultyNode =
+                await _context.StructureNodes
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(x =>
+                        x.Id ==
+                        request.FacultyId.Value);
+
+            if (facultyNode != null)
+            {
+                query = query.Where(x =>
+                    x.StructureNode.Path.StartsWith(
+                        facultyNode.Path));
+            }
         }
 
         if (request.ScopeNodeId.HasValue)
@@ -118,7 +128,8 @@ public class StudentRepository : IStudentRepository
         query = query
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent);
+                    .ThenInclude(x => x!.Parent)
+                        .ThenInclude(x => x!.Parent);
 
         var items = await query
             .OrderBy(x => x.StudentCode)

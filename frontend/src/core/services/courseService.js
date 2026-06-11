@@ -58,6 +58,31 @@ export async function bulkDeleteCourses(ids) {
   return data;
 }
 
+// ---- Prerequisites (catalog dependency graph) ------------------------------
+
+// Every edge in the catalog: [{ courseId, prerequisiteCourseId }]
+export async function fetchAllPrerequisitePairs() {
+  const { data } = await api.get("/courses/prerequisites");
+  return data;
+}
+
+// Enriched list for one course: [{ prerequisiteCourseId, code, title, creditHours, isActive }]
+export async function fetchCoursePrerequisites(courseId) {
+  const { data } = await api.get(`/courses/${courseId}/prerequisites`);
+  return data;
+}
+
+// Batch replace — ids become the course's exact prerequisite set.
+export async function setCoursePrerequisites(courseId, prerequisiteCourseIds) {
+  const { data } = await api.put(`/courses/${courseId}/prerequisites`, { prerequisiteCourseIds });
+  return data;
+}
+
+export async function removeCoursePrerequisite(courseId, prerequisiteCourseId) {
+  const { data } = await api.delete(`/courses/${courseId}/prerequisites/${prerequisiteCourseId}`);
+  return data;
+}
+
 export async function fetchRegisteredCourses() {
   const { data } = await api.get("/courses/registered");
   return data;

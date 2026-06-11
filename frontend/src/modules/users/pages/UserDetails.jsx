@@ -1,327 +1,601 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, User, Mail, Phone, Calendar, Shield, BookOpen, Building2,
-  Edit3, Key, Trash2, RefreshCw, Award, Hash, AtSign, CheckCircle, XCircle, Briefcase, Globe,
-  UserCircle, Lock, AlertCircle, Camera, Users, GraduationCap
-} from 'lucide-react';
-import { getLocalized, parseLocalizedValue } from '../../../core/utils/getLocalized';
-import userService from '../services/userService';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ErrorMessage from '../components/ErrorMessage';
-import '../styles/userDetails.css';
+  User, Mail, Phone, Calendar, Hash, Briefcase, Building2, Layers,
+  Edit3, Key, Trash2, ArrowLeft, Clock, Shield, ShieldCheck, ShieldAlert,
+  CheckCircle, XCircle, AlertCircle, Search, ChevronDown, ChevronUp,
+  GraduationCap, Users as UsersIcon, BadgeCheck, Lock,
+} from "lucide-react";
+import { useToast } from "../../../core/components/Toast";
+import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
+import { getLocalized, parseLocalizedValue } from "../../../core/utils/getLocalized";
+import { fetchUserPermissionTree } from "../../../core/services/authorizationService";
+import { SkeletonCard, SkeletonStats } from "../../../core/components/Skeleton";
+import ConfirmDialog from "../../../core/components/ConfirmDialog";
+import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
+import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
+import ErrorMessage from "../components/ErrorMessage";
+import userService from "../services/userService";
+import {
+  ProfileHero, StatCard, TabBar, Panel, Field, EmptyState,
+  ResetPasswordModal, CopyButton,
+} from "../components/ProfileKit";
+import {
+  fmtDate, fmtDateTime, yearsSince, daysUntil, resolvePhotoUrl,
+} from "../components/profileUtils";
 
-const UserDetails = () => {
-  const { t, i18n } = useTranslation();
+const staffKey = (id) => ["staff", id];
+
+/**
+ * The update endpoint replaces the whole entity, so partial edits must echo
+ * the current values back (same contract as the student endpoint).
+ */
+function buildUpdatePayload(s, overrides = {}) {
+  const { ar, en } = parseLocalizedValue(s.name);
+  return {
+    nameAr: ar || "",
+    nameEn: en || "",
+    nationalId: s.nationalId || "",
+    birthDate: s.birthDate,
+    phoneNumber: s.phoneNumber || "",
+    email: s.email || "",
+    role: s.role || "",
+    jobTitle: s.jobTitle || "",
+    photoUrl: s.photoUrl ?? null,
+    gender: s.gender ?? null,
+    qualification: s.qualification ?? null,
+    structureNodeId: s.structureNodeId,
+    isActive: s.isActive,
+    ...overrides,
+  };
+}
+
+function UserDetails() {
   const { id } = useParams();
+  // Remount per user so tab state never leaks between profiles.
+  return <StaffDetailContent key={id} id={id} />;
+}
+
+function StaffDetailContent({ id }) {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const { addToast } = useToast();
+  const { select } = useStickySelection();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
-  const [user, setUser] = useState(null);
-  const [userType, setUserType] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('personal');
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const fileInputRef = useRef(null);
+  const staffQuery = useQuery({
+    queryKey: staffKey(id),
+    queryFn: () => userService.getStaffById(id),
+    retry: false,
+    enabled: !!id,
+  });
+  const staff = staffQuery.data;
 
-  const getApiBaseUrl = () => {
-    return import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5256';
-  };
+  // Directory "All users" links land here for students too — detect and
+  // forward them to the dedicated student profile.
+  const studentProbe = useQuery({
+    queryKey: ["student-probe", id],
+    queryFn: () => userService.getStudentById(id),
+    retry: false,
+    enabled: !!id && staffQuery.isError,
+  });
 
-  const getPhotoUrl = () => {
-    if (!user?.photoUrl) return null;
-    if (user.photoUrl.startsWith('http')) return user.photoUrl;
-    return `${getApiBaseUrl()}${user.photoUrl}`;
-  };
-
-  const getAvatarInitial = () => {
-    if (!user) return 'U';
-    const localizedName = getLocalized(user.name, i18n.language);
-    return localizedName.charAt(0).toUpperCase();
-  };
-
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      alert(t('invalid_image_type'));
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert(t('image_too_large'));
-      return;
-    }
-
-    setUploadingPhoto(true);
-    try {
-      const result = userType === 'student'
-        ? await userService.uploadStudentPhoto(id, file)
-        : await userService.uploadStaffPhoto(id, file);
-      const updatedUser = await (userType === 'student' ? userService.getStudentById(id) : userService.getStaffById(id));
-      setUser(updatedUser);
-    } catch (err) {
-      alert(err.response?.data?.message || err.message);
-    } finally {
-      setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      setLoading(true);
-      try {
-        let userData;
-        try {
-          userData = await userService.getStudentById(id);
-          setUserType('student');
-        } catch (e) {
-          userData = await userService.getStaffById(id);
-          setUserType('staff');
-        }
-        setUser(userData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUserData();
-  }, [id]);
-
-  const formatDate = (date) => {
-    if (!date) return t('not_specified');
-    const locale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
-    return new Date(date).toLocaleDateString(locale, {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  };
-
-  const formatDateTime = (date) => {
-    if (!date) return t('never');
-    const locale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
-    return new Date(date).toLocaleString(locale, {
-      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  };
-
-  const isPasswordExpired = user?.passwordStatus === 'Expired';
-
-  const handleToggleActive = async () => {
-    try {
-      if (user.isActive) {
-        await userService.deactivateUser(id, userType === 'student' ? 'Student' : 'Staff', t('deactivated_from_details'));
-      } else {
-        await userService.activateUser(id, userType === 'student' ? 'Student' : 'Staff');
-      }
-      const updatedUser = await (userType === 'student' ? userService.getStudentById(id) : userService.getStaffById(id));
-      setUser(updatedUser);
-      alert(user.isActive ? t('user_deactivated_success') : t('user_activated_success'));
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleSoftDelete = async () => {
-    if (window.confirm(t('confirm_delete_user'))) {
-      try {
-        if (userType === 'student') {
-          await userService.deleteStudent(id);
-        } else {
-          await userService.deleteStaff(id);
-        }
-        alert(t('user_deleted_success'));
-        navigate('/admin/users');
-      } catch (err) {
-        alert(err.message);
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="user-details-page">
-        <div className="ud-loading">
-          <div className="ud-spinner" />
-          <p>{t('loading_user_details')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !user) {
-    return (
-      <div className="user-details-page">
-        <div className="ud-error">
-          <AlertCircle size={36} />
-          <h3>{t('error')}</h3>
-          <p>{error || t('user_not_found')}</p>
-          <button className="ud-btn ud-btn-outline" onClick={() => navigate('/admin/users')}>
-            <ArrowLeft size={13} /> {t('back')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const localizedName = getLocalized(user.name, i18n.language);
-  const { ar: nameAr, en: nameEn } = parseLocalizedValue(user.name);
-  const userRoleLabel = userType === 'student' ? t('student') : t('staff');
-  const statusLabel = user.isActive ? t('active') : t('inactive');
-  const passwordStatusLabel = isPasswordExpired ? t('expired') : t('valid');
-
-  const InfoCard = ({ icon, label, value }) => (
-    <div className="ud-info-card">
-      <div className="ud-info-icon">{icon}</div>
-      <div className="ud-info-content">
-        <span className="ud-info-label">{label}</span>
-        <div className="ud-info-value">{value || t('not_specified')}</div>
-      </div>
-    </div>
+  // The permission tree endpoint is staff-only; errors (403/404) collapse to
+  // an explanatory empty state.
+  const permTreeQuery = useQuery({
+    queryKey: ["user-permission-tree", id],
+    queryFn: () => fetchUserPermissionTree(id),
+    retry: false,
+    enabled: !!staff?.id,
+  });
+  const permTree = useMemo(
+    () => (Array.isArray(permTreeQuery.data) ? permTreeQuery.data : []),
+    [permTreeQuery.data],
   );
+
+  const permStats = useMemo(() => {
+    let granted = 0;
+    let total = 0;
+    let denies = 0;
+    permTree.forEach((m) => m.resources?.forEach((r) => r.permissions?.forEach((p) => {
+      total += 1;
+      if (p.isAssigned) granted += 1;
+      if (p.hasDenyOverride) denies += 1;
+    })));
+    return { granted, total, denies };
+  }, [permTree]);
+
+  const updateStaff = useMutation({
+    mutationFn: (body) => userService.updateStaff(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: staffKey(id) });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+    },
+  });
+
+  const toggleStatus = useMutation({
+    mutationFn: () => userService.toggleStaffStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: staffKey(id) });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+      addToast(`Staff member ${staff?.isActive ? "deactivated" : "activated"}`, "success");
+    },
+    onError: (err) => addToast(err.message, "error"),
+  });
+
+  const deleteStaff = useMutation({
+    mutationFn: () => userService.deleteStaff(id),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: staffKey(id) });
+      queryClient.invalidateQueries({ queryKey: ["directory"] });
+      addToast("Staff member deleted", "success");
+      navigate("/admin/users");
+    },
+    onError: (err) => {
+      setDeleteOpen(false);
+      addToast(err.message, "error");
+    },
+  });
+
+  const uploadPhoto = useMutation({
+    mutationFn: (file) => userService.uploadStaffPhoto(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: staffKey(id) });
+      addToast("Photo updated", "success");
+    },
+    onError: (err) => addToast(err.message, "error"),
+  });
+
+  const photoValidator = usePhotoValidator();
+  const [photoValidationFile, setPhotoValidationFile] = useState(null);
+  const [showPhotoValidation, setShowPhotoValidation] = useState(false);
+
+  const handlePhotoUpload = useCallback(async (file) => {
+    await photoValidator.loadModel();
+    photoValidator.reset();
+    setPhotoValidationFile(file);
+    setShowPhotoValidation(true);
+    const result = await photoValidator.validate(file);
+    if (result?.passed) {
+      uploadPhoto.mutate(file);
+      setShowPhotoValidation(false);
+      setPhotoValidationFile(null);
+    }
+  }, [photoValidator, uploadPhoto]);
+
+  const handleAcceptPhoto = useCallback(() => {
+    if (photoValidationFile) {
+      uploadPhoto.mutate(photoValidationFile);
+    }
+    setShowPhotoValidation(false);
+    setPhotoValidationFile(null);
+  }, [photoValidationFile, uploadPhoto]);
+
+  const handleRejectPhoto = useCallback(() => {
+    setShowPhotoValidation(false);
+    setPhotoValidationFile(null);
+    photoValidator.reset();
+  }, [photoValidator]);
+
+  // Keep the directory sidebar pin in sync with this profile.
+  const localizedName = staff ? getLocalized(staff.name, i18n.language) : "";
+  useEffect(() => {
+    if (staff?.id) {
+      select({ id: staff.id, name: localizedName, code: staff.employeeCode, type: "staff" });
+    }
+  }, [staff?.id, localizedName, staff?.employeeCode, select]);
+
+  const handleResetPassword = (password) =>
+    new Promise((resolve) => {
+      updateStaff.mutate(buildUpdatePayload(staff, { password, confirmPassword: password }), {
+        onSuccess: () => {
+          addToast("Password has been reset", "success");
+          setResetOpen(false);
+          resolve();
+        },
+        onError: (err) => {
+          addToast(err.response?.data?.message || err.message, "error");
+          resolve();
+        },
+      });
+    });
+
+  if (studentProbe.data?.id) {
+    return <Navigate to={`/admin/students/${id}`} replace />;
+  }
+
+  if (staffQuery.isPending || (staffQuery.isError && studentProbe.isPending)) {
+    return (
+      <div className="pp-page">
+        <SkeletonCard height={140} />
+        <div style={{ height: 14 }} />
+        <SkeletonStats count={4} />
+        <div style={{ height: 14 }} />
+        <SkeletonCard height={300} />
+      </div>
+    );
+  }
+
+  if (staffQuery.isError || !staff) {
+    return <ErrorMessage message={staffQuery.error?.message || "User not found"} />;
+  }
+
+  const s = staff;
+  const isExpired = s.passwordStatus === "Expired";
+  const expiryDays = daysUntil(s.passwordExpiry);
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: User },
+    { id: "permissions", label: "Access & Permissions", icon: ShieldCheck, count: permStats.total ? permStats.granted : null },
+    { id: "account", label: "Account", icon: ShieldAlert },
+  ];
 
   return (
-    <div className="user-details-page">
-      {/* ─── Hero ─── */}
-      <div className="ud-hero ud-fade-in">
-        <div className="ud-hero-avatar-wrapper">
-          {getPhotoUrl() ? (
-            <img src={getPhotoUrl()} alt={localizedName} className="ud-hero-photo" />
-          ) : (
-            <div className="ud-hero-avatar">{getAvatarInitial()}</div>
-          )}
-          <button className="ud-photo-upload-btn" onClick={handlePhotoClick} disabled={uploadingPhoto} title={t('upload_photo')}>
-            {uploadingPhoto ? <RefreshCw size={14} className="ud-spin-icon" /> : <Camera size={14} />}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style={{ display: 'none' }}
-            onChange={handlePhotoChange}
+    <div className="pp-page">
+      <div className="pp-topbar">
+        <button className="pp-back" onClick={() => navigate("/admin/users")}>
+          <ArrowLeft size={13} /> Staff Directory
+        </button>
+      </div>
+
+      <ProfileHero
+        photoUrl={resolvePhotoUrl(s.photoUrl)}
+        initial={(localizedName || "U").charAt(0).toUpperCase()}
+        name={localizedName}
+        subtitle={
+          <>
+            <span style={{ fontFamily: "Space Mono, monospace" }}>{s.employeeCode}</span>
+            <span>·</span>
+            <span>{s.email}</span>
+            <CopyButton value={s.email} label="Email" />
+          </>
+        }
+        badges={
+          <>
+            <span className="pp-badge tone-staff"><Briefcase size={10} /> Staff</span>
+            {s.role && <span className="pp-badge tone-gold"><Shield size={10} /> {s.role}</span>}
+            <span className={`pp-badge ${s.isActive ? "tone-good" : "tone-bad"}`}>
+              <span className="pp-badge-dot" /> {s.isActive ? "Active" : "Inactive"}
+            </span>
+            {isExpired && <span className="pp-badge tone-bad"><Key size={10} /> Password Expired</span>}
+          </>
+        }
+        chips={
+          <>
+            {s.jobTitle && <span className="pp-chip"><Briefcase size={11} /> {s.jobTitle}</span>}
+            {(s.facultyName || s.structureNodeName) && (
+              <span className="pp-chip"><Building2 size={11} /> {s.facultyName || s.structureNodeName}</span>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <button className="pp-hero-btn primary" onClick={() => navigate(`/admin/users/staff/${id}/edit`)}>
+              <Edit3 size={13} /> Edit Staff
+            </button>
+            <button className="pp-hero-btn ghost" onClick={() => setResetOpen(true)}>
+              <Key size={13} /> Reset Password
+            </button>
+          </>
+        }
+        onUploadPhoto={handlePhotoUpload}
+        uploading={uploadPhoto.isPending}
+        validating={photoValidator.isProcessing || photoValidator.modelLoading}
+        validationOverlay={showPhotoValidation && photoValidator.results && (
+          <PhotoValidationOverlay
+            results={photoValidator.results}
+            previewUrl={photoValidationFile ? URL.createObjectURL(photoValidationFile) : null}
+            isProcessing={photoValidator.isProcessing}
+            error={photoValidator.error}
+            onAccept={handleAcceptPhoto}
+            onReject={handleRejectPhoto}
+            onRetry={() => photoValidator.validate(photoValidationFile)}
           />
-        </div>
-        <div className="ud-hero-body">
-          <h1>{localizedName}</h1>
-          <p className="ud-hero-email">{user.email}</p>
-          <div className="ud-hero-badges">
-            <span className={`ud-hero-badge type-${userType}`}>
-              <UserCircle size={12} /> {userRoleLabel}
-            </span>
-            <span className={`ud-hero-badge status-${user.isActive ? 'active' : 'inactive'}`}>
-              <span className="ud-hero-badge-dot" /> {statusLabel}
-            </span>
-            <span className={`ud-hero-badge password-${isPasswordExpired ? 'expired' : 'valid'}`}>
-              <Lock size={12} /> {passwordStatusLabel}
-            </span>
-          </div>
-        </div>
-        <div className="ud-hero-actions">
-          <button className="ud-btn ud-btn-ghost" onClick={() => navigate(userType === 'student' ? `/admin/users/students/${id}/edit` : `/admin/users/staff/${id}/edit`)}>
-            <Edit3 size={14} /> {t('edit')}
-          </button>
-          <button className={`ud-btn ${user.isActive ? 'ud-btn-ghost' : 'ud-btn-ghost'}`} onClick={handleToggleActive}>
-            {user.isActive ? <XCircle size={14} /> : <CheckCircle size={14} />}
-            {user.isActive ? t('deactivate') : t('activate')}
-          </button>
-          <button className="ud-btn ud-btn-ghost" onClick={handleSoftDelete}>
-            <Trash2 size={14} /> {t('delete')}
-          </button>
-        </div>
+        )}
+      />
+
+      <div className="pp-stats pp-fade">
+        <StatCard icon={Shield} label="Role" value={s.role || "—"} hint={s.jobTitle || undefined} tone="gold" />
+        <StatCard
+          icon={ShieldCheck}
+          label="Permissions"
+          value={permTreeQuery.isPending ? "…" : permStats.total ? `${permStats.granted} granted` : "—"}
+          hint={
+            permStats.total
+              ? `of ${permStats.total} possible${permStats.denies ? ` · ${permStats.denies} denied` : ""}`
+              : "Open the permissions tab"
+          }
+          onClick={() => setActiveTab("permissions")}
+        />
+        <StatCard
+          icon={Key}
+          label="Password"
+          value={isExpired ? "Expired" : expiryDays !== null ? `${expiryDays} days left` : "Valid"}
+          hint={s.passwordExpiry ? `Expires ${fmtDate(s.passwordExpiry)}` : "No expiry set"}
+          tone={isExpired ? "danger" : ""}
+          onClick={() => setActiveTab("account")}
+        />
+        <StatCard icon={Clock} label="Member Since" value={fmtDate(s.createdAt)} />
       </div>
 
-      {/* ─── Tabs ─── */}
-      <div className="ud-tabs">
-        <button className={`ud-tab ${activeTab === 'personal' ? 'active' : ''}`} onClick={() => setActiveTab('personal')}>
-          <User size={14} /> {t('personal_information')}
-        </button>
-        {userType === 'student' && (
-          <button className={`ud-tab ${activeTab === 'academic' ? 'active' : ''}`} onClick={() => setActiveTab('academic')}>
-            <BookOpen size={14} /> {t('academic_information')}
-          </button>
+      <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
+
+      <div className="pp-fade" key={activeTab}>
+        {activeTab === "overview" && <OverviewTab staff={s} />}
+        {activeTab === "permissions" && <PermissionsTab query={permTreeQuery} tree={permTree} stats={permStats} />}
+        {activeTab === "account" && (
+          <AccountTab
+            staff={s}
+            onToggleActive={() => toggleStatus.mutate()}
+            togglePending={toggleStatus.isPending}
+            onResetPassword={() => setResetOpen(true)}
+            onDelete={() => setDeleteOpen(true)}
+          />
         )}
-        {userType === 'staff' && (
-          <button className={`ud-tab ${activeTab === 'employment' ? 'active' : ''}`} onClick={() => setActiveTab('employment')}>
-            <Briefcase size={14} /> {t('employment_information')}
-          </button>
-        )}
-        <button className={`ud-tab ${activeTab === 'account' ? 'active' : ''}`} onClick={() => setActiveTab('account')}>
-          <Shield size={14} /> {t('account_details')}
-        </button>
       </div>
 
-      {/* ─── Tab Content ─── */}
-      <div className="ud-fade-in" key={activeTab}>
-        {activeTab === 'personal' && (
-          <div className="ud-section">
-            <h3 className="ud-section-title"><User size={16} /> {t('personal_information')}</h3>
-            <div className="ud-info-grid">
-              <InfoCard icon={<Hash size={17} />} label={t('national_id')} value={user.nationalId} />
-              <InfoCard icon={<User size={17} />} label={t('full_name_arabic')} value={nameAr || localizedName} />
-              <InfoCard icon={<Globe size={17} />} label={t('full_name_english')} value={nameEn || t('not_specified')} />
-              <InfoCard icon={<Calendar size={17} />} label={t('date_of_birth')} value={formatDate(user.birthDate)} />
-              <InfoCard icon={<Users size={17} />} label={t('gender')} value={user.gender ? t(user.gender.toLowerCase()) : t('not_specified')} />
-              <InfoCard icon={<Phone size={17} />} label={t('phone')} value={user.phoneNumber} />
-              <InfoCard icon={<Mail size={17} />} label={t('email')} value={user.email} />
-              {userType === 'student' && (
-                <>
-                  <InfoCard icon={<Users size={17} />} label={t('guardian_name')} value={user.guardianName || t('not_specified')} />
-                  <InfoCard icon={<Phone size={17} />} label={t('guardian_phone')} value={user.guardianPhone || t('not_specified')} />
-                </>
-              )}
-              {userType === 'staff' && (
-                <InfoCard icon={<GraduationCap size={17} />} label={t('qualification')} value={user.qualification || t('not_specified')} />
-              )}
-            </div>
-          </div>
-        )}
+      <ResetPasswordModal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        userName={localizedName}
+        onSubmit={handleResetPassword}
+        pending={updateStaff.isPending}
+      />
 
-        {activeTab === 'academic' && userType === 'student' && (
-          <div className="ud-section">
-            <h3 className="ud-section-title"><BookOpen size={16} /> {t('academic_information')}</h3>
-            <div className="ud-info-grid">
-              <InfoCard icon={<Award size={17} />} label={t('student_code')} value={user.studentCode} />
-              <InfoCard icon={<Building2 size={17} />} label={t('faculty')} value={user.facultyName} />
-              <InfoCard icon={<BookOpen size={17} />} label={t('program')} value={user.programName} />
-              <InfoCard icon={<Award size={17} />} label={t('level')} value={user.levelName} />
-              <InfoCard icon={<Shield size={17} />} label={t('academic_status')} value={user.status || t('active')} />
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'employment' && userType === 'staff' && (
-          <div className="ud-section">
-            <h3 className="ud-section-title"><Briefcase size={16} /> {t('employment_information')}</h3>
-            <div className="ud-info-grid">
-              <InfoCard icon={<Award size={17} />} label={t('employee_code')} value={user.employeeCode} />
-              <InfoCard icon={<Shield size={17} />} label={t('role')} value={user.role} />
-              <InfoCard icon={<Briefcase size={17} />} label={t('job_title')} value={user.jobTitle} />
-              <InfoCard icon={<Building2 size={17} />} label={t('faculty_department')} value={user.facultyName || user.structureNodeName} />
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'account' && (
-          <div className="ud-section">
-            <h3 className="ud-section-title"><Shield size={16} /> {t('account_details')}</h3>
-            <div className="ud-info-grid">
-              <InfoCard icon={<Calendar size={17} />} label={t('account_created')} value={formatDateTime(user.createdAt)} />
-              <InfoCard icon={<Calendar size={17} />} label={t('last_updated')} value={formatDateTime(user.updatedAt)} />
-              <InfoCard icon={<Key size={17} />} label={t('password_status')} value={user.passwordStatus || (isPasswordExpired ? t('expired') : t('valid'))} />
-              <InfoCard icon={<CheckCircle size={17} />} label={t('account_status')} value={user.isActive ? t('active') : t('inactive')} />
-            </div>
-          </div>
-        )}
-      </div>
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => { if (!deleteStaff.isPending) setDeleteOpen(false); }}
+        onConfirm={() => deleteStaff.mutate()}
+        title="Delete Staff Member"
+        message={`Permanently delete ${localizedName}?`}
+        detail="This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteStaff.isPending}
+      />
     </div>
   );
-};
+}
+
+/* ── Overview ───────────────────────────────────────────────── */
+
+function OverviewTab({ staff: s }) {
+  const { ar: nameAr, en: nameEn } = parseLocalizedValue(s.name);
+  const age = yearsSince(s.birthDate);
+
+  return (
+    <>
+      <Panel icon={User} title="Identity">
+        <div className="pp-grid">
+          <Field icon={Hash} label="Employee Code" value={s.employeeCode} mono copyable />
+          <Field icon={Hash} label="National ID" value={s.nationalId} mono copyable />
+          <Field icon={User} label="Name (Arabic)" value={nameAr} />
+          <Field icon={User} label="Name (English)" value={nameEn} />
+          <Field icon={Mail} label="Email" value={s.email} copyable />
+          <Field icon={Phone} label="Phone" value={s.phoneNumber} copyable />
+          <Field icon={Calendar} label="Date of Birth" value={s.birthDate ? `${fmtDate(s.birthDate)}${age !== null ? ` (${age} yrs)` : ""}` : null} />
+          <Field icon={UsersIcon} label="Gender" value={s.gender} />
+        </div>
+      </Panel>
+
+      <Panel icon={Briefcase} title="Employment">
+        <div className="pp-grid">
+          <Field icon={Shield} label="Role" value={s.role} />
+          <Field icon={Briefcase} label="Job Title" value={s.jobTitle} />
+          <Field icon={Building2} label="Faculty / Department" value={s.facultyName || s.structureNodeName} />
+          <Field icon={Layers} label="Structure Node" value={s.structureNodeName} />
+          <Field icon={GraduationCap} label="Qualification" value={s.qualification} />
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+/* ── Permissions ────────────────────────────────────────────── */
+
+function PermissionsTab({ query, tree, stats }) {
+  const [search, setSearch] = useState("");
+  const [openModules, setOpenModules] = useState(() => new Set());
+
+  const filtered = useMemo(() => {
+    if (!search) return tree;
+    const q = search.toLowerCase();
+    return tree
+      .map((m) => {
+        const moduleHit = m.moduleName?.toLowerCase().includes(q);
+        const resources = (m.resources || [])
+          .map((r) => {
+            const resourceHit = r.resourceName?.toLowerCase().includes(q);
+            const permissions = (r.permissions || []).filter(
+              (p) =>
+                resourceHit || moduleHit ||
+                p.action?.toLowerCase().includes(q) ||
+                p.permissionName?.toLowerCase().includes(q),
+            );
+            return permissions.length ? { ...r, permissions } : null;
+          })
+          .filter(Boolean);
+        return resources.length ? { ...m, resources } : null;
+      })
+      .filter(Boolean);
+  }, [tree, search]);
+
+  const toggleModule = (moduleId) =>
+    setOpenModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(moduleId)) next.delete(moduleId);
+      else next.add(moduleId);
+      return next;
+    });
+
+  if (query.isPending) {
+    return <Panel icon={ShieldCheck} title="Effective Permissions"><SkeletonCard height={180} /></Panel>;
+  }
+
+  if (query.isError || tree.length === 0) {
+    return (
+      <Panel icon={ShieldCheck} title="Effective Permissions">
+        <EmptyState
+          icon={Lock}
+          title="Permission tree unavailable"
+          message="You may not have access to view this user's permissions, or none have been assigned yet."
+        />
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel
+      icon={ShieldCheck}
+      title="Effective Permissions"
+      actions={
+        <>
+          <span className="pp-pill navy">{stats.granted} granted</span>
+          {stats.denies > 0 && <span className="pp-pill bad">{stats.denies} denied</span>}
+        </>
+      }
+    >
+      <div className="pp-perm-summary">
+        <div className="pp-perm-search">
+          <Search size={13} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter by module, resource or action…"
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 && (
+        <EmptyState icon={Search} title="No matches" message="No permission matches that filter." />
+      )}
+
+      {filtered.map((mod) => {
+        // While filtering, every matching module is expanded for scanning.
+        const isOpen = !!search || openModules.has(mod.moduleId);
+        const counts = (mod.resources || []).reduce(
+          (acc, r) => {
+            (r.permissions || []).forEach((p) => {
+              acc.total += 1;
+              if (p.isAssigned) acc.granted += 1;
+            });
+            return acc;
+          },
+          { granted: 0, total: 0 },
+        );
+        const pct = counts.total ? Math.round((counts.granted / counts.total) * 100) : 0;
+
+        return (
+          <div className="pp-perm-module" key={mod.moduleId}>
+            <button type="button" className="pp-perm-module-head" onClick={() => toggleModule(mod.moduleId)}>
+              {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              <span style={{ flex: "0 1 auto" }}>{mod.moduleName}</span>
+              <div className="pp-perm-module-meter"><span style={{ width: `${pct}%` }} /></div>
+              <span className="pp-pill navy">{counts.granted}/{counts.total}</span>
+            </button>
+            {isOpen && (
+              <div className="pp-perm-resources">
+                {(mod.resources || []).map((res) => (
+                  <div className="pp-perm-resource" key={res.resourceId}>
+                    <div className="pp-perm-resource-name">{res.resourceName}</div>
+                    <div className="pp-perm-actions">
+                      {(res.permissions || []).map((p) => {
+                        const cls = p.hasDenyOverride
+                          ? "deny"
+                          : p.hasAllowOverride
+                            ? "allow"
+                            : p.isAssigned
+                              ? "granted"
+                              : "";
+                        const title = p.hasDenyOverride
+                          ? "Explicitly denied in at least one scope"
+                          : p.hasAllowOverride
+                            ? "Explicitly allowed in at least one scope"
+                            : p.isAssigned
+                              ? p.description || "Granted via role"
+                              : "Not granted";
+                        return (
+                          <span className={`pp-perm-action ${cls}`} key={p.permissionId} title={title}>
+                            {p.action}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </Panel>
+  );
+}
+
+/* ── Account ────────────────────────────────────────────────── */
+
+function AccountTab({ staff: s, onToggleActive, togglePending, onResetPassword, onDelete }) {
+  const isExpired = s.passwordStatus === "Expired";
+  const expiryDays = daysUntil(s.passwordExpiry);
+
+  return (
+    <>
+      <Panel icon={ShieldAlert} title="Account & Security">
+        <div className="pp-grid">
+          <Field icon={Calendar} label="Account Created" value={fmtDateTime(s.createdAt)} />
+          <Field
+            icon={Key}
+            label="Password Status"
+            value={
+              isExpired
+                ? "Expired"
+                : s.passwordExpiry
+                  ? `Valid — expires ${fmtDate(s.passwordExpiry)}${expiryDays !== null ? ` (${expiryDays} days)` : ""}`
+                  : "Valid"
+            }
+          />
+          <Field icon={BadgeCheck} label="Account Status" value={s.isActive ? "Active" : "Inactive"} />
+        </div>
+        <div className="pp-form-actions">
+          <button className="pp-btn navy" onClick={onResetPassword}>
+            <Key size={13} /> Reset Password
+          </button>
+        </div>
+      </Panel>
+
+      <Panel icon={AlertCircle} title="Danger Zone" className="pp-danger-zone">
+        <div className="pp-danger-row">
+          <div>
+            <h5>{s.isActive ? "Deactivate account" : "Activate account"}</h5>
+            <p>{s.isActive ? "The staff member will no longer be able to sign in." : "Restore this staff member's ability to sign in."}</p>
+          </div>
+          <button
+            className={`pp-btn ${s.isActive ? "danger" : "success"}`}
+            onClick={onToggleActive}
+            disabled={togglePending}
+          >
+            {s.isActive ? <XCircle size={13} /> : <CheckCircle size={13} />}
+            {togglePending ? "Working…" : s.isActive ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+        <div className="pp-danger-row">
+          <div>
+            <h5>Delete staff member</h5>
+            <p>Permanently removes this staff member and their account. This cannot be undone.</p>
+          </div>
+          <button className="pp-btn danger" onClick={onDelete}>
+            <Trash2 size={13} /> Delete
+          </button>
+        </div>
+      </Panel>
+    </>
+  );
+}
 
 export default UserDetails;

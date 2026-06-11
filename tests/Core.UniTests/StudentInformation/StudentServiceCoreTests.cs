@@ -552,11 +552,15 @@ public class StudentServiceCoreTests
         var active2 = StudentWithHierarchy(true, true);
         var inactive = StudentWithHierarchy(true, true);
         inactive.IsActive = false;
-        repo.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>())).ReturnsAsync(new UserStatisticsDto
+        // Statistics aggregate over the service's own SearchAsync — the
+        // repository has no statistics API.
+        repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>())).ReturnsAsync(new PagedResult<Student>
         {
-            TotalStudents = 3,
-            ActiveStudents = 2,
-            InactiveStudents = 1
+            Items = new List<Student> { active1, active2, inactive },
+            Page = 1,
+            PageSize = int.MaxValue,
+            TotalCount = 3,
+            TotalPages = 1,
         });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest { ScopeNodeId = Guid.NewGuid() });

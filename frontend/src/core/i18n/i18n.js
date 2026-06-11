@@ -16,6 +16,7 @@ import enNotifications from './locales/en/notifications.json';
 import enPermissions from './locales/en/permissions.json';
 import enValidation from './locales/en/validation.json';
 import enTreasury from './locales/en/treasury.json';
+import enAcademic from '../../modules/academic/locales/en/academic.json';
 
 import arCommon from './locales/ar/common.json';
 import arAuth from './locales/ar/auth.json';
@@ -30,6 +31,7 @@ import arNotifications from './locales/ar/notifications.json';
 import arPermissions from './locales/ar/permissions.json';
 import arValidation from './locales/ar/validation.json';
 import arTreasury from './locales/ar/treasury.json';
+import arAcademic from '../../modules/academic/locales/ar/academic.json';
 
 const resources = {
   en: {
@@ -47,7 +49,10 @@ const resources = {
       ...enPermissions,
       ...enValidation,
       ...enTreasury
-    }
+    },
+    // Separate namespace (useTranslation("academic")) — keys never collide
+    // with the spread-merged default "translation" namespace above.
+    academic: enAcademic
   },
   ar: {
     translation: {
@@ -64,7 +69,8 @@ const resources = {
       ...arPermissions,
       ...arValidation,
       ...arTreasury
-    }
+    },
+    academic: arAcademic
   }
 };
 

@@ -47,6 +47,28 @@ public class CourseRepository : ICourseRepository
     public Task<bool> IsReferencedByPlanAsync(Guid courseId, CancellationToken cancellationToken = default) =>
         _context.Set<AcademicPlanCourse>().AnyAsync(apc => apc.CourseId == courseId, cancellationToken);
 
+    public async Task<IReadOnlyList<Course>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default) =>
+        await _context.Courses
+            .AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<CoursePrerequisite>> GetPrerequisiteRowsAsync(Guid courseId, CancellationToken cancellationToken = default) =>
+        await _context.Set<CoursePrerequisite>()
+            .Where(p => p.CourseId == courseId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<CoursePrerequisite>> GetAllPrerequisiteRowsAsync(CancellationToken cancellationToken = default) =>
+        await _context.Set<CoursePrerequisite>()
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+    public async Task AddPrerequisiteAsync(CoursePrerequisite row, CancellationToken cancellationToken = default) =>
+        await _context.Set<CoursePrerequisite>().AddAsync(row, cancellationToken);
+
+    public void RemovePrerequisite(CoursePrerequisite row) =>
+        _context.Set<CoursePrerequisite>().Remove(row);
+
     private static readonly HashSet<string> CourseSortFields = new(StringComparer.OrdinalIgnoreCase) { "code", "creditHours", "createdAt" };
 
     public async Task<PagedResult<Course>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default)

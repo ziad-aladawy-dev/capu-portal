@@ -1,0 +1,66 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.backBtn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  background: var(--portal-bg);
+}
+
+/* Mirror the back arrow for RTL reading direction. */
+[dir="rtl"] .backIcon {
+  transform: scaleX(-1);
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--portal-text);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--portal-text-muted);
+}
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.content {
+  min-width: 0;
+}

@@ -4,13 +4,10 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../navigation/navbar/Navbar";
 import Sidebar from "../navigation/sidebar/Sidebar";
 import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
-import UserScopeBanner from "../components/UserScopeBanner";
 import Breadcrumbs from "../components/Breadcrumbs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
-import StudentBlockerGate from "../components/StudentBlockerGate";
 import { useAuth } from "../auth/useAuth";
-import { getCurrentRouteInfo } from "../router/routeRegistry";
-import { PAGE_TYPES } from "../manifests/manifestTypes";
+import { usePermission } from "../auth/usePermission";
 import "../components/shellComponents.css";
 
 const CommandPalette = lazy(() => import("../components/CommandPalette"));
@@ -22,6 +19,9 @@ const SECONDARY_SIDEBAR_WIDTH = 280;
 
 function DashboardLayout() {
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const { can } = usePermission();
+  // The directory search panel lists staff/students — staff-only tooling.
+  const canSearchDirectory = can("users.users.view");
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > MOBILE_BREAKPOINT);
@@ -32,9 +32,6 @@ function DashboardLayout() {
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
-
-  const routeInfo = getCurrentRouteInfo(location.pathname);
-  const currentPageType = routeInfo?.pageType || PAGE_TYPES.MANAGEMENT;
 
   useEffect(() => {
     const handleResize = () => {
@@ -98,18 +95,20 @@ function DashboardLayout() {
     return sidebarOpen ? SIDEBAR_WIDTH : 0;
   };
 
+  const secondaryVisible = secondaryOpen && canSearchDirectory;
+
   const getContentMargin = () => {
     if (isMobile) return "0px";
 
     if (windowWidth <= 1024) {
       const tabletPrimary = sidebarOpen ? 64 : 0;
-      return secondaryOpen
+      return secondaryVisible
         ? `${tabletPrimary + SECONDARY_SIDEBAR_WIDTH}px`
         : `${tabletPrimary}px`;
     }
 
     const primaryMargin = sidebarOpen ? SIDEBAR_WIDTH : 0;
-    const secondaryMargin = secondaryOpen ? SECONDARY_SIDEBAR_WIDTH : 0;
+    const secondaryMargin = secondaryVisible ? SECONDARY_SIDEBAR_WIDTH : 0;
     return `${primaryMargin + secondaryMargin}px`;
   };
 
@@ -141,7 +140,7 @@ function DashboardLayout() {
         onClose={closeSidebar}
       />
 
-      {secondaryOpen && (
+      {secondaryVisible && (
         <SecondarySidebar
           sidebarOpen={sidebarOpen}
           sidebarWidth={
@@ -156,7 +155,8 @@ function DashboardLayout() {
         onToggleSidebar={toggleSidebar}
         onToggleSecondary={toggleSecondary}
         onOpenCommandPalette={openCommandPalette}
-        secondaryOpen={secondaryOpen}
+        secondaryOpen={secondaryVisible}
+        showDirectoryToggle={canSearchDirectory}
         style={{
           marginInlineStart: isMobile || getPrimaryMargin() === 0 ? "0px" : `${getPrimaryMargin()}px`,
           paddingInlineStart: isMobile || getPrimaryMargin() === 0 ? undefined : "17px",
@@ -175,14 +175,7 @@ function DashboardLayout() {
         <Breadcrumbs />
 
         <main className="dashboard-page-content">
-          {currentPageType === PAGE_TYPES.MANAGEMENT && <UserScopeBanner />}
-          {location.pathname.startsWith("/student") ? (
-            <StudentBlockerGate>
-              <Outlet />
-            </StudentBlockerGate>
-          ) : (
-            <Outlet />
-          )}
+          <Outlet />
         </main>
       </div>
 

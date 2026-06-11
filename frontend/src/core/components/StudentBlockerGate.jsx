@@ -22,6 +22,7 @@ function StudentBlockerGate({ children }) {
     profileCompleteness,
     student,
     emergencyData,
+    contactData,
   } = useBlockerState();
 
   if (requiresPasswordChange) {
@@ -42,7 +43,7 @@ function StudentBlockerGate({ children }) {
   }
 
   if (profileCompleteness < 100) {
-    return <CompleteProfileWizard student={student} emergencyData={emergencyData} />;
+    return <CompleteProfileWizard student={student} emergencyData={emergencyData} contactData={contactData} />;
   }
 
   return children;

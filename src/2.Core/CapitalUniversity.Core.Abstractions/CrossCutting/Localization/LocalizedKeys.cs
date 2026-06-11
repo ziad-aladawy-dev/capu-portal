@@ -75,6 +75,10 @@ public static class LocalizedKeys
         public const string StructureNodeNotFound     = "courses.structure_node_not_found";
         public const string EffectiveToAfterFrom      = "courses.effective_to_after_from";
         public const string ReferencedByPlan          = "courses.referenced_by_plan";
+        public const string PrerequisiteNotFound      = "courses.prerequisite_not_found";
+        public const string PrerequisiteSelfReference = "courses.prerequisite_self_reference";
+        public const string PrerequisiteCycle         = "courses.prerequisite_cycle";
+        public const string PrerequisiteAlreadyExists = "courses.prerequisite_already_exists";
     }
 
     public static class Semesters

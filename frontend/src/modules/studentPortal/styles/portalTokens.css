@@ -1,0 +1,73 @@
+/*
+ * Student portal design tokens — scoped under .student-portal so the admin
+ * shell keeps its navy/gold identity. CSS-only layer: components consume
+ * var(--portal-*) and inherit a softer consumer-app look.
+ */
+.student-portal {
+  /* Palette */
+  --portal-primary: #2563eb;
+  --portal-primary-soft: #dbeafe;
+  --portal-primary-strong: #1d4ed8;
+  --portal-accent: #8b5cf6;
+  --portal-accent-soft: #ede9fe;
+  --portal-surface: #ffffff;
+  --portal-bg: #f8fafc;
+  --portal-text: #0f172a;
+  --portal-text-muted: #64748b;
+  --portal-border: #e2e8f0;
+
+  /* Status */
+  --portal-success: #16a34a;
+  --portal-success-soft: #dcfce7;
+  --portal-warning: #d97706;
+  --portal-warning-soft: #fef3c7;
+  --portal-danger: #dc2626;
+  --portal-danger-soft: #fee2e2;
+  --portal-info: #0284c7;
+  --portal-info-soft: #e0f2fe;
+
+  /* Shape & depth */
+  --portal-radius: 16px;
+  --portal-radius-sm: 10px;
+  --portal-radius-full: 999px;
+  --portal-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --portal-shadow-lift: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+  /* Type */
+  --portal-font: "Outfit", sans-serif;
+
+  /* Layout */
+  --portal-bottom-nav-height: 64px;
+  --portal-drawer-width: 248px;
+  --portal-drawer-width-collapsed: 72px;
+
+  font-family: var(--portal-font);
+  background: var(--portal-bg);
+  color: var(--portal-text);
+}
+
+/* Respect users who prefer less motion — animation helpers read this. */
+@media (prefers-reduced-motion: reduce) {
+  .student-portal *,
+  .student-portal *::before,
+  .student-portal *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print: drop the app chrome so page content prints as a document. */
+@media print {
+  .student-portal aside,
+  .student-portal nav,
+  .student-portal [class*='offlineBanner'] {
+    display: none !important;
+  }
+
+  .student-portal [class*='contentDesktop'],
+  .student-portal [class*='contentMobile'] {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

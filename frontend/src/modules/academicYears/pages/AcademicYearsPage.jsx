@@ -21,7 +21,8 @@ import {
   useCloseSemester, useOpenSemester,
 } from "../../../core/query/useAcademicYears";
 import { getSemesterDateBounds } from "../../../core/utils/dateConstraints";
-import useAcademicStore from "../../../core/stores/useAcademicStore";
+import { toLocalizedJson } from "../../../core/utils/getLocalized";
+import { useAcademic } from "../../../core/contexts/AcademicContext";
 import "../styles/academicYears.css";
 
 const PAGE_SIZE = 10;
@@ -29,7 +30,7 @@ const PAGE_SIZE = 10;
 function AcademicYearsPage() {
   const { t } = useTranslation();
   const { addToast } = useToast();
-  const refreshAcademicYears = useAcademicStore((s) => s.refreshAcademicYears);
+  const { refreshAcademicYears } = useAcademic();
 
   const { data: allYears = [], isLoading, error: queryError, refetch } = useAcademicYears();
   const createYear = useCreateAcademicYear();
@@ -48,7 +49,7 @@ function AcademicYearsPage() {
   const [showWizard, setShowWizard] = useState(false);
 
   const [editYearDrawer, setEditYearDrawer] = useState(null);
-  const [editYearForm, setEditYearForm] = useState({ name: "", startDate: "", endDate: "", isCurrent: false });
+  const [editYearForm, setEditYearForm] = useState({ name: "", nameAr: "", startDate: "", endDate: "", isCurrent: false });
   const [editYearError, setEditYearError] = useState("");
 
   const [cascadeTarget, setCascadeTarget] = useState(null);
@@ -58,7 +59,7 @@ function AcademicYearsPage() {
 
   const [semDrawer, setSemDrawer] = useState(null);
   const [editSem, setEditSem] = useState(null);
-  const [semForm, setSemForm] = useState({ name: "", startDate: "", endDate: "" });
+  const [semForm, setSemForm] = useState({ name: "", nameAr: "", startDate: "", endDate: "" });
   const [semFormError, setSemFormError] = useState("");
   const [semDelete, setSemDelete] = useState(null);
 
@@ -90,7 +91,7 @@ function AcademicYearsPage() {
   const handleWizardSave = async (data) => {
     try {
       await createYear.mutateAsync({
-        name: data.name,
+        name: toLocalizedJson(data.nameAr, data.name),
         startDate: data.startDate,
         endDate: data.endDate,
         isCurrent: data.isCurrent,
@@ -98,7 +99,11 @@ function AcademicYearsPage() {
       if (data.semesters?.length > 0) {
         for (const sem of data.semesters) {
           try {
-            await createSem.mutateAsync({ ...sem, academicYearId: null });
+            await createSem.mutateAsync({
+              ...sem,
+              name: toLocalizedJson(sem.nameAr, sem.name),
+              academicYearId: null,
+            });
           } catch {}
         }
       }
@@ -114,6 +119,7 @@ function AcademicYearsPage() {
     setEditYearDrawer(year);
     setEditYearForm({
       name: year.name,
+      nameAr: "",
       startDate: year.startDate?.split("T")[0] || "",
       endDate: year.endDate?.split("T")[0] || "",
       isCurrent: year.isCurrent,
@@ -129,7 +135,15 @@ function AcademicYearsPage() {
       setEditYearError("End date must be after start date"); return;
     }
     try {
-      await updateYear.mutateAsync({ id: editYearDrawer.id, ...editYearForm });
+      // The API stores names as {"ar","en"} JSON but returns them localized, so
+      // only resend the name when it was actually edited (or an Arabic name was
+      // provided) to avoid overwriting the other language.
+      const { name, nameAr, ...rest } = editYearForm;
+      const payload = { id: editYearDrawer.id, ...rest };
+      if (name.trim() !== (editYearDrawer.name || "") || nameAr.trim()) {
+        payload.name = toLocalizedJson(nameAr, name);
+      }
+      await updateYear.mutateAsync(payload);
       addToast("Academic year updated", "success");
       setEditYearDrawer(null);
       refreshAcademicYears();
@@ -202,7 +216,7 @@ function AcademicYearsPage() {
   const openCreateSemDrawer = () => {
     setSemDrawer("create");
     setEditSem(null);
-    setSemForm({ name: "", startDate: "", endDate: "" });
+    setSemForm({ name: "", nameAr: "", startDate: "", endDate: "" });
     setSemFormError("");
   };
 
@@ -211,6 +225,7 @@ function AcademicYearsPage() {
     setEditSem(sem);
     setSemForm({
       name: sem.name,
+      nameAr: "",
       startDate: sem.startDate?.split("T")[0] || "",
       endDate: sem.endDate?.split("T")[0] || "",
     });
@@ -244,11 +259,22 @@ function AcademicYearsPage() {
     e.preventDefault();
     if (!validateSemForm()) return;
     try {
+      const { name, nameAr, ...dates } = semForm;
       if (semDrawer === "create") {
-        await createSem.mutateAsync({ ...semForm, academicYearId: semesterYear.id });
+        await createSem.mutateAsync({
+          name: toLocalizedJson(nameAr, name),
+          ...dates,
+          academicYearId: semesterYear.id,
+        });
         addToast("Semester created", "success");
       } else if (semDrawer === "edit" && editSem) {
-        await updateSem.mutateAsync({ id: editSem.id, ...semForm });
+        // Only resend the name when edited (or an Arabic name was provided) —
+        // the API returns names localized, so blind resends clobber the other language.
+        const payload = { id: editSem.id, ...dates };
+        if (name.trim() !== (editSem.name || "") || nameAr.trim()) {
+          payload.name = toLocalizedJson(nameAr, name);
+        }
+        await updateSem.mutateAsync(payload);
         addToast("Semester updated", "success");
       }
       closeSemDrawer();
@@ -357,6 +383,13 @@ function AcademicYearsPage() {
               <small style={{ color: "#6b7280", fontSize: 10 }}>
                 {t("year_bounds", { min: semesterDateBounds.minDate, max: semesterDateBounds.maxDate })}
               </small>
+            </div>
+            <div className="form-group">
+              <label htmlFor="sem-name-ar">{t("name_arabic")}</label>
+              <input id="sem-name-ar" type="text" dir="rtl" value={semForm.nameAr}
+                onChange={(e) => setSemForm((p) => ({ ...p, nameAr: e.target.value }))}
+                placeholder="مثال: الفصل الأول"
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }} />
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <div className="form-group" style={{ flex: 1 }}>
@@ -599,6 +632,13 @@ function AcademicYearsPage() {
             <label htmlFor="ey-name">Academic Year Name *</label>
             <input id="ey-name" type="text" value={editYearForm.name}
               onChange={(e) => setEditYearForm((p) => ({ ...p, name: e.target.value }))}
+              style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="ey-name-ar">Academic Year Name (Arabic)</label>
+            <input id="ey-name-ar" type="text" dir="rtl" value={editYearForm.nameAr}
+              onChange={(e) => setEditYearForm((p) => ({ ...p, nameAr: e.target.value }))}
+              placeholder="مثال: ٢٠٢٤-٢٠٢٥"
               style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }} />
           </div>
           <div style={{ display: "flex", gap: 12 }}>

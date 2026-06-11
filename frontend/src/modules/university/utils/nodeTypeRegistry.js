@@ -163,10 +163,10 @@ export function nodeHasCapability(typeValue, capability) {
 const CAPABILITY_ROUTES = {
   hasStudents: { labelKey: "students", path: "/admin/students", icon: Users },
   hasStaff: { labelKey: "staff", path: "/admin/staff", icon: Users },
-  hasPlans: { labelKey: "academic_plans", path: "/admin/academic-plans", icon: CalendarRange },
-  hasCourseOfferings: { labelKey: "course_offerings", path: "/admin/academic/course-offerings", icon: Calendar },
-  hasCurriculum: { labelKey: "academic_plans", path: "/admin/academic-plans", icon: BookOpen },
-  managesCourses: { labelKey: "course_catalog", path: "/admin/courses", icon: BookOpen },
+  hasPlans: { labelKey: "academic_plans", path: "/admin/academic/plans", icon: CalendarRange },
+  hasCourseOfferings: { labelKey: "course_offerings", path: "/admin/academic/offerings", icon: Calendar },
+  hasCurriculum: { labelKey: "academic_plans", path: "/admin/academic/plans", icon: BookOpen },
+  managesCourses: { labelKey: "course_catalog", path: "/admin/academic/courses", icon: BookOpen },
 };
 
 export function getContextualActions(typeValue) {

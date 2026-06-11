@@ -1,0 +1,378 @@
+/* Course Catalog split view + detail panel + prerequisites picker. */
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.splitTable {
+  min-width: 0;
+}
+
+.splitPanel {
+  position: sticky;
+  top: 16px;
+}
+
+.panel {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.panelEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  background: var(--bg-card, #fff);
+  border: 1px dashed var(--border-color, #d1d5db);
+  border-radius: 10px;
+  color: var(--text-secondary, #9ca3af);
+  text-align: center;
+}
+
+.panelEmpty strong {
+  color: var(--text-primary, #4b5563);
+  font-size: 14px;
+}
+
+.panelEmpty p {
+  margin: 0;
+  font-size: 12.5px;
+  max-width: 260px;
+}
+
+.panelHead {
+  margin-bottom: 12px;
+}
+
+.panelMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.panelTabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  margin-bottom: 14px;
+}
+
+.panelTab {
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.panelTab:hover {
+  color: var(--brand-primary, #1a1f5e);
+}
+
+.panelTabActive {
+  composes: panelTab;
+  color: var(--brand-primary, #1a1f5e);
+  border-bottom-color: var(--brand-primary, #1a1f5e);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.detailGrid dt {
+  color: var(--text-secondary, #6b7280);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.detailGrid dd {
+  margin: 0;
+  color: var(--text-primary, #111827);
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-card, #fff);
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  color: var(--brand-primary, #1a1f5e);
+  border-color: var(--brand-primary, #1a1f5e);
+}
+
+.actionDanger:hover {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* --- Prerequisites picker --- */
+
+.pickerSearch {
+  position: relative;
+}
+
+.pickerSearch input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pickerDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 17, 47, 0.12);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.pickerDropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  text-align: start;
+  color: var(--text-primary, #374151);
+}
+
+.pickerDropdown button:hover {
+  background: var(--bg-hover, #f3f4f6);
+}
+
+.pickerTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prereqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.prereqBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-hover, #f8f9fc);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.prereqBadgeTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary, #374151);
+}
+
+.prereqBadgeCredits {
+  font-size: 11px;
+  color: var(--text-secondary, #9ca3af);
+  white-space: nowrap;
+}
+
+.prereqBadge button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary, #9ca3af);
+  cursor: pointer;
+}
+
+.prereqBadge button:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* --- Offerings tab --- */
+
+.offeringCard {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--bg-card, #fff);
+}
+
+.offeringSelected {
+  border-color: var(--brand-primary, #1a1f5e);
+  background: #f5f7ff;
+}
+
+.offeringRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+}
+
+.offeringMain {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.offeringSection {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-primary, #1a1f5e);
+}
+
+.offeringSlots {
+  padding: 8px 12px 10px 36px;
+  border-top: 1px dashed var(--border-color, #e5e7eb);
+}
+
+.slotLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12.5px;
+  color: var(--text-primary, #374151);
+}
+
+.slotDay {
+  width: 32px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
+  text-transform: uppercase;
+}
+
+/* --- Catalog health --- */
+
+.healthPanel {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: var(--bg-card, #fff);
+  margin-bottom: 14px;
+}
+
+.healthToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-primary, #1a1f5e);
+}
+
+.healthCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.healthBody {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.healthSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.healthSectionTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary, #374151);
+  flex-wrap: wrap;
+}
+
+.healthSectionCount {
+  color: var(--brand-primary, #1a1f5e);
+}
+
+.healthSectionHint {
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.healthChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.healthChips button {
+  cursor: pointer;
+}

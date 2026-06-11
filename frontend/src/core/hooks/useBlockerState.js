@@ -9,19 +9,24 @@ import {
 /**
  * Required-profile configuration that drives the completeness gate.
  *
- * Phase 2 scope: a student must have core contact details (phone + address)
- * on file AND an emergency contact (name + phone) before reaching the
- * dashboard. Adjust this list to change what blocks access — the wizard reads
- * the same definition.
+ * A student must have a phone number (Student entity), a permanent address
+ * (stored in the portal's "contact-information" Custom profile record — the
+ * Student entity has no address columns), AND an emergency contact (name +
+ * phone, EmergencyContact record) before reaching the dashboard. Adjust this
+ * list to change what blocks access — the onboarding wizard and the profile
+ * page's completeness bar read the same definition.
  */
 export const REQUIRED_PROFILE_FIELDS = [
-  { key: "phoneNumber", label: "Phone Number", severity: "high", source: "core" },
-  { key: "address", label: "Permanent Address", severity: "high", source: "core" },
-  { key: "emergencyName", label: "Emergency Contact Name", severity: "high", source: "emergency" },
-  { key: "emergencyPhone", label: "Emergency Contact Phone", severity: "high", source: "emergency" },
+  { key: "phoneNumber", label: "Phone Number", severity: "high", source: "core", section: "contact" },
+  { key: "address", label: "Permanent Address", severity: "high", source: "contact", section: "contact" },
+  { key: "emergencyName", label: "Emergency Contact Name", severity: "high", source: "emergency", section: "emergency" },
+  { key: "emergencyPhone", label: "Emergency Contact Phone", severity: "high", source: "emergency", section: "emergency" },
 ];
 
+export const CONTACT_RECORD_KEY = "contact-information";
+
 const EMERGENCY_CATEGORY = STUDENT_PROFILE_CATEGORY.EmergencyContact;
+const CUSTOM_CATEGORY = STUDENT_PROFILE_CATEGORY.Custom;
 
 function safeParse(json) {
   try {
@@ -43,10 +48,14 @@ function hasText(v) {
 export function buildCompleteness(student, records) {
   const emergency = (records || []).find((r) => r.category === EMERGENCY_CATEGORY);
   const emergencyData = safeParse(emergency?.dataJson);
+  const contact = (records || []).find(
+    (r) => r.category === CUSTOM_CATEGORY && r.customKey === CONTACT_RECORD_KEY
+  );
+  const contactData = safeParse(contact?.dataJson);
 
   const values = {
     phoneNumber: student?.phoneNumber,
-    address: student?.address,
+    address: contactData.address,
     emergencyName: emergencyData.name,
     emergencyPhone: emergencyData.phone,
   };
@@ -55,7 +64,14 @@ export function buildCompleteness(student, records) {
   const filled = REQUIRED_PROFILE_FIELDS.length - missingFields.length;
   const overallPercentage = Math.round((filled / REQUIRED_PROFILE_FIELDS.length) * 100);
 
-  return { overallPercentage, missingFields, emergencyRecord: emergency || null, emergencyData };
+  return {
+    overallPercentage,
+    missingFields,
+    emergencyRecord: emergency || null,
+    emergencyData,
+    contactRecord: contact || null,
+    contactData,
+  };
 }
 
 export const BLOCKER_QUERY_KEY = (studentId) => ["blocker-state", studentId];
@@ -92,12 +108,15 @@ export function useBlockerState() {
     isLoading: enabled && query.isLoading,
     isError: query.isError,
     requiresPasswordChange: Boolean(requiresPasswordChange),
-    // Fail open: when disabled (no student id) or the profile request errored,
-    // never trap the user behind the wizard.
-    profileCompleteness: !enabled || query.isError ? 100 : completeness?.overallPercentage ?? 0,
+    // Fail open: ONLY a successful read may block the student. Errors, paused
+    // fetches (React Query pauses when its onlineManager thinks the browser is
+    // offline), and any other non-success state must never trap the user
+    // behind the wizard with empty data.
+    profileCompleteness: query.isSuccess ? completeness?.overallPercentage ?? 100 : 100,
     missingFields: completeness?.missingFields ?? [],
     student: completeness?.student ?? null,
     emergencyData: completeness?.emergencyData ?? {},
+    contactData: completeness?.contactData ?? {},
     // No mandatory-actions subsystem exists yet (Phase 2 deferred). Always
     // returns "none pending" so the gate degrades gracefully.
     hasPendingMandatoryAction: false,

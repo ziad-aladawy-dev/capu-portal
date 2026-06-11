@@ -23,7 +23,9 @@ public class CourseResponse
 /// Write model. <c>Title</c> is a free-text string — operators send either
 /// the canonical <c>{"ar":"…","en":"…"}</c> JSON for a bilingual catalog
 /// entry or a plain literal for single-language data. The resolver round-trips
-/// both shapes safely on read.
+/// both shapes safely on read. <c>Code</c> is language-neutral plain text
+/// (e.g. <c>"CS101"</c>, max 32 chars) and is stored verbatim — never
+/// localized JSON.
 /// </summary>
 public class CreateCourseRequest
 {

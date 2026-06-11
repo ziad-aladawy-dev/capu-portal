@@ -76,10 +76,50 @@ public class CourseServiceTests
         });
 
         id.Should().NotBeEmpty();
-        
-        // Assert on the normalized identity, not verbatim equality.
-        repo.Verify(r => r.AddAsync(It.Is<Course>(c => LocalizedJson.Extract(c.Code, "en") == "CS101"), default), Times.Once);
+
+        // Code is language-neutral plain text: stored verbatim (modulo the
+        // entity's trim/upper-case), NOT wrapped in localized JSON — the JSON
+        // shape broke CodeExistsAsync comparisons and overflowed nvarchar(32).
+        // Title IS bilingual and must keep the canonical JSON shape.
+        repo.Verify(r => r.AddAsync(It.Is<Course>(c =>
+            c.Code == "CS101" &&
+            c.Title == LocalizedJson.Of("Algorithms", "Algorithms")), default), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_LongCode_StoresPlainCodeAndReadsBackUnchanged()
+    {
+        // Regression: the create mapper used to wrap Code in {"ar":…,"en":…}
+        // JSON, which the upper-casing entity setter mangled to {"AR":…,"EN":…}
+        // and which overflowed the nvarchar(32) column for any code > ~5 chars
+        // (SqlException: "String or binary data would be truncated").
+        var (sut, repo, _, _) = Build();
+        const string longCode = "SWE401-ADVANCED-PROJECTS"; // 24 chars — JSON-wrapped it would be 69
+        Course? added = null;
+        repo.Setup(r => r.CodeExistsAsync(longCode, null, default)).ReturnsAsync(false);
+        repo.Setup(r => r.AddAsync(It.IsAny<Course>(), default))
+            .Callback<Course, CancellationToken>((c, _) => added = c)
+            .Returns(Task.CompletedTask);
+
+        var id = await sut.CreateAsync(new CreateCourseRequest
+        {
+            Code = longCode,
+            Title = "Advanced Projects",
+            CreditHours = 3,
+            Category = CourseCategory.ProgramRequirement,
+        });
+
+        added.Should().NotBeNull();
+        added!.Code.Should().Be(longCode, "the code must persist as the bare upper-case literal");
+        added.Code.Length.Should().BeLessThanOrEqualTo(32, "the Courses.Code column is nvarchar(32)");
+        added.Code.Should().NotStartWith("{", "course codes are language-neutral and must never be JSON-wrapped");
+
+        // Read-back: GetById must return the same plain code to clients.
+        repo.Setup(r => r.GetByIdAsync(id, default)).ReturnsAsync(added);
+        var response = await sut.GetByIdAsync(id);
+        response.Should().NotBeNull();
+        response!.Code.Should().Be(longCode);
     }
 
     [Fact]

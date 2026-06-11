@@ -127,30 +127,41 @@ public class StudentService : IStudentService
         if (student == null)
             throw new Exception("Student not found");
 
-        var structureNode = await _structureRepository.GetByIdAsync(request.StructureNodeId);
-
-        if (structureNode == null)
+        if (request.StructureNodeId.HasValue)
         {
-            throw new Exception("Structure node not found");
+            var structureNode = await _structureRepository.GetByIdAsync(request.StructureNodeId.Value);
+
+            if (structureNode == null)
+            {
+                throw new Exception("Structure node not found");
+            }
+
+            if (structureNode.Type != StructureNodeType.Level)
+            {
+                throw new Exception("Student must be assigned to a level");
+            }
+
+            student.StructureNodeId = request.StructureNodeId.Value;
         }
 
-        if (structureNode.Type != StructureNodeType.Level)
+        if (!string.IsNullOrWhiteSpace(request.Email) && student.Email != request.Email)
         {
-            throw new Exception("Student must be assigned to a level");
+            if (await _repository.EmailExistsAsync(request.Email))
+            {
+                throw new Exception("Email already exists");
+            }
+
+            student.Email = request.Email;
         }
 
-        bool emailExists = await _repository.EmailExistsAsync(request.Email);
-
-        if (emailExists && student.Email != request.Email)
+        if (!string.IsNullOrWhiteSpace(request.NationalId) && student.NationalId != request.NationalId)
         {
-            throw new Exception("Email already exists");
-        }
+            if (await _repository.NationalIdExistsAsync(request.NationalId))
+            {
+                throw new Exception("National ID already exists");
+            }
 
-        bool nationalIdExists = await _repository.NationalIdExistsAsync(request.NationalId);
-
-        if (nationalIdExists && student.NationalId != request.NationalId)
-        {
-            throw new Exception("National ID already exists");
+            student.NationalId = request.NationalId;
         }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
@@ -172,13 +183,10 @@ public class StudentService : IStudentService
             student.Name = JsonSerializer.Serialize(dict);
         }
 
-        student.NationalId = request.NationalId;
+        student.BirthDate = request.BirthDate ?? student.BirthDate;
 
-        student.BirthDate = request.BirthDate;
-
-        student.PhoneNumber = request.PhoneNumber;
-
-        student.Email = request.Email;
+        // Empty string clears the phone number; null leaves it unchanged.
+        student.PhoneNumber = request.PhoneNumber ?? student.PhoneNumber;
 
         student.PhotoUrl = request.PhotoUrl ?? student.PhotoUrl;
 
@@ -188,11 +196,9 @@ public class StudentService : IStudentService
 
         student.GuardianPhone = request.GuardianPhone ?? student.GuardianPhone;
 
-        student.StructureNodeId = request.StructureNodeId;
+        student.IsActive = request.IsActive ?? student.IsActive;
 
-        student.IsActive = request.IsActive;
-
-        student.PasswordExpiry = request.PasswordExpiry;
+        student.PasswordExpiry = request.PasswordExpiry ?? student.PasswordExpiry;
 
         student.UpdatedAt = DateTime.UtcNow;
 

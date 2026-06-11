@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  User, Mail, Phone, CheckCircle2, UserCircle2, BookOpen, Building2,
-  Calendar, XCircle, AlertCircle, Award, Lock, Globe, Users, Camera
+  User, Mail, Lock, Phone, CheckCircle2, Save, KeyRound, BookOpen,
+  Building2, Calendar, Award, Hash, Globe, Users, Camera, RefreshCw,
+  AlertCircle, UserCircle2, XCircle
 } from "lucide-react";
-import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { parseLocalizedValue } from "../../../core/utils/getLocalized";
+import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
+import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
 import "../styles/userForms.css";
 
 const EditStudent = () => {
@@ -40,7 +43,10 @@ const EditStudent = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showPhotoValidation, setShowPhotoValidation] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
   const fileInputRef = useRef(null);
+  const photoValidator = usePhotoValidator();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5256';
   const getPhotoUrl = (url) => {
     if (!url) return null;
@@ -177,7 +183,7 @@ const EditStudent = () => {
       nameEn: formData.nameEn || formData.nameAr,
       nationalId: formData.nationalId,
       birthDate: formData.birthDate,
-      phoneNumber: formData.phoneNumber || null,
+      phoneNumber: formData.phoneNumber || "",
       email: formData.email,
       structureNodeId: formData.structureNodeId,
       isActive: formData.isActive,
@@ -415,8 +421,11 @@ const EditStudent = () => {
                             alert(t('image_too_large'));
                             return;
                           }
-                          setPhotoFile(file);
                           setPhotoPreview(URL.createObjectURL(file));
+                          setPendingPhotoFile(file);
+                          setShowPhotoValidation(true);
+                          photoValidator.reset();
+                          photoValidator.loadModel().then(() => photoValidator.validate(file));
                         }
                       }}
                     />
@@ -551,6 +560,26 @@ const EditStudent = () => {
           </div>
         </form>
       </div>
+
+      {showPhotoValidation && (
+        <PhotoValidationOverlay
+          results={photoValidator.results}
+          previewUrl={photoPreview}
+          isProcessing={photoValidator.isProcessing}
+          error={photoValidator.error}
+          onAccept={() => {
+            setPhotoFile(pendingPhotoFile);
+            setShowPhotoValidation(false);
+          }}
+          onReject={() => {
+            setShowPhotoValidation(false);
+            setPendingPhotoFile(null);
+            setPhotoPreview(null);
+            photoValidator.reset();
+          }}
+          onRetry={() => photoValidator.validate(pendingPhotoFile)}
+        />
+      )}
 
       {showSuccess && (
         <>

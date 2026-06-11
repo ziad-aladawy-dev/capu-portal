@@ -11,8 +11,6 @@ import { getNodeTypeConfig } from "../../../modules/university/utils/nodeTypeReg
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
 import { useAuth } from "../../auth/useAuth";
-import useAcademicStore from "../../stores/useAcademicStore";
-import useScopeStore from "../../stores/useScopeStore";
 import * as notificationService from "../../services/notificationService";
 import ChangePasswordModal from "../../auth/components/ChangePasswordModal";
 import ScopeModal from "../../components/ScopeModal";
@@ -24,18 +22,16 @@ function getUserInitial(user, language) {
   return displayName?.charAt(0)?.toUpperCase() || "U";
 }
 
-function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, secondaryOpen, style }) {
+function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, secondaryOpen, showDirectoryToggle = true, style }) {
   const { t, i18n } = useTranslation();
   const { scopeNode } = useDomain();
-  const { selectedYearObj, selectedSemesterObj } = useAcademic();
+  const {
+    selectedYearObj, selectedSemesterObj,
+    academicYears, semesters, selectYear, selectSemester,
+  } = useAcademic();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const language = i18n.language;
-
-  const academicYears = useAcademicStore((s) => s.academicYears);
-  const semesters = useAcademicStore((s) => s.semesters);
-  const selectYear = useAcademicStore((s) => s.selectYear);
-  const selectSemester = useAcademicStore((s) => s.selectSemester);
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -131,13 +127,15 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
           <button className="nav-icon-btn" onClick={onToggleSidebar}>
             <Menu size={16} />
           </button>
-          <button
-            className={`nav-icon-btn${secondaryOpen ? " is-active" : ""}`}
-            onClick={onToggleSecondary}
-            title={t("toggle_directory_search")}
-          >
-            <Search size={14} />
-          </button>
+          {showDirectoryToggle && (
+            <button
+              className={`nav-icon-btn${secondaryOpen ? " is-active" : ""}`}
+              onClick={onToggleSecondary}
+              title={t("toggle_directory_search")}
+            >
+              <Search size={14} />
+            </button>
+          )}
         </div>
 
         <div className="navbar-center" ref={contextRef}>
@@ -175,7 +173,7 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
             >
               <Calendar size={13} className="nav-context-icon" />
               <span className="nav-context-label">
-                {yearLabel || t("select_year")}
+                {yearLabel || t("select_academic_year")}
                 {semesterLabel && <><span className="nav-context-sep"> / </span>{semesterLabel}</>}
               </span>
               <ChevronDown size={11} className="nav-context-chevron" />
@@ -186,7 +184,7 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
                 <div className="nav-context-section">
                   <div className="nav-context-section-title">{t("academic_year")}</div>
                   {academicYears.length === 0 ? (
-                    <div className="nav-context-empty">No years available</div>
+                    <div className="nav-context-empty">{t("no_years_available")}</div>
                   ) : (
                     academicYears.map((y) => (
                       <button

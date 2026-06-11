@@ -360,16 +360,27 @@ public class StaffServiceTests
         dto.Should().BeNull();
     }
 
+    private static Staff StaffMember(bool isActive) => new()
+    {
+        Id = Guid.NewGuid(),
+        EmployeeCode = "EMP-1",
+        Name = "{\"ar\":\"N\",\"en\":\"N\"}",
+        IsActive = isActive,
+    };
+
     [Fact]
     public async Task GetStatistics_CountsActiveAndInactiveSeparately()
     {
+        // Statistics aggregate over the service's own SearchAsync (full result
+        // set) — the repository has no statistics API.
         var (sut, staff, _, _, _) = Build();
-        var node = new StructureNode { Id = Guid.NewGuid(), Name = "{\"ar\":\"N\",\"en\":\"N\"}" };
-        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>())).ReturnsAsync(new UserStatisticsDto
+        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>())).ReturnsAsync(new PagedResult<Staff>
         {
-            TotalStaff = 3,
-            ActiveStaff = 2,
-            InactiveStaff = 1
+            Items = new List<Staff> { StaffMember(true), StaffMember(true), StaffMember(false) },
+            Page = 1,
+            PageSize = int.MaxValue,
+            TotalCount = 3,
+            TotalPages = 1,
         });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest());
@@ -383,13 +394,16 @@ public class StaffServiceTests
     public async Task GetStatistics_RequestsAllPages_NotJustFirstPage()
     {
         var (sut, staff, _, _, _) = Build();
-        UserStatisticsRequest? observed = null;
-        staff.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>()))
-            .Callback<UserStatisticsRequest>(q => observed = q)
-            .ReturnsAsync(new UserStatisticsDto());
+        StaffQueryRequest? observed = null;
+        staff.Setup(r => r.SearchAsync(It.IsAny<StaffQueryRequest>()))
+            .Callback<StaffQueryRequest>(q => observed = q)
+            .ReturnsAsync(new PagedResult<Staff> { Items = new List<Staff>() });
 
         await sut.GetStatisticsAsync(new UserStatisticsRequest());
 
         observed.Should().NotBeNull();
+        observed!.Page.Should().Be(1);
+        observed.PageSize.Should().Be(int.MaxValue,
+            "statistics must aggregate the full result set, not the first page");
     }
 }

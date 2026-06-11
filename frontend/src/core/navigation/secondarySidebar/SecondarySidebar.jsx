@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search, X, Users,
   CalendarRange, BookOpen, User, RotateCcw,
-  GraduationCap, ChevronDown, Eye, Building2,
-  UserSearch, Wallet,
+  GraduationCap, ChevronDown, ChevronUp, Eye, Building2,
+  UserSearch, Wallet, FileText, Shield,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -56,6 +56,181 @@ const TABS = [
   { key: "staff", labelKey: "staff", icon: User },
   { key: "student", labelKey: "students", icon: GraduationCap },
 ];
+
+// ── Pinned-user quick launch ──────────────────────────────────
+// Registry of modules reachable for a pinned user. Adding a module
+// here is all that's needed for it to show up in the launcher.
+const PINNED_MODULES = [
+  {
+    key: "profile", labelKey: "profile", icon: UserSearch,
+    types: ["staff", "student"],
+    route: (u) => (u.type === "student" ? `/admin/students/${u.id}` : `/admin/users/${u.id}`),
+  },
+  {
+    key: "academics", labelKey: "academic_hub", icon: GraduationCap,
+    types: ["student"],
+    route: (u) => `/admin/students/${u.id}/academics`,
+  },
+  {
+    key: "finance", labelKey: "finance", icon: Wallet,
+    types: ["student"],
+    route: (u) => `/admin/finance/treasury?studentId=${u.id}`,
+  },
+  {
+    key: "profile_records", labelKey: "profile_records", icon: FileText,
+    types: ["student"],
+    route: (u) => `/admin/students/${u.id}/profile-records`,
+  },
+  {
+    key: "permissions", labelKey: "permissions", icon: Shield,
+    types: ["staff"],
+    route: () => "/admin/permissions",
+  },
+];
+
+const RAIL_SIZE = 3;        // pills shown before collapsing into "+N"
+const FILTER_THRESHOLD = 8; // grid gets a filter box past this many modules
+const USAGE_STORAGE_KEY = "secPinnedModuleUsage";
+
+const readModuleUsage = () => {
+  try { return JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY)) || {}; }
+  catch { return {}; }
+};
+
+function PinnedQuickLaunch({ user }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [expanded, setExpanded] = useState(false);
+  const [filter, setFilter] = useState("");
+  // Usage counts are read per pin (not per click) so the rail doesn't
+  // reshuffle under the employee's cursor mid-session.
+  const [usage, setUsage] = useState(readModuleUsage);
+
+  // Render-time reset when the pinned user changes (avoids an effect cascade).
+  const [lastUserId, setLastUserId] = useState(user.id);
+  if (lastUserId !== user.id) {
+    setLastUserId(user.id);
+    setExpanded(false);
+    setFilter("");
+    setUsage(readModuleUsage());
+  }
+
+  const available = useMemo(
+    () => PINNED_MODULES.filter(m => m.types.includes(user.type)),
+    [user.type],
+  );
+
+  // The rail is personalized: most-used modules first (stable sort keeps
+  // registry order for ties). The expanded grid keeps registry order so
+  // the full catalog stays predictable.
+  const railItems = useMemo(
+    () => [...available]
+      .sort((a, b) => (usage[b.key] || 0) - (usage[a.key] || 0))
+      .slice(0, RAIL_SIZE),
+    [available, usage],
+  );
+  const overflowCount = available.length - railItems.length;
+
+  // Longest matching route prefix wins, so /students/:id/academics
+  // highlights Academics rather than Profile.
+  const activeKey = useMemo(() => {
+    let best = null;
+    let bestLen = -1;
+    available.forEach(m => {
+      const path = m.route(user).split("?")[0];
+      if ((pathname === path || pathname.startsWith(path + "/")) && path.length > bestLen) {
+        best = m.key;
+        bestLen = path.length;
+      }
+    });
+    return best;
+  }, [available, user, pathname]);
+
+  const launch = (mod) => {
+    const counts = readModuleUsage();
+    counts[mod.key] = (counts[mod.key] || 0) + 1;
+    try { localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(counts)); } catch { /* ignore */ }
+    setExpanded(false);
+    setFilter("");
+    navigate(mod.route(user));
+  };
+
+  const gridItems = useMemo(() => {
+    if (!filter) return available;
+    const q = filter.toLowerCase();
+    return available.filter(m => t(m.labelKey).toLowerCase().includes(q));
+  }, [available, filter, t]);
+
+  if (available.length === 0) return null;
+
+  return (
+    <div className="sec-launch">
+      <div className="sec-launch-rail">
+        {railItems.map(mod => {
+          const Icon = mod.icon;
+          return (
+            <button
+              key={mod.key}
+              className={`sec-launch-pill ${activeKey === mod.key ? "is-active" : ""}`}
+              onClick={() => launch(mod)}
+              title={t(mod.labelKey)}
+            >
+              <Icon size={11} />
+              <span>{t(mod.labelKey)}</span>
+            </button>
+          );
+        })}
+        {overflowCount > 0 && (
+          <button
+            className={`sec-launch-more ${expanded ? "is-open" : ""}`}
+            onClick={() => { setExpanded(e => !e); setFilter(""); }}
+            title={expanded ? t("show_less") : t("more_actions")}
+            aria-expanded={expanded}
+          >
+            {expanded ? <ChevronUp size={11} /> : <>+{overflowCount}</>}
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="sec-launch-panel">
+          {available.length > FILTER_THRESHOLD && (
+            <div className="sec-launch-filter">
+              <Search size={11} />
+              <input
+                type="text"
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+                placeholder={t("find_action")}
+                autoFocus
+              />
+            </div>
+          )}
+          <div className="sec-launch-grid">
+            {gridItems.map(mod => {
+              const Icon = mod.icon;
+              return (
+                <button
+                  key={mod.key}
+                  className={`sec-launch-tile ${activeKey === mod.key ? "is-active" : ""}`}
+                  onClick={() => launch(mod)}
+                  title={t(mod.labelKey)}
+                >
+                  <span className="sec-launch-tile-icon"><Icon size={13} /></span>
+                  <span className="sec-launch-tile-label">{t(mod.labelKey)}</span>
+                </button>
+              );
+            })}
+            {gridItems.length === 0 && (
+              <div className="sec-launch-empty">{t("no_results")}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const { t, i18n } = useTranslation();
@@ -335,30 +510,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
               <X size={11} />
             </button>
           </div>
-          <div className="sec-pinned-actions">
-            <button
-              className="sec-pinned-action"
-              onClick={() => navigate(selected.type === "student" ? `/admin/students/${selected.id}` : `/admin/users/${selected.id}`)}
-            >
-              <UserSearch size={11} /> {t("profile")}
-            </button>
-            {selected.type === "student" && (
-              <>
-                <button
-                  className="sec-pinned-action"
-                  onClick={() => navigate(`/admin/students/${selected.id}/academics`)}
-                >
-                  <GraduationCap size={11} /> {t("academic_hub")}
-                </button>
-                <button
-                  className="sec-pinned-action"
-                  onClick={() => navigate(`/admin/finance/treasury?studentId=${selected.id}`)}
-                >
-                  <Wallet size={11} /> {t("finance")}
-                </button>
-              </>
-            )}
-          </div>
+          <PinnedQuickLaunch user={selected} />
         </div>
       )}
 

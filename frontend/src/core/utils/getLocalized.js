@@ -20,6 +20,15 @@ export function getLocalized(value, lang, fallback = "") {
   return fallback;
 }
 
+// Compile a bilingual name pair into the canonical localized JSON string the
+// backend stores ({"ar":"…","en":"…"}). A missing language falls back to the
+// other so both keys are always populated.
+export function toLocalizedJson(ar, en) {
+  const arValue = (ar || "").trim();
+  const enValue = (en || "").trim();
+  return JSON.stringify({ ar: arValue || enValue, en: enValue || arValue });
+}
+
 export function parseLocalizedValue(value) {
   if (!value) return { ar: "", en: "" };
 

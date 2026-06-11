@@ -1,0 +1,19 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--portal-radius-full);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.neutral { background: var(--portal-bg); color: var(--portal-text-muted); }
+.primary { background: var(--portal-primary-soft); color: var(--portal-primary-strong); }
+.accent { background: var(--portal-accent-soft); color: var(--portal-accent); }
+.success { background: var(--portal-success-soft); color: var(--portal-success); }
+.warning { background: var(--portal-warning-soft); color: var(--portal-warning); }
+.danger { background: var(--portal-danger-soft); color: var(--portal-danger); }
+.info { background: var(--portal-info-soft); color: var(--portal-info); }

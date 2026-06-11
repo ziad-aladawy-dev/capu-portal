@@ -1,459 +1,674 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   User, Mail, Phone, Calendar, Hash, BookOpen, GraduationCap,
-  Receipt, FileText, ClipboardList, Flag, AlertCircle, CheckCircle,
-  XCircle, Edit3, Key, Trash2, ArrowLeft, Clock
+  Receipt, FileText, ClipboardCheck, AlertCircle, CheckCircle,
+  XCircle, Edit3, Key, Trash2, ArrowLeft, Clock, Wallet,
+  Building2, Layers, Users as UsersIcon, ShieldAlert, CreditCard,
+  BadgeCheck, CircleDashed, ExternalLink, Landmark,
 } from "lucide-react";
-import userService from "../../users/services/userService";
 import { useToast } from "../../../core/components/Toast";
 import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
-import LoadingSpinner from "../../users/components/LoadingSpinner";
+import { useStudent, useUpdateStudent, useToggleStudentStatus, useDeleteStudent, studentKey } from "../../../core/query/useStudents";
+import { SkeletonCard, SkeletonStats } from "../../../core/components/Skeleton";
+import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import ErrorMessage from "../../users/components/ErrorMessage";
-import "../../users/styles/userDetails.css";
-import "../../users/styles/userForms.css";
-import "../../users/styles/users.css";
+import { getLocalized, parseLocalizedValue } from "../../../core/utils/getLocalized";
+import userService from "../../users/services/userService";
+import * as treasuryService from "../../../core/services/treasuryService";
+import { fetchProfileRecords, getProfileCategoryLabel } from "../../../core/services/studentProfileService";
+import {
+  ProfileHero, StatCard, TabBar, Panel, Field, EmptyState,
+  ResetPasswordModal, CopyButton,
+} from "../../users/components/ProfileKit";
+import {
+  fmtDate, fmtDateTime, fmtMoney, yearsSince, daysUntil, resolvePhotoUrl,
+} from "../../users/components/profileUtils";
 
-const TABS = [
+const TABS = (feeCount, recordCount) => [
   { id: "overview", label: "Overview", icon: User },
-  { id: "personal", label: "Personal Info", icon: FileText },
-  { id: "academic", label: "Academic History", icon: GraduationCap },
-  { id: "enrollments", label: "Enrollments", icon: BookOpen },
-  { id: "payments", label: "Payments", icon: Receipt },
-  { id: "documents", label: "Documents", icon: FileText },
-  { id: "activity", label: "Activity Log", icon: ClipboardList },
-  { id: "notes", label: "Notes & Flags", icon: Flag },
+  { id: "finance", label: "Finance", icon: Wallet, count: feeCount },
+  { id: "records", label: "Records", icon: ClipboardCheck, count: recordCount },
+  { id: "account", label: "Account", icon: ShieldAlert },
 ];
+
+/**
+ * The update endpoint replaces the whole entity (and requires a valid Level
+ * structure node), so every partial edit must echo the current values back.
+ */
+function buildUpdatePayload(s, overrides = {}) {
+  const { ar, en } = parseLocalizedValue(s.name);
+  return {
+    nameAr: ar || "",
+    nameEn: en || "",
+    nationalId: s.nationalId || "",
+    birthDate: s.birthDate,
+    phoneNumber: s.phoneNumber || "",
+    email: s.email || "",
+    photoUrl: s.photoUrl ?? null,
+    gender: s.gender ?? null,
+    guardianName: s.guardianName ?? null,
+    guardianPhone: s.guardianPhone ?? null,
+    structureNodeId: s.structureNodeId,
+    isActive: s.isActive,
+    ...overrides,
+  };
+}
 
 function StudentDetailPage() {
   const { id } = useParams();
+  // Remount per student so tab selection and tab-local state never leak
+  // from one profile into another.
+  return <StudentDetailContent key={id} id={id} />;
+}
+
+function StudentDetailContent({ id }) {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const { addToast } = useToast();
   const { select } = useStickySelection();
-  const [student, setStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
-  const loadStudent = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await userService.getStudentById(id);
-      setStudent(data);
-      select({ id, name: data.name, code: data.studentCode, type: "student" });
-    } catch (err) {
-      setError(err.message || "Student not found");
-    } finally {
-      setLoading(false);
-    }
-  }, [id, select]);
+  const studentQuery = useStudent(id);
+  const student = studentQuery.data;
+  const updateStudent = useUpdateStudent();
+  const toggleStatus = useToggleStudentStatus();
+  const deleteStudent = useDeleteStudent();
 
-  useEffect(() => { loadStudent(); }, [loadStudent]);
-
-  const handleToggleActive = async () => {
-    if (!student) return;
-    try {
-      await userService.toggleStudentStatus(id);
-      setStudent(prev => ({ ...prev, isActive: !prev.isActive }));
-      addToast(`Student ${student.isActive ? "deactivated" : "activated"}`, "success");
-    } catch (err) {
-      addToast(err.message, "error");
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("Permanently delete this student? This cannot be undone.")) return;
-    try {
-      await userService.deleteStudent(id);
-      addToast("Student deleted", "success");
-      navigate("/admin/students");
-    } catch (err) {
-      addToast(err.message, "error");
-    }
-  };
-
-  if (loading) return <LoadingSpinner fullPage message="Loading student details..." />;
-  if (error || !student) return <ErrorMessage message={error || "Student not found"} />;
-
-  const s = student;
-  const isExpired = s.passwordStatus === "Expired";
-
-  return (
-    <div className="user-details-layout">
-      <div className="page-content">
-        <div className="left-column animated-fade">
-          <div className="profile-card">
-            <div className="avatar-shell">
-              <div className="avatar-main">{s.name?.charAt(0) || "S"}</div>
-            </div>
-            <h1 className="profile-name">{s.name}</h1>
-            <p className="profile-email">{s.email}</p>
-            <div className="profile-badges">
-              <span className="role-badge">Student</span>
-              <span className={`status-badge ${s.isActive ? "status-active" : "status-inactive"}`}>
-                <span className="status-dot" />{s.isActive ? "Active" : "Inactive"}
-              </span>
-              <span className={`password-badge ${isExpired ? "password-expired" : "password-valid"}`}>
-                {isExpired ? "Password Expired" : "Valid Password"}
-              </span>
-            </div>
-            <div className="mini-stats">
-              <div className="mini-stat">
-                <span>Student Code</span>
-                <strong style={{ fontFamily: "Space Mono, monospace" }}>{s.studentCode || "—"}</strong>
-              </div>
-              <div className="mini-stat">
-                <span>Member Since</span>
-                <strong>{s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short" }) : "—"}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="right-column animated-fade delay-2">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <button className="bottom-action-btn soft-gold" onClick={() => navigate("/admin/students")} style={{ padding: "6px 10px" }}>
-              <ArrowLeft size={14} /> Back
-            </button>
-          </div>
-
-          <div className="tabs-container">
-            <div className="tabs-row">
-              {TABS.map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button key={tab.id} className={`tab-item ${activeTab === tab.id ? "active" : ""}`} onClick={() => setActiveTab(tab.id)}>
-                    <Icon size={13} /> {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="tab-content-card tab-switch-animate">
-            {activeTab === "overview" && <OverviewTab student={s} />}
-            {activeTab === "personal" && <PersonalInfoTab student={s} onRefresh={loadStudent} />}
-            {activeTab === "academic" && <AcademicHistoryTab student={s} />}
-            {activeTab === "enrollments" && <EnrollmentsTab studentId={id} />}
-            {activeTab === "payments" && <PaymentsTab studentId={id} />}
-            {activeTab === "documents" && <DocumentsTab studentId={id} />}
-            {activeTab === "activity" && <ActivityTab studentId={id} />}
-            {activeTab === "notes" && <NotesTab studentId={id} />}
-          </div>
-
-          <div className="bottom-actions-panel animated-fade">
-            <div className="bottom-actions-row">
-              <button className="bottom-action-btn gold" onClick={() => navigate(`/admin/users/edit-student/${id}`)}>
-                <Edit3 size={18} /> Edit Student
-              </button>
-              <button className="bottom-action-btn soft-gold" onClick={() => addToast("Password reset not yet available", "info")}>
-                <Key size={18} /> Reset Password
-              </button>
-              <button className="bottom-action-btn soft-gold" onClick={() => navigate(`/admin/students/${id}/profile-records`)}>
-                <FileText size={18} /> Profile Records
-              </button>
-              <button className="bottom-action-btn gold" onClick={() => navigate(`/admin/students/${id}/academics`)}>
-                <GraduationCap size={18} /> Academic Hub
-              </button>
-              <span className="action-separator" />
-              <button className={`bottom-action-btn ${s.isActive ? "soft-red" : "soft-green"}`} onClick={handleToggleActive}>
-                {s.isActive ? <XCircle size={18} /> : <CheckCircle size={18} />}
-                {s.isActive ? "Deactivate" : "Activate"}
-              </button>
-              <button className="bottom-action-btn soft-red" onClick={handleDelete}>
-                <Trash2 size={18} /> Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OverviewTab({ student }) {
-  const s = student;
-  return (
-    <div>
-      <h2 className="section-title">Overview</h2>
-      <div className="details-grid">
-        <div className="detail-card">
-          <div className="detail-icon"><Hash size={15} /></div>
-          <div className="detail-content">
-            <div className="detail-label">Student Code</div>
-            <div className="detail-value" style={{ fontFamily: "Space Mono, monospace" }}>{s.studentCode || "—"}</div>
-          </div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Mail size={15} /></div>
-          <div className="detail-content">
-            <div className="detail-label">Email</div>
-            <div className="detail-value">{s.email || "—"}</div>
-          </div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Calendar size={15} /></div>
-          <div className="detail-content">
-            <div className="detail-label">Date of Birth</div>
-            <div className="detail-value">{s.birthDate ? new Date(s.birthDate).toLocaleDateString() : "—"}</div>
-          </div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Clock size={15} /></div>
-          <div className="detail-content">
-            <div className="detail-label">Member Since</div>
-            <div className="detail-value">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</div>
-          </div>
-        </div>
-        <div className="detail-card full">
-          <div className="detail-icon"><AlertCircle size={15} /></div>
-          <div className="detail-content">
-            <div className="detail-label">Status</div>
-            <div className="detail-value">
-              <span className={`status-badge ${s.isActive ? "status-active" : "status-inactive"}`}>
-                <span className="status-dot" />{s.isActive ? "Active" : "Inactive"}
-              </span>
-              <span className={`password-badge ${s.passwordStatus === "Expired" ? "password-expired" : "password-valid"}`} style={{ marginLeft: 8 }}>
-                {s.passwordStatus === "Expired" ? "Password Expired" : "Valid Password"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PersonalInfoTab({ student, onRefresh }) {
-  const s = student;
-  const [editing, setEditing] = useState(false);
-  const { addToast } = useToast();
-  const [form, setForm] = useState({
-    name: s.name || "",
-    nationalId: s.nationalId || "",
-    email: s.email || "",
-    phoneNumber: s.phoneNumber || "",
-    birthDate: s.birthDate ? s.birthDate.split("T")[0] : "",
+  // Live side-data. Each tolerates failure (viewer may lack the permission).
+  const feesQuery = useQuery({
+    queryKey: ["student-unpaid-fees", id],
+    queryFn: () => treasuryService.fetchUnpaidFees(id),
+    retry: false,
+    enabled: !!id,
+  });
+  const ordersQuery = useQuery({
+    queryKey: ["student-orders", id],
+    queryFn: () => treasuryService.fetchOrdersForStudent(id),
+    retry: false,
+    enabled: !!id,
+  });
+  const recordsQuery = useQuery({
+    queryKey: ["student-profile-records", id],
+    queryFn: () => fetchProfileRecords(id),
+    retry: false,
+    enabled: !!id,
   });
 
-  const handleSave = async () => {
-    try {
-      await userService.updateStudent(s.id, form);
-      addToast("Student info updated", "success");
-      setEditing(false);
-      onRefresh();
-    } catch (err) {
-      addToast(err.message, "error");
+  const fees = Array.isArray(feesQuery.data) ? feesQuery.data : [];
+  const orders = Array.isArray(ordersQuery.data) ? ordersQuery.data : [];
+  const records = Array.isArray(recordsQuery.data) ? recordsQuery.data : [];
+  const outstanding = fees.reduce((sum, f) => sum + Number(f.totalAmount ?? 0), 0);
+  const currency = fees[0]?.currency || "EGP";
+  const verifiedRecords = records.filter((r) => r.verifiedAt).length;
+
+  const uploadPhoto = useMutation({
+    mutationFn: (file) => userService.uploadStudentPhoto(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studentKey(id) });
+      addToast("Photo updated", "success");
+    },
+    onError: (err) => addToast(err.message, "error"),
+  });
+
+  // Keep the directory sidebar pin in sync with the freshest student data —
+  // including renames, which update the ["student", id] cache via mutations.
+  const localizedName = student ? getLocalized(student.name, i18n.language) : "";
+  useEffect(() => {
+    if (student?.id) {
+      select({ id: student.id, name: localizedName, code: student.studentCode, type: "student" });
     }
+  }, [student?.id, localizedName, student?.studentCode, select]);
+
+  const handleToggleActive = () => {
+    if (!student || toggleStatus.isPending) return;
+    toggleStatus.mutate(id, {
+      onSuccess: () => addToast(`Student ${student.isActive ? "deactivated" : "activated"}`, "success"),
+      onError: (err) => addToast(err.message, "error"),
+    });
   };
 
-  if (editing) {
+  const handleDelete = () => {
+    deleteStudent.mutate(id, {
+      onSuccess: () => {
+        addToast("Student deleted", "success");
+        navigate("/admin/students");
+      },
+      onError: (err) => {
+        setDeleteOpen(false);
+        addToast(err.message, "error");
+      },
+    });
+  };
+
+  const handleResetPassword = (password) =>
+    new Promise((resolve) => {
+      updateStudent.mutate(
+        { id, ...buildUpdatePayload(student, { password, confirmPassword: password }) },
+        {
+          onSuccess: () => {
+            addToast("Password has been reset", "success");
+            setResetOpen(false);
+            resolve();
+          },
+          onError: (err) => {
+            addToast(err.response?.data?.message || err.message, "error");
+            resolve();
+          },
+        },
+      );
+    });
+
+  if (studentQuery.isPending) {
     return (
-      <div>
-        <h2 className="section-title">Personal Information</h2>
-        <div className="details-grid">
-          {[
-            { label: "Full Name", name: "name", icon: User, value: form.name },
-            { label: "National ID", name: "nationalId", icon: Hash, value: form.nationalId },
-            { label: "Email", name: "email", icon: Mail, value: form.email },
-            { label: "Phone", name: "phoneNumber", icon: Phone, value: form.phoneNumber },
-            { label: "Date of Birth", name: "birthDate", icon: Calendar, value: form.birthDate, type: "date" },
-          ].map(field => (
-            <div className="form-group" key={field.name} style={{ padding: "0 0 12px" }}>
-              <label className="form-label">{field.label}</label>
-              <div className="input-wrapper">
-                <input
-                  type={field.type || "text"}
-                  value={form[field.name]}
-                  onChange={e => setForm(prev => ({ ...prev, [field.name]: e.target.value }))}
-                  className="form-input"
-                />
-                <field.icon size={15} className="input-icon" />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button className="wizard-btn primary" onClick={handleSave}>Save Changes</button>
-          <button className="wizard-btn secondary" onClick={() => setEditing(false)}>Cancel</button>
-        </div>
+      <div className="pp-page">
+        <SkeletonCard height={140} />
+        <div style={{ height: 14 }} />
+        <SkeletonStats count={4} />
+        <div style={{ height: 14 }} />
+        <SkeletonCard height={300} />
       </div>
     );
   }
+  if (studentQuery.isError || !student) {
+    return <ErrorMessage message={studentQuery.error?.message || "Student not found"} />;
+  }
+
+  const s = student;
+  const isExpired = s.passwordStatus === "Expired";
+  const expiryDays = daysUntil(s.passwordExpiry);
+  const age = yearsSince(s.birthDate);
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h2 className="section-title" style={{ margin: 0 }}>Personal Information</h2>
-        <button className="bottom-action-btn gold" onClick={() => setEditing(true)}><Edit3 size={14} /> Edit</button>
-      </div>
-      <div className="details-grid">
-        <div className="detail-card">
-          <div className="detail-icon"><User size={15} /></div>
-          <div className="detail-content"><div className="detail-label">Full Name</div><div className="detail-value">{s.name}</div></div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Hash size={15} /></div>
-          <div className="detail-content"><div className="detail-label">National ID</div><div className="detail-value" style={{ fontFamily: "Space Mono, monospace" }}>{s.nationalId}</div></div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Mail size={15} /></div>
-          <div className="detail-content"><div className="detail-label">Email</div><div className="detail-value">{s.email}</div></div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Phone size={15} /></div>
-          <div className="detail-content"><div className="detail-label">Phone</div><div className="detail-value">{s.phoneNumber || "—"}</div></div>
-        </div>
-        <div className="detail-card">
-          <div className="detail-icon"><Calendar size={15} /></div>
-          <div className="detail-content"><div className="detail-label">Date of Birth</div><div className="detail-value">{s.birthDate ? new Date(s.birthDate).toLocaleDateString() : "—"}</div></div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AcademicHistoryTab({ student }) {
-  return (
-    <div>
-      <h2 className="section-title">Academic History</h2>
-      <div className="empty-state" style={{ padding: "40px 18px" }}>
-        <GraduationCap size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-        <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>Academic Records</h3>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Academic history will appear here once enrollments are configured.</p>
-      </div>
-    </div>
-  );
-}
-
-function EnrollmentsTab({ studentId }) {
-  return (
-    <div>
-      <h2 className="section-title">Current Enrollments</h2>
-      <div className="empty-state" style={{ padding: "40px 18px" }}>
-        <BookOpen size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-        <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Enrollments Yet</h3>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Course enrollments will appear once the student registers for courses.</p>
-      </div>
-    </div>
-  );
-}
-
-function PaymentsTab({ studentId }) {
-  const navigate = useNavigate();
-  const [fees, setFees] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const treasuryService = await import("../../../core/services/treasuryService");
-        const data = await treasuryService.fetchUnpaidFees(studentId);
-        if (!cancelled) setFees(Array.isArray(data) ? data : []);
-      } catch {
-        // viewer may not hold the payments permission
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [studentId]);
-
-  if (loading) return <div><h2 className="section-title">Payments</h2><p style={{ color: "#6b7280", fontSize: 12 }}>Loading...</p></div>;
-
-  const outstanding = fees.reduce((s, f) => s + Number(f.totalAmount ?? 0), 0);
-  const currency = fees[0]?.currency || "EGP";
-
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <h2 className="section-title">Outstanding Fees</h2>
-        <button
-          className="btn-primary"
-          style={{ padding: "7px 14px", fontSize: 12 }}
-          onClick={() => navigate(`/admin/finance/treasury?studentId=${studentId}`)}
-        >
-          <Receipt size={13} /> Collect in Treasury
+    <div className="pp-page">
+      <div className="pp-topbar">
+        <button className="pp-back" onClick={() => navigate("/admin/students")}>
+          <ArrowLeft size={13} /> Student Directory
         </button>
       </div>
-      {fees.length === 0 ? (
-        <div className="empty-state" style={{ padding: "40px 18px" }}>
-          <CheckCircle size={40} style={{ color: "#16a34a", marginBottom: 12 }} />
-          <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Outstanding Fees</h3>
-          <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>This student has no unpaid Treasury fees.</p>
+
+      <ProfileHero
+        photoUrl={resolvePhotoUrl(s.photoUrl)}
+        initial={(localizedName || "S").charAt(0).toUpperCase()}
+        name={localizedName}
+        subtitle={
+          <>
+            <span style={{ fontFamily: "Space Mono, monospace" }}>{s.studentCode}</span>
+            <span>·</span>
+            <span>{s.email}</span>
+            <CopyButton value={s.email} label="Email" />
+          </>
+        }
+        badges={
+          <>
+            <span className="pp-badge tone-student"><GraduationCap size={10} /> Student</span>
+            <span className={`pp-badge ${s.isActive ? "tone-good" : "tone-bad"}`}>
+              <span className="pp-badge-dot" /> {s.isActive ? "Active" : "Inactive"}
+            </span>
+            {isExpired && <span className="pp-badge tone-bad"><Key size={10} /> Password Expired</span>}
+          </>
+        }
+        chips={
+          <>
+            {s.facultyName && <span className="pp-chip"><Building2 size={11} /> {s.facultyName}</span>}
+            {s.programName && (
+              <>
+                <span className="pp-chip-sep">›</span>
+                <span className="pp-chip"><BookOpen size={11} /> {s.programName}</span>
+              </>
+            )}
+            {s.levelName && (
+              <>
+                <span className="pp-chip-sep">›</span>
+                <span className="pp-chip"><Layers size={11} /> {s.levelName}</span>
+              </>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <button className="pp-hero-btn primary" onClick={() => navigate(`/admin/users/students/${id}/edit`)}>
+              <Edit3 size={13} /> Edit Student
+            </button>
+            <button className="pp-hero-btn ghost" onClick={() => navigate(`/admin/students/${id}/academics`)}>
+              <GraduationCap size={13} /> Academic Hub
+            </button>
+            <button className="pp-hero-btn ghost" onClick={() => navigate(`/admin/finance/treasury?studentId=${id}`)}>
+              <Wallet size={13} /> Treasury
+            </button>
+          </>
+        }
+        onUploadPhoto={(file) => uploadPhoto.mutate(file)}
+        uploading={uploadPhoto.isPending}
+      />
+
+      <div className="pp-stats pp-fade">
+        <StatCard
+          icon={Receipt}
+          label="Outstanding Fees"
+          value={feesQuery.isPending ? "…" : fmtMoney(outstanding, currency)}
+          hint={fees.length ? `${fees.length} unpaid fee${fees.length > 1 ? "s" : ""}` : "Nothing due"}
+          tone={outstanding > 0 ? "danger" : "good"}
+          onClick={() => setActiveTab("finance")}
+        />
+        <StatCard
+          icon={BadgeCheck}
+          label="Profile Records"
+          value={recordsQuery.isPending ? "…" : `${verifiedRecords}/${records.length} verified`}
+          hint={records.length ? "Click to review" : "No records yet"}
+          tone="gold"
+          onClick={() => setActiveTab("records")}
+        />
+        <StatCard
+          icon={Key}
+          label="Password"
+          value={isExpired ? "Expired" : expiryDays !== null ? `${expiryDays} days left` : "Valid"}
+          hint={s.passwordExpiry ? `Expires ${fmtDate(s.passwordExpiry)}` : "No expiry set"}
+          tone={isExpired ? "danger" : ""}
+          onClick={() => setActiveTab("account")}
+        />
+        <StatCard
+          icon={Clock}
+          label="Member Since"
+          value={fmtDate(s.createdAt)}
+          hint={age !== null ? `Student is ${age} years old` : undefined}
+        />
+      </div>
+
+      <TabBar
+        tabs={TABS(fees.length || null, records.length || null)}
+        active={activeTab}
+        onChange={setActiveTab}
+      />
+
+      <div className="pp-fade" key={activeTab}>
+        {activeTab === "overview" && (
+          <OverviewTab student={s} updateStudent={updateStudent} addToast={addToast} />
+        )}
+        {activeTab === "finance" && (
+          <FinanceTab
+            studentId={id}
+            fees={fees}
+            orders={orders}
+            feesQuery={feesQuery}
+            ordersQuery={ordersQuery}
+            navigate={navigate}
+          />
+        )}
+        {activeTab === "records" && (
+          <RecordsTab studentId={id} records={records} query={recordsQuery} navigate={navigate} />
+        )}
+        {activeTab === "account" && (
+          <AccountTab
+            student={s}
+            onToggleActive={handleToggleActive}
+            togglePending={toggleStatus.isPending}
+            onResetPassword={() => setResetOpen(true)}
+            onDelete={() => setDeleteOpen(true)}
+          />
+        )}
+      </div>
+
+      <ResetPasswordModal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        userName={localizedName}
+        onSubmit={handleResetPassword}
+        pending={updateStudent.isPending}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => { if (!deleteStudent.isPending) setDeleteOpen(false); }}
+        onConfirm={handleDelete}
+        title="Delete Student"
+        message={`Permanently delete ${localizedName}?`}
+        detail="This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteStudent.isPending}
+      />
+    </div>
+  );
+}
+
+/* ── Overview ───────────────────────────────────────────────── */
+
+function OverviewTab({ student: s, updateStudent, addToast }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(null);
+
+  // Snapshot the latest values when edit starts so reopening after a save
+  // never shows stale data.
+  const startEdit = () => {
+    const { ar, en } = parseLocalizedValue(s.name);
+    setForm({
+      nameAr: ar || "",
+      nameEn: en || "",
+      email: s.email || "",
+      phoneNumber: s.phoneNumber || "",
+      birthDate: s.birthDate ? s.birthDate.split("T")[0] : "",
+      gender: s.gender || "",
+      guardianName: s.guardianName || "",
+      guardianPhone: s.guardianPhone || "",
+    });
+    setEditing(true);
+  };
+
+  const save = () => {
+    if (updateStudent.isPending) return;
+    updateStudent.mutate(
+      {
+        id: s.id,
+        ...buildUpdatePayload(s, {
+          nameAr: form.nameAr,
+          nameEn: form.nameEn,
+          email: form.email,
+          phoneNumber: form.phoneNumber,
+          birthDate: form.birthDate || s.birthDate,
+          gender: form.gender || null,
+          guardianName: form.guardianName || null,
+          guardianPhone: form.guardianPhone || null,
+        }),
+      },
+      {
+        onSuccess: () => {
+          addToast("Student info updated", "success");
+          setEditing(false);
+        },
+        onError: (err) => addToast(err.response?.data?.message || err.message, "error"),
+      },
+    );
+  };
+
+  if (editing && form) {
+    const fields = [
+      { label: "Name (Arabic)", name: "nameAr" },
+      { label: "Name (English)", name: "nameEn" },
+      { label: "Email", name: "email", type: "email" },
+      { label: "Phone", name: "phoneNumber" },
+      { label: "Date of Birth", name: "birthDate", type: "date" },
+      { label: "Guardian Name", name: "guardianName" },
+      { label: "Guardian Phone", name: "guardianPhone" },
+    ];
+    return (
+      <Panel icon={Edit3} title="Quick Edit">
+        <div className="pp-form-grid">
+          {fields.map((f) => (
+            <div className="pp-form-group" key={f.name}>
+              <label className="pp-form-label">{f.label}</label>
+              <input
+                type={f.type || "text"}
+                className="pp-input"
+                value={form[f.name]}
+                onChange={(e) => setForm((prev) => ({ ...prev, [f.name]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <div className="pp-form-group">
+            <label className="pp-form-label">Gender</label>
+            <select
+              className="pp-select"
+              value={form.gender}
+              onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value }))}
+            >
+              <option value="">Not specified</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
         </div>
+        <div className="pp-form-actions">
+          <button className="pp-btn navy" onClick={save} disabled={updateStudent.isPending}>
+            {updateStudent.isPending ? "Saving…" : "Save Changes"}
+          </button>
+          <button className="pp-btn soft" onClick={() => setEditing(false)} disabled={updateStudent.isPending}>
+            Cancel
+          </button>
+        </div>
+      </Panel>
+    );
+  }
+
+  const { ar: nameAr, en: nameEn } = parseLocalizedValue(s.name);
+
+  return (
+    <>
+      <Panel
+        icon={User}
+        title="Identity"
+        actions={<button className="pp-btn soft" onClick={startEdit}><Edit3 size={13} /> Quick Edit</button>}
+      >
+        <div className="pp-grid">
+          <Field icon={Hash} label="Student Code" value={s.studentCode} mono copyable />
+          <Field icon={Hash} label="National ID" value={s.nationalId} mono copyable />
+          <Field icon={User} label="Name (Arabic)" value={nameAr} />
+          <Field icon={User} label="Name (English)" value={nameEn} />
+          <Field icon={Mail} label="Email" value={s.email} copyable />
+          <Field icon={Phone} label="Phone" value={s.phoneNumber} copyable />
+          <Field icon={Calendar} label="Date of Birth" value={s.birthDate ? `${fmtDate(s.birthDate)}${yearsSince(s.birthDate) !== null ? ` (${yearsSince(s.birthDate)} yrs)` : ""}` : null} />
+          <Field icon={UsersIcon} label="Gender" value={s.gender} />
+        </div>
+      </Panel>
+
+      <Panel icon={UsersIcon} title="Guardian">
+        <div className="pp-grid">
+          <Field icon={User} label="Guardian Name" value={s.guardianName} />
+          <Field icon={Phone} label="Guardian Phone" value={s.guardianPhone} copyable />
+        </div>
+      </Panel>
+
+      <Panel icon={GraduationCap} title="Academic Placement">
+        <div className="pp-grid">
+          <Field icon={Building2} label="Faculty" value={s.facultyName} />
+          <Field icon={BookOpen} label="Program" value={s.programName} />
+          <Field icon={Layers} label="Level" value={s.levelName} />
+          <Field icon={Layers} label="Structure Node" value={s.structureNodeName} />
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+/* ── Finance ────────────────────────────────────────────────── */
+
+const ORDER_STATUS_PILL = { 0: "navy", 1: "info", 2: "good", 3: "bad", 4: "warn", 5: "warn", 6: "bad" };
+const ORDER_STATUS_LABEL = { 0: "Created", 1: "Pending Payment", 2: "Paid", 3: "Failed", 4: "Expired", 5: "Refunded", 6: "Cancelled" };
+const GATEWAY_LABEL = { 0: "Mastercard", 1: "Bank Misr", 2: "eFinance" };
+const FEE_STATUS_LABEL = { 0: "Pending", 1: "In Order", 2: "Paid", 3: "Cancelled", 4: "Refunded" };
+
+function FinanceTab({ studentId, fees, orders, feesQuery, ordersQuery, navigate }) {
+  const outstanding = fees.reduce((sum, f) => sum + Number(f.totalAmount ?? 0), 0);
+  const currency = fees[0]?.currency || orders[0]?.currency || "EGP";
+
+  return (
+    <>
+      <Panel
+        icon={Receipt}
+        title="Outstanding Fees"
+        actions={
+          <button className="pp-btn gold" onClick={() => navigate(`/admin/finance/treasury?studentId=${studentId}`)}>
+            <Wallet size={13} /> Collect in Treasury
+          </button>
+        }
+      >
+        {feesQuery.isPending ? (
+          <SkeletonCard height={90} />
+        ) : fees.length === 0 ? (
+          <EmptyState icon={CheckCircle} title="No outstanding fees" message="This student has no unpaid Treasury fees right now." />
+        ) : (
+          <>
+            <p style={{ fontSize: 12, color: "#6b7280", margin: "0 0 10px" }}>
+              {fees.length} unpaid fee{fees.length > 1 ? "s" : ""} · total{" "}
+              <strong style={{ color: "#b91c1c" }}>{fmtMoney(outstanding, currency)}</strong>
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table className="pp-table">
+                <thead>
+                  <tr><th>Source</th><th>Created</th><th>Qty</th><th>Unit</th><th>Total</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {fees.map((fee) => (
+                    <tr key={fee.id}>
+                      <td className="mono">{fee.sourceModule || "—"}</td>
+                      <td>{fmtDate(fee.createdAt)}</td>
+                      <td>{fee.quantity}</td>
+                      <td className="num">{fmtMoney(fee.unitAmount, fee.currency)}</td>
+                      <td className="num">{fmtMoney(fee.totalAmount, fee.currency)}</td>
+                      <td><span className={`pp-pill ${fee.status === 2 ? "good" : fee.status === 1 ? "info" : "warn"}`}>{FEE_STATUS_LABEL[fee.status] ?? "—"}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
+
+      <Panel icon={CreditCard} title="Payment Orders">
+        {ordersQuery.isPending ? (
+          <SkeletonCard height={90} />
+        ) : orders.length === 0 ? (
+          <EmptyState icon={Landmark} title="No payment orders" message="Orders created at the Treasury or through the student portal will appear here." />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="pp-table">
+              <thead>
+                <tr><th>Order</th><th>Created</th><th>Gateway</th><th>Fees</th><th>Total</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o.id}>
+                    <td className="mono">{o.merchantOrderId || o.id.slice(0, 8)}</td>
+                    <td>{fmtDateTime(o.createdAt)}</td>
+                    <td>{GATEWAY_LABEL[o.gateway] ?? "—"}</td>
+                    <td>{o.fees?.length ?? 0}</td>
+                    <td className="num">{fmtMoney(o.totalAmount, o.currency)}</td>
+                    <td><span className={`pp-pill ${ORDER_STATUS_PILL[o.status] ?? ""}`}>{ORDER_STATUS_LABEL[o.status] ?? "—"}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+    </>
+  );
+}
+
+/* ── Records ────────────────────────────────────────────────── */
+
+function RecordsTab({ studentId, records, query, navigate }) {
+  return (
+    <Panel
+      icon={ClipboardCheck}
+      title="Profile Records"
+      actions={
+        <button className="pp-btn soft" onClick={() => navigate(`/admin/students/${studentId}/profile-records`)}>
+          <ExternalLink size={13} /> Open Records Manager
+        </button>
+      }
+    >
+      {query.isPending ? (
+        <SkeletonCard height={90} />
+      ) : records.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No profile records"
+          message="Structured records (military status, vaccinations, emergency contacts…) appear here once captured."
+        />
       ) : (
-        <>
-          <p style={{ fontSize: 12, color: "#6b7280", margin: "6px 0 12px" }}>
-            {fees.length} unpaid fee(s) · total{" "}
-            <strong style={{ color: "#b91c1c" }}>
-              {outstanding.toLocaleString("en-US", { minimumFractionDigits: 2 })} {currency}
-            </strong>
-          </p>
-          <table className="users-table" style={{ minWidth: 500 }}>
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Date</th>
-                <th>Qty</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {fees.map(fee => (
-                <tr key={fee.id}>
-                  <td>{fee.sourceModule || "—"}</td>
-                  <td>{fee.createdAt ? new Date(fee.createdAt).toLocaleDateString() : "—"}</td>
-                  <td>{fee.quantity}</td>
-                  <td>{Number(fee.totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} {fee.currency}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+        records.map((rec) => {
+          const verified = !!rec.verifiedAt;
+          return (
+            <div className="pp-record" key={rec.id}>
+              <div className="pp-record-icon">
+                {verified ? <BadgeCheck size={16} /> : <CircleDashed size={16} />}
+              </div>
+              <div className="pp-record-body">
+                <div className="pp-record-title">
+                  {getProfileCategoryLabel(rec.category)}
+                  {rec.customCategoryKey ? ` — ${rec.customCategoryKey}` : ""}
+                </div>
+                <div className="pp-record-meta">
+                  Updated {fmtDateTime(rec.updatedAt || rec.createdAt)}
+                  {verified ? ` · verified ${fmtDate(rec.verifiedAt)}` : " · awaiting verification"}
+                  {rec.isSensitive ? " · sensitive" : ""}
+                </div>
+              </div>
+              <span className={`pp-pill ${verified ? "good" : "warn"}`}>
+                {verified ? "Verified" : "Unverified"}
+              </span>
+            </div>
+          );
+        })
       )}
-    </div>
+    </Panel>
   );
 }
 
-function DocumentsTab({ studentId }) {
-  return (
-    <div>
-      <h2 className="section-title">Documents</h2>
-      <div className="empty-state" style={{ padding: "40px 18px" }}>
-        <FileText size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-        <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Documents</h3>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Uploaded documents (transcripts, IDs, photos) will appear here.</p>
-      </div>
-    </div>
-  );
-}
+/* ── Account ────────────────────────────────────────────────── */
 
-function ActivityTab({ studentId }) {
-  return (
-    <div>
-      <h2 className="section-title">Activity Log</h2>
-      <div className="empty-state" style={{ padding: "40px 18px" }}>
-        <ClipboardList size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-        <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Activity Yet</h3>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>All changes to this student's record will be logged here.</p>
-      </div>
-    </div>
-  );
-}
+function AccountTab({ student: s, onToggleActive, togglePending, onResetPassword, onDelete }) {
+  const isExpired = s.passwordStatus === "Expired";
+  const expiryDays = daysUntil(s.passwordExpiry);
 
-function NotesTab({ studentId }) {
   return (
-    <div>
-      <h2 className="section-title">Notes & Flags</h2>
-      <div className="empty-state" style={{ padding: "40px 18px" }}>
-        <Flag size={40} style={{ color: "#c9a84c", marginBottom: 12 }} />
-        <h3 style={{ color: "#1a1f5e", margin: "0 0 6px", fontSize: 14 }}>No Notes</h3>
-        <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>Internal staff notes and behavioral flags will appear here.</p>
-      </div>
-    </div>
+    <>
+      <Panel icon={ShieldAlert} title="Account & Security">
+        <div className="pp-grid">
+          <Field icon={Calendar} label="Account Created" value={fmtDateTime(s.createdAt)} />
+          <Field
+            icon={Key}
+            label="Password Status"
+            value={
+              isExpired
+                ? "Expired"
+                : s.passwordExpiry
+                  ? `Valid — expires ${fmtDate(s.passwordExpiry)}${expiryDays !== null ? ` (${expiryDays} days)` : ""}`
+                  : "Valid"
+            }
+          />
+          <Field icon={AlertCircle} label="Account Status" value={s.isActive ? "Active" : "Inactive"} />
+        </div>
+        <div className="pp-form-actions">
+          <button className="pp-btn navy" onClick={onResetPassword}>
+            <Key size={13} /> Reset Password
+          </button>
+        </div>
+      </Panel>
+
+      <Panel icon={AlertCircle} title="Danger Zone" className="pp-danger-zone">
+        <div className="pp-danger-row">
+          <div>
+            <h5>{s.isActive ? "Deactivate account" : "Activate account"}</h5>
+            <p>{s.isActive ? "The student will no longer be able to sign in." : "Restore the student's ability to sign in."}</p>
+          </div>
+          <button
+            className={`pp-btn ${s.isActive ? "danger" : "success"}`}
+            onClick={onToggleActive}
+            disabled={togglePending}
+          >
+            {s.isActive ? <XCircle size={13} /> : <CheckCircle size={13} />}
+            {togglePending ? "Working…" : s.isActive ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+        <div className="pp-danger-row">
+          <div>
+            <h5>Delete student</h5>
+            <p>Permanently removes this student and their account. This cannot be undone.</p>
+          </div>
+          <button className="pp-btn danger" onClick={onDelete}>
+            <Trash2 size={13} /> Delete
+          </button>
+        </div>
+      </Panel>
+    </>
   );
 }
 

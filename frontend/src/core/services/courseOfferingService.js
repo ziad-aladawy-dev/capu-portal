@@ -70,6 +70,22 @@ export async function openCourseOffering(id) {
   return data;
 }
 
+// Batch section creation — codes generated server-side.
+// body: { courseId, semesterId, structureNodeId, sectionPrefix?, count, capacity, instructorId? }
+// returns: { succeeded, failed, created: [{id, sectionCode}], failures: [{sectionCode, message}] }
+export async function batchCreateOfferings(body) {
+  const { data } = await api.post("/course-offerings/batch", body);
+  return data;
+}
+
+// Aggregate counters for the stats strip; structureNodeId optional.
+export async function fetchOfferingStats(semesterId, structureNodeId) {
+  const params = { semesterId };
+  if (structureNodeId) params.structureNodeId = structureNodeId;
+  const { data } = await api.get("/course-offerings/stats", { params });
+  return data;
+}
+
 export async function bulkPublishOfferings(ids) {
   const { data } = await api.post("/course-offerings/publish", { ids });
   return data;

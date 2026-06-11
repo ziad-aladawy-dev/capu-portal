@@ -27,6 +27,7 @@
   "invalid_national_id": "الرقم القومي يجب أن يكون 14 رقمًا",
   "edit_staff_member": "تعديل بيانات موظف",
   "update_staff_information": "تحديث بيانات الموظف",
+  "create_new_staff_account": "إنشاء حساب موظف جديد خطوة بخطوة",
   "role_required": "الدور مطلوب",
   "structure_node_required": "العقدة الهيكلية مطلوبة",
   "password_optional": "كلمة المرور (اختياري)",

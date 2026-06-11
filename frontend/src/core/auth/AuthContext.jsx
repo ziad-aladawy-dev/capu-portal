@@ -142,10 +142,35 @@ function AuthProvider({ children }) {
     handleLogout(reason);
   }, [handleLogout]);
 
+  // Re-fetch the session so permission edits affecting the current user
+  // (role membership, role permissions, direct overrides) propagate to the
+  // sidebar menu and route guards without a re-login.
+  const refreshPermissions = useCallback(async () => {
+    try {
+      const result = await authService.getCurrentUser();
+      if (result) {
+        dispatch({
+          type: "AUTH_SUCCESS",
+          payload: {
+            user: result,
+            permissions: result.permissions || [],
+            authorizedScopes: result.authorizedScopes,
+            activeScope: result.activeScope,
+            passwordExpiryDate: result.passwordExpiryDate,
+            requiresPasswordChange: result.requiresPasswordChange,
+          },
+        });
+      }
+    } catch {
+      // Keep the current session state; a failed refresh must not log out.
+    }
+  }, []);
+
   const value = {
     ...state,
     login,
     logout,
+    refreshPermissions,
     user: state.user,
     permissions: state.permissions,
     authorizedScopes: state.authorizedScopes,

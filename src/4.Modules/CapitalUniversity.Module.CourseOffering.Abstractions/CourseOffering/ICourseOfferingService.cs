@@ -36,6 +36,16 @@ public interface ICourseOfferingService
 
     Task<Guid> CreateAsync(CreateCourseOfferingRequest request, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Batch section creation under one (course, semester, node). Section codes
+    /// are generated server-side; each row commits independently with
+    /// partial-success semantics (see <see cref="BatchCreateOfferingsResult"/>).
+    /// </summary>
+    Task<BatchCreateOfferingsResult> BatchCreateAsync(BatchCreateCourseOfferingsRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Aggregate counters for one term (optionally one node), filtered to the caller's scope.</summary>
+    Task<CourseOfferingStatsResponse> GetStatsAsync(Guid semesterId, Guid? structureNodeId, CancellationToken cancellationToken = default);
+
     Task UpdateAsync(Guid id, UpdateCourseOfferingRequest request, CancellationToken cancellationToken = default);
 
     Task CloseRecordAsync(Guid id, CancellationToken cancellationToken = default);

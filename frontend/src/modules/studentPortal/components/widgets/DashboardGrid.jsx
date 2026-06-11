@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
@@ -60,11 +60,11 @@ function DashboardGrid() {
       <div className="dw-toolbar">
         <button type="button" className={`dw-customize-btn ${customizing ? "active" : ""}`} onClick={() => setCustomizing(!customizing)}>
           {customizing ? <X size={15} /> : <Settings2 size={15} />}
-          {customizing ? t("dashboard.done", { defaultValue: "Done" }) : t("dashboard.customize", { defaultValue: "Customize" })}
+          {customizing ? t("portal_dashboard.done", { defaultValue: "Done" }) : t("portal_dashboard.customize", { defaultValue: "Customize" })}
         </button>
         {customizing && (
           <button type="button" className="dw-reset-btn" onClick={resetLayout}>
-            <RotateCcw size={14} /> {t("dashboard.reset_layout", { defaultValue: "Reset" })}
+            <RotateCcw size={14} /> {t("portal_dashboard.reset_layout", { defaultValue: "Reset" })}
           </button>
         )}
       </div>
@@ -76,7 +76,7 @@ function DashboardGrid() {
             return (
               <button key={key} type="button" className={`dw-vis-chip ${hidden ? "hidden" : ""}`} onClick={() => toggleHidden(key)}>
                 {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
-                {t(`dashboard.widget_${key}`, { defaultValue: key })}
+                {t(`portal_dashboard.widget_${key}`, { defaultValue: key })}
               </button>
             );
           })}

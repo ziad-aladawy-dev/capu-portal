@@ -235,3 +235,36 @@
   .tr-container { padding: 20px 16px; }
   .tr-summary-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Identity action row (print + PDF) */
+.tr-identity-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tr-print-btn {
+  background: var(--portal-surface, #fff);
+  color: var(--portal-text, #0f172a);
+  border: 1px solid var(--portal-border, #e2e8f0);
+}
+
+/* Print: document-style transcript only */
+@media print {
+  .tr-tabs,
+  .tr-pdf-btn,
+  .tr-print-btn,
+  .tr-identity-actions {
+    display: none !important;
+  }
+
+  .tr-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .tr-section,
+  .tr-summary-grid > * {
+    break-inside: avoid;
+  }
+}

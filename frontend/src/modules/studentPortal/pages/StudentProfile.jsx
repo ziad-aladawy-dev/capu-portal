@@ -1,276 +1,251 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Edit2, Save, X, AlertCircle } from "lucide-react";
-import { useAuth } from "../../../core/auth/useAuth";
-import * as studentService from "../../../core/services/studentService";
-import "../styles/studentProfile.css";
+import {
+  User, Phone, ShieldAlert, Users, GraduationCap, KeyRound, ShieldCheck,
+} from "lucide-react";
+import { useToast } from "../../../core/components/Toast";
+import { parseLocalizedValue } from "../../../core/utils/getLocalized";
+import { buildCompleteness } from "../../../core/hooks/useBlockerState";
+import { STUDENT_PROFILE_CATEGORY } from "../../../core/services/studentProfileService";
+import ChangePasswordModal from "../../../core/auth/components/ChangePasswordModal";
+import PortalPageShell from "../components/shared/PortalPageShell";
+import PortalSkeleton from "../components/shared/PortalSkeleton";
+import PortalEmptyState from "../components/shared/PortalEmptyState";
+import PortalBadge from "../components/shared/PortalBadge";
+import ProfileHero from "../components/profile/ProfileHero";
+import ProfileSection from "../components/profile/ProfileSection";
+import ProfileCompleteness from "../components/profile/ProfileCompleteness";
+import {
+  useStudentProfile, useUpdateStudent, useUpsertProfileRecord, CONTACT_RECORD_KEY,
+} from "../hooks/useStudentProfile";
+import styles from "./StudentProfile.module.css";
+
+const PHONE_RE = /^01[0-9]{9}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function StudentProfile() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [studentData, setStudentData] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const { addToast } = useToast();
+  const profile = useStudentProfile();
+  const updateStudent = useUpdateStudent();
+  const upsertRecord = useUpsertProfileRecord();
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumber: "",
-    dateOfBirth: "",
-    address: "",
-    city: "",
-    country: "",
-    studentNumber: "",
-  });
+  const [highlightSection, setHighlightSection] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
-  useEffect(() => {
-    const fetchStudentData = async () => {
-      try {
-        if (user?.id) {
-          const data = await studentService.fetchStudentById(user.id);
-          setStudentData(data);
-          setFormData({
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            email: data.email || "",
-            phoneNumber: data.phoneNumber || "",
-            dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
-            address: data.address || "",
-            city: data.city || "",
-            country: data.country || "",
-            studentNumber: data.studentNumber || "",
-          });
-        }
-      } catch (err) {
-        setError(err.message || t("failed_to_load_data"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudentData();
-  }, [user?.id]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await studentService.updateStudent(user.id, formData);
-      setStudentData({ ...studentData, ...formData });
-      setSuccess(t("profile_updated"));
-      setIsEditing(false);
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err.message || t("failed_to_load_data"));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
+  if (profile.isLoading) {
     return (
-      <div className="student-profile-container">
-        <div className="sp-loading">
-          <div className="spinner"></div>
-          <p>{t("loading_profile")}</p>
+      <PortalPageShell title={t("portal_profile.title", { defaultValue: "My Profile" })}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <PortalSkeleton variant="block" height={120} />
+          <PortalSkeleton variant="block" height={64} />
+          <PortalSkeleton variant="block" height={180} />
+          <PortalSkeleton variant="block" height={180} />
         </div>
-      </div>
+      </PortalPageShell>
     );
   }
 
+  if (profile.isError || !profile.data?.student) {
+    return (
+      <PortalPageShell title={t("portal_profile.title", { defaultValue: "My Profile" })}>
+        <PortalEmptyState
+          icon={User}
+          title={t("portal_profile.load_failed", { defaultValue: "Couldn't load your profile" })}
+          onAction={() => profile.refetch()}
+          actionLabel={t("retry", { defaultValue: "Retry" })}
+        />
+      </PortalPageShell>
+    );
+  }
+
+  const { student, records, emergency, contact } = profile.data;
+  const { ar: nameAr, en: nameEn } = parseLocalizedValue(student.name);
+  const completeness = buildCompleteness(student, records);
+
+  const toastSaved = () =>
+    addToast(t("portal_profile.saved", { defaultValue: "Saved" }), "success");
+  const toastFailed = (err) =>
+    addToast(err?.response?.data?.message || t("portal_profile.save_failed", { defaultValue: "Save failed" }), "error");
+
+  const jumpToSection = (section) => {
+    setHighlightSection(section);
+    document.querySelector(`[data-section="${section}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => setHighlightSection(null), 1200);
+  };
+
+  const validatePhone = (v) =>
+    v && !PHONE_RE.test(v) ? t("portal_profile.invalid_phone", { defaultValue: "Use an Egyptian mobile number (01XXXXXXXXX)" }) : null;
+  const validateEmail = (v) =>
+    v && !EMAIL_RE.test(v) ? t("portal_profile.invalid_email", { defaultValue: "Invalid email format" }) : null;
+
+  const saveContact = async (values) => {
+    try {
+      const entityPatch = {};
+      if (values.email !== student.email) entityPatch.email = values.email.trim();
+      if (values.phoneNumber !== student.phoneNumber) entityPatch.phoneNumber = values.phoneNumber.trim();
+      if (Object.keys(entityPatch).length > 0) await updateStudent.mutateAsync(entityPatch);
+
+      await upsertRecord.mutateAsync({
+        category: STUDENT_PROFILE_CATEGORY.Custom,
+        customKey: CONTACT_RECORD_KEY,
+        data: {
+          address: values.address?.trim() ?? "",
+          city: values.city?.trim() ?? "",
+          country: values.country?.trim() ?? "",
+        },
+      });
+      toastSaved();
+    } catch (err) {
+      toastFailed(err);
+      throw err;
+    }
+  };
+
+  const saveEmergency = async (values) => {
+    try {
+      await upsertRecord.mutateAsync({
+        category: STUDENT_PROFILE_CATEGORY.EmergencyContact,
+        data: {
+          name: values.name?.trim() ?? "",
+          relationship: values.relationship?.trim() ?? "",
+          phone: values.phone?.trim() ?? "",
+        },
+      });
+      toastSaved();
+    } catch (err) {
+      toastFailed(err);
+      throw err;
+    }
+  };
+
+  const saveGuardian = async (values) => {
+    try {
+      await updateStudent.mutateAsync({
+        guardianName: values.guardianName?.trim() ?? "",
+        guardianPhone: values.guardianPhone?.trim() ?? "",
+      });
+      toastSaved();
+    } catch (err) {
+      toastFailed(err);
+      throw err;
+    }
+  };
+
+  const verifiedBadge = (
+    <PortalBadge tone="info" icon={ShieldCheck}>
+      {t("portal_profile.verified", { defaultValue: "Verified" })}
+    </PortalBadge>
+  );
+
   return (
-    <div className="student-profile-container">
-      <div className="sp-header">
-        <h1>{t("student_profile")}</h1>
-        <button
-          className={`btn-edit-profile ${isEditing ? "editing" : ""}`}
-          onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          disabled={saving}
-        >
-          {isEditing ? (
-            <>
-              <Save size={18} /> {saving ? t("saving") : t("save_changes")}
-            </>
-          ) : (
-            <>
-              <Edit2 size={18} /> {t("edit_profile")}
-            </>
-          )}
-        </button>
-        {isEditing && (
-          <button
-            className="btn-cancel-edit"
-            onClick={() => setIsEditing(false)}
-            disabled={saving}
-          >
-            <X size={18} /> {t("cancel")}
-          </button>
-        )}
+    <PortalPageShell
+      title={t("portal_profile.title", { defaultValue: "My Profile" })}
+      subtitle={t("portal_profile.subtitle", { defaultValue: "Your personal information and account settings" })}
+    >
+      <ProfileHero student={student} onPhotoUploaded={toastSaved} />
+
+      <ProfileCompleteness
+        percentage={completeness.overallPercentage}
+        missingFields={completeness.missingFields}
+        onJump={jumpToSection}
+      />
+
+      <div className={styles.sections}>
+        <ProfileSection
+          id="personal"
+          icon={User}
+          title={t("portal_profile.personal", { defaultValue: "Personal Information" })}
+          badge={verifiedBadge}
+          fields={[
+            { key: "nameAr", label: t("portal_profile.name_ar", { defaultValue: "Name (Arabic)" }), value: nameAr },
+            { key: "nameEn", label: t("portal_profile.name_en", { defaultValue: "Name (English)" }), value: nameEn },
+            { key: "birthDate", label: t("portal_profile.dob", { defaultValue: "Date of Birth" }), value: student.birthDate ? new Date(student.birthDate).toLocaleDateString() : "" },
+            { key: "nationalId", label: t("portal_profile.national_id", { defaultValue: "National ID" }), value: student.nationalId },
+            { key: "gender", label: t("portal_profile.gender", { defaultValue: "Gender" }), value: student.gender },
+          ]}
+        />
+
+        <ProfileSection
+          id="contact"
+          icon={Phone}
+          title={t("portal_profile.contact", { defaultValue: "Contact Information" })}
+          highlight={highlightSection === "contact"}
+          onSave={saveContact}
+          fields={[
+            { key: "email", label: t("portal_profile.email", { defaultValue: "Email" }), value: student.email, editable: true, required: true, type: "email", validate: validateEmail },
+            { key: "phoneNumber", label: t("portal_profile.phone", { defaultValue: "Phone" }), value: student.phoneNumber, editable: true, required: true, type: "tel", validate: validatePhone },
+            { key: "address", label: t("portal_profile.address", { defaultValue: "Address" }), value: contact.address, editable: true, required: true },
+            { key: "city", label: t("portal_profile.city", { defaultValue: "City" }), value: contact.city, editable: true },
+            { key: "country", label: t("portal_profile.country", { defaultValue: "Country" }), value: contact.country, editable: true },
+          ]}
+        />
+
+        <ProfileSection
+          id="emergency"
+          icon={ShieldAlert}
+          title={t("portal_profile.emergency", { defaultValue: "Emergency Contact" })}
+          highlight={highlightSection === "emergency"}
+          onSave={saveEmergency}
+          fields={[
+            { key: "name", label: t("portal_profile.contact_name", { defaultValue: "Name" }), value: emergency.name, editable: true, required: true },
+            { key: "relationship", label: t("portal_profile.relationship", { defaultValue: "Relationship" }), value: emergency.relationship, editable: true },
+            { key: "phone", label: t("portal_profile.phone", { defaultValue: "Phone" }), value: emergency.phone, editable: true, required: true, type: "tel", validate: validatePhone },
+          ]}
+        />
+
+        <ProfileSection
+          id="guardian"
+          icon={Users}
+          title={t("portal_profile.guardian", { defaultValue: "Guardian Information" })}
+          onSave={saveGuardian}
+          fields={[
+            { key: "guardianName", label: t("portal_profile.guardian_name", { defaultValue: "Guardian Name" }), value: student.guardianName, editable: true },
+            { key: "guardianPhone", label: t("portal_profile.guardian_phone", { defaultValue: "Guardian Phone" }), value: student.guardianPhone, editable: true, type: "tel", validate: validatePhone },
+          ]}
+        />
+
+        <ProfileSection
+          id="academic"
+          icon={GraduationCap}
+          title={t("portal_profile.academic", { defaultValue: "Academic Placement" })}
+          badge={verifiedBadge}
+          fields={[
+            { key: "studentCode", label: t("portal_profile.student_code", { defaultValue: "Student Code" }), value: student.studentCode },
+            { key: "faculty", label: t("portal_profile.faculty", { defaultValue: "Faculty" }), value: student.facultyName },
+            { key: "program", label: t("portal_profile.program", { defaultValue: "Program" }), value: student.programName },
+            { key: "level", label: t("portal_profile.level", { defaultValue: "Level" }), value: student.levelName },
+            { key: "memberSince", label: t("portal_profile.member_since", { defaultValue: "Member Since" }), value: student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "" },
+          ]}
+        />
+
+        <ProfileSection
+          id="security"
+          icon={KeyRound}
+          title={t("portal_profile.security", { defaultValue: "Security" })}
+          defaultOpen={false}
+          fields={[
+            {
+              key: "password",
+              label: t("portal_profile.password", { defaultValue: "Password" }),
+              value: "********",
+              render: () => (
+                <button type="button" className={styles.passwordBtn} onClick={() => setShowChangePassword(true)}>
+                  <KeyRound size={13} /> {t("portal_profile.change_password", { defaultValue: "Change password" })}
+                </button>
+              ),
+            },
+            {
+              key: "passwordExpiry",
+              label: t("portal_profile.password_expiry", { defaultValue: "Password Expires" }),
+              value: student.passwordExpiry ? new Date(student.passwordExpiry).toLocaleDateString() : "",
+            },
+          ]}
+        />
       </div>
 
-      {error && (
-        <div className="alert alert-error">
-          <AlertCircle size={18} />
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="alert alert-success">
-          {success}
-        </div>
-      )}
-
-      {/* Profile Picture */}
-      <div className="sp-avatar-section">
-        <div className="sp-avatar">
-          {formData.firstName?.charAt(0)?.toUpperCase() || "S"}
-        </div>
-        <div>
-          <h2>
-            {formData.firstName} {formData.lastName}
-          </h2>
-          <p>{formData.studentNumber}</p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <div className="sp-form">
-        <div className="form-section">
-          <h3>{t("personal_details")}</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="firstName">{t("first_name")}</label>
-              <input
-                id="firstName"
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="lastName">{t("last_name")}</label>
-              <input
-                id="lastName"
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="dateOfBirth">{t("date_of_birth")}</label>
-              <input
-                id="dateOfBirth"
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="studentNumber">{t("student_number")}</label>
-              <input
-                id="studentNumber"
-                type="text"
-                name="studentNumber"
-                value={formData.studentNumber}
-                onChange={handleChange}
-                disabled
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>{t("contact_details")}</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="email">{t("email")}</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="phoneNumber">{t("phone_number")}</label>
-              <input
-                id="phoneNumber"
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>{t("address")}</h3>
-          <div className="form-group">
-            <label htmlFor="address">{t("address")}</label>
-            <input
-              id="address"
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              disabled={!isEditing}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="city">{t("city")}</label>
-              <input
-                id="city"
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="country">{t("country")}</label>
-              <input
-                id="country"
-                type="text"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
+    </PortalPageShell>
   );
 }
 

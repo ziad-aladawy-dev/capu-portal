@@ -23,28 +23,28 @@ function AuditLogsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params = { pageSize: 50 };
-      if (moduleFilter) params.module = moduleFilter;
-      const { data } = await api.get("/audit-logs", { params });
+      const { data } = await api.get("/audit-logs", { params: { pageSize: 50 } });
       setLogs(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || t("failed_to_load_data"));
     } finally {
       setLoading(false);
     }
-  }, [moduleFilter]);
+  }, []);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  const modules = [...new Set(logs.map((l) => l.module).filter(Boolean))];
+  const modules = [...new Set(logs.map((l) => l.source).filter(Boolean))];
 
   const filtered = logs.filter((l) => {
+    if (moduleFilter && l.source !== moduleFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      (l.module && l.module.toLowerCase().includes(q)) ||
-      (l.resource && l.resource.toLowerCase().includes(q)) ||
-      (l.performedBy && l.performedBy.toLowerCase().includes(q))
+      (l.source && l.source.toLowerCase().includes(q)) ||
+      (l.entityName && l.entityName.toLowerCase().includes(q)) ||
+      (l.userName && l.userName.toLowerCase().includes(q)) ||
+      (l.message && l.message.toLowerCase().includes(q))
     );
   });
 
@@ -103,13 +103,13 @@ function AuditLogsPage() {
             <tbody>
               {filtered.map((l, i) => (
                 <tr key={l.id || i}>
-                  <td className="audit-muted">{l.timestamp ? new Date(l.timestamp).toLocaleString() : "—"}</td>
-                  <td>{l.performedBy || t("system")}</td>
-                  <td><span className="audit-badge audit-badge-outline">{l.module}</span></td>
+                  <td className="audit-muted">{l.createdAtUtc ? new Date(l.createdAtUtc).toLocaleString() : "—"}</td>
+                  <td>{l.userName || t("system")}</td>
+                  <td><span className="audit-badge audit-badge-outline">{l.source}</span></td>
                   <td><span className={`audit-badge ${l.action?.toLowerCase() === "delete" ? "audit-badge-danger" : "audit-badge-primary"}`}>{getActionLabel(l.action, t)}</span></td>
-                  <td>{l.resource}</td>
+                  <td>{l.entityName}</td>
                   <td className="audit-muted" style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {l.details || l.description || "—"}
+                    {l.message || l.requestPath || "—"}
                   </td>
                 </tr>
               ))}

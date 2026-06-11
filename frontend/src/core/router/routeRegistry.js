@@ -8,8 +8,7 @@ import usersRoutes from "../../modules/users/routes";
 import staffRoutes from "../../modules/staff/routes";
 import studentsRoutes from "../../modules/students/routes";
 import permissionsRoutes from "../../modules/permissions/routes";
-import coursesRoutes from "../../modules/courses/routes";
-import academicPlansRoutes from "../../modules/academicPlans/routes";
+import academicRoutes from "../../modules/academic/routes";
 import academicYearsRoutes from "../../modules/academicYears/routes";
 import studentPortalRoutes from "../../modules/studentPortal/routes";
 import studentServicesRoutes from "../../modules/studentServices/routes";
@@ -17,10 +16,7 @@ import studentServicesRoutes from "../../modules/studentServices/routes";
 import notificationsRoutes from "../../modules/notifications/routes";
 import studentProfileRecordsRoutes from "../../modules/studentProfileRecords/routes";
 import authorizationRoutes from "../../modules/authorization/routes";
-import courseOfferingsRoutes from "../../modules/courseOfferings/routes";
-import scheduleRoutes from "../../modules/schedule/routes";
 import treasuryRoutes from "../../modules/treasury/routes";
-import programsRoutes from "../../modules/programs/routes";
 import syncRoutes from "../../modules/sync/routes";
 import auditLogsRoutes from "../../modules/auditLogs/routes";
 
@@ -31,8 +27,7 @@ const ALL_ROUTES = [
   ...staffRoutes,
   ...studentsRoutes,
   ...permissionsRoutes,
-  ...coursesRoutes,
-  ...academicPlansRoutes,
+  ...academicRoutes,
   ...academicYearsRoutes,
   ...studentPortalRoutes,
   ...studentServicesRoutes,
@@ -40,10 +35,7 @@ const ALL_ROUTES = [
   ...notificationsRoutes,
   ...studentProfileRecordsRoutes,
   ...authorizationRoutes,
-  ...courseOfferingsRoutes,
-  ...scheduleRoutes,
   ...treasuryRoutes,
-  ...programsRoutes,
   ...syncRoutes,
   ...auditLogsRoutes,
 ];

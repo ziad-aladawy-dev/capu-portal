@@ -72,6 +72,7 @@ public class CoreDbContext : DbContext
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<AcademicPlan> AcademicPlans => Set<AcademicPlan>();
     public DbSet<AcademicPlanCourse> AcademicPlanCourses => Set<AcademicPlanCourse>();
+    public DbSet<CoursePrerequisite> CoursePrerequisites => Set<CoursePrerequisite>();
     // Invoice / InvoiceItem / PaymentTransaction / StudentProfileRecord
     // DbSets removed — those types now live in their respective module
     // projects (Module.Payments, Module.Student), which Core.Infrastructure

@@ -21,6 +21,8 @@ public class StaffRepository : IStaffRepository
         return await _context.Staffs
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
+                    .ThenInclude(x => x!.Parent)
+                        .ThenInclude(x => x!.Parent)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -29,6 +31,8 @@ public class StaffRepository : IStaffRepository
         return await _context.Staffs
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
+                    .ThenInclude(x => x!.Parent)
+                        .ThenInclude(x => x!.Parent)
             .OrderBy(x => x.EmployeeCode)
             .ToListAsync();
     }
@@ -113,7 +117,9 @@ public class StaffRepository : IStaffRepository
 
         query = query
             .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent);
+                .ThenInclude(x => x.Parent)
+                    .ThenInclude(x => x!.Parent)
+                        .ThenInclude(x => x!.Parent);
 
         var items = await query
             .OrderBy(x => x.EmployeeCode)

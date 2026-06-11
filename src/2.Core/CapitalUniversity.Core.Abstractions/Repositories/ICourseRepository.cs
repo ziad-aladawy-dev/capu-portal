@@ -24,4 +24,16 @@ public interface ICourseRepository
 
     /// <summary>Paged catalog search with filters + free-text on code/title.</summary>
     Task<PagedResult<Course>> SearchAsync(CourseSearchQuery query, CancellationToken cancellationToken = default);
+
+    /// <summary>Batch catalog lookup — display enrichment for prerequisite lists.</summary>
+    Task<IReadOnlyList<Course>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>Tracked prerequisite rows where <paramref name="courseId"/> is the dependent course.</summary>
+    Task<IReadOnlyList<CoursePrerequisite>> GetPrerequisiteRowsAsync(Guid courseId, CancellationToken cancellationToken = default);
+
+    /// <summary>Every prerequisite edge in the catalog (read-only) — cycle checks and the whole-graph endpoint.</summary>
+    Task<IReadOnlyList<CoursePrerequisite>> GetAllPrerequisiteRowsAsync(CancellationToken cancellationToken = default);
+
+    Task AddPrerequisiteAsync(CoursePrerequisite row, CancellationToken cancellationToken = default);
+    void RemovePrerequisite(CoursePrerequisite row);
 }

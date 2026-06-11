@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BarChart3, TrendingUp, Award, BookOpen, Calculator, AlertCircle } from "lucide-react";
 import { useGradeSummary, useGradeHistory } from "../hooks/useAcademics";
 import { GRADE_POINTS, GRADE_OPTIONS, projectCgpa } from "../../../core/services/gradeService";
+import GpaTrendChart from "../components/grades/GpaTrendChart";
 import "../styles/studentGrades.css";
 
 function gradeColor(grade) {
@@ -96,6 +97,8 @@ function StudentGrades() {
         <div className="sg-section"><p>No grades recorded yet.</p></div>
       ) : (
         <>
+          <GpaTrendChart history={history} />
+
           <div className="sg-tabs">
             <button className={`tab ${activeTab === "all" ? "active" : ""}`} onClick={() => setActiveTab("all")}>
               {t("grades.all_semesters", { defaultValue: "All Semesters" })}

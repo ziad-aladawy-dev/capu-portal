@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -6,6 +6,8 @@ import {
   Building2, Calendar, Award, Hash, Globe, Users, Camera, RefreshCw
 } from "lucide-react";
 import userService from "../services/userService";
+import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
+import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
 import "../styles/userForms.css";
 
 const AddStudent = () => {
@@ -42,7 +44,10 @@ const AddStudent = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showPhotoValidation, setShowPhotoValidation] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
   const fileInputRef = useRef(null);
+  const photoValidator = usePhotoValidator();
 
   const [errors, setErrors] = useState({});
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -426,8 +431,11 @@ const AddStudent = () => {
                             alert(t('image_too_large'));
                             return;
                           }
-                          setPhotoFile(file);
                           setPhotoPreview(URL.createObjectURL(file));
+                          setPendingPhotoFile(file);
+                          setShowPhotoValidation(true);
+                          photoValidator.reset();
+                          photoValidator.loadModel().then(() => photoValidator.validate(file));
                         }
                       }}
                     />
@@ -579,6 +587,26 @@ const AddStudent = () => {
           </div>
         </form>
       </div>
+
+      {showPhotoValidation && (
+        <PhotoValidationOverlay
+          results={photoValidator.results}
+          previewUrl={photoPreview}
+          isProcessing={photoValidator.isProcessing}
+          error={photoValidator.error}
+          onAccept={() => {
+            setPhotoFile(pendingPhotoFile);
+            setShowPhotoValidation(false);
+          }}
+          onReject={() => {
+            setShowPhotoValidation(false);
+            setPendingPhotoFile(null);
+            setPhotoPreview(null);
+            photoValidator.reset();
+          }}
+          onRetry={() => photoValidator.validate(pendingPhotoFile)}
+        />
+      )}
 
       {showSuccess && (
         <>

@@ -1,0 +1,25 @@
+.card {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow);
+  padding: 18px;
+}
+
+.flush {
+  padding: 0;
+}
+
+.interactive {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+
+.interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--portal-shadow-lift);
+}
+
+.interactive:active {
+  transform: translateY(0) scale(0.99);
+}

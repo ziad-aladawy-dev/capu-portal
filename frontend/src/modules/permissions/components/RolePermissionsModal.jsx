@@ -1,113 +1,75 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { X, Shield, Save, AlertCircle } from "lucide-react";
-import * as permissionService from "../../../core/services/permissionService";
-import "../../permissions/styles/roles.css";
 import { useTranslation } from "react-i18next";
-
-const ACTION_LEVELS = [
-  { value: 0, label: "None" },
-  { value: 1, label: "View" },
-  { value: 2, label: "Insert" },
-  { value: 3, label: "Edit" },
-  { value: 4, label: "Open" },
-  { value: 5, label: "Delete" },
-];
-
-const ACTION_NAME_TO_LEVEL = {
-  View: 1, Insert: 2, EditClose: 3, Open: 4, Delete: 5,
-};
-const LEVEL_TO_ACTION = { 1: "View", 2: "Insert", 3: "EditClose", 4: "Open", 5: "Delete" };
-
-function computeResourceLevel(permissions) {
-  if (!permissions || permissions.length === 0) return 0;
-  let maxLevel = 0;
-  for (const p of permissions) {
-    if (p.isAssigned) {
-      const level = ACTION_NAME_TO_LEVEL[p.action] || 0;
-      if (level > maxLevel) maxLevel = level;
-    }
-  }
-  return maxLevel;
-}
+import { useRolePermissions, useUpdateRolePermissions } from "../../../core/query/usePermissionsData";
+import { usePermission } from "../../../core/auth/usePermission";
+import {
+  LEVEL_TO_ACTION, PERMISSION_RESOURCES, computeResourceLevel,
+} from "../../../core/constants/permissionLevels";
+import PermissionMatrix from "./PermissionMatrix";
+import "../styles/roles.css";
 
 function RolePermissionsModal({ role, onClose }) {
   const { t } = useTranslation();
-  const actionLevelLabels = {
-    0: t("none"),
-    1: t("view"),
-    2: t("insert"),
-    3: t("edit"),
-    4: t("open_level"),
-    5: t("delete"),
-  };
-  const [modules, setModules] = useState([]);
-  const [resourceLevels, setResourceLevels] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { can } = usePermission();
+  const canEdit = can(PERMISSION_RESOURCES.ROLES, 3);
+
+  const permsQuery = useRolePermissions(role.id);
+  const modules = useMemo(() => permsQuery.data ?? [], [permsQuery.data]);
+  const updateRolePerms = useUpdateRolePermissions();
+  const [pendingLevels, setPendingLevels] = useState({});
   const [error, setError] = useState(null);
-  const [activeModuleId, setActiveModuleId] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await permissionService.fetchRolePermissions(role.id);
-        const tree = Array.isArray(data) ? data : [];
-        setModules(tree);
-
-        const levels = {};
-        for (const mod of tree) {
-          for (const res of (mod.resources || [])) {
-            const key = `${mod.moduleId}::${res.resourceId}`;
-            levels[key] = computeResourceLevel(res.permissions || []);
-          }
-        }
-        setResourceLevels(levels);
-
-        if (tree.length > 0) {
-          setActiveModuleId(tree[0].moduleId);
-        }
-      } catch (err) {
-        setError(err.message || "Failed to load permissions");
-      } finally {
-        setLoading(false);
+  const originalLevels = useMemo(() => {
+    const levels = {};
+    for (const mod of modules) {
+      for (const res of (mod.resources || [])) {
+        levels[`${mod.moduleId}::${res.resourceId}`] = computeResourceLevel(res.permissions || []);
       }
-    };
-    fetchData();
-  }, [role.id]);
-
-  const activeModule = modules.find((m) => m.moduleId === activeModuleId);
-
-  const handleLevelChange = (compositeKey, level) => {
-    setResourceLevels((prev) => ({ ...prev, [compositeKey]: level }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const resources = Object.entries(resourceLevels)
-        .filter(([, level]) => level > 0)
-        .map(([compositeKey, level]) => {
-          const resourceId = compositeKey.split("::")[1];
-          return { resourceId, actions: [LEVEL_TO_ACTION[level]].filter(Boolean) };
-        });
-      await permissionService.updateRolePermissions(role.id, { resources });
-      onClose();
-    } catch (err) {
-      setError(err.message || "Failed to save permissions");
-    } finally {
-      setSaving(false);
     }
+    return levels;
+  }, [modules]);
+
+  const displayLevels = useMemo(
+    () => ({ ...originalLevels, ...pendingLevels }),
+    [originalLevels, pendingLevels]
+  );
+
+  const handleLevelChange = (moduleId, res, newLevel) => {
+    const key = `${moduleId}::${res.resourceId}`;
+    setPendingLevels((prev) => {
+      if (newLevel === (originalLevels[key] || 0)) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: newLevel };
+    });
   };
 
-  const totalConfigured = Object.values(resourceLevels).filter((l) => l > 0).length;
+  const saving = updateRolePerms.isPending;
+
+  const handleSave = () => {
+    if (saving) return;
+    setError(null);
+    const resources = Object.entries(displayLevels)
+      .filter(([, level]) => level > 0)
+      .map(([compositeKey, level]) => ({
+        resourceId: compositeKey.split("::")[1],
+        actions: [LEVEL_TO_ACTION[level]].filter(Boolean),
+      }));
+    updateRolePerms.mutate({ roleId: role.id, resources }, {
+      onSuccess: () => onClose(),
+      onError: (err) => setError(err.message || "Failed to save permissions"),
+    });
+  };
+
+  const totalConfigured = Object.values(displayLevels).filter((l) => l > 0).length;
   const totalResources = modules.reduce((sum, m) => sum + (m.resources?.length || 0), 0);
 
   return (
     <div className="roles-modal-overlay" onClick={onClose}>
-      <div className="roles-modal" style={{ width: 640, maxWidth: "90vw", maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
+      <div className="roles-modal" style={{ width: 720, maxWidth: "92vw", maxHeight: "85vh" }} onClick={(e) => e.stopPropagation()}>
         <div className="roles-modal-header">
           <div className="roles-modal-header-left">
             <Shield size={18} />
@@ -127,7 +89,7 @@ function RolePermissionsModal({ role, onClose }) {
             </div>
           )}
 
-          {loading ? (
+          {permsQuery.isPending ? (
             <div className="roles-loading" style={{ padding: "40px 0" }}>
               <div className="roles-spinner" />
               <p>{t("loading_permissions")}</p>
@@ -137,46 +99,13 @@ function RolePermissionsModal({ role, onClose }) {
               <p>{t("no_permissions_found")}</p>
             </div>
           ) : (
-            <div className="perm-tree-layout" style={{ border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-              <div className="perm-tree-modules">
-                {modules.map((mod) => (
-                  <button
-                    key={mod.moduleId}
-                    className={`perm-tree-module-btn ${activeModuleId === mod.moduleId ? "active" : ""}`}
-                    onClick={() => setActiveModuleId(mod.moduleId)}
-                  >
-                    <span>{mod.moduleName}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="perm-tree-resources" style={{ maxHeight: 360 }}>
-                {!activeModule || activeModule.resources?.length === 0 ? (
-                  <div className="perm-tree-empty">{t("no_resources_module")}</div>
-                ) : (
-                  activeModule.resources.map((res) => {
-                    const key = `${activeModule.moduleId}::${res.resourceId}`;
-                    const currentLevel = resourceLevels[key] || 0;
-                    return (
-                      <div key={key} className="perm-tree-resource-row">
-                        <span className="perm-tree-resource-name">{res.resourceName}</span>
-                        <div className="perm-level-selector">
-                          {ACTION_LEVELS.filter((l) => l.value > 0).map((l) => (
-                            <button
-                              key={l.value}
-                              className={`perm-lvl-btn ${currentLevel >= l.value ? "filled" : ""} ${currentLevel === l.value ? "current" : ""}`}
-                              onClick={() => handleLevelChange(key, currentLevel === l.value ? 0 : l.value)}
-                              title={actionLevelLabels[l.value]}
-                            >
-                              {actionLevelLabels[l.value]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+            <PermissionMatrix
+              modules={modules}
+              getLevel={(moduleId, res) => displayLevels[`${moduleId}::${res.resourceId}`] || 0}
+              onLevelChange={handleLevelChange}
+              canEdit={canEdit}
+              height={360}
+            />
           )}
 
           <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
@@ -186,7 +115,12 @@ function RolePermissionsModal({ role, onClose }) {
 
         <div className="roles-modal-footer">
           <button className="roles-btn roles-btn-outline" onClick={onClose} disabled={saving}>{t("cancel")}</button>
-          <button className="roles-btn roles-btn-primary" onClick={handleSave} disabled={saving || loading}>
+          <button
+            className="roles-btn roles-btn-primary"
+            onClick={handleSave}
+            disabled={!canEdit || saving || permsQuery.isPending}
+            title={canEdit ? undefined : t("requires_permission_level", { defaultValue: 'Requires "Edit" access on roles', level: t("edit") })}
+          >
             {saving ? t("saving") : <><Save size={14} /> {t("save_permissions")}</>}
           </button>
         </div>

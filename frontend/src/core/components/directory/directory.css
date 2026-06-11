@@ -605,6 +605,11 @@
 .dir-table tbody tr.selected-row td { background: #fdf6e3; }
 .dir-table tbody tr.selected-row:hover td { background: #fcf1d6; }
 
+/* Row matching the user pinned in the directory sidebar */
+.dir-table tbody tr.pinned-row td { background: #eef2ff; }
+.dir-table tbody tr.pinned-row:hover td { background: #e3e8fc; }
+.dir-table tbody tr.pinned-row td:first-child { box-shadow: inset 3px 0 0 #4338ca; }
+
 .dir-bulk-cell {
   width: 36px;
   min-width: 36px;
@@ -781,6 +786,15 @@
 }
 .dir-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .dir-page-btn:disabled:hover { border-color: #e5e7eb; color: var(--users-navy, #1a1f5e); }
+
+/* Defensive UI: permission-disabled controls stay visible but inert */
+.dir-btn:disabled,
+.dir-bulk-btn:disabled,
+.dir-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto; /* keep the explanatory tooltip reachable */
+}
 
 /* ── Footer ──────────────────────────────────── */
 .dir-footer {

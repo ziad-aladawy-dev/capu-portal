@@ -8,7 +8,6 @@ export const STUDENT_COLUMNS = [
   { key: 'facultyName',   labelKey: 'faculty',         always: false, order: 7  },
   { key: 'programName',   labelKey: 'program',         always: false, order: 8  },
   { key: 'levelName',     labelKey: 'level',           always: false, order: 9  },
-  { key: 'status',        labelKey: 'academic_status',  always: false, order: 10 },
   { key: 'isActive',      labelKey: 'status',          always: false, order: 11 },
   { key: 'passwordStatus',labelKey: 'password_status',  always: false, order: 12 },
   { key: 'createdAt',     labelKey: 'created_at',       always: false, order: 13 },

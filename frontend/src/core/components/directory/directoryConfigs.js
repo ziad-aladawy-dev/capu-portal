@@ -21,6 +21,7 @@ export const studentDirectoryConfig = {
   routes: {
     add: "/admin/users/students/add",
     edit: (id) => `/admin/users/students/${id}/edit`,
+    detail: (id) => `/admin/students/${id}`,
   },
 };
 
@@ -43,5 +44,6 @@ export const staffDirectoryConfig = {
   routes: {
     add: "/admin/users/staff/add",
     edit: (id) => `/admin/users/staff/${id}/edit`,
+    detail: (id) => `/admin/users/${id}`,
   },
 };

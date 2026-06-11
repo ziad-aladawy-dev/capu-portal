@@ -22,7 +22,7 @@ export function useCourseOfferings(params = {}) {
         totalPages: data?.totalPages || 1,
       };
     },
-    enabled: !!params.structureNodeId && !!params.semesterId,
+    enabled: !!params.semesterId,
   });
 }
 
@@ -96,6 +96,28 @@ export function useToggleOfferingLifecycle() {
     },
   });
   return { closeMut, openMut };
+}
+
+export function useBatchCreateOfferings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => courseOfferingService.batchCreateOfferings(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: OFFERINGS_KEY });
+      qc.invalidateQueries({ queryKey: ["offering-stats"] });
+    },
+  });
+}
+
+// Aggregate counters for the stats strip. Backend treats a missing
+// structureNodeId as unscoped (do NOT gate enabled on it — see cerebrum).
+export function useOfferingStats(semesterId, structureNodeId) {
+  return useQuery({
+    queryKey: ["offering-stats", semesterId, structureNodeId ?? null],
+    queryFn: () => courseOfferingService.fetchOfferingStats(semesterId, structureNodeId),
+    enabled: !!semesterId,
+    staleTime: 30 * 1000,
+  });
 }
 
 export function useBulkPublishOfferings() {

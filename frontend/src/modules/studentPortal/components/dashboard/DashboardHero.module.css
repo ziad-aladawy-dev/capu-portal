@@ -1,0 +1,122 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "greeting gpa"
+    "alerts alerts";
+  gap: 14px 20px;
+  align-items: center;
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.greetingBlock {
+  grid-area: greeting;
+  min-width: 0;
+}
+
+.greeting {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--portal-text);
+  line-height: 1.25;
+}
+
+.wave {
+  display: inline-block;
+  transform-origin: 70% 70%;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--portal-text-muted);
+}
+
+.semesterCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: var(--portal-radius-sm);
+  background: var(--portal-bg);
+  color: var(--portal-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.semesterCard > svg {
+  color: var(--portal-primary);
+  flex-shrink: 0;
+}
+
+.semesterName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gpaBlock {
+  grid-area: gpa;
+}
+
+.gpaValue {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--portal-text);
+  line-height: 1.1;
+}
+
+.gpaLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--portal-text-muted);
+}
+
+.alerts {
+  grid-area: alerts;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: var(--portal-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.alert strong {
+  font-weight: 700;
+}
+
+.alertDanger { background: var(--portal-danger-soft); color: var(--portal-danger); }
+.alertWarning { background: var(--portal-warning-soft); color: var(--portal-warning); }
+.alertInfo { background: var(--portal-info-soft); color: var(--portal-info); }
+
+@media (max-width: 560px) {
+  .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "greeting"
+      "gpa"
+      "alerts";
+  }
+
+  .gpaBlock {
+    justify-self: center;
+  }
+}

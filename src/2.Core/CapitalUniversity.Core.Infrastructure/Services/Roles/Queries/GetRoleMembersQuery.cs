@@ -18,6 +18,7 @@ public class RoleMemberResponse
     public string JobTitle { get; set; } = string.Empty;
     public Guid? StructureNodeId { get; set; }
     public string? StructureNodePath { get; set; }
+    public string? StructureNodeName { get; set; }
     public string Year { get; set; } = string.Empty;
     public string Semester { get; set; } = string.Empty;
 }
@@ -33,7 +34,7 @@ public class GetRoleMembersQueryHandler
 
     public async Task<List<RoleMemberResponse>> Handle(GetRoleMembersRequest request, CancellationToken cancellationToken)
     {
-        return await _dbContext.StaffRoles
+        var members = await _dbContext.StaffRoles
             .AsNoTracking()
             .Where(sr => sr.RoleId == request.RoleId)
             .Join(_dbContext.Staffs.AsNoTracking(),
@@ -53,5 +54,31 @@ public class GetRoleMembersQueryHandler
                     Semester = sr.Semester,
                 })
             .ToListAsync(cancellationToken);
+
+        var nodeIds = members
+            .Where(m => m.StructureNodeId.HasValue)
+            .Select(m => m.StructureNodeId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (nodeIds.Count > 0)
+        {
+            var nodeNames = await _dbContext.StructureNodes
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(n => nodeIds.Contains(n.Id))
+                .ToDictionaryAsync(n => n.Id, n => n.Name, cancellationToken);
+
+            foreach (var member in members)
+            {
+                if (member.StructureNodeId.HasValue &&
+                    nodeNames.TryGetValue(member.StructureNodeId.Value, out var name))
+                {
+                    member.StructureNodeName = name;
+                }
+            }
+        }
+
+        return members;
     }
 }

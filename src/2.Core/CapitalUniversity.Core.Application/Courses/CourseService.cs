@@ -182,9 +182,11 @@ public class CourseService : ICourseService
     };
 
     /// <summary>
-    /// Decode the bilingual <c>Code</c> and <c>Title</c> fields on a
-    /// <see cref="CourseResponse"/> against the current culture. Plain-text
-    /// rows pass through unchanged — <see cref="ILocalizationService.Get{T}"/>
+    /// Decode the bilingual <c>Title</c> field on a <see cref="CourseResponse"/>
+    /// against the current culture. <c>Code</c> is language-neutral plain text
+    /// and passes through unchanged — running it through the resolver is kept
+    /// only so legacy rows that were JSON-wrapped by the old create mapper
+    /// still render as a bare code. <see cref="ILocalizationService.Get{T}"/>
     /// treats a non-JSON value as a single-culture literal.
     /// </summary>
     private CourseResponse Localize(CourseResponse response)

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   GraduationCap, Download, FileText, AlertCircle, ChevronDown, ChevronRight,
-  History, Loader2, BadgeCheck,
+  History, Loader2, BadgeCheck, Printer,
 } from "lucide-react";
 import { useTranscript, useRegistrationHistory, useCourseAttempts } from "../hooks/useAcademics";
 import { GRADE_POINTS, TRANSCRIPT_CATEGORY, downloadTranscriptPdf } from "../../../core/services/gradeService";
@@ -96,12 +96,18 @@ function TranscriptTab() {
           <div className="tr-student-name">{transcript.studentName || "—"}</div>
           <div className="tr-student-code">{transcript.studentCode}</div>
         </div>
-        <button className="tr-pdf-btn" onClick={handleDownload} disabled={downloading}>
-          {downloading ? <Loader2 size={16} className="tr-spin" /> : <Download size={16} />}
-          {downloading
-            ? t("transcript.generating", { defaultValue: "Generating…" })
-            : t("transcript.download_pdf", { defaultValue: "Download Official PDF" })}
-        </button>
+        <div className="tr-identity-actions">
+          <button className="tr-pdf-btn tr-print-btn" onClick={() => window.print()} type="button">
+            <Printer size={16} />
+            {t("transcript.print", { defaultValue: "Print" })}
+          </button>
+          <button className="tr-pdf-btn" onClick={handleDownload} disabled={downloading}>
+            {downloading ? <Loader2 size={16} className="tr-spin" /> : <Download size={16} />}
+            {downloading
+              ? t("transcript.generating", { defaultValue: "Generating…" })
+              : t("transcript.download_pdf", { defaultValue: "Download Official PDF" })}
+          </button>
+        </div>
       </div>
       {downloadError && <div className="tr-section tr-error"><AlertCircle size={16} /> {downloadError}</div>}
 

@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-export const queryClient = new QueryClient({
+const client = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30 * 1000,
@@ -13,3 +13,10 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Dev aid: lets the browser console / E2E tooling inspect cache state.
+if (import.meta.env.DEV) {
+  window.__capuQueryClient = client;
+}
+
+export const queryClient = client;

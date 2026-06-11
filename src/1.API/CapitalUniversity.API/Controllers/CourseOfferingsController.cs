@@ -56,6 +56,30 @@ public class CourseOfferingsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id }, new { id, Message = "Course offering created successfully" });
     }
 
+    /// <summary>
+    /// Batch section creation. Returns HTTP 200 even with partial failure —
+    /// the response body carries created (id, sectionCode) pairs and per-section
+    /// failure reasons. Section codes are generated server-side.
+    /// </summary>
+    [HttpPost("batch")]
+    [HasPermission(PermissionNames.CourseOfferings.Insert)]
+    public async Task<IActionResult> BatchCreate([FromBody] BatchCreateCourseOfferingsRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null) return BadRequest(new { Message = "Request body is required" });
+        var result = await _service.BatchCreateAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Aggregate offering counters for one term (optionally one node), scope-filtered.</summary>
+    [HttpGet("stats")]
+    [HasPermission(PermissionNames.CourseOfferings.View)]
+    public async Task<IActionResult> GetStats([FromQuery] Guid semesterId, [FromQuery] Guid? structureNodeId, CancellationToken cancellationToken)
+    {
+        if (semesterId == Guid.Empty) return BadRequest(new { Message = "semesterId is required" });
+        var result = await _service.GetStatsAsync(semesterId, structureNodeId, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPatch("{id:guid}")]
     [HasPermission(PermissionNames.CourseOfferings.EditClose)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCourseOfferingRequest request, CancellationToken cancellationToken)

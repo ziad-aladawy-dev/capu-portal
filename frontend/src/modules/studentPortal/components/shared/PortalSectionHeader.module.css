@@ -1,0 +1,45 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--portal-text);
+}
+
+.icon {
+  color: var(--portal-primary);
+}
+
+.side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--portal-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--portal-primary-strong);
+}
+
+[dir="rtl"] .arrow {
+  transform: scaleX(-1);
+}

@@ -117,6 +117,23 @@ public class CourseOfferingRepository : ICourseOfferingRepository
             .OrderBy(o => o.StructureNodeId).ThenBy(o => o.SectionCode)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CourseOfferingEntity>> GetForSemesterAsync(
+        Guid semesterId,
+        Guid? structureNodeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<CourseOfferingEntity>()
+            .AsNoTracking()
+            .Where(o => o.SemesterId == semesterId);
+
+        if (structureNodeId.HasValue)
+        {
+            query = query.Where(o => o.StructureNodeId == structureNodeId.Value);
+        }
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
     public Task<bool> SectionExistsAsync(Guid courseId, Guid semesterId, Guid structureNodeId, string sectionCode, CancellationToken cancellationToken = default) =>
         _context.Set<CourseOfferingEntity>()
             .AnyAsync(

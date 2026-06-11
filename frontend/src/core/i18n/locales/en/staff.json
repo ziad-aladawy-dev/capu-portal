@@ -27,6 +27,7 @@
   "invalid_national_id": "National ID must be 14 digits",
   "edit_staff_member": "Edit Staff Member",
   "update_staff_information": "Update staff information",
+  "create_new_staff_account": "Create a new staff account step by step",
   "role_required": "Role is required",
   "structure_node_required": "Structure node is required",
   "password_optional": "Password (optional)",

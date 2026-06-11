@@ -39,7 +39,10 @@ function Sidebar({ isOpen, isMobile, onClose }) {
   const language = i18n.language;
   const location = useLocation();
 
-  const menu = buildMenu(can);
+  // `can` changes identity whenever the permission map recomputes (login,
+  // scope change, permission refresh) — exactly the moments the menu should
+  // rebuild. Between those, memoization skips the registry walk.
+  const menu = useMemo(() => buildMenu(can), [can]);
 
   const activeCategoryKey = useMemo(() => {
     for (const cat of menu) {

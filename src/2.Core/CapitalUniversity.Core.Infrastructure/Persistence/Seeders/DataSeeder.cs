@@ -19,7 +19,15 @@ public static class DataSeeder
     public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher, ManifestActionExpander actionExpander)
     {
         // Tables that are "one-shot" (skip if any rows exist).
-        await RunOnceAsync("StructureNodes",  context.StructureNodes,  () => SeedStructureAsync(context));
+        //
+        // StructureNodes gates on THIS seeder's own root, not AnyAsync: the
+        // bilingual demo tree (UniversityStructureSeeder, runs first) already
+        // occupies the table on a fresh database, which used to skip this real
+        // tree and starve every downstream section (plans, students, offerings).
+        if (await context.StructureNodes.AnyAsync(n => n.ParentId == null && n.Name == "Capital University"))
+            Console.WriteLine("[Seed] StructureNodes: already populated, skipping.");
+        else
+            await RunStepAsync("StructureNodes", () => SeedStructureAsync(context));
         await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
         await RunOnceAsync("Roles", context.Roles, () => SeedRolesAsync(context));
 
@@ -33,7 +41,10 @@ public static class DataSeeder
         await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
         await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
         await RunStepAsync("Courses", () => SeedCoursesAsync(context));
-        await RunOnceAsync("AcademicPlans", context.AcademicPlans, () => SeedAcademicPlansAsync(context));
+        // Per-plan idempotent (skip-by-name) rather than one-shot: a partial run
+        // (e.g. structure tree missing for some programs) must converge on the
+        // next boot instead of being frozen by an AnyAsync guard.
+        await RunStepAsync("AcademicPlans", () => SeedAcademicPlansAsync(context));
     }
 
     /// <summary>
@@ -161,11 +172,19 @@ public static class DataSeeder
 
         var programs = nodes.Where(n => n.Type == StructureNodeType.Program).ToList();
 
+        // Exact name first: the demo tree stores bilingual JSON names whose EN
+        // half can substring-match (e.g. "Civil Engineering" exists in both trees).
         StructureNode? GetProgram(string name) =>
-            programs.FirstOrDefault(n => n.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+            programs.FirstOrDefault(n => string.Equals(n.Name, name, StringComparison.OrdinalIgnoreCase))
+            ?? programs.FirstOrDefault(n => n.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+        var existingPlanNames = (await context.AcademicPlans.Select(p => p.Name).ToListAsync())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Guid? MakePlan(string name, string programName, (string Code, int Level, int Semester, bool Mandatory)[] planCourses)
         {
+            if (existingPlanNames.Contains(name)) return null;
+
             var prog = GetProgram(programName);
             if (prog == null)
             {
@@ -648,9 +667,20 @@ public static class DataSeeder
             }
         }
 
-        // Super Admin — full access to every seeded resource.
+        // Super Admin — full access to every seeded resource. Resources declare
+        // different verb sets (e.g. notifications only has View/Insert) and
+        // ExpandActionNames returns an empty set for undeclared verbs, so walk
+        // the ladder down until the manifest yields a non-empty expansion.
+        var superAdminVerbLadder = new[] { "Delete", "Open", "EditClose", "Insert", "View" };
         foreach (var res in resources)
-            Grant("Super Admin", res.Module.ModuleKey, res.Key, "Delete");
+        {
+            foreach (var verb in superAdminVerbLadder)
+            {
+                if (actionExpander.ExpandActionNames(res.Module.ModuleKey, res.Key, verb).Count == 0) continue;
+                Grant("Super Admin", res.Module.ModuleKey, res.Key, verb);
+                break;
+            }
+        }
 
         // Faculty Admin
         Grant("Faculty Admin", "dashboard",     "dashboard",      "View");
@@ -720,7 +750,9 @@ public static class DataSeeder
     private static async Task SeedStaffAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
         var nodes = await context.StructureNodes.ToListAsync();
-        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
+        StructureNode? FindNode(string name) =>
+            nodes.FirstOrDefault(n => n.Name == name)
+            ?? nodes.FirstOrDefault(n => n.Name.Contains(name));
 
         var adminPwd = passwordHasher.HashPassword("admin123");
         // JobTitle values are bilingual JSON; the Name and Role columns stay
@@ -798,7 +830,9 @@ public static class DataSeeder
     private static async Task SeedStudentsAsync(CoreDbContext context, IPasswordHasher passwordHasher)
     {
         var nodes = await context.StructureNodes.ToListAsync();
-        StructureNode? FindProgram(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name) && n.Type == StructureNodeType.Program);
+        StructureNode? FindProgram(string name) =>
+            nodes.FirstOrDefault(n => n.Name == name && n.Type == StructureNodeType.Program)
+            ?? nodes.FirstOrDefault(n => n.Name.Contains(name) && n.Type == StructureNodeType.Program);
 
         var pwd = passwordHasher.HashPassword("123456");
         var defs = new (string Code, string Name, string NID, DateTime DOB, string Phone, string Email, string NodeName)[]
@@ -902,7 +936,9 @@ public static class DataSeeder
             .ToDictionary(r => LocalizedJson.Extract(r.Name, "en"));
         var nodes = await context.StructureNodes.ToListAsync();
 
-        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
+        StructureNode? FindNode(string name) =>
+            nodes.FirstOrDefault(n => n.Name == name)
+            ?? nodes.FirstOrDefault(n => n.Name.Contains(name));
 
         // NodeName=null means "global structural" — the row has no structural restriction
         // and the runtime PermissionService filter accepts it regardless of header.
@@ -1007,7 +1043,8 @@ public static class DataSeeder
             string? nodePath = null;
             if (nodeName != null)
             {
-                var node = nodes.FirstOrDefault(n => n.Name.Contains(nodeName));
+                var node = nodes.FirstOrDefault(n => n.Name == nodeName)
+                    ?? nodes.FirstOrDefault(n => n.Name.Contains(nodeName));
                 if (node != null)
                 {
                     nodeId = node.Id;
@@ -1048,30 +1085,36 @@ public static class DataSeeder
     private static async Task SeedNotificationsAsync(CoreDbContext context)
     {
         var staff = await context.Staffs.ToListAsync();
-        var adminId = staff.First(s => s.EmployeeCode == "ADMIN-001").Id;
-        var regId = staff.First(s => s.EmployeeCode == "REG-001").Id;
-        var facId = staff.First(s => s.EmployeeCode == "FAC-001").Id;
+        var adminId = staff.FirstOrDefault(s => s.EmployeeCode == "ADMIN-001")?.Id;
+        var regId = staff.FirstOrDefault(s => s.EmployeeCode == "REG-001")?.Id;
+        var facId = staff.FirstOrDefault(s => s.EmployeeCode == "FAC-001")?.Id;
+
+        if (adminId == null || regId == null || facId == null)
+        {
+            Console.WriteLine("[Seed] Notifications: skipping — required staff not found.");
+            return;
+        }
 
         // Title and Message are bilingual JSON. NotificationService decodes
         // both via ILocalizationService.Get<string>(json) on every read.
         context.Notifications.AddRange(
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
                 Title   = LocalizedJson.Of("مرحبًا بك في بوابة جامعة العاصمة", "Welcome to Capital University Portal"),
                 Message = LocalizedJson.Of("تم إنشاء حسابك بصلاحيات مسؤول النظام الأعلى.", "Your account has been created with Super Administrator privileges."),
                 Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
                 Title   = LocalizedJson.Of("تحديث العام الأكاديمي", "Academic Year Update"),
                 Message = LocalizedJson.Of("تم تفعيل العام الأكاديمي 2025-2026. يُرجى مراجعة جدول الفصول.", "The 2025-2026 academic year has been activated. Please review the semester schedule."),
                 Type = NotificationType.Warning, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId,
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
                 Title   = LocalizedJson.Of("موافقات معلقة", "Pending Approvals"),
                 Message = LocalizedJson.Of("هناك ٣ طلبات تسجيل معلقة تنتظر اعتمادك.", "There are 3 pending registration approvals requiring your attention."),
                 Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = regId,
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = regId.Value,
                 Title   = LocalizedJson.Of("اكتمل الاستيراد المجمّع", "Bulk Import Complete"),
                 Message = LocalizedJson.Of("اكتمل استيراد بيانات الطلاب. تم إنشاء ٤٧ سجلًا جديدًا وتجاوز سجلين مكررين.", "Student data import completed. 47 new records created, 2 duplicates skipped."),
                 Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = facId,
+            new Notification { Id = Guid.NewGuid(), RecipientUserId = facId.Value,
                 Title   = LocalizedJson.Of("استحقاق تقرير القسم", "Department Report Due"),
                 Message = LocalizedJson.Of("يستحق تقرير نهاية الفصل الخاص بالقسم في 15 ديسمبر.", "The semester-end departmental report is due by December 15."),
                 Type = NotificationType.Warning, IsRead = false }

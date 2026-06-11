@@ -67,6 +67,11 @@ public class CourseOfferingConfiguration : IEntityTypeConfiguration<CourseOfferi
         // Course-centric lookup: "where else is this course running this term?"
         builder.HasIndex(x => new { x.CourseId, x.SemesterId });
 
+        // Instructor workload lookup: "what is this instructor teaching?".
+        // Loose pointer — deliberately NO schema FK to Staffs (see entity doc).
+        builder.HasIndex(x => x.InstructorId)
+            .HasFilter("[InstructorId] IS NOT NULL");
+
         // ExternallySourced — composed data block flattened onto the
         // CourseOfferings table. ExternalId carries forward the legacy
         // ExternalSystemId column name (renamed in the AddExternallySourced

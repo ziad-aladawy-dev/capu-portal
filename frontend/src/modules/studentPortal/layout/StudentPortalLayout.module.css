@@ -1,0 +1,68 @@
+.shell {
+  min-height: 100vh;
+  background: var(--portal-bg);
+}
+
+.bootSplash {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bootSpinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--portal-primary-soft);
+  border-top-color: var(--portal-primary);
+  border-radius: 50%;
+  animation: portal-spin 0.8s linear infinite;
+}
+
+@keyframes portal-spin {
+  to { transform: rotate(360deg); }
+}
+
+.offlineBanner {
+  position: sticky;
+  top: 0;
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--portal-warning);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.contentMobile {
+  padding-bottom: calc(var(--portal-bottom-nav-height) + env(safe-area-inset-bottom, 0) + 12px);
+  min-height: 100vh;
+}
+
+.contentDesktop {
+  margin-inline-start: var(--portal-drawer-width);
+  min-height: 100vh;
+  transition: margin-inline-start 0.25s ease;
+}
+
+/* When the drawer is collapsed it shrinks itself; content follows via the
+   shared custom property the drawer toggles on the shell. */
+.contentDesktop:has(~ *) {
+  /* no-op guard for older browsers */
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: 28px 28px 40px;
+  }
+}

@@ -1,0 +1,25 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.passwordBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  font-family: var(--portal-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.passwordBtn:hover {
+  border-color: var(--portal-primary);
+  color: var(--portal-primary);
+}

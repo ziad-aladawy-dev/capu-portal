@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  User, Mail, Phone, Shield, CheckCircle2, UserCircle2, Briefcase,
-  Building2, XCircle, AlertCircle, Calendar, Lock, Globe, Users, GraduationCap, Camera, RefreshCw
+  User, Mail, Lock, Phone, Shield, CheckCircle2, Save, KeyRound,
+  Building2, Briefcase, Calendar, Hash, Users, GraduationCap, Camera, RefreshCw,
+  AlertCircle, Globe, UserCircle2, XCircle
 } from "lucide-react";
-import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import userService from "../services/userService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { parseLocalizedValue } from "../../../core/utils/getLocalized";
 import { ScopeTreeModal } from "../../university/components/ScopeTreeModal";
+import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
+import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
 import "../styles/userForms.css";
 
 const EditStaff = () => {
@@ -43,7 +46,10 @@ const EditStaff = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showPhotoValidation, setShowPhotoValidation] = useState(false);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
   const fileInputRef = useRef(null);
+  const photoValidator = usePhotoValidator();
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5256';
   const getPhotoUrl = (url) => {
     if (!url) return null;
@@ -369,8 +375,11 @@ const EditStaff = () => {
                             alert(t('image_too_large'));
                             return;
                           }
-                          setPhotoFile(file);
                           setPhotoPreview(URL.createObjectURL(file));
+                          setPendingPhotoFile(file);
+                          setShowPhotoValidation(true);
+                          photoValidator.reset();
+                          photoValidator.loadModel().then(() => photoValidator.validate(file));
                         }
                       }}
                     />
@@ -508,6 +517,26 @@ const EditStaff = () => {
         onSelect={handleNodeSelect}
         initialScopeId={formData.structureNodeId}
       />
+
+      {showPhotoValidation && (
+        <PhotoValidationOverlay
+          results={photoValidator.results}
+          previewUrl={photoPreview}
+          isProcessing={photoValidator.isProcessing}
+          error={photoValidator.error}
+          onAccept={() => {
+            setPhotoFile(pendingPhotoFile);
+            setShowPhotoValidation(false);
+          }}
+          onReject={() => {
+            setShowPhotoValidation(false);
+            setPendingPhotoFile(null);
+            setPhotoPreview(null);
+            photoValidator.reset();
+          }}
+          onRetry={() => photoValidator.validate(pendingPhotoFile)}
+        />
+      )}
 
       {showSuccess && (
         <>

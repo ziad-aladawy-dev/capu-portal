@@ -18,7 +18,7 @@ function RecentActivities() {
     } else if (item.timeKey === "hour_ago") {
       return t("hour_ago");
     } else if (item.timeKey === "hours_ago") {
-      return t("hours_ago", { hours: item.timeValue });
+      return t("dashboard_hours_ago", { hours: item.timeValue });
     }
     return "";
   };

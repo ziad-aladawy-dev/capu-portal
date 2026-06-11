@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,8 @@ import EmptyState from "../../../core/components/EmptyState";
 import { SkeletonTable } from "../../../core/components/Skeleton";
 import StudentPicker from "../components/StudentPicker";
 import OrderDetailDrawer from "../components/OrderDetailDrawer";
+import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import * as studentService from "../../../core/services/studentService";
 import {
   useReceipts, buildReceiptIndex, useUnpaidFees, useStudentOrders,
@@ -77,14 +79,13 @@ function MoneyList({ sums, emptyDash = true }) {
 }
 
 export default function TreasuryHubPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addToast } = useToast();
   const canTransact = useCanDo("payments.transactions", 2);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStudentId = searchParams.get("studentId");
 
-  const [pickedStudent, setPickedStudent] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [gateway, setGateway] = useState(null);
   const [builderError, setBuilderError] = useState("");
@@ -92,28 +93,75 @@ export default function TreasuryHubPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [orderFilter, setOrderFilter] = useState("all");
 
-  /* Deep link: /admin/finance/treasury?studentId=… — the active student is
-     derived (explicit pick wins over the URL) so no state syncing is needed. */
-  const { data: urlStudent } = useQuery({
-    queryKey: ["students", "byId", urlStudentId],
-    queryFn: () => studentService.fetchStudentById(urlStudentId),
-    enabled: !!urlStudentId && !pickedStudent,
-  });
-  const student = pickedStudent ?? (urlStudentId ? urlStudent ?? null : null);
+  /* The directory-sidebar pin is the source of truth for the active student:
+     a pinned student drives this page however it was reached (sidebar, deep
+     link, address bar) until the pin is cleared. A ?studentId deep link is
+     the fallback when nothing is pinned — and, like visiting a student
+     profile, it re-pins the student it resolves. */
+  const { selected: pinnedUser, select: pinUser, clear: clearPin } = useStickySelection();
+  const pinnedStudentId = pinnedUser?.type === "student" ? pinnedUser.id : null;
+  const activeStudentId = pinnedStudentId ?? urlStudentId ?? null;
 
-  const selectStudent = (s) => {
-    setPickedStudent(s);
+  const { data: fetchedStudent } = useQuery({
+    queryKey: ["students", "byId", activeStudentId],
+    queryFn: () => studentService.fetchStudentById(activeStudentId),
+    enabled: !!activeStudentId,
+  });
+  // While the full record loads, the pin already carries name + code.
+  const pinFallback = pinnedStudentId
+    ? { id: pinnedUser.id, name: pinnedUser.name, studentCode: pinnedUser.code }
+    : null;
+  const student = activeStudentId ? fetchedStudent ?? pinFallback : null;
+
+  // Deliberately keyed on the student id only: clearing the pin while a
+  // ?studentId deep link is open must not re-pin the same student.
+  const fetchedId = fetchedStudent?.id;
+  useEffect(() => {
+    if (!fetchedId) return;
+    pinUser({
+      id: fetchedStudent.id,
+      name: getLocalized(fetchedStudent.name, i18n.language),
+      code: fetchedStudent.studentCode || "",
+      type: "student",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedId, pinUser]);
+
+  // Order builder state belongs to one student — reset it when they change
+  // (render-time adjustment, per react.dev "adjusting state when a prop changes").
+  const [builderStudentId, setBuilderStudentId] = useState(activeStudentId);
+  if (builderStudentId !== activeStudentId) {
+    setBuilderStudentId(activeStudentId);
     setSelectedIds(new Set());
     setBuilderError("");
     setOrderFilter("all");
-    setSearchParams({ studentId: s.id }, { replace: true });
+  }
+
+  // Clearing the pin must stop showing the student even when the page was
+  // reached through a ?studentId link — consume the URL fallback once a
+  // previously-present pin goes away (sidebar clear included).
+  const hadPinRef = useRef(!!pinnedStudentId);
+  useEffect(() => {
+    if (pinnedStudentId) {
+      hadPinRef.current = true;
+      return;
+    }
+    if (hadPinRef.current && urlStudentId) setSearchParams({}, { replace: true });
+    hadPinRef.current = false;
+  }, [pinnedStudentId, urlStudentId, setSearchParams]);
+
+  const selectStudent = (s) => {
+    pinUser({
+      id: s.id,
+      name: getLocalized(s.name, i18n.language),
+      code: s.studentCode || "",
+      type: "student",
+    });
   };
 
   const clearStudent = () => {
-    setPickedStudent(null);
-    setSelectedIds(new Set());
-    setBuilderError("");
-    setSearchParams({}, { replace: true });
+    clearPin();
+    if (urlStudentId) setSearchParams({}, { replace: true });
   };
 
   /* Data */

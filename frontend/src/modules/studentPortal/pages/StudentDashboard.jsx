@@ -1,26 +1,15 @@
-import { useTranslation } from "react-i18next";
-import { useAuth } from "../../../core/auth/useAuth";
+import DashboardHero from "../components/dashboard/DashboardHero";
 import DashboardGrid from "../components/widgets/DashboardGrid";
-import "../styles/studentDashboard.css";
 
 /**
- * Student dashboard / command center. Data fetching, loading, and error states
- * now live inside each widget (TanStack Query); this shell only renders the
- * greeting and the customizable widget grid.
+ * Student dashboard / command center. The hero handles greeting, semester
+ * context, GPA and alert chips; the customizable widget grid below owns all
+ * data fetching per widget (TanStack Query).
  */
 function StudentDashboard() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-
   return (
     <div className="student-dashboard">
-      <div className="sd-header">
-        <div className="sd-welcome">
-          <h1>{t("welcome")}, {user?.name || t("student")}</h1>
-          <p className="sd-subtitle">{t("academic_overview_subtitle")}</p>
-        </div>
-      </div>
-
+      <DashboardHero />
       <DashboardGrid />
     </div>
   );

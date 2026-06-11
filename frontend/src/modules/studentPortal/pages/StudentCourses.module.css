@@ -1,0 +1,94 @@
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-surface);
+  color: var(--portal-text-muted);
+  font-family: var(--portal-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--portal-primary);
+  border-color: var(--portal-primary);
+  color: #fff;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--portal-text);
+  line-height: 1.3;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--portal-border);
+  padding-top: 10px;
+}
+
+.cardAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--portal-primary);
+  text-decoration: none;
+}
+
+.cardAction:hover {
+  color: var(--portal-primary-strong);
+}
+
+.semGroup {
+  margin-bottom: 18px;
+}
+
+.semTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--portal-text-muted);
+}

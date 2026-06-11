@@ -14,6 +14,7 @@ export default function AcademicYearWizard({
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     name: "",
+    nameAr: "",
     startDate: "",
     endDate: "",
     isCurrent: false,
@@ -36,7 +37,7 @@ export default function AcademicYearWizard({
   };
 
   const addSemester = () => {
-    setSemesters((prev) => [...prev, { name: "", startDate: "", endDate: "" }]);
+    setSemesters((prev) => [...prev, { name: "", nameAr: "", startDate: "", endDate: "" }]);
   };
 
   const removeSemester = (idx) => {
@@ -87,7 +88,7 @@ export default function AcademicYearWizard({
 
   const handleClose = () => {
     setStep(0);
-    setForm({ name: "", startDate: "", endDate: "", isCurrent: false });
+    setForm({ name: "", nameAr: "", startDate: "", endDate: "", isCurrent: false });
     setSemesters([]);
     setFormError("");
     onClose();
@@ -111,6 +112,18 @@ export default function AcademicYearWizard({
                 placeholder="e.g. 2024-2025"
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
                 autoFocus
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="wiz-name-ar">Academic Year Name (Arabic)</label>
+              <input
+                id="wiz-name-ar"
+                type="text"
+                dir="rtl"
+                value={form.nameAr}
+                onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))}
+                placeholder="مثال: ٢٠٢٤-٢٠٢٥"
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13 }}
               />
             </div>
             <div style={{ display: "flex", gap: 12 }}>
@@ -201,6 +214,16 @@ export default function AcademicYearWizard({
                       style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12 }}
                     />
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      dir="rtl"
+                      placeholder="الاسم (عربي)"
+                      value={sem.nameAr || ""}
+                      onChange={(e) => updateSemester(idx, "nameAr", e.target.value)}
+                      style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 12 }}
+                    />
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
@@ -252,7 +275,9 @@ export default function AcademicYearWizard({
             <div style={{ padding: 12, background: "#f8f9fc", borderRadius: 8, border: "1px solid #e5e7eb" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <Calendar size={14} style={{ color: "#4338ca" }} />
-                <strong style={{ fontSize: 14, color: "#1a1f5e" }}>{form.name}</strong>
+                <strong style={{ fontSize: 14, color: "#1a1f5e" }}>
+                  {form.name}{form.nameAr ? ` — ${form.nameAr}` : ""}
+                </strong>
               </div>
               <div style={{ fontSize: 12, color: "#6b7280", marginLeft: 22 }}>
                 {form.startDate} → {form.endDate}
@@ -274,7 +299,7 @@ export default function AcademicYearWizard({
                   }}
                 >
                   <Check size={12} style={{ color: "#16a34a", flexShrink: 0 }} />
-                  <strong>{sem.name}</strong>
+                  <strong>{sem.name}{sem.nameAr ? ` — ${sem.nameAr}` : ""}</strong>
                   <span style={{ color: "#6b7280" }}>
                     {sem.startDate} → {sem.endDate}
                   </span>

@@ -72,6 +72,18 @@ function StudentPaymentsPage() {
         <SummaryCard variant="total-fees" icon={<Receipt size={22} />} label={t("payments.total", { defaultValue: "Total Fees" })} value={fees.reduce((s, f) => s + Number(f.totalAmount), 0)} sub={`${fees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
       </div>
 
+      {(paid + outstanding + inOrder) > 0 && (
+        <div className="sp-progress-card">
+          <div className="sp-progress-head">
+            <span>{t("payments.payment_progress", { defaultValue: "Payment progress" })}</span>
+            <strong>{Math.round((paid / (paid + outstanding + inOrder)) * 100)}% {t("payments.paid_pct", { defaultValue: "paid" })}</strong>
+          </div>
+          <div className="sp-progress-track">
+            <div className="sp-progress-fill" style={{ width: `${(paid / (paid + outstanding + inOrder)) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
       <div className="sp-tabs-bar">
         <button className={`sp-tab${activeTab === 0 ? " active" : ""}`} onClick={() => setActiveTab(0)}>
           {t("payments.tab_pay", { defaultValue: "Pay Fees" })}

@@ -543,3 +543,87 @@
   .sp-summary-grid { grid-template-columns: 1fr; }
   .sp-tabs-bar { width: 100%; overflow-x: auto; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Portal re-skin (Sprint 5) — token-driven overrides. The page keeps
+   its class structure; these rules retheme it inside .student-portal.
+   ════════════════════════════════════════════════════════════════ */
+
+.student-portal .student-payments {
+  padding: 0;
+  font-family: var(--portal-font);
+  color: var(--portal-text);
+}
+
+.student-portal .sp-header h1 { color: var(--portal-text); }
+.student-portal .sp-header p { color: var(--portal-text-muted); }
+
+.student-portal .sp-summary-card {
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow);
+}
+
+.student-portal .sp-summary-card.balance-due .sp-card-value { color: var(--portal-danger); }
+.student-portal .sp-summary-card.total-paid .sp-card-value { color: var(--portal-success); }
+
+.student-portal .sp-tab.active {
+  background: var(--portal-primary);
+  border-color: var(--portal-primary);
+  color: #fff;
+}
+
+.student-portal .sp-pay-btn {
+  background: var(--portal-primary);
+  border-radius: var(--portal-radius-full);
+}
+
+.student-portal .sp-pay-btn:hover { background: var(--portal-primary-strong); }
+
+.student-portal .sp-pay-bar {
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow-lift);
+}
+
+.student-portal .sp-table-wrapper,
+.student-portal .sp-order-card,
+.student-portal .sp-modal {
+  border-radius: var(--portal-radius);
+  border-color: var(--portal-border);
+}
+
+/* Payment progress card */
+.student-portal .sp-progress-card {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow);
+  padding: 14px 18px;
+  margin-bottom: 22px;
+}
+
+.student-portal .sp-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--portal-text-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.student-portal .sp-progress-head strong { color: var(--portal-text); }
+
+.student-portal .sp-progress-track {
+  height: 9px;
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-border);
+  overflow: hidden;
+}
+
+.student-portal .sp-progress-fill {
+  height: 100%;
+  border-radius: var(--portal-radius-full);
+  background: linear-gradient(90deg, var(--portal-success), var(--portal-primary));
+  transition: width 0.5s ease;
+}

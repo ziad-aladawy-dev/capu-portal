@@ -12,10 +12,12 @@ namespace CapitalUniversity.API.Controllers;
 public class CoursesController : ControllerBase
 {
     private readonly ICourseService _service;
+    private readonly ICoursePrerequisiteService _prerequisites;
 
-    public CoursesController(ICourseService service)
+    public CoursesController(ICourseService service, ICoursePrerequisiteService prerequisites)
     {
         _service = service;
+        _prerequisites = prerequisites;
     }
 
     [HttpGet]
@@ -97,5 +99,51 @@ public class CoursesController : ControllerBase
 
         var result = await _service.DeleteManyAsync(request!.Ids, cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Every prerequisite edge in the catalog. Lets clients render dependency
+    /// badges, run client-side cycle previews, and compute catalog health
+    /// without N+1 per-course calls.
+    /// </summary>
+    [HttpGet("prerequisites")]
+    [HasPermission(PermissionNames.Courses.View)]
+    public async Task<IActionResult> GetAllPrerequisites(CancellationToken cancellationToken)
+    {
+        var result = await _prerequisites.GetAllAsync(cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/prerequisites")]
+    [HasPermission(PermissionNames.Courses.View)]
+    public async Task<IActionResult> GetPrerequisites(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _prerequisites.GetForCourseAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Batch replace — the body becomes the course's exact prerequisite set.</summary>
+    [HttpPut("{id:guid}/prerequisites")]
+    [HasPermission(PermissionNames.Courses.EditClose)]
+    public async Task<IActionResult> SetPrerequisites(Guid id, [FromBody] SetCoursePrerequisitesRequest request, CancellationToken cancellationToken)
+    {
+        await _prerequisites.SetAsync(id, request, cancellationToken);
+        return Ok(new { Message = "Prerequisites updated successfully" });
+    }
+
+    [HttpPost("{id:guid}/prerequisites")]
+    [HasPermission(PermissionNames.Courses.EditClose)]
+    public async Task<IActionResult> AddPrerequisite(Guid id, [FromBody] AddCoursePrerequisiteRequest request, CancellationToken cancellationToken)
+    {
+        await _prerequisites.AddAsync(id, request, cancellationToken);
+        return Ok(new { Message = "Prerequisite added successfully" });
+    }
+
+    [HttpDelete("{id:guid}/prerequisites/{prerequisiteCourseId:guid}")]
+    [HasPermission(PermissionNames.Courses.EditClose)]
+    public async Task<IActionResult> RemovePrerequisite(Guid id, Guid prerequisiteCourseId, CancellationToken cancellationToken)
+    {
+        await _prerequisites.RemoveAsync(id, prerequisiteCourseId, cancellationToken);
+        return Ok(new { Message = "Prerequisite removed successfully" });
     }
 }

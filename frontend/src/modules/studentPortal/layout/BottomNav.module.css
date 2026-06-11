@@ -1,0 +1,161 @@
+.bar {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  height: var(--portal-bottom-nav-height);
+  display: flex;
+  align-items: stretch;
+  background: var(--portal-surface);
+  border-top: 1px solid var(--portal-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+  z-index: 120;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  color: var(--portal-text-muted);
+  font-family: var(--portal-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab.active {
+  color: var(--portal-primary);
+}
+
+.indicator {
+  position: absolute;
+  top: 0;
+  width: 36px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--portal-primary);
+}
+
+.iconWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  inset-inline-end: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-danger);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.label {
+  line-height: 1;
+}
+
+/* ── More sheet ─────────────────────────────────────────── */
+
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 130;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  background: var(--portal-surface);
+  border-radius: var(--portal-radius) var(--portal-radius) 0 0;
+  box-shadow: var(--portal-shadow-lift);
+  z-index: 131;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0));
+}
+
+.sheetHandle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-border);
+  margin: 6px auto 14px;
+}
+
+.sheetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.sheetItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 6px;
+  border-radius: var(--portal-radius-sm);
+  background: var(--portal-bg);
+  color: var(--portal-text);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+}
+
+.sheetItemActive {
+  background: var(--portal-primary-soft);
+  color: var(--portal-primary-strong);
+}
+
+.sheetIcon {
+  position: relative;
+  display: inline-flex;
+  color: var(--portal-primary);
+}
+
+.sheetFooter {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.sheetAction {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--portal-border);
+  border-radius: var(--portal-radius-sm);
+  background: var(--portal-surface);
+  color: var(--portal-text);
+  font-family: var(--portal-font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.logout {
+  color: var(--portal-danger);
+  border-color: var(--portal-danger-soft);
+  background: var(--portal-danger-soft);
+}

@@ -33,6 +33,9 @@ public interface ICourseOfferingRepository
     /// <summary>Returns true if a non-deleted offering already occupies the (course, semester, node, section) slot. Used as a create-time precheck on top of the DB unique index.</summary>
     Task<bool> SectionExistsAsync(Guid courseId, Guid semesterId, Guid structureNodeId, string sectionCode, CancellationToken cancellationToken = default);
 
+    /// <summary>Every offering in one term, optionally pinned to one node. Feeds the stats aggregation.</summary>
+    Task<IReadOnlyList<CourseOfferingEntity>> GetForSemesterAsync(Guid semesterId, Guid? structureNodeId = null, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Race-safe bump of <c>RegisteredCount</c> by one. Uses load + guard +
     /// optimistic concurrency on <c>RowVersion</c> with a small retry budget:

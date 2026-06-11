@@ -1,6 +1,7 @@
 {
     "permissions": "الصلاحيات",
     "roles": "الأدوار",
+    "search_users_placeholder": "ابحث عن المستخدمين بالاسم أو الرقم…",
     "select_structural_scope": "اختر النطاق الهيكلي",
     "structural_scope": "النطاق الهيكلي",
     "temporal_scope": "النطاق الزمني",

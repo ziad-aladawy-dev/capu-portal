@@ -45,6 +45,14 @@ public class CourseOffering : BaseEntity, ISoftDeletable, IExternallySourced
     /// <summary>Section identifier — disambiguates multiple offerings of the same course in the same term + node (e.g. <c>"A"</c>, <c>"B"</c>, <c>"EVE-1"</c>).</summary>
     public string SectionCode { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Assigned instructor. FK-by-id to <c>Staff</c> with no navigation and no
+    /// schema FK — the assignment is a loose operational pointer (staff churn
+    /// must not be blocked by historical offerings), unlike the structural
+    /// Course/Semester/Node references which are Restrict-FK'd. Null = unassigned.
+    /// </summary>
+    public Guid? InstructorId { get; set; }
+
     /// <summary>Maximum number of registrations allowed. Non-negative. Capacity cuts below <see cref="RegisteredCount"/> are rejected by <see cref="AdjustCapacity"/>.</summary>
     public int Capacity { get; private set; }
 

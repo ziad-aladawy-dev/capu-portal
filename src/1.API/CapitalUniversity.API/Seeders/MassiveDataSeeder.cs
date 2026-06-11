@@ -16,24 +16,100 @@ using CapitalUniversity.Modules.Student.Abstractions.StudentInformation;
 using CapitalUniversity.Modules.Payments.Domain.Treasury;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
 using CapitalUniversity.Core.Infrastructure.Persistence;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Domain.Notifications;
+using CapitalUniversity.Modules.Registration.Domain;
+using CapitalUniversity.Modules.Registration.Abstractions;
+using CapitalUniversity.Modules.AcademicRecords.Domain;
+using CapitalUniversity.Modules.AcademicRecords.Abstractions;
+using CapitalUniversity.Module.StudentServices.Domain;
+using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
+using CapitalUniversity.Module.StudentServices.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
 namespace CapitalUniversity.API.Seeders;
 
 public static class MassiveDataSeeder
 {
-    public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher)
+    public static async Task SeedAsync(CoreDbContext context, IPasswordHasher passwordHasher, IServiceProvider serviceProvider)
     {
         // Courses and AcademicPlans are now seeded by DataSeeder in Core.Infrastructure.
         await ExpandStudentsAsync(context, passwordHasher);
+        await EnsureHistoricalYearsAsync(context);
         await SeedCourseOfferingsAsync(context);
         await SeedScheduleSlotsAsync(context);
-        //await SeedWorkflowsAsync(context);
-        //await SeedStudentServicesAsync(context);
-        //await SeedStudentServiceRequestsAsync(context);
+        await ExpandStaffAsync(context, passwordHasher);
+        await AssignInstructorsAsync(context);
+        await SeedPastOfferingsAsync(context);
+        await SeedAcademicHistoryAsync(context);
         await ExpandPaymentsAsync(context);
+        await ExpandTreasuryHistoryAsync(context);
         await SeedStudentProfileRecordsAsync(context);
+        await SeedPortalProfileRecordsAsync(context);
+        await SeedStudentNotificationsAsync(context);
+        await SeedPortalServicesAsync(serviceProvider);
+        await SeedStudentRequestsAsync(serviceProvider);
+        await BackfillSyncIdentityAsync(context);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  SYNC IDENTITY BACKFILL
+    //  The Sync Platform addresses rows ONLY by ExternallySourced.ExternalId:
+    //  Student/Staff pulls are update-only (a row without an ExternalId can
+    //  never be matched and the batch is skipped), and Course/Offering/Slot
+    //  pulls would INSERT a duplicate that dead-letters on the unique Code /
+    //  section index. Stamping deterministic SIS-style ids on seeded rows
+    //  makes every one of them reachable by the sync pipelines (e.g. POST
+    //  /admin/outbox/student/SIS-STU-20250001 round-trips onto the seeded
+    //  student). Rows created later through real sync keep their upstream ids.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task BackfillSyncIdentityAsync(CoreDbContext context)
+    {
+        var stamped = 0;
+
+        foreach (var s in await context.Students
+                     .Where(s => s.ExternallySourced.ExternalId == null).ToListAsync())
+        {
+            s.ExternallySourced.ExternalId = $"SIS-STU-{s.StudentCode}";
+            stamped++;
+        }
+
+        foreach (var s in await context.Staffs
+                     .Where(s => s.ExternallySourced.ExternalId == null).ToListAsync())
+        {
+            s.ExternallySourced.ExternalId = $"SIS-EMP-{s.EmployeeCode}";
+            stamped++;
+        }
+
+        foreach (var c in await context.Courses
+                     .Where(c => c.ExternallySourced.ExternalId == null).ToListAsync())
+        {
+            c.ExternallySourced.ExternalId = $"SIS-CRS-{c.Code}";
+            stamped++;
+        }
+
+        foreach (var o in await context.Set<CourseOffering>()
+                     .Where(o => o.ExternallySourced.ExternalId == null).ToListAsync())
+        {
+            o.ExternallySourced.ExternalId = $"SIS-OFF-{o.Id:N}";
+            stamped++;
+        }
+
+        foreach (var s in await context.Set<ScheduleSlot>()
+                     .Where(s => s.ExternallySourced.ExternalId == null).ToListAsync())
+        {
+            s.ExternallySourced.ExternalId = $"SIS-SLT-{s.Id:N}";
+            stamped++;
+        }
+
+        if (stamped > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[MassSeed] SyncIdentity: stamped ExternalId on {stamped} row(s).");
+        }
     }
 
     private static async Task ExpandStudentsAsync(CoreDbContext context, IPasswordHasher passwordHasher)
@@ -1120,5 +1196,1349 @@ public static class MassiveDataSeeder
 
         await context.SaveChangesAsync();
         Console.WriteLine($"[MassSeed] StudentProfileRecords: created.");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  HISTORICAL ACADEMIC YEARS (2021-2022, 2022-2023)
+    //  Older cohorts (level 4/5 students) started before the years the
+    //  base DataSeeder creates; their registration history needs terms
+    //  to attach to.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task EnsureHistoricalYearsAsync(CoreDbContext context)
+    {
+        var existingNames = await context.AcademicYears.Select(y => y.Name).ToHashSetAsync();
+
+        var fallName = LocalizedJson.Of("خريف", "Fall");
+        var springName = LocalizedJson.Of("ربيع", "Spring");
+        var summerName = LocalizedJson.Of("صيف", "Summer");
+
+        var defs = new[]
+        {
+            ("2021-2022", new DateTime(2021, 9, 1), new DateTime(2022, 8, 31)),
+            ("2022-2023", new DateTime(2022, 9, 1), new DateTime(2023, 8, 31)),
+        };
+
+        var added = 0;
+        foreach (var (name, start, end) in defs)
+        {
+            if (existingNames.Contains(name)) continue;
+            var ay = new AcademicYear { Id = Guid.NewGuid(), Name = name, StartDate = start, EndDate = end, IsCurrent = false };
+            ay.Semesters = new List<Semester>
+            {
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = fallName,   Order = 1, StartDate = start,               EndDate = start.AddMonths(4), IsCurrent = false },
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = springName, Order = 2, StartDate = start.AddMonths(5),  EndDate = start.AddMonths(9), IsCurrent = false },
+                new() { Id = Guid.NewGuid(), AcademicYearId = ay.Id, Name = summerName, Order = 3, StartDate = start.AddMonths(10), EndDate = end,                IsCurrent = false },
+            };
+            context.AcademicYears.Add(ay);
+            added++;
+        }
+
+        if (added > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[MassSeed] AcademicYears: +{added} historical year(s).");
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  INSTRUCTOR STAFF
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task ExpandStaffAsync(CoreDbContext context, IPasswordHasher passwordHasher)
+    {
+        var nodes = await context.StructureNodes.ToListAsync();
+        StructureNode? FindNode(string name) => nodes.FirstOrDefault(n => n.Name.Contains(name));
+
+        var pwd = passwordHasher.HashPassword("admin123");
+        var jobTitles = new[]
+        {
+            LocalizedJson.Of("أستاذ", "Professor"),
+            LocalizedJson.Of("أستاذ مساعد", "Associate Professor"),
+            LocalizedJson.Of("مدرس", "Lecturer"),
+        };
+
+        var defs = new (string Emp, string Name, string NodeName)[]
+        {
+            ("INS-001", "Dr. Hossam Farid",       "Computer & Systems Engineering"),
+            ("INS-002", "Dr. Mona El-Naggar",     "Computer & Systems Engineering"),
+            ("INS-003", "Dr. Sherif Abdel-Hamid", "Civil Engineering"),
+            ("INS-004", "Dr. Heba Lotfy",         "Architectural Engineering"),
+            ("INS-005", "Dr. Walid Mansour",      "Mechanical Engineering"),
+            ("INS-006", "Dr. Rania Fouad",        "Electrical Engineering"),
+            ("INS-007", "Dr. Ayman Roshdy",       "Biomedical Engineering"),
+            ("INS-008", "Dr. Ghada Sami",         "Communications & Information Engineering"),
+            ("INS-009", "Dr. Nahla Selim",        "Clinical Nutrition"),
+            ("INS-010", "Dr. Sameh Ghoneim",      "Nutrition & Food Science"),
+            ("INS-011", "Dr. Abeer Zaki",         "Textile & Clothing"),
+            ("INS-012", "Dr. Magdy Hafez",        "General Stream"),
+        };
+
+        var existingCodes = await context.Staffs.Select(s => s.EmployeeCode).ToHashSetAsync();
+        var existingNids = await context.Staffs.Select(s => s.NationalId).ToHashSetAsync();
+        var added = 0;
+        var newStaff = new List<(Staff Staff, StructureNode Node)>();
+
+        for (var i = 0; i < defs.Length; i++)
+        {
+            var d = defs[i];
+            if (existingCodes.Contains(d.Emp)) continue;
+            var node = FindNode(d.NodeName);
+            if (node == null) continue;
+            var nid = $"27{60 + i:D2}0101{2346 + i:D4}67";
+            if (existingNids.Contains(nid)) continue;
+
+            var staff = new Staff
+            {
+                Id = Guid.NewGuid(),
+                EmployeeCode = d.Emp,
+                Name = d.Name,
+                NationalId = nid,
+                BirthDate = new DateTime(1972 + (i % 12), 1 + (i % 11), 5 + i, 0, 0, 0, DateTimeKind.Utc),
+                PhoneNumber = $"011122{2200 + i:D4}",
+                Email = $"ins{i + 1:D3}@capital.edu.eg",
+                Role = "Staff",
+                JobTitle = jobTitles[i % jobTitles.Length],
+                StructureNodeId = node.Id,
+                PasswordHash = pwd,
+                PasswordExpiry = DateTime.UtcNow.AddYears(5),
+                IsActive = true,
+            };
+            context.Staffs.Add(staff);
+            newStaff.Add((staff, node));
+            added++;
+        }
+
+        if (added == 0) return;
+        await context.SaveChangesAsync();
+
+        // Scoped "Staff" role assignment so instructors authenticate with a
+        // working permission set, tenanted to their program node.
+        var staffRole = (await context.Roles.ToListAsync())
+            .FirstOrDefault(r => LocalizedJson.Extract(r.Name, "en") == "Staff");
+        if (staffRole != null)
+        {
+            var existingAssignments = await context.StaffRoles.ToListAsync();
+            foreach (var (staff, node) in newStaff)
+            {
+                if (existingAssignments.Any(a => a.StaffId == staff.Id && a.RoleId == staffRole.Id)) continue;
+                context.StaffRoles.Add(new StaffRoleAssignment(staff.Id, staffRole.Id, ScopeKeys.Global, ScopeKeys.Global)
+                {
+                    StructureNodeId = node.Id,
+                    StructureNodePath = node.Path,
+                });
+            }
+            await context.SaveChangesAsync();
+        }
+
+        Console.WriteLine($"[MassSeed] Staff: +{added} instructors.");
+    }
+
+    private static async Task AssignInstructorsAsync(CoreDbContext context)
+    {
+        var unassigned = await context.Set<CourseOffering>()
+            .Where(o => o.InstructorId == null)
+            .OrderBy(o => o.Id)
+            .ToListAsync();
+        if (unassigned.Count == 0) return;
+
+        var instructors = await context.Staffs
+            .Where(s => s.IsActive && s.EmployeeCode.StartsWith("INS-"))
+            .OrderBy(s => s.EmployeeCode)
+            .Select(s => s.Id)
+            .ToListAsync();
+        if (instructors.Count == 0)
+        {
+            instructors = await context.Staffs.Where(s => s.IsActive).Select(s => s.Id).ToListAsync();
+        }
+        if (instructors.Count == 0) return;
+
+        for (var i = 0; i < unassigned.Count; i++)
+        {
+            unassigned[i].InstructorId = instructors[i % instructors.Count];
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] Offerings: {unassigned.Count} instructor assignment(s).");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  PAST-SEMESTER COURSE OFFERINGS (admin matrix history)
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedPastOfferingsAsync(CoreDbContext context)
+    {
+        var years = await context.AcademicYears.Include(y => y.Semesters).ToListAsync();
+        var pastYears = years.Where(y => y.Name is "2023-2024" or "2024-2025").ToList();
+        if (pastYears.Count == 0) return;
+
+        var pastSemIds = pastYears.SelectMany(y => y.Semesters)
+            .Where(s => s.Order <= 2)
+            .Select(s => s.Id)
+            .ToHashSet();
+        if (await context.Set<CourseOffering>().AnyAsync(o => pastSemIds.Contains(o.SemesterId))) return;
+
+        var plans = await context.AcademicPlans.Include(p => p.PlanCourses).ToListAsync();
+        var courseIds = await context.Courses.Select(c => c.Id).ToHashSetAsync();
+        var offeringSet = context.Set<CourseOffering>();
+        var added = 0;
+
+        foreach (var year in pastYears)
+        {
+            var fall = year.Semesters.FirstOrDefault(s => s.Order == 1);
+            var spring = year.Semesters.FirstOrDefault(s => s.Order == 2);
+
+            foreach (var plan in plans)
+            {
+                foreach (var pc in plan.PlanCourses)
+                {
+                    if (!courseIds.Contains(pc.CourseId)) continue;
+                    var target = pc.Semester == 1 ? fall : pc.Semester == 2 ? spring : null;
+                    if (target == null) continue;
+
+                    var offering = new CourseOffering
+                    {
+                        Id = Guid.NewGuid(),
+                        CourseId = pc.CourseId,
+                        SemesterId = target.Id,
+                        StructureNodeId = plan.StructureNodeId,
+                        SectionCode = "A",
+                        CreatedAt = DateTime.SpecifyKind(year.StartDate, DateTimeKind.Utc),
+                    };
+                    offering.InitializeCapacity(60);
+                    offering.Activate();
+                    // Registration stays Closed: these terms are over.
+                    offeringSet.Add(offering);
+                    added++;
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] PastOfferings: {added} created for {pastYears.Count} past year(s).");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  PER-STUDENT ACADEMIC HISTORY
+    //  Plan-driven registrations + grades across every year the student
+    //  has been enrolled, plus a GPA summary snapshot. Drives: My Courses,
+    //  Grades, Transcript, registration history, admin academic hub.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedAcademicHistoryAsync(CoreDbContext context)
+    {
+        if (await context.Set<StudentRegisteredCourse>().AnyAsync()) return;
+
+        var now = DateTime.UtcNow;
+        var students = await context.Students.OrderBy(s => s.StudentCode).ToListAsync();
+        var nodes = await context.StructureNodes.ToDictionaryAsync(n => n.Id);
+        var courses = await context.Courses.ToDictionaryAsync(c => c.Id);
+        var plans = await context.AcademicPlans.Include(p => p.PlanCourses)
+            .Where(p => p.IsActive).ToListAsync();
+        var plansByNode = plans.GroupBy(p => p.StructureNodeId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var years = await context.AcademicYears.Include(y => y.Semesters).ToListAsync();
+        var yearsByName = years.ToDictionary(y => y.Name);
+        var yearsById = years.ToDictionary(y => y.Id);
+
+        var currentYear = years.FirstOrDefault(y => y.IsCurrent)
+            ?? years.Where(y => y.StartDate <= now).OrderBy(y => y.StartDate).LastOrDefault();
+        if (currentYear == null) return;
+        var currentSemester = years.SelectMany(y => y.Semesters).FirstOrDefault(s => s.IsCurrent)
+            ?? currentYear.Semesters.OrderBy(s => s.Order).First();
+        var currentStartYear = int.Parse(currentYear.Name.Split('-')[0]);
+
+        (DateTime YearStart, int Order) SemKey(Semester s) => (yearsById[s.AcademicYearId].StartDate, s.Order);
+        var currentKey = SemKey(currentSemester);
+        int CompareToCurrent(Semester s)
+        {
+            var k = SemKey(s);
+            var byYear = k.YearStart.CompareTo(currentKey.YearStart);
+            return byYear != 0 ? byYear : k.Order.CompareTo(currentKey.Order);
+        }
+
+        // Section-A offerings of the current semester, keyed by (course, program
+        // node), so Enrolled rows bump the live RegisteredCount counters.
+        var currentOfferings = (await context.Set<CourseOffering>()
+                .Where(o => o.SemesterId == currentSemester.Id).ToListAsync())
+            .Where(o => o.SectionCode == "A")
+            .GroupBy(o => (o.CourseId, o.StructureNodeId))
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var regSet = context.Set<StudentRegisteredCourse>();
+        var resSet = context.Set<StudentAcademicResult>();
+        var snapSet = context.Set<AcademicSummarySnapshot>();
+
+        var rng = new Random(20260611);
+        var gradeBands = new (string Letter, decimal Points, int Score, int Weight)[]
+        {
+            ("A", 4.0m, 95, 10), ("A-", 3.7m, 90, 10), ("B+", 3.3m, 87, 14), ("B", 3.0m, 83, 16),
+            ("B-", 2.7m, 80, 12), ("C+", 2.3m, 76, 12), ("C", 2.0m, 72, 10), ("C-", 1.7m, 68, 6),
+            ("D+", 1.3m, 65, 5), ("D", 1.0m, 61, 5),
+        };
+        (string Letter, decimal Points, decimal Score) PickGrade(int fromBand, int toBand)
+        {
+            var slice = gradeBands[fromBand..(toBand + 1)];
+            var total = slice.Sum(b => b.Weight);
+            var roll = rng.Next(total);
+            foreach (var b in slice)
+            {
+                roll -= b.Weight;
+                if (roll < 0) return (b.Letter, b.Points, b.Score + rng.Next(-2, 3));
+            }
+            var last = slice[^1];
+            return (last.Letter, last.Points, last.Score);
+        }
+
+        var regCount = 0;
+        var resCount = 0;
+        var snapCount = 0;
+
+        foreach (var student in students)
+        {
+            if (!nodes.TryGetValue(student.StructureNodeId, out var levelNode)) continue;
+            if (levelNode.Type != StructureNodeType.Level || levelNode.ParentId == null) continue;
+            var programId = levelNode.ParentId.Value;
+            if (!plansByNode.TryGetValue(programId, out var plan) || plan.PlanCourses.Count == 0) continue;
+
+            var siblingLevels = nodes.Values
+                .Where(n => n.ParentId == programId && n.Type == StructureNodeType.Level)
+                .OrderBy(n => n.Order).ThenBy(n => n.Id)
+                .ToList();
+            var levelIdx = siblingLevels.FindIndex(n => n.Id == levelNode.Id) + 1;
+            if (levelIdx <= 0) continue;
+            levelIdx = Math.Min(levelIdx, plan.PlanCourses.Max(pc => pc.Level));
+
+            var attempts = new HashSet<Guid>();
+            // Latest-attempt graded rows feeding GPA: (semester key, points, credits, passed)
+            var graded = new List<((DateTime YearStart, int Order) Key, decimal Points, int Credits, bool Passed)>();
+
+            StudentRegisteredCourse AddRegistration(Course course, Semester sem, int attempt,
+                RegistrationStatus status, DateTime registeredAt, DateTime? completedAt)
+            {
+                var reg = new StudentRegisteredCourse
+                {
+                    Id = Guid.NewGuid(),
+                    StudentId = student.Id,
+                    CourseId = course.Id,
+                    SemesterId = sem.Id,
+                    StructureNodeId = levelNode.Id,
+                    AttemptNumber = attempt,
+                    RegistrationStatus = status,
+                    RegisteredAt = registeredAt,
+                    CompletedAt = completedAt,
+                    CreatedAt = registeredAt,
+                    ExternallySourced = new ExternallySourcedData
+                    {
+                        ExternalId = $"SEED-REG-{student.StudentCode}-{course.Code}-{attempt}",
+                        LastSyncedAt = now,
+                    },
+                };
+                regSet.Add(reg);
+                regCount++;
+                return reg;
+            }
+
+            void AddResult(StudentRegisteredCourse reg, Course course, int attempt, AcademicResultStatus status,
+                string? grade, decimal? score, int creditsEarned, bool isLatest)
+            {
+                resSet.Add(new StudentAcademicResult
+                {
+                    Id = Guid.NewGuid(),
+                    StudentRegisteredCourseId = reg.Id,
+                    Grade = grade,
+                    NumericScore = score,
+                    Status = status,
+                    CreditsEarned = creditsEarned,
+                    IsLatestAttempt = isLatest,
+                    ExternallySourced = new ExternallySourcedData
+                    {
+                        ExternalId = $"SEED-RES-{student.StudentCode}-{course.Code}-{attempt}",
+                        LastSyncedAt = now,
+                    },
+                });
+                resCount++;
+            }
+
+            void EnrollCurrent(Course course, Semester sem, int attempt)
+            {
+                var registeredAt = DateTime.SpecifyKind(sem.StartDate, DateTimeKind.Utc).AddDays(-rng.Next(2, 12));
+                var reg = AddRegistration(course, sem, attempt, RegistrationStatus.Enrolled, registeredAt, null);
+                AddResult(reg, course, attempt, AcademicResultStatus.InProgress, null, null, 0, true);
+                if (currentOfferings.TryGetValue((course.Id, programId), out var offering)
+                    && offering.RegisteredCount < offering.Capacity
+                    && offering.Status != OfferingStatus.Cancelled)
+                {
+                    offering.IncrementRegistration();
+                }
+            }
+
+            for (var lvl = 1; lvl <= levelIdx; lvl++)
+            {
+                var startYear = currentStartYear - (levelIdx - lvl);
+                if (!yearsByName.TryGetValue($"{startYear}-{startYear + 1}", out var year)) continue;
+
+                foreach (var pc in plan.PlanCourses.Where(p => p.Level == lvl)
+                             .OrderBy(p => p.Semester).ThenBy(p => p.CourseId))
+                {
+                    if (!courses.TryGetValue(pc.CourseId, out var course)) continue;
+                    if (!attempts.Add(course.Id)) continue; // already taken at an earlier level
+                    var sem = year.Semesters.FirstOrDefault(s => s.Order == pc.Semester);
+                    if (sem == null) continue;
+
+                    var cmp = CompareToCurrent(sem);
+                    if (cmp > 0) continue; // future term
+
+                    if (cmp == 0)
+                    {
+                        EnrollCurrent(course, sem, 1);
+                        continue;
+                    }
+
+                    // Completed term.
+                    var semStartUtc = DateTime.SpecifyKind(sem.StartDate, DateTimeKind.Utc);
+                    var semEndUtc = DateTime.SpecifyKind(sem.EndDate, DateTimeKind.Utc);
+                    var registeredAt = semStartUtc.AddDays(-rng.Next(2, 12));
+                    var roll = rng.Next(100);
+
+                    if (roll < 86)
+                    {
+                        var (letter, points, score) = PickGrade(0, gradeBands.Length - 1);
+                        var reg = AddRegistration(course, sem, 1, RegistrationStatus.Completed, registeredAt, semEndUtc);
+                        AddResult(reg, course, 1, AcademicResultStatus.Passed, letter, score, course.CreditHours, true);
+                        graded.Add((SemKey(sem), points, course.CreditHours, true));
+                        continue;
+                    }
+
+                    // Failed (8%) or withdrawn (6%) — then retake in the same
+                    // term of the following academic year when it has arrived.
+                    var failed = roll < 94;
+                    StudentRegisteredCourse firstReg;
+                    if (failed)
+                    {
+                        firstReg = AddRegistration(course, sem, 1, RegistrationStatus.Failed, registeredAt, semEndUtc);
+                    }
+                    else
+                    {
+                        firstReg = AddRegistration(course, sem, 1, RegistrationStatus.Withdrawn, registeredAt,
+                            semStartUtc.AddDays(45));
+                    }
+
+                    Semester? retakeSem = null;
+                    if (yearsByName.TryGetValue($"{startYear + 1}-{startYear + 2}", out var retakeYear))
+                    {
+                        var candidate = retakeYear.Semesters.FirstOrDefault(s => s.Order == pc.Semester);
+                        if (candidate != null && CompareToCurrent(candidate) <= 0) retakeSem = candidate;
+                    }
+
+                    if (retakeSem == null)
+                    {
+                        // No retake happened yet — first attempt is the latest.
+                        if (failed)
+                        {
+                            AddResult(firstReg, course, 1, AcademicResultStatus.Failed, "F", 40 + rng.Next(0, 18), 0, true);
+                            graded.Add((SemKey(sem), 0m, course.CreditHours, false));
+                        }
+                        else
+                        {
+                            AddResult(firstReg, course, 1, AcademicResultStatus.Withdrawn, null, null, 0, true);
+                        }
+                        continue;
+                    }
+
+                    if (failed)
+                    {
+                        AddResult(firstReg, course, 1, AcademicResultStatus.Failed, "F", 40 + rng.Next(0, 18), 0, false);
+                    }
+                    else
+                    {
+                        AddResult(firstReg, course, 1, AcademicResultStatus.Withdrawn, null, null, 0, false);
+                    }
+
+                    if (CompareToCurrent(retakeSem) == 0)
+                    {
+                        EnrollCurrent(course, retakeSem, 2);
+                    }
+                    else
+                    {
+                        var retakeStartUtc = DateTime.SpecifyKind(retakeSem.StartDate, DateTimeKind.Utc);
+                        var retakeEndUtc = DateTime.SpecifyKind(retakeSem.EndDate, DateTimeKind.Utc);
+                        var retakeReg = AddRegistration(course, retakeSem, 2, RegistrationStatus.Completed,
+                            retakeStartUtc.AddDays(-rng.Next(2, 12)), retakeEndUtc);
+                        var (letter, points, score) = PickGrade(2, 7); // retakes land C-..B+ territory
+                        AddResult(retakeReg, course, 2, AcademicResultStatus.Passed, letter, score, course.CreditHours, true);
+                        graded.Add((SemKey(retakeSem), points, course.CreditHours, true));
+                    }
+                }
+            }
+
+            // ── GPA summary snapshot (computed from the latest-attempt rows above) ──
+            var totalPlanCredits = plan.PlanCourses
+                .Where(pc => courses.ContainsKey(pc.CourseId))
+                .Sum(pc => courses[pc.CourseId].CreditHours);
+            var earned = graded.Where(g => g.Passed).Sum(g => g.Credits);
+            var failedHours = graded.Where(g => !g.Passed).Sum(g => g.Credits);
+            var gradedCredits = graded.Sum(g => g.Credits);
+            var cgpa = gradedCredits > 0
+                ? Math.Round(graded.Sum(g => g.Points * g.Credits) / gradedCredits, 2)
+                : 0m;
+            var lastKey = graded.Count > 0 ? graded.Max(g => g.Key) : default;
+            var lastTerm = graded.Where(g => g.Key == lastKey).ToList();
+            var lastTermCredits = lastTerm.Sum(g => g.Credits);
+            var gpa = lastTermCredits > 0
+                ? Math.Round(lastTerm.Sum(g => g.Points * g.Credits) / lastTermCredits, 2)
+                : 0m;
+
+            snapSet.Add(new AcademicSummarySnapshot
+            {
+                Id = Guid.NewGuid(),
+                StudentId = student.Id,
+                Gpa = gpa,
+                Cgpa = cgpa,
+                EarnedCredits = earned,
+                RemainingCredits = Math.Max(0, totalPlanCredits - earned),
+                PassedHours = earned,
+                FailedHours = failedHours,
+                AcademicStanding = gradedCredits == 0 || cgpa >= 2.0m ? "Good Standing" : "Probation",
+                ExternallySourced = new ExternallySourcedData
+                {
+                    ExternalId = $"SEED-SUM-{student.StudentCode}",
+                    LastSyncedAt = now,
+                },
+            });
+            snapCount++;
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] AcademicHistory: {regCount} registrations, {resCount} results, {snapCount} summaries.");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  MULTI-YEAR TREASURY HISTORY
+    //  Tuition + recurring fees per student per enrolled year, settled
+    //  for past years and mixed paid/pending for the current one.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task ExpandTreasuryHistoryAsync(CoreDbContext context)
+    {
+        const string marker = "SEED-HIST-";
+        var receiptSet = context.Set<TreasuryReceipt>();
+        if (await receiptSet.AnyAsync(r => r.ExternalReceiptId.StartsWith(marker))) return;
+
+        var now = DateTime.UtcNow;
+        var students = await context.Students.OrderBy(s => s.StudentCode).ToListAsync();
+        var nodes = await context.StructureNodes.ToDictionaryAsync(n => n.Id);
+        var plans = await context.AcademicPlans.Where(p => p.IsActive).Include(p => p.PlanCourses).ToListAsync();
+        var planLevelsByNode = plans.GroupBy(p => p.StructureNodeId)
+            .ToDictionary(g => g.Key, g => g.First().PlanCourses.Count > 0 ? g.First().PlanCourses.Max(pc => pc.Level) : 0);
+        var years = await context.AcademicYears.ToListAsync();
+        var yearsByName = years.ToDictionary(y => y.Name);
+        var currentYear = years.FirstOrDefault(y => y.IsCurrent)
+            ?? years.Where(y => y.StartDate <= now).OrderBy(y => y.StartDate).LastOrDefault();
+        if (currentYear == null) return;
+        var currentStartYear = int.Parse(currentYear.Name.Split('-')[0]);
+
+        var feeSet = context.Set<StudentFee>();
+        var orderSet = context.Set<Order>();
+        var paymentSet = context.Set<Payment>();
+        var txnSet = context.Set<PaymentTransaction>();
+
+        // Students already covered by the hand-written scenarios above keep
+        // their current-year rows; only their history is back-filled.
+        var alreadyBilled = await feeSet.Select(f => f.StudentId).Distinct().ToHashSetAsync();
+
+        var receiptCache = new Dictionary<string, TreasuryReceipt>();
+        var receiptSeq = 0;
+        TreasuryReceipt GetReceipt(string name, decimal amount, DateTime createdAt)
+        {
+            var key = $"{name}|{amount}";
+            if (receiptCache.TryGetValue(key, out var cached)) return cached;
+            var receipt = new TreasuryReceipt
+            {
+                ExternalReceiptId = $"{marker}{++receiptSeq:D4}",
+                ConnectionTypeId = 6,
+                Name = name,
+                UnitAmount = amount,
+                Currency = "EGP",
+                IsActive = true,
+                CreatedAt = createdAt,
+            };
+            receiptSet.Add(receipt);
+            receiptCache[key] = receipt;
+            return receipt;
+        }
+
+        var rng = new Random(20260612);
+        var gateways = new[] { Gateway.Mastercard, Gateway.BankMisr, Gateway.EFinance };
+        var orderSeq = 0;
+        var feeCount = 0;
+
+        void AddPending(Guid studentId, string name, decimal amount, string sourceModule, DateTime createdAt)
+        {
+            var receipt = GetReceipt(name, amount, createdAt);
+            feeSet.Add(new StudentFee
+            {
+                StudentId = studentId,
+                ReceiptId = receipt.Id,
+                Quantity = 1,
+                UnitAmount = amount,
+                TotalAmount = amount,
+                Currency = "EGP",
+                Status = FeeStatus.Pending,
+                SourceModule = sourceModule,
+                CreatedAt = createdAt,
+            });
+            feeCount++;
+        }
+
+        void AddSettled(Student student, string name, decimal amount, string sourceModule,
+            DateTime createdAt, DateTime paidAt)
+        {
+            var receipt = GetReceipt(name, amount, createdAt);
+            var gateway = gateways[orderSeq % gateways.Length];
+            var merchantOrderId = $"SEED-{student.StudentCode}-{++orderSeq:D5}";
+            var order = new Order
+            {
+                StudentId = student.Id,
+                Status = OrderStatus.Paid,
+                Gateway = gateway,
+                MerchantOrderId = merchantOrderId,
+                TotalAmount = amount,
+                Currency = "EGP",
+                CreatedAt = createdAt,
+            };
+            var fee = new StudentFee
+            {
+                StudentId = student.Id,
+                ReceiptId = receipt.Id,
+                Quantity = 1,
+                UnitAmount = amount,
+                TotalAmount = amount,
+                Currency = "EGP",
+                Status = FeeStatus.Paid,
+                SourceModule = sourceModule,
+                OrderId = order.Id,
+                CreatedAt = createdAt,
+            };
+            orderSet.Add(order);
+            feeSet.Add(fee);
+            paymentSet.Add(new Payment
+            {
+                FeeId = fee.Id,
+                OrderId = order.Id,
+                Amount = amount,
+                Gateway = gateway,
+                MerchantOrderId = merchantOrderId,
+                PaidAt = paidAt,
+                CreatedAt = paidAt,
+            });
+            txnSet.Add(new PaymentTransaction
+            {
+                OrderId = order.Id,
+                MerchantOrderId = merchantOrderId,
+                Gateway = gateway,
+                Type = TransactionType.Webhook,
+                Status = GatewayTransactionStatus.Succeeded,
+                Amount = amount,
+                GatewayReference = merchantOrderId,
+                IdempotencyKey = $"idem-{merchantOrderId}",
+                CreatedAt = paidAt,
+            });
+            feeCount++;
+        }
+
+        foreach (var student in students)
+        {
+            if (!nodes.TryGetValue(student.StructureNodeId, out var levelNode)) continue;
+            if (levelNode.Type != StructureNodeType.Level || levelNode.ParentId == null) continue;
+            var programId = levelNode.ParentId.Value;
+
+            var siblingLevels = nodes.Values
+                .Where(n => n.ParentId == programId && n.Type == StructureNodeType.Level)
+                .OrderBy(n => n.Order).ThenBy(n => n.Id)
+                .ToList();
+            var levelIdx = siblingLevels.FindIndex(n => n.Id == levelNode.Id) + 1;
+            if (levelIdx <= 0) continue;
+            if (planLevelsByNode.TryGetValue(programId, out var maxLvl) && maxLvl > 0)
+            {
+                levelIdx = Math.Min(levelIdx, maxLvl);
+            }
+
+            // Faculty = level → program → system → faculty.
+            var isEngineering = false;
+            var cursor = levelNode;
+            while (cursor.ParentId != null && nodes.TryGetValue(cursor.ParentId.Value, out var parent))
+            {
+                if (parent.Type == StructureNodeType.Faculty)
+                {
+                    isEngineering = parent.Name.Contains("Engineering", StringComparison.OrdinalIgnoreCase);
+                    break;
+                }
+                cursor = parent;
+            }
+            var tuition = isEngineering ? 37_500.00m : 22_500.00m;
+
+            for (var lvl = 1; lvl <= levelIdx; lvl++)
+            {
+                var startYear = currentStartYear - (levelIdx - lvl);
+                var yearName = $"{startYear}-{startYear + 1}";
+                if (!yearsByName.ContainsKey(yearName)) continue;
+                var isCurrentYearRow = startYear == currentStartYear;
+                var createdAt = new DateTime(startYear, 9, 1, 8, 0, 0, DateTimeKind.Utc);
+                var paidAt = createdAt.AddDays(rng.Next(10, 35));
+
+                // Hand-written scenario students keep their current-year rows.
+                if (isCurrentYearRow && alreadyBilled.Contains(student.Id)) continue;
+
+                if (!isCurrentYearRow || rng.Next(100) < 60)
+                {
+                    AddSettled(student, $"مصاريف العام الدراسي {yearName}", tuition, "registration", createdAt, paidAt);
+                }
+                else
+                {
+                    AddPending(student.Id, $"مصاريف العام الدراسي {yearName}", tuition, "registration", createdAt);
+                }
+
+                if (!isCurrentYearRow || rng.Next(100) < 80)
+                {
+                    AddSettled(student, $"رسوم الأنشطة الطلابية {yearName}", 500.00m, "admin", createdAt, paidAt.AddDays(2));
+                }
+                else
+                {
+                    AddPending(student.Id, $"رسوم الأنشطة الطلابية {yearName}", 500.00m, "admin", createdAt);
+                }
+
+                if (isEngineering)
+                {
+                    AddSettled(student, $"رسوم المعامل والورش {yearName}", 1_200.00m, "admin", createdAt, paidAt.AddDays(4));
+                }
+            }
+
+            // Sprinkled current-year extras.
+            if (rng.Next(100) < 12)
+            {
+                AddPending(student.Id, "غرامة تأخير كتب المكتبة", 50.00m, "library", now.AddDays(-rng.Next(5, 40)));
+            }
+            if (rng.Next(100) < 15)
+            {
+                AddPending(student.Id, "رسوم تجديد كارنيه الطالب", 85.00m, "student_services", now.AddDays(-rng.Next(3, 25)));
+            }
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] TreasuryHistory: {feeCount} fees across years for {students.Count} students.");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  PORTAL-MANAGED PROFILE RECORDS
+    //  The student portal's blocker gate requires a phone number, an
+    //  address (Custom record keyed "contact-information") and an
+    //  emergency contact whose DataJson uses "name"/"phone" keys.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedPortalProfileRecordsAsync(CoreDbContext context)
+    {
+        var recordSet = context.Set<StudentProfileRecord>();
+        var students = await context.Students.OrderBy(s => s.StudentCode).ToListAsync();
+        var existing = await recordSet
+            .Where(r => r.Category == StudentProfileCategory.Custom || r.Category == StudentProfileCategory.EmergencyContact)
+            .ToListAsync();
+
+        var cities = new[] { "Cairo", "Giza", "Helwan", "Shubra El-Kheima", "Maadi", "Nasr City", "6th of October", "New Cairo" };
+        var added = 0;
+        var repaired = 0;
+
+        foreach (var student in students)
+        {
+            var hash = (student.StudentCode.GetHashCode() & int.MaxValue);
+
+            // Contact extras (address/city/country) — read by the portal
+            // profile page and the completeness gate.
+            var hasContact = existing.Any(r => r.StudentId == student.Id
+                && r.Category == StudentProfileCategory.Custom
+                && r.CustomCategoryKey == "contact-information");
+            if (!hasContact)
+            {
+                recordSet.Add(new StudentProfileRecord
+                {
+                    Id = Guid.NewGuid(),
+                    StudentId = student.Id,
+                    Category = StudentProfileCategory.Custom,
+                    CustomCategoryKey = "contact-information",
+                    SchemaVersion = 1,
+                    DataJson = JsonSerializer.Serialize(new Dictionary<string, string>
+                    {
+                        ["address"] = $"{10 + hash % 80} El-Nasr Street, Apt {1 + hash % 12}",
+                        ["city"] = cities[hash % cities.Length],
+                        ["country"] = "Egypt",
+                    }),
+                });
+                added++;
+            }
+
+            // Emergency contact — the gate reads "name"/"phone".
+            var emergency = existing.FirstOrDefault(r => r.StudentId == student.Id
+                && r.Category == StudentProfileCategory.EmergencyContact);
+            if (emergency == null)
+            {
+                recordSet.Add(new StudentProfileRecord
+                {
+                    Id = Guid.NewGuid(),
+                    StudentId = student.Id,
+                    Category = StudentProfileCategory.EmergencyContact,
+                    SchemaVersion = 1,
+                    DataJson = JsonSerializer.Serialize(new Dictionary<string, string>
+                    {
+                        ["name"] = $"Guardian of {student.Name.Split(' ')[0]}",
+                        ["relationship"] = hash % 2 == 0 ? "Father" : "Mother",
+                        ["phone"] = $"0122{1000000 + hash % 9000000:D7}",
+                    }),
+                });
+                added++;
+            }
+            else if (!emergency.DataJson.Contains("\"name\""))
+            {
+                // Older seed wrote "contact_name"; remap so the gate passes.
+                try
+                {
+                    var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(emergency.DataJson)
+                        ?? new Dictionary<string, JsonElement>();
+                    var output = data.ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+                    if (output.TryGetValue("contact_name", out var legacyName)) output["name"] = legacyName;
+                    if (!output.ContainsKey("phone")) output["phone"] = $"0122{1000000 + hash % 9000000:D7}";
+                    emergency.DataJson = JsonSerializer.Serialize(output);
+                    repaired++;
+                }
+                catch
+                {
+                    // Leave malformed JSON untouched.
+                }
+            }
+        }
+
+        if (added > 0 || repaired > 0)
+        {
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[MassSeed] PortalProfileRecords: +{added} added, {repaired} repaired.");
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  STUDENT (and extra staff) NOTIFICATIONS
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedStudentNotificationsAsync(CoreDbContext context)
+    {
+        var students = await context.Students.OrderBy(s => s.StudentCode).ToListAsync();
+        if (students.Count == 0) return;
+        var studentIds = students.Select(s => s.Id).ToList();
+        if (await context.Notifications.AnyAsync(n => studentIds.Contains(n.RecipientUserId))) return;
+
+        var now = DateTime.UtcNow;
+        var years = await context.AcademicYears.ToListAsync();
+        var currentYear = years.FirstOrDefault(y => y.IsCurrent)
+            ?? years.Where(y => y.StartDate <= now).OrderBy(y => y.StartDate).LastOrDefault();
+        var currentYearStart = currentYear != null
+            ? DateTime.SpecifyKind(currentYear.StartDate, DateTimeKind.Utc)
+            : new DateTime(now.Year, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var rng = new Random(20260613);
+        var added = 0;
+
+        void Notify(Guid recipient, string ar, string en, string arMsg, string enMsg,
+            NotificationType type, bool isRead, DateTime createdAt)
+        {
+            context.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = recipient,
+                Title = LocalizedJson.Of(ar, en),
+                Message = LocalizedJson.Of(arMsg, enMsg),
+                Type = type,
+                IsRead = isRead,
+                CreatedAt = createdAt,
+            });
+            added++;
+        }
+
+        foreach (var student in students)
+        {
+            var firstName = student.Name.Split(' ')[0];
+
+            Notify(student.Id,
+                "مرحباً بك في بوابة جامعة العاصمة", "Welcome to Capital University Portal",
+                $"أهلاً {firstName}! تم تفعيل حسابك على البوابة الإلكترونية. يمكنك الآن متابعة مقرراتك ودرجاتك ومدفوعاتك.",
+                $"Hello {firstName}! Your portal account is now active. You can track your courses, grades, and payments.",
+                NotificationType.Info, true, currentYearStart.AddDays(-rng.Next(30, 700)));
+
+            Notify(student.Id,
+                "تأكيد تسجيل المقررات", "Course Registration Confirmed",
+                "تم تسجيل مقررات الفصل الدراسي الحالي بنجاح. راجع جدولك الدراسي من صفحة الجدول.",
+                "Your registration for the current term was completed successfully. Check your weekly schedule page.",
+                NotificationType.Info, true, currentYearStart.AddDays(rng.Next(2, 8)));
+
+            Notify(student.Id,
+                "تم نشر جدول المحاضرات", "Lecture Schedule Published",
+                "تم نشر الجدول الدراسي للفصل الحالي. قد تطرأ تعديلات على القاعات خلال الأسبوع الأول.",
+                "The timetable for the current term has been published. Room changes may occur during the first week.",
+                NotificationType.Info, rng.Next(100) < 50, currentYearStart.AddDays(rng.Next(8, 15)));
+
+            Notify(student.Id,
+                "إعلان نتائج الفصل الدراسي", "Semester Grades Published",
+                "تم اعتماد ونشر نتائج الفصل الدراسي الماضي. يمكنك الاطلاع عليها من صفحة الدرجات.",
+                "Last term's grades have been approved and published. View them on your grades page.",
+                NotificationType.Info, false, now.AddDays(-rng.Next(3, 20)));
+
+            Notify(student.Id,
+                "إيصال سداد", "Payment Receipt",
+                "تم استلام سداد المصروفات الدراسية بنجاح. شكراً لالتزامك بمواعيد السداد.",
+                "Your tuition payment was received successfully. Thank you for paying on time.",
+                NotificationType.Info, true, currentYearStart.AddDays(rng.Next(15, 45)));
+
+            if (rng.Next(100) < 40)
+            {
+                Notify(student.Id,
+                    "تنبيه: مستحقات مالية", "Reminder: Outstanding Fees",
+                    "توجد مستحقات مالية غير مسددة على حسابك. برجاء السداد قبل نهاية الشهر لتجنب غرامات التأخير.",
+                    "You have unpaid fees on your account. Please settle them before month end to avoid late penalties.",
+                    NotificationType.Warning, false, now.AddDays(-rng.Next(2, 10)));
+            }
+
+            if (rng.Next(100) < 30)
+            {
+                Notify(student.Id,
+                    "تذكير من المكتبة", "Library Reminder",
+                    "لديك كتب مستعارة يقترب موعد إرجاعها. برجاء التجديد أو الإرجاع خلال أسبوع.",
+                    "You have borrowed books due soon. Please renew or return them within a week.",
+                    NotificationType.Info, true, now.AddDays(-rng.Next(10, 30)));
+            }
+        }
+
+        // A few fresh items for every staff inbox too.
+        var staff = await context.Staffs.Where(s => s.IsActive).ToListAsync();
+        foreach (var member in staff)
+        {
+            Notify(member.Id,
+                "طلبات طلابية بانتظار المراجعة", "Student Requests Awaiting Review",
+                "توجد طلبات خدمات طلابية جديدة بانتظار الإسناد والمراجعة في لوحة الطلبات.",
+                "New student service requests are awaiting assignment and review on the requests board.",
+                NotificationType.Info, false, now.AddDays(-rng.Next(1, 5)));
+            Notify(member.Id,
+                "تحديث الجداول الدراسية", "Timetable Update",
+                "تم تحديث جداول الفصل الدراسي الحالي. برجاء مراجعة التعارضات إن وجدت.",
+                "The current term timetables were updated. Please review any conflicts.",
+                NotificationType.Info, rng.Next(100) < 50, now.AddDays(-rng.Next(5, 15)));
+        }
+
+        await context.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] Notifications: +{added} (students + staff).");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  PORTAL STUDENT SERVICES
+    //  The base StudentServicesSeeder scopes its services to the demo
+    //  "Computer Science" tree where no seeded student lives. These are
+    //  scoped to the real student tree (root + faculties) so the portal
+    //  catalog is populated for everyone.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedPortalServicesAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
+        var core = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+        if (await db.Services.AnyAsync(s => s.Name.Contains("بيان درجات"))) return;
+
+        // Resolve the tree the seeded students actually live in: walk up from a
+        // student's level node to its root rather than guessing by name.
+        var anyStudent = await core.Students.FirstOrDefaultAsync();
+        if (anyStudent == null) return;
+        var nodes = await core.StructureNodes.ToDictionaryAsync(n => n.Id);
+        if (!nodes.TryGetValue(anyStudent.StructureNodeId, out var probe)) return;
+        while (probe.ParentId != null && nodes.TryGetValue(probe.ParentId.Value, out var parentNode)) probe = parentNode;
+        var root = probe;
+
+        // Faculties under that root that actually have students.
+        var studentNodeIds = await core.Students.Select(s => s.StructureNodeId).Distinct().ToListAsync();
+        var faculties = new Dictionary<Guid, StructureNode>();
+        foreach (var nodeId in studentNodeIds)
+        {
+            if (!nodes.TryGetValue(nodeId, out var cursor)) continue;
+            while (cursor != null)
+            {
+                if (cursor.Type == StructureNodeType.Faculty)
+                {
+                    faculties[cursor.Id] = cursor;
+                    break;
+                }
+                cursor = cursor.ParentId != null && nodes.TryGetValue(cursor.ParentId.Value, out var p) ? p : null;
+            }
+        }
+
+        Workflow MakeWorkflow(string name, bool paid, params (string Label, StepFieldType Type, bool Required, string? Options)[] fields)
+        {
+            var steps = new List<WorkflowStep>
+            {
+                new()
+                {
+                    Order = 1,
+                    Title = "بيانات الطلب",
+                    Description = "استكمل بيانات الطلب المطلوبة",
+                    StepType = WorkflowStepType.Form,
+                    IsRequired = true,
+                    Fields = fields.Select((f, i) => new WorkflowStepField
+                    {
+                        Order = i + 1,
+                        Label = f.Label,
+                        FieldType = f.Type,
+                        IsRequired = f.Required,
+                        OptionsJson = f.Options,
+                    }).ToList(),
+                },
+            };
+            var next = 2;
+            if (paid)
+            {
+                steps.Add(new WorkflowStep
+                {
+                    Order = next++,
+                    Title = "سداد الرسوم",
+                    Description = "سداد رسوم الخدمة إلكترونياً",
+                    StepType = WorkflowStepType.Payment,
+                    IsRequired = true,
+                });
+            }
+            steps.Add(new WorkflowStep
+            {
+                Order = next,
+                Title = "مراجعة واعتماد",
+                Description = "مراجعة الطلب من الموظف المختص",
+                StepType = WorkflowStepType.Review,
+                IsRequired = true,
+            });
+            return new Workflow { Name = name, Steps = steps };
+        }
+
+        async Task AddServiceAsync(string name, string description, ServiceType type, bool paid, decimal price,
+            Workflow workflow, params StructureNode[] scopeNodes)
+        {
+            db.Workflows.Add(workflow);
+            await db.SaveChangesAsync();
+
+            var service = new Service
+            {
+                Name = name,
+                Description = description,
+                Type = type,
+                IsActive = true,
+                IsPaid = paid,
+                Price = paid ? price : null,
+                IncludeDescendants = true,
+                WorkflowId = workflow.Id,
+            };
+            db.Services.Add(service);
+            await db.SaveChangesAsync();
+
+            foreach (var node in scopeNodes)
+            {
+                db.ServiceStructureNodes.Add(new ServiceStructureNode
+                {
+                    ServiceId = service.Id,
+                    StructureNodeId = node.Id,
+                });
+            }
+            await db.SaveChangesAsync();
+        }
+
+        var copiesOptions = JsonSerializer.Serialize(new[] { "نسخة واحدة", "نسختان", "ثلاث نسخ" });
+        var languageOptions = JsonSerializer.Serialize(new[] { "العربية", "الإنجليزية", "العربية والإنجليزية" });
+        var reasonOptions = JsonSerializer.Serialize(new[] { "ظرف صحي", "ظرف عائلي", "سفر", "أخرى" });
+
+        await AddServiceAsync(
+            "طلب بيان درجات رسمي",
+            "إصدار بيان درجات رسمي معتمد بجميع المقررات والتقديرات الحاصل عليها الطالب.",
+            ServiceType.Administrative, true, 150m,
+            MakeWorkflow("Workflow: Transcript Request", true,
+                ("عدد النسخ", StepFieldType.Select, true, copiesOptions),
+                ("اللغة", StepFieldType.Select, true, languageOptions),
+                ("الغرض من الطلب", StepFieldType.TextArea, false, null)),
+            root);
+
+        await AddServiceAsync(
+            "شهادة قيد",
+            "إصدار شهادة قيد رسمية تفيد انتظام الطالب بالدراسة في العام الجامعي الحالي.",
+            ServiceType.Administrative, true, 75m,
+            MakeWorkflow("Workflow: Enrollment Certificate", true,
+                ("الجهة الموجهة إليها الشهادة", StepFieldType.Text, true, null),
+                ("اللغة", StepFieldType.Select, true, languageOptions)),
+            root);
+
+        await AddServiceAsync(
+            "بدل فاقد كارنيه الطالب",
+            "إصدار كارنيه بديل في حالة الفقد أو التلف.",
+            ServiceType.General, true, 85m,
+            MakeWorkflow("Workflow: ID Card Replacement", true,
+                ("سبب الاستخراج", StepFieldType.Select, true, JsonSerializer.Serialize(new[] { "فقد", "تلف", "تغيير بيانات" })),
+                ("ملاحظات", StepFieldType.TextArea, false, null)),
+            root);
+
+        await AddServiceAsync(
+            "طلب إيقاف قيد / تأجيل",
+            "تقديم طلب إيقاف قيد أو تأجيل الدراسة لفصل دراسي أو عام كامل وفقاً للائحة.",
+            ServiceType.Administrative, false, 0m,
+            MakeWorkflow("Workflow: Leave of Absence", false,
+                ("نوع الإيقاف", StepFieldType.Select, true, JsonSerializer.Serialize(new[] { "فصل دراسي", "عام كامل" })),
+                ("السبب", StepFieldType.Select, true, reasonOptions),
+                ("تفاصيل إضافية", StepFieldType.TextArea, true, null)),
+            root);
+
+        await AddServiceAsync(
+            "تظلم من نتيجة مقرر",
+            "تقديم تظلم رسمي لإعادة رصد أو مراجعة درجة مقرر دراسي.",
+            ServiceType.Specialized, false, 0m,
+            MakeWorkflow("Workflow: Grade Appeal", false,
+                ("كود المقرر", StepFieldType.Text, true, null),
+                ("الفصل الدراسي", StepFieldType.Text, true, null),
+                ("أسباب التظلم", StepFieldType.TextArea, true, null)),
+            root);
+
+        await AddServiceAsync(
+            "طلب انسحاب من مقرر",
+            "الانسحاب من مقرر دراسي خلال الفترة المسموح بها دون احتساب رسوب.",
+            ServiceType.General, false, 0m,
+            MakeWorkflow("Workflow: Course Withdrawal", false,
+                ("كود المقرر", StepFieldType.Text, true, null),
+                ("سبب الانسحاب", StepFieldType.TextArea, true, null)),
+            root);
+
+        foreach (var faculty in faculties.Values)
+        {
+            var isEngineering = faculty.Name.Contains("Engineering", StringComparison.OrdinalIgnoreCase);
+            if (isEngineering)
+            {
+                await AddServiceAsync(
+                    $"خطاب تدريب ميداني - {faculty.Name}",
+                    "إصدار خطاب رسمي موجه لجهة التدريب الميداني الصيفي.",
+                    ServiceType.Specialized, true, 200m,
+                    MakeWorkflow($"Workflow: Internship Letter ({faculty.Name})", true,
+                        ("اسم جهة التدريب", StepFieldType.Text, true, null),
+                        ("مدة التدريب", StepFieldType.Select, true, JsonSerializer.Serialize(new[] { "شهر", "شهران", "ثلاثة أشهر" })),
+                        ("تاريخ بدء التدريب", StepFieldType.Date, true, null)),
+                    faculty);
+            }
+            else
+            {
+                await AddServiceAsync(
+                    $"حجز معامل - {faculty.Name}",
+                    "حجز معامل الكلية لإجراء التجارب والمشروعات البحثية خارج مواعيد المحاضرات.",
+                    ServiceType.Specialized, false, 0m,
+                    MakeWorkflow($"Workflow: Lab Booking ({faculty.Name})", false,
+                        ("المعمل المطلوب", StepFieldType.Text, true, null),
+                        ("التاريخ المطلوب", StepFieldType.Date, true, null),
+                        ("الغرض", StepFieldType.TextArea, true, null)),
+                    faculty);
+            }
+        }
+
+        Console.WriteLine($"[MassSeed] PortalServices: 6 university-wide + {faculties.Count} faculty-scoped services.");
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  STUDENT SERVICE REQUESTS
+    //  Spread across every RequestStatus so the admin kanban, dashboards
+    //  and the student "My Requests" history are all populated.
+    // ════════════════════════════════════════════════════════════════
+
+    private static async Task SeedStudentRequestsAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudentServicesDbContext>();
+        var core = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+
+        // A handful of hand-made requests may already exist from manual
+        // testing; only skip once real seeded volume is present.
+        if (await db.StudentRequests.CountAsync() >= 10) return;
+
+        var services = await db.Services
+            .Include(s => s.Workflow)!.ThenInclude(w => w!.Steps)!.ThenInclude(st => st.Fields)
+            .Where(s => s.IsActive)
+            .ToListAsync();
+        services = services.Where(s => s.Workflow != null && s.Workflow.Steps.Count > 0).ToList();
+        if (services.Count == 0) return;
+
+        var students = await core.Students.OrderBy(s => s.StudentCode).ToListAsync();
+        var staffIds = await core.Staffs.Where(s => s.IsActive).OrderBy(s => s.EmployeeCode)
+            .Select(s => s.Id).ToListAsync();
+        if (students.Count == 0 || staffIds.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        var rng = new Random(20260614);
+        var paySeq = 0;
+        var added = 0;
+
+        string SampleValue(WorkflowStepField field, Student student)
+        {
+            switch (field.FieldType)
+            {
+                case StepFieldType.Select:
+                case StepFieldType.Radio:
+                    try
+                    {
+                        var options = JsonSerializer.Deserialize<List<string>>(field.OptionsJson ?? "[]");
+                        if (options is { Count: > 0 }) return options[rng.Next(options.Count)];
+                    }
+                    catch { /* fall through to text */ }
+                    return "الخيار الأول";
+                case StepFieldType.Date:
+                    return now.AddDays(rng.Next(7, 60)).ToString("yyyy-MM-dd");
+                case StepFieldType.Number:
+                    return rng.Next(1, 4).ToString();
+                case StepFieldType.TextArea:
+                    return $"طلب مقدم من الطالب {student.Name} - برجاء التكرم بالموافقة مع خالص الشكر.";
+                case StepFieldType.File:
+                    return "attachment.pdf";
+                default:
+                    return field.Label.Contains("كود") ? "CS201" : student.Name;
+            }
+        }
+
+        void MakeRequest(Student student, Service service, RequestStatus status, int daysAgo)
+        {
+            var createdAt = now.AddDays(-daysAgo).AddHours(-rng.Next(0, 9));
+            var isDraft = status == RequestStatus.Draft;
+            var formSteps = service.Workflow!.Steps
+                .Where(s => s.StepType == WorkflowStepType.Form)
+                .OrderBy(s => s.Order)
+                .ToList();
+
+            var submittedData = new Dictionary<string, Dictionary<string, string>>();
+            if (!isDraft)
+            {
+                foreach (var step in formSteps)
+                {
+                    submittedData[step.Order.ToString()] = step.Fields
+                        .OrderBy(f => f.Order)
+                        .ToDictionary(f => f.Label, f => SampleValue(f, student));
+                }
+            }
+
+            var isAdvanced = status is RequestStatus.UnderReview or RequestStatus.MoreInfoRequired
+                or RequestStatus.Approved or RequestStatus.Rejected or RequestStatus.Completed
+                or RequestStatus.ReadyForPickup;
+            var paid = service.IsPaid && !isDraft && status != RequestStatus.PaymentPending;
+
+            var request = new StudentRequest
+            {
+                StudentId = student.Id,
+                ServiceId = service.Id,
+                Status = status,
+                PaymentStatus = !service.IsPaid
+                    ? PaymentStatus.NotRequired
+                    : paid ? PaymentStatus.Paid : PaymentStatus.Pending,
+                AmountPaid = paid ? service.Price : null,
+                PaymentTransactionId = paid ? $"SEED-PAY-{++paySeq:D5}" : null,
+                SubmittedData = JsonSerializer.Serialize(submittedData),
+                CurrentStepOrder = isDraft ? 0 : formSteps.Count > 0 ? formSteps[^1].Order : 0,
+                SubmittedAt = isDraft ? null : createdAt.AddHours(2),
+                CompletedAt = status == RequestStatus.Completed ? createdAt.AddDays(rng.Next(2, 7)) : null,
+                CreatedAt = createdAt,
+                HistoryEntries = new List<RequestHistoryEntry>(),
+            };
+
+            if (isAdvanced)
+            {
+                request.AssignedToStaffId = staffIds[rng.Next(staffIds.Count)];
+                request.AssignedAt = createdAt.AddHours(6);
+            }
+
+            var t = createdAt;
+            void History(string action, string? comment, Guid? by, string role)
+            {
+                request.HistoryEntries.Add(new RequestHistoryEntry
+                {
+                    Action = action,
+                    Comment = comment,
+                    PerformedByUserId = by,
+                    PerformedByRole = role,
+                    PerformedAt = t = t.AddMinutes(rng.Next(30, 240)),
+                });
+            }
+
+            History("Created", null, student.Id, "Student");
+            if (paid)
+            {
+                History("PaymentCompleted", $"Payment of {service.Price} completed via gateway", student.Id, "Student");
+            }
+            if (!isDraft)
+            {
+                History("Submitted", null, student.Id, "Student");
+            }
+            if (request.AssignedToStaffId != null)
+            {
+                History("Assigned", "تم إسناد الطلب للمراجعة", request.AssignedToStaffId, "Staff");
+            }
+            if (status is RequestStatus.MoreInfoRequired)
+            {
+                History($"StatusChanged_{status}", "برجاء رفع صورة بطاقة الرقم القومي", request.AssignedToStaffId, "Staff");
+            }
+            else if (status is RequestStatus.Rejected)
+            {
+                History($"StatusChanged_{status}", "الطلب غير مستوفٍ لشروط اللائحة", request.AssignedToStaffId, "Staff");
+            }
+            else if (status is RequestStatus.Cancelled)
+            {
+                History($"StatusChanged_{status}", "تم الإلغاء بناءً على رغبة الطالب", student.Id, "Student");
+            }
+            else if (isAdvanced && status != RequestStatus.UnderReview)
+            {
+                History($"StatusChanged_{status}", null, request.AssignedToStaffId, "Staff");
+            }
+
+            db.StudentRequests.Add(request);
+            added++;
+        }
+
+        // Guarantee coverage of every status, then add random volume on top.
+        var statusCycle = new[]
+        {
+            RequestStatus.Draft, RequestStatus.Pending, RequestStatus.UnderReview,
+            RequestStatus.MoreInfoRequired, RequestStatus.Approved, RequestStatus.Rejected,
+            RequestStatus.PaymentPending, RequestStatus.Completed, RequestStatus.Cancelled,
+            RequestStatus.ReadyForPickup,
+        };
+        var weightedPool = new[]
+        {
+            RequestStatus.Pending, RequestStatus.Pending, RequestStatus.UnderReview,
+            RequestStatus.UnderReview, RequestStatus.Completed, RequestStatus.Completed,
+            RequestStatus.Completed, RequestStatus.Approved, RequestStatus.Rejected,
+            RequestStatus.ReadyForPickup, RequestStatus.Draft, RequestStatus.MoreInfoRequired,
+        };
+
+        for (var i = 0; i < statusCycle.Length * 2; i++)
+        {
+            var status = statusCycle[i % statusCycle.Length];
+            var student = students[i % students.Count];
+            // PaymentPending only makes sense on a paid service.
+            var pool = status == RequestStatus.PaymentPending
+                ? services.Where(s => s.IsPaid).ToList()
+                : services;
+            if (pool.Count == 0) continue;
+            MakeRequest(student, pool[rng.Next(pool.Count)], status, rng.Next(3, 90));
+        }
+
+        foreach (var student in students)
+        {
+            if (rng.Next(100) >= 55) continue;
+            var extra = rng.Next(1, 3);
+            for (var i = 0; i < extra; i++)
+            {
+                var status = weightedPool[rng.Next(weightedPool.Length)];
+                MakeRequest(student, services[rng.Next(services.Count)], status, rng.Next(1, 120));
+            }
+        }
+
+        await db.SaveChangesAsync();
+        Console.WriteLine($"[MassSeed] StudentRequests: {added} requests with history.");
     }
 }

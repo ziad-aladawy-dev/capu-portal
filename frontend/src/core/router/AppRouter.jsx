@@ -7,9 +7,16 @@ const LandingPage = lazy(() => import("../../modules/landing/pages/LandingPage")
 const AdminLogin = lazy(() => import("../auth/pages/AdminLogin"));
 const StudentLogin = lazy(() => import("../auth/pages/StudentLogin"));
 const ResetPassword = lazy(() => import("../auth/pages/ResetPassword"));
+const StudentPortalLayout = lazy(() => import("../../modules/studentPortal/layout/StudentPortalLayout"));
 
 function AppRouter() {
   const protectedRoutes = useMemo(() => buildProtectedRoutes(), []);
+  // /student/* lives in its own consumer-grade shell; everything else keeps
+  // the admin dashboard chrome.
+  const { studentRoutes, adminRoutes } = useMemo(() => ({
+    studentRoutes: protectedRoutes.filter((r) => r.path.startsWith("/student")),
+    adminRoutes: protectedRoutes.filter((r) => !r.path.startsWith("/student")),
+  }), [protectedRoutes]);
 
   return (
     <Suspense fallback={<div style={{
@@ -26,7 +33,18 @@ function AppRouter() {
 
         {/* Protected dashboard routes — manifest-driven, wrapped by RouteGuard */}
         <Route element={<DashboardLayout />}>
-          {protectedRoutes.map((route) => (
+          {adminRoutes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={route.element}
+            />
+          ))}
+        </Route>
+
+        {/* Student portal — its own shell (bottom nav / side drawer) */}
+        <Route element={<StudentPortalLayout />}>
+          {studentRoutes.map((route) => (
             <Route
               key={route.path}
               path={route.path}

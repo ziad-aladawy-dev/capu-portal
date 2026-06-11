@@ -484,13 +484,22 @@ public class StudentServiceTests
     [Fact]
     public async Task GetStatisticsAsync_CountsActiveAndInactive()
     {
+        // Statistics aggregate over the service's own SearchAsync (full result
+        // set, PageSize = int.MaxValue) — the repository has no statistics API.
         var (sut, repo, _, _) = Build();
-        repo.Setup(r => r.GetStatisticsAsync(It.IsAny<UserStatisticsRequest>()))
-            .ReturnsAsync(new UserStatisticsDto
+        repo.Setup(r => r.SearchAsync(It.IsAny<StudentQueryRequest>()))
+            .ReturnsAsync(new PagedResult<Student>
             {
-                TotalStudents = 3,
-                ActiveStudents = 2,
-                InactiveStudents = 1
+                Items = new List<Student>
+                {
+                    ExistingStudent(isActive: true),
+                    ExistingStudent(isActive: true),
+                    ExistingStudent(isActive: false),
+                },
+                Page = 1,
+                PageSize = int.MaxValue,
+                TotalCount = 3,
+                TotalPages = 1,
             });
 
         var stats = await sut.GetStatisticsAsync(new UserStatisticsRequest());

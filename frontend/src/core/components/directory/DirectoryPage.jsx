@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   Search, Filter, X, Download, Upload,
   CheckCircle, XCircle, Eye, Edit3,
@@ -9,12 +10,14 @@ import {
 } from "lucide-react";
 import { useDomain } from "../../contexts/DomainContext";
 import { useAcademic } from "../../contexts/AcademicContext";
+import { useStickySelection } from "../../contexts/StickySelectionContext";
 import { useToast } from "../Toast";
 import { useColumnVisibility } from "../../hooks/useColumnVisibility";
 import { getLocalized } from "../../utils/getLocalized";
 import { SkeletonTable } from "../Skeleton";
 import EmptyState from "../EmptyState";
-import PermissionGate from "../../auth/PermissionGate";
+import ConfirmDialog from "../ConfirmDialog";
+import { usePermission } from "../../auth/usePermission";
 import userService from "../../../modules/users/services/userService";
 import "./directory.css";
 
@@ -69,16 +72,26 @@ function DirectoryPage({ config }) {
   const { addToast } = useToast();
   const { scopeNode } = useDomain();
   const { selectedYearObj, selectedSemesterObj, selectedYear, selectedSemester } = useAcademic();
+  const { selected: pinnedUser } = useStickySelection();
+  const { can } = usePermission();
+  const queryClient = useQueryClient();
   const searchRef = useRef(null);
+
+  // Defensive UI: render controls disabled with a reason instead of hiding them.
+  const canInsert = can(config.permissionResource, 2);
+  const canModify = can(config.permissionResource, 3);
+  const canRemove = can(config.permissionResource, 5);
+  const deniedTitle = (allowed, levelKey) =>
+    (allowed ? undefined : t("requires_permission_level", {
+      defaultValue: `Requires "${t(levelKey)}" access`,
+      level: t(levelKey),
+    }));
   const exportRef = useRef(null);
   const colVisRef = useRef(null);
 
   const { toggle, reset, orderedColumns, visibleKeys } = useColumnVisibility(config.id, config.columns);
 
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({ pageNumber: 1, pageSize: 20, totalCount: 0, totalPages: 1 });
+  const [pagination, setPagination] = useState({ pageNumber: 1, pageSize: 20 });
   const [filters, setFilters] = useState({
     search: "", isActive: "", passwordExpired: "",
     facultyId: "", programId: "", levelId: "", role: "", jobTitle: "",
@@ -92,7 +105,8 @@ function DirectoryPage({ config }) {
   const [colVisSearch, setColVisSearch] = useState("");
   const [colVisPos, setColVisPos] = useState({ top: 0, right: 0 });
   const colVisDropdownRef = useRef(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkActionPending, setBulkActionPending] = useState(false);
 
   const [cascadeOptions, setCascadeOptions] = useState({ faculties: [], programs: [], levels: [], roles: [] });
 
@@ -121,59 +135,42 @@ function DirectoryPage({ config }) {
     return Object.values(appliedFilters).filter(v => v !== "").length;
   }, [appliedFilters]);
 
-  const queryKey = useMemo(() => JSON.stringify({
-    page: pagination.pageNumber,
-    size: pagination.pageSize,
-    filters: appliedFilters,
-    scope: scopeNode?.id,
-    year: selectedYearObj?.id,
-    sem: selectedSemesterObj?.id,
-    refresh: refreshKey,
-  }), [pagination.pageNumber, pagination.pageSize, appliedFilters, scopeNode?.id, selectedYearObj?.id, selectedSemesterObj?.id, refreshKey]);
+  // Scope, academic year and semester are part of the query key: switching
+  // the global scope selector flips the key and refetches automatically.
+  const requestParams = useMemo(() => ({
+    Page: pagination.pageNumber,
+    PageSize: pagination.pageSize,
+    ScopeNodeId: scopeNode?.id || undefined,
+    AcademicYearId: selectedYearObj?.id || undefined,
+    SemesterId: selectedSemesterObj?.id || undefined,
+    Search: appliedFilters.search || undefined,
+    IsActive: appliedFilters.isActive !== undefined && appliedFilters.isActive !== ""
+      ? appliedFilters.isActive === "true" : undefined,
+    PasswordExpired: appliedFilters.passwordExpired !== undefined && appliedFilters.passwordExpired !== ""
+      ? appliedFilters.passwordExpired === "true" : undefined,
+    FacultyId: appliedFilters.facultyId || undefined,
+    ProgramId: appliedFilters.programId || undefined,
+    LevelId: appliedFilters.levelId || undefined,
+    Role: appliedFilters.role || undefined,
+    JobTitle: appliedFilters.jobTitle || undefined,
+  }), [pagination.pageNumber, pagination.pageSize, appliedFilters, scopeNode?.id, selectedYearObj?.id, selectedSemesterObj?.id]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = JSON.parse(queryKey);
-        const params = {
-          Page: query.page,
-          PageSize: query.size,
-          ScopeNodeId: query.scope || undefined,
-          AcademicYearId: query.year || undefined,
-          SemesterId: query.sem || undefined,
-          Search: query.filters.search || undefined,
-          IsActive: query.filters.isActive !== undefined && query.filters.isActive !== ""
-            ? query.filters.isActive === "true" : undefined,
-          PasswordExpired: query.filters.passwordExpired !== undefined && query.filters.passwordExpired !== ""
-            ? query.filters.passwordExpired === "true" : undefined,
-          FacultyId: query.filters.facultyId || undefined,
-          ProgramId: query.filters.programId || undefined,
-          LevelId: query.filters.levelId || undefined,
-          Role: query.filters.role || undefined,
-          JobTitle: query.filters.jobTitle || undefined,
-        };
-        const result = await config.fetchFn(params);
-        if (cancelled) return;
-        setData(result.items || []);
-        setPagination(prev => ({
-          ...prev,
-          totalCount: result.totalCount || 0,
-          totalPages: result.totalPages || 1,
-        }));
-      } catch (err) {
-        if (cancelled) return;
-        setError(err.message || "Failed to load data");
-        setData([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => { cancelled = true; };
-  }, [queryKey, config]);
+  const listKey = useMemo(() => ["directory", config.id, requestParams], [config.id, requestParams]);
+
+  const listQuery = useQuery({
+    queryKey: listKey,
+    queryFn: () => config.fetchFn(requestParams),
+    placeholderData: keepPreviousData,
+  });
+
+  const data = listQuery.data?.items || [];
+  const totalCount = listQuery.data?.totalCount || 0;
+  const totalPages = listQuery.data?.totalPages || 1;
+  const loading = listQuery.isPending;
+  const error = listQuery.isError ? (listQuery.error?.message || "Failed to load data") : null;
+
+  const detailRoute = (id) =>
+    (config.routes.detail ? config.routes.detail(id) : `/admin/users/${id}`);
 
   const toggleableCols = config.columns.filter(c => !c.always);
   const visibleCount = visibleKeys.size;
@@ -250,25 +247,55 @@ function DirectoryPage({ config }) {
     });
   };
 
-  const handleBulkAction = async (action) => {
+  const performBulkAction = async (action) => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    if (action === "delete" && !window.confirm(`Delete ${ids.length} ${config.userType}(s)? This cannot be undone.`)) return;
 
+    const userType = config.userType === "student" ? "Student" : "Staff";
+    const idSet = new Set(ids);
+    let previous;
+
+    // Activate/deactivate flip a flag we already render — apply optimistically
+    // and roll back on failure. Delete stays pessimistic (rows must not vanish
+    // until the server has really removed them).
+    if (action === "activate" || action === "deactivate") {
+      previous = queryClient.getQueryData(listKey);
+      queryClient.setQueryData(listKey, (old) => old && {
+        ...old,
+        items: (old.items || []).map((item) =>
+          idSet.has(item.id) ? { ...item, isActive: action === "activate" } : item),
+      });
+    }
+
+    setBulkActionPending(true);
     try {
-      const userType = config.userType === "student" ? "Student" : "Staff";
       let result;
       if (action === "activate") result = await userService.bulkActivateUsers(ids, userType);
       else if (action === "deactivate") result = await userService.bulkDeactivateUsers(ids, userType);
       else if (action === "delete") result = await userService.bulkDeleteUsers(ids, userType);
       if (result?.success) {
-        addToast(`${ids.length} ${config.userType}(s) ${action === "activate" ? "activated" : action === "deactivate" ? "deactivated" : "deleted"}`, "success");
+        addToast(t("bulk_action_done", {
+          count: ids.length,
+          defaultValue: `${ids.length} ${config.userType}(s) ${action === "activate" ? "activated" : action === "deactivate" ? "deactivated" : "deleted"}`,
+        }), "success");
         setSelectedIds(new Set());
-        setRefreshKey(k => k + 1);
+      } else if (previous !== undefined) {
+        queryClient.setQueryData(listKey, previous);
       }
     } catch (err) {
+      if (previous !== undefined) queryClient.setQueryData(listKey, previous);
       addToast(`Bulk ${action} failed: ${err.message}`, "error");
+    } finally {
+      setBulkActionPending(false);
+      setBulkDeleteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["directory", config.id] });
     }
+  };
+
+  const handleBulkAction = (action) => {
+    if (!selectedIds.size) return;
+    if (action === "delete") setBulkDeleteOpen(true);
+    else performBulkAction(action);
   };
 
   const handleExport = async (format) => {
@@ -324,8 +351,8 @@ function DirectoryPage({ config }) {
     });
   };
 
-  const firstItem = pagination.totalCount === 0 ? 0 : (pagination.pageNumber - 1) * pagination.pageSize + 1;
-  const lastItem = Math.min(pagination.pageNumber * pagination.pageSize, pagination.totalCount);
+  const firstItem = totalCount === 0 ? 0 : (pagination.pageNumber - 1) * pagination.pageSize + 1;
+  const lastItem = Math.min(pagination.pageNumber * pagination.pageSize, totalCount);
 
   const getOptionLabel = (opt) => {
     return opt.localizedName || getLocalized(opt.name, i18n.language) || opt.name || "";
@@ -425,14 +452,17 @@ function DirectoryPage({ config }) {
         case "actions":
           return (
             <div className="dir-action-btns" onClick={e => e.stopPropagation()}>
-              <button className="dir-action-btn dir-action-btn-info" onClick={() => navigate(`/admin/users/${item.id}`)} title={t("details")}>
+              <button className="dir-action-btn dir-action-btn-info" onClick={() => navigate(detailRoute(item.id))} title={t("details")}>
                 <Eye size={15} />
               </button>
-              <PermissionGate resource={config.permissionResource} minLevel={3}>
-                <button className="dir-action-btn dir-action-btn-edit" onClick={() => navigate(config.routes.edit(item.id))} title={t("edit")}>
-                  <Edit3 size={15} />
-                </button>
-              </PermissionGate>
+              <button
+                className="dir-action-btn dir-action-btn-edit"
+                onClick={() => canModify && navigate(config.routes.edit(item.id))}
+                disabled={!canModify}
+                title={deniedTitle(canModify, "edit") || t("edit")}
+              >
+                <Edit3 size={15} />
+              </button>
             </div>
           );
       default:
@@ -465,16 +495,23 @@ function DirectoryPage({ config }) {
           </div>
         </div>
         <div className="dir-header-actions">
-          <PermissionGate resource={config.permissionResource} minLevel={2}>
-            <button className="dir-btn dir-btn-ghost" onClick={openExportMenu} ref={exportRef}>
-              <Download size={14} /> {t("export")}
-            </button>
-          </PermissionGate>
-          <PermissionGate resource={config.permissionResource} minLevel={2}>
-            <button className="dir-btn dir-btn-primary" onClick={() => navigate(config.routes.add)}>
-              <Upload size={14} /> {t("add")}
-            </button>
-          </PermissionGate>
+          <button
+            className="dir-btn dir-btn-ghost"
+            onClick={openExportMenu}
+            ref={exportRef}
+            disabled={!canInsert}
+            title={deniedTitle(canInsert, "insert")}
+          >
+            <Download size={14} /> {t("export")}
+          </button>
+          <button
+            className="dir-btn dir-btn-primary"
+            onClick={() => navigate(config.routes.add)}
+            disabled={!canInsert}
+            title={deniedTitle(canInsert, "insert")}
+          >
+            <Upload size={14} /> {t("add")}
+          </button>
         </div>
       </div>
 
@@ -613,7 +650,7 @@ function DirectoryPage({ config }) {
             <div className="dir-error-state">
               <p>{t("error")}</p>
               <p>{error}</p>
-              <button className="dir-btn dir-btn-primary dir-btn-sm" onClick={() => setRefreshKey(k => k + 1)}>
+              <button className="dir-btn dir-btn-primary dir-btn-sm" onClick={() => listQuery.refetch()}>
                 <RotateCcw size={12} /> {t("retry")}
               </button>
             </div>
@@ -650,9 +687,9 @@ function DirectoryPage({ config }) {
                 {data.map((item, idx) => (
                   <tr
                     key={item.id}
-                    className={selectedIds.has(item.id) ? "selected-row" : ""}
+                    className={`${selectedIds.has(item.id) ? "selected-row" : ""} ${pinnedUser?.id === item.id ? "pinned-row" : ""}`}
                     style={{ cursor: "pointer" }}
-                    onClick={() => navigate(`/admin/users/${item.id}`)}
+                    onClick={() => navigate(detailRoute(item.id))}
                   >
                     <td className="dir-bulk-cell" onClick={e => e.stopPropagation()}>
                       <input
@@ -672,7 +709,7 @@ function DirectoryPage({ config }) {
             </table>
           )}
 
-          {!loading && !error && data.length > 0 && pagination.totalPages > 1 && (
+          {!loading && !error && data.length > 0 && totalPages > 1 && (
             <div className="dir-pagination">
               <button
                 className="dir-page-btn"
@@ -681,13 +718,13 @@ function DirectoryPage({ config }) {
               >
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: Math.min(pagination.totalPages, 7) }, (_, i) => {
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                 let pageNum;
-                if (pagination.totalPages <= 7) pageNum = i + 1;
+                if (totalPages <= 7) pageNum = i + 1;
                 else {
                   const mid = Math.floor(7 / 2);
                   if (pagination.pageNumber <= mid + 1) pageNum = i + 1;
-                  else if (pagination.pageNumber >= pagination.totalPages - mid) pageNum = pagination.totalPages - 7 + i + 1;
+                  else if (pagination.pageNumber >= totalPages - mid) pageNum = totalPages - 7 + i + 1;
                   else pageNum = pagination.pageNumber - mid + i;
                 }
                 return (
@@ -702,7 +739,7 @@ function DirectoryPage({ config }) {
               })}
               <button
                 className="dir-page-btn"
-                disabled={pagination.pageNumber >= pagination.totalPages}
+                disabled={pagination.pageNumber >= totalPages}
                 onClick={() => setPagination(prev => ({ ...prev, pageNumber: prev.pageNumber + 1 }))}
               >
                 <ChevronRight size={14} />
@@ -718,7 +755,7 @@ function DirectoryPage({ config }) {
           <label>{t("show")}</label>
           <select
             value={pagination.pageSize}
-            onChange={e => setPagination({ pageNumber: 1, pageSize: parseInt(e.target.value), totalCount: 0, totalPages: 1 })}
+            onChange={e => setPagination({ pageNumber: 1, pageSize: parseInt(e.target.value) })}
           >
             <option value="10">10</option>
             <option value="20">20</option>
@@ -728,7 +765,7 @@ function DirectoryPage({ config }) {
           <span>{t("entries_per_page")}</span>
         </div>
         <div className="dir-page-results">
-          {t("showing_results", { first: firstItem, last: lastItem, total: pagination.totalCount })}
+          {t("showing_results", { first: firstItem, last: lastItem, total: totalCount })}
         </div>
       </div>
 
@@ -738,34 +775,61 @@ function DirectoryPage({ config }) {
           <span className="dir-bulk-count">{selectedIds.size} {t("selected")}</span>
           <div className="dir-bulk-actions">
             {config.bulkActions?.activate !== false && (
-              <PermissionGate resource={config.permissionResource} minLevel={3}>
-                <button className="dir-bulk-btn dir-bulk-btn-activate" onClick={() => handleBulkAction("activate")}>
-                  <CheckCircle size={13} /> {t("activate")}
-                </button>
-              </PermissionGate>
+              <button
+                className="dir-bulk-btn dir-bulk-btn-activate"
+                onClick={() => handleBulkAction("activate")}
+                disabled={!canModify || bulkActionPending}
+                title={deniedTitle(canModify, "edit")}
+              >
+                <CheckCircle size={13} /> {t("activate")}
+              </button>
             )}
             {config.bulkActions?.deactivate !== false && (
-              <PermissionGate resource={config.permissionResource} minLevel={3}>
-                <button className="dir-bulk-btn dir-bulk-btn-deactivate" onClick={() => handleBulkAction("deactivate")}>
-                  <XCircle size={13} /> {t("deactivate")}
-                </button>
-              </PermissionGate>
-            )}
-            <PermissionGate resource={config.permissionResource} minLevel={2}>
-              <button className="dir-bulk-btn dir-bulk-btn-export" onClick={() => handleExport("excel")}>
-                <Download size={13} /> {t("export")}
+              <button
+                className="dir-bulk-btn dir-bulk-btn-deactivate"
+                onClick={() => handleBulkAction("deactivate")}
+                disabled={!canModify || bulkActionPending}
+                title={deniedTitle(canModify, "edit")}
+              >
+                <XCircle size={13} /> {t("deactivate")}
               </button>
-            </PermissionGate>
+            )}
+            <button
+              className="dir-bulk-btn dir-bulk-btn-export"
+              onClick={() => handleExport("excel")}
+              disabled={!canInsert}
+              title={deniedTitle(canInsert, "insert")}
+            >
+              <Download size={13} /> {t("export")}
+            </button>
             {config.bulkActions?.delete !== false && (
-              <PermissionGate resource={config.permissionResource} minLevel={5}>
-                <button className="dir-bulk-btn dir-bulk-btn-delete" onClick={() => handleBulkAction("delete")}>
-                  <XCircle size={13} /> {t("delete")}
-                </button>
-              </PermissionGate>
+              <button
+                className="dir-bulk-btn dir-bulk-btn-delete"
+                onClick={() => handleBulkAction("delete")}
+                disabled={!canRemove || bulkActionPending}
+                title={deniedTitle(canRemove, "delete")}
+              >
+                <XCircle size={13} /> {t("delete")}
+              </button>
             )}
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onClose={() => { if (!bulkActionPending) setBulkDeleteOpen(false); }}
+        onConfirm={() => performBulkAction("delete")}
+        title={t("delete")}
+        message={t("bulk_delete_confirm", {
+          count: selectedIds.size,
+          defaultValue: `Delete ${selectedIds.size} ${config.userType}(s)? This cannot be undone.`,
+        })}
+        confirmLabel={t("delete")}
+        cancelLabel={t("cancel")}
+        variant="danger"
+        loading={bulkActionPending}
+      />
     </div>
   );
 }
