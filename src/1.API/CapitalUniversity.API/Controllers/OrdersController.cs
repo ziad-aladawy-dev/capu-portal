@@ -24,7 +24,10 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    [HasPermission(PermissionNames.PaymentTransactions.Insert)]
+    // B8 — student self-service. OrderService.CreateOrderAsync enforces self-access
+    // (CanAccessStudentAsync on request.StudentId), so a student can only create an
+    // order for themselves; admins hold payments.orders via the Super Admin grant-all.
+    [HasPermission(PermissionNames.PaymentOrders.Insert)]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
         var order = await _orders.CreateOrderAsync(request.StudentId, request.FeeIds, request.Gateway, cancellationToken);
@@ -32,7 +35,8 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission(PermissionNames.PaymentTransactions.View)]
+    // GetByIdAsync returns null (→ 404) when the order is not the caller's own.
+    [HasPermission(PermissionNames.PaymentOrders.View)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var order = await _orders.GetByIdAsync(id, cancellationToken);
@@ -41,7 +45,9 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet("by-student/{studentId:guid}")]
-    [HasPermission(PermissionNames.PaymentTransactions.View)]
+    // Self-scoped: a student may only read their own orders; staff need scope over
+    // the student. GetForStudentAsync re-checks scope as defence in depth.
+    [HasPermission(PermissionNames.PaymentOrders.View, PermissionScopeKind.Student, "studentId")]
     public async Task<IActionResult> GetForStudent(Guid studentId, CancellationToken cancellationToken)
     {
         var result = await _orders.GetForStudentAsync(studentId, cancellationToken);
@@ -49,6 +55,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost("{id:guid}/cancel")]
+    // Ops-only: cancellation is not part of the student self-service flow.
     [HasPermission(PermissionNames.PaymentTransactions.Insert)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
@@ -57,7 +64,9 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost("{id:guid}/initiate")]
-    [HasPermission(PermissionNames.PaymentTransactions.Insert)]
+    // B8 — student self-service. PaymentInitiationService resolves the order's
+    // student and the initiate path is reached only for the caller's own order.
+    [HasPermission(PermissionNames.PaymentOrders.Insert)]
     public async Task<IActionResult> Initiate(Guid id, [FromQuery] string? redirectUrl, CancellationToken cancellationToken)
     {
         var result = await _initiation.InitiateAsync(id, redirectUrl, cancellationToken);

@@ -93,4 +93,26 @@ public class StudentSelfAccessApiTests : IClassFixture<WebApplicationFactory<Mod
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task Student_CanReadOwnFees_ButNotAnotherStudents()
+    {
+        // Resolve the logged-in student's own id from the seeded store.
+        Guid ownId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CoreDbContext>();
+            ownId = await db.Students.Where(s => s.NationalId == StudentNid).Select(s => s.Id).FirstAsync();
+        }
+
+        var client = await LoginAsStudentAsync();
+
+        // B8 — own fees: payments.orders.View is held implicitly + self-scope passes.
+        var own = await client.GetAsync($"/api/payments/fees/by-student/{ownId}");
+        own.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
+
+        // Another student's fees: self-scope (PermissionScopeKind.Student) denies it.
+        var other = await client.GetAsync($"/api/payments/fees/by-student/{Guid.NewGuid()}");
+        other.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
 }

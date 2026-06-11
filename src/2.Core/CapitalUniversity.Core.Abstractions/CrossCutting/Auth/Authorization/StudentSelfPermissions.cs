@@ -44,9 +44,11 @@ public static class StudentSelfPermissions
         PermissionIdentity.Parse(PermissionNames.StudentProfileRecords.Insert),
         PermissionIdentity.Parse(PermissionNames.StudentProfileRecords.EditClose),
 
-        // NOTE: self-service payment permissions (payments.orders.*) are added
-        // in the B8 increment, alongside the manifest resource + controller
-        // re-pointing, so they land and verify together.
+        // Self-service payments (B8): view own fees/orders + create/initiate own
+        // order. Distinct from ops "payments.transactions.*"; OrderService and
+        // StudentFeeQueryService enforce own-data on every call.
+        PermissionIdentity.Parse(PermissionNames.PaymentOrders.View),
+        PermissionIdentity.Parse(PermissionNames.PaymentOrders.Insert),
     };
 
     /// <summary>True if <paramref name="permission"/> is an implicit student self-permission.</summary>

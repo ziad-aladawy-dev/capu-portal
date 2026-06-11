@@ -20,7 +20,9 @@ public class StudentFeesController : ControllerBase
     }
 
     [HttpGet("by-student/{studentId:guid}")]
-    [HasPermission(PermissionNames.PaymentTransactions.View)]
+    // B8 — students view their OWN unpaid fees to assemble a payment order.
+    // Self-scoped at the handler; the service re-checks scope as defence in depth.
+    [HasPermission(PermissionNames.PaymentOrders.View, PermissionScopeKind.Student, "studentId")]
     public async Task<IActionResult> GetUnpaidForStudent(Guid studentId, CancellationToken cancellationToken)
     {
         var result = await _fees.GetUnpaidForStudentAsync(studentId, cancellationToken);
@@ -28,7 +30,8 @@ public class StudentFeesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [HasPermission(PermissionNames.PaymentTransactions.View)]
+    // GetByIdAsync returns null (→ 404) when the fee is not the caller's own.
+    [HasPermission(PermissionNames.PaymentOrders.View)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _fees.GetByIdAsync(id, cancellationToken);
