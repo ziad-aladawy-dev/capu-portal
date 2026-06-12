@@ -233,6 +233,16 @@ var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<
 var syncAuthOptions = builder.Configuration.GetSection(SyncAuthOptions.SectionName).Get<SyncAuthOptions>()
     ?? new SyncAuthOptions();
 
+const string JwtDevPlaceholderKey = "YourSuperSecretKeyAtLeast32CharactersLong!";
+if (!builder.Environment.IsDevelopment()
+    && (string.IsNullOrWhiteSpace(jwtSettings?.Key) || jwtSettings.Key == JwtDevPlaceholderKey))
+{
+    throw new InvalidOperationException(
+        "Jwt:Key is unset or is the built-in development placeholder. Supply a unique " +
+        "secret of at least 32 characters via environment variable or secret store " +
+        "(e.g. Jwt__Key) before running outside the Development environment.");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

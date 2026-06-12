@@ -1,0 +1,45 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Restore Backend Dependencies
+      run: dotnet restore CapitalUniversity.sln
+
+    - name: Build Backend
+      run: dotnet build CapitalUniversity.sln --no-restore --configuration Release
+
+    - name: Run Backend Tests
+      run: dotnet test CapitalUniversity.sln --no-build --configuration Release --verbosity normal
+
+    - name: Restore Frontend Dependencies
+      working-directory: ./frontend
+      run: npm ci || npm install
+
+    - name: Build Frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Run Frontend Tests
+      working-directory: ./frontend
+      run: npm test -- --run # adjust if no tests exist or vitest needs specific flag

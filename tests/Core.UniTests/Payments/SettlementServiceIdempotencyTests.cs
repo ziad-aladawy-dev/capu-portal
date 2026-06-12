@@ -40,7 +40,8 @@ public class SettlementServiceIdempotencyTests
     {
         var method = typeof(SettlementService).GetMethod("IsUniqueViolation", BindingFlags.NonPublic | BindingFlags.Static);
         if (method == null) throw new InvalidOperationException("Could not find private static method IsUniqueViolation on SettlementService.");
-        return (bool)method.Invoke(null, new object[] { ex });
+        var res = method.Invoke(null, new object[] { ex });
+        return res is bool b && b;
     }
 
     private static SqlException CreateSqlException(int number, string message)
@@ -48,19 +49,24 @@ public class SettlementServiceIdempotencyTests
         // SqlException and its constituents are internal/protected and hard to instantiate directly.
         // We use reflection to build the necessary state for testing provider-specific logic.
         
-        var collection = (SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection), true);
+        var collection = (SqlErrorCollection?)Activator.CreateInstance(typeof(SqlErrorCollection), true);
+        if (collection == null) throw new InvalidOperationException("Could not instantiate SqlErrorCollection");
         
         // Constructor: internal SqlError(int number, byte state, byte errorClass, string server, string message, string procedure, int lineNumber, Exception innerException)
-        var error = (SqlError)Activator.CreateInstance(typeof(SqlError), 
+        var error = (SqlError?)Activator.CreateInstance(typeof(SqlError),
             BindingFlags.NonPublic | BindingFlags.Instance, null, 
-            new object[] { number, (byte)0, (byte)0, "server", message, "proc", 0, null }, null);
+            new object?[] { number, (byte)0, (byte)0, "server", message, "proc", 0, null }, null);
+        if (error == null) throw new InvalidOperationException("Could not instantiate SqlError");
         
         var addMethod = typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance);
-        addMethod.Invoke(collection, new object[] { error });
+        addMethod?.Invoke(collection, new object[] { error });
 
         // Constructor: internal SqlException(string message, SqlErrorCollection errorCollection, Exception innerException, Guid conId)
-        return (SqlException)Activator.CreateInstance(typeof(SqlException), 
+        var sqlEx = (SqlException?)Activator.CreateInstance(typeof(SqlException),
             BindingFlags.NonPublic | BindingFlags.Instance, null, 
-            new object[] { message, collection, null, Guid.NewGuid() }, null);
+            new object?[] { message, collection, null, Guid.NewGuid() }, null);
+        if (sqlEx == null) throw new InvalidOperationException("Could not instantiate SqlException");
+
+        return sqlEx;
     }
 }
