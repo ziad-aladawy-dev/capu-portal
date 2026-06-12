@@ -11,7 +11,7 @@ function emergencyRecord(obj) {
 // Address/city/country live in a Custom record keyed CONTACT_RECORD_KEY —
 // the Student entity has no address columns.
 function contactRecord(obj) {
-  return { category: CUSTOM, customKey: CONTACT_RECORD_KEY, dataJson: JSON.stringify(obj) };
+  return { category: CUSTOM, customCategoryKey: CONTACT_RECORD_KEY, dataJson: JSON.stringify(obj) };
 }
 
 describe("buildCompleteness", () => {
@@ -66,7 +66,7 @@ describe("buildCompleteness", () => {
     const student = { phoneNumber: "0100" };
     const records = [
       { category: 5, dataJson: JSON.stringify({ name: "x", phone: "y" }) },
-      { category: CUSTOM, customKey: "something-else", dataJson: JSON.stringify({ address: "1 St" }) },
+      { category: CUSTOM, customCategoryKey: "something-else", dataJson: JSON.stringify({ address: "1 St" }) },
     ];
     const r = buildCompleteness(student, records);
     expect(r.overallPercentage).toBe(25); // only phoneNumber counts

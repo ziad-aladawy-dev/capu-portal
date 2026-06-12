@@ -3,7 +3,6 @@ import * as Sentry from "@sentry/react";
 
 let onUnauthorizedCallback = null;
 let isRefreshing = false;
-let failedQueue = [];
 
 const REFRESH_LOCK_KEY = "capu_refresh_lock";
 const REFRESH_LOCK_TTL = 10000; // 10 seconds
@@ -41,27 +40,15 @@ apiClient.setRefreshToken = (token) => {
   if (token) localStorage.setItem("refreshToken", token);
 };
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
 
 // Listen for token updates or errors from other tabs
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key === "accessToken" && e.newValue) {
       isRefreshing = false;
-      processQueue(null, e.newValue);
     } else if (e.key === "capu_refresh_error" && e.newValue) {
       isRefreshing = false;
       const error = new Error("Token refresh failed in another tab");
-      processQueue(error, null);
     }
   });
 }
@@ -135,82 +122,89 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      // Cross-tab synchronization: check if another tab is already refreshing
-      const lockValue = localStorage.getItem(REFRESH_LOCK_KEY);
-      const now = Date.now();
-      if (lockValue && now - parseInt(lockValue) < REFRESH_LOCK_TTL) {
-        isRefreshing = true;
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
 
       originalRequest._retry = true;
-      isRefreshing = true;
-      localStorage.setItem(REFRESH_LOCK_KEY, now.toString());
-      localStorage.removeItem("capu_refresh_error");
 
-      const refreshToken = apiClient.getRefreshToken();
-      if (!refreshToken) {
-        Sentry.captureMessage("Refresh token missing from storage", { level: "warning" });
-        apiClient.clearTokens();
-        if (onUnauthorizedCallback) {
-          onUnauthorizedCallback();
-        } else {
-          window.location.href = "/admin/login";
+      // Fallback for browsers without navigator.locks
+      const doRefresh = async () => {
+        isRefreshing = true;
+        localStorage.removeItem("capu_refresh_error");
+
+        // Double-check if another tab refreshed the token while we were waiting for the lock
+        const currentToken = apiClient.getToken();
+        if (currentToken && currentToken !== originalRequest.headers.Authorization?.replace("Bearer ", "")) {
+          isRefreshing = false;
+          originalRequest.headers.Authorization = `Bearer ${currentToken}`;
+          return apiClient(originalRequest);
         }
-        isRefreshing = false;
-        return Promise.reject(error);
-      }
 
-      try {
-        const { data } = await axios.post(
-          `${apiClient.defaults.baseURL}/auth/refresh`,
-          { refreshToken }
-        );
+        const refreshToken = apiClient.getRefreshToken();
+        if (!refreshToken) {
+          Sentry.captureMessage("Refresh token missing from storage", { level: "warning" });
+          apiClient.clearTokens();
+          if (onUnauthorizedCallback) {
+            onUnauthorizedCallback();
+          } else {
+            window.location.href = "/admin/login";
+          }
+          isRefreshing = false;
+          return Promise.reject(error);
+        }
 
-        const newToken = data.token || data.accessToken;
-        const newRefreshToken = data.refreshToken;
+        try {
+          const { data } = await axios.post(
+            `${apiClient.defaults.baseURL}/auth/refresh`,
+            { refreshToken }
+          );
 
-        apiClient.setToken(newToken);
-        if (newRefreshToken) apiClient.setRefreshToken(newRefreshToken);
+          const newToken = data.token || data.accessToken;
+          const newRefreshToken = data.refreshToken;
 
-        processQueue(null, newToken);
+          apiClient.setToken(newToken);
+          if (newRefreshToken) apiClient.setRefreshToken(newRefreshToken);
 
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        Sentry.captureException(refreshError, {
-          tags: { type: "auth_refresh_failure" }
+
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          Sentry.captureException(refreshError, {
+            tags: { type: "auth_refresh_failure" }
+          });
+          localStorage.setItem("capu_refresh_error", Date.now().toString());
+                    apiClient.clearTokens();
+          if (onUnauthorizedCallback) {
+            onUnauthorizedCallback();
+          } else {
+            window.location.href = "/admin/login";
+          }
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      };
+
+      if (typeof navigator !== "undefined" && navigator.locks) {
+        return navigator.locks.request(REFRESH_LOCK_KEY, { mode: "exclusive" }, async () => {
+          return doRefresh();
         });
-        localStorage.setItem("capu_refresh_error", Date.now().toString());
-        processQueue(refreshError, null);
-        apiClient.clearTokens();
-        if (onUnauthorizedCallback) {
-          onUnauthorizedCallback();
-        } else {
-          window.location.href = "/admin/login";
+      } else {
+        // Fallback for Safari <15.4 etc: Check a rudimentary lock
+        const lockValue = localStorage.getItem(REFRESH_LOCK_KEY);
+        const now = Date.now();
+        if (lockValue && now - parseInt(lockValue) < REFRESH_LOCK_TTL) {
+          isRefreshing = true;
+          // Simple delay fallback since the queue was problematic
+          return new Promise((resolve) => setTimeout(resolve, 1000)).then(() => {
+             return apiClient(originalRequest);
+          });
         }
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-        localStorage.removeItem(REFRESH_LOCK_KEY);
+
+        localStorage.setItem(REFRESH_LOCK_KEY, now.toString());
+        try {
+          return await doRefresh();
+        } finally {
+          localStorage.removeItem(REFRESH_LOCK_KEY);
+        }
       }
     }
 
