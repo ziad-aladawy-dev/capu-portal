@@ -1,32 +1,29 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutGrid, Table as TableIcon } from "lucide-react";
-import { useStudentRequests } from "../hooks/useStudentRequests";
-import LoadingSpinner from "../../studentServices/components/LoadingSpinner";
-import EmptyState from "../../studentServices/components/EmptyState";
-import StatusBadge from "../components/StatusBadge";
+import { LayoutGrid, Table as TableIcon, ClipboardList, AlertCircle } from "lucide-react";
+import { useMyRequests } from "../hooks/useStudentRequests";
+import PortalPageShell from "../components/shared/PortalPageShell";
+import PortalCard from "../components/shared/PortalCard";
+import PortalSkeleton from "../components/shared/PortalSkeleton";
+import PortalEmptyState from "../components/shared/PortalEmptyState";
+import { RequestStatusBadge, PaymentStatusBadge } from "../components/RequestBadges";
 import {
-  REQUEST_STATUS, REQUEST_STATUS_LABELS, KANBAN_COLUMNS,
+  REQUEST_STATUS_NAMES, REQUEST_STATUS_LABELS, KANBAN_COLUMNS,
 } from "../constants/requestStatus";
-import "../styles/MyRequests.css";
+import styles from "./MyRequests.module.css";
 
-const FILTER_OPTIONS = [
-  REQUEST_STATUS.Draft, REQUEST_STATUS.Pending, REQUEST_STATUS.UnderReview,
-  REQUEST_STATUS.MoreInfoRequired, REQUEST_STATUS.Approved, REQUEST_STATUS.Rejected,
-  REQUEST_STATUS.Completed,
-];
+// Every status (1..10) is filterable so no request is ever invisible.
+const FILTER_OPTIONS = Object.keys(REQUEST_STATUS_NAMES).map(Number);
 
-const MyRequests = () => {
+function MyRequests() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { requests, loading, loadRequests } = useStudentRequests();
+  const listQuery = useMyRequests();
   const [filterStatus, setFilterStatus] = useState(""); // "" = all, else int
   const [view, setView] = useState("table");
 
-  useEffect(() => { loadRequests(); }, [loadRequests]);
-
-  const list = useMemo(() => requests || [], [requests]);
+  const list = useMemo(() => listQuery.data || [], [listQuery.data]);
   const filtered = useMemo(
     () => (filterStatus === "" ? list : list.filter((r) => r.status === Number(filterStatus))),
     [list, filterStatus]
@@ -34,99 +31,150 @@ const MyRequests = () => {
 
   const byColumn = useMemo(() => {
     const map = {};
-    for (const col of KANBAN_COLUMNS) map[col.key] = [];
-    for (const r of list) if (map[r.status]) map[r.status].push(r);
+    for (const col of KANBAN_COLUMNS) {
+      map[col.key] = list.filter((r) => col.statuses.includes(r.status));
+    }
     return map;
   }, [list]);
 
   const open = (id) => navigate(`/student/requests/${id}`);
 
-  if (loading && !list.length) return <LoadingSpinner />;
+  const tableTitle = t("portal_requests.table", { defaultValue: "Table" });
+  const boardTitle = t("portal_requests.board", { defaultValue: "Board" });
 
   return (
-    <div className="mr-container">
-      <div className="mr-head">
-        <h1>{t("my_requests", { defaultValue: "My Requests" })}</h1>
-        <div className="mr-view-toggle">
-          <button className={view === "table" ? "active" : ""} onClick={() => setView("table")} title="Table">
-            <TableIcon size={16} />
+    <PortalPageShell
+      title={t("portal_requests.title", { defaultValue: "My Requests" })}
+      subtitle={t("portal_requests.subtitle", { defaultValue: "Track your service requests" })}
+      actions={
+        <div className={styles.viewToggle}>
+          <button
+            type="button"
+            className={view === "table" ? styles.toggleActive : styles.toggleBtn}
+            onClick={() => setView("table")}
+            title={tableTitle}
+            aria-label={tableTitle}
+          >
+            <TableIcon size={15} />
           </button>
-          <button className={view === "kanban" ? "active" : ""} onClick={() => setView("kanban")} title="Board">
-            <LayoutGrid size={16} />
+          <button
+            type="button"
+            className={view === "kanban" ? styles.toggleActive : styles.toggleBtn}
+            onClick={() => setView("kanban")}
+            title={boardTitle}
+            aria-label={boardTitle}
+          >
+            <LayoutGrid size={15} />
           </button>
         </div>
-      </div>
-
-      {view === "table" && (
-        <div className="mr-filter">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="">{t("all_statuses", { defaultValue: "All Statuses" })}</option>
-            {FILTER_OPTIONS.map((s) => (
-              <option key={s} value={s}>{REQUEST_STATUS_LABELS[s]}</option>
-            ))}
-          </select>
+      }
+    >
+      {listQuery.isLoading ? (
+        <div className={styles.loading}>
+          {Array.from({ length: 4 }).map((_, i) => <PortalSkeleton key={i} variant="block" height={56} />)}
         </div>
-      )}
-
-      {!list.length ? (
-        <EmptyState message={t("no_requests", { defaultValue: "You have no requests yet." })} />
+      ) : listQuery.isError ? (
+        <PortalEmptyState
+          icon={AlertCircle}
+          title={t("portal_requests.load_failed", { defaultValue: "Couldn't load your requests." })}
+          onAction={() => listQuery.refetch()}
+          actionLabel={t("retry", { defaultValue: "Retry" })}
+        />
+      ) : !list.length ? (
+        <PortalEmptyState
+          icon={ClipboardList}
+          title={t("portal_requests.empty", { defaultValue: "You have no requests yet." })}
+          text={t("portal_requests.empty_hint", { defaultValue: "Browse the services catalog to submit your first request." })}
+          action={{
+            to: "/student/services",
+            label: t("portal_requests.browse_services", { defaultValue: "Browse services" }),
+          }}
+        />
       ) : view === "table" ? (
-        <div className="mr-table-wrapper">
-          <table className="mr-table">
-            <thead>
-              <tr>
-                <th>{t("request_id", { defaultValue: "Request" })}</th>
-                <th>{t("service", { defaultValue: "Service" })}</th>
-                <th>{t("submitted_date", { defaultValue: "Submitted" })}</th>
-                <th>{t("status", { defaultValue: "Status" })}</th>
-                <th>{t("payment_status", { defaultValue: "Payment" })}</th>
-                <th>{t("actions", { defaultValue: "Actions" })}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((req) => (
-                <tr key={req.id}>
-                  <td className="mr-id">{String(req.id).slice(0, 8)}</td>
-                  <td>{req.serviceName}</td>
-                  <td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "-"}</td>
-                  <td><StatusBadge status={req.status} type="request" /></td>
-                  <td><StatusBadge status={req.paymentStatus} type="payment" /></td>
-                  <td>
-                    <button className="mr-link" onClick={() => open(req.id)}>
-                      {t("view_details", { defaultValue: "View" })}
-                    </button>
-                  </td>
-                </tr>
+        <>
+          <div className={styles.filterBar}>
+            <select
+              className={styles.filterSelect}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">{t("portal_requests.all_statuses", { defaultValue: "All Statuses" })}</option>
+              {FILTER_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {t(`portal_requests.status_${REQUEST_STATUS_NAMES[s]}`, {
+                    defaultValue: REQUEST_STATUS_LABELS[s],
+                  })}
+                </option>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </select>
+          </div>
+          <PortalCard padding="none" className={styles.tableCard}>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>{t("portal_requests.request", { defaultValue: "Request" })}</th>
+                    <th>{t("portal_requests.service", { defaultValue: "Service" })}</th>
+                    <th>{t("portal_requests.submitted", { defaultValue: "Submitted" })}</th>
+                    <th>{t("portal_requests.status", { defaultValue: "Status" })}</th>
+                    <th>{t("portal_requests.payment", { defaultValue: "Payment" })}</th>
+                    <th>{t("portal_requests.actions", { defaultValue: "Actions" })}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((req) => (
+                    <tr key={req.id}>
+                      <td className={styles.reqNum}>#{req.requestNumber || String(req.id).slice(0, 8)}</td>
+                      <td>{req.serviceName}</td>
+                      <td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "—"}</td>
+                      <td><RequestStatusBadge status={req.status} /></td>
+                      <td><PaymentStatusBadge status={req.paymentStatus} /></td>
+                      <td>
+                        <button type="button" className={styles.linkBtn} onClick={() => open(req.id)}>
+                          {t("portal_requests.view", { defaultValue: "View" })}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!filtered.length && (
+                    <tr>
+                      <td colSpan={6} className={styles.tableEmpty}>
+                        {t("portal_requests.none_for_filter", { defaultValue: "No requests with this status." })}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </PortalCard>
+        </>
       ) : (
-        <div className="mr-kanban">
+        <div className={styles.kanban}>
           {KANBAN_COLUMNS.map((col) => (
-            <div key={col.key} className="mr-kanban-col">
-              <div className="mr-kanban-head">
-                {t(`status_${col.key}`, { defaultValue: col.label })}
-                <span className="mr-kanban-count">{byColumn[col.key].length}</span>
+            <div key={col.key} className={styles.kanbanCol}>
+              <div className={styles.kanbanHead}>
+                {t(`portal_requests.${col.labelKey}`, { defaultValue: col.label })}
+                <span className={styles.kanbanCount}>{byColumn[col.key].length}</span>
               </div>
-              <div className="mr-kanban-cards">
+              <div className={styles.kanbanCards}>
                 {byColumn[col.key].map((req) => (
-                  <button key={req.id} className="mr-kanban-card" onClick={() => open(req.id)}>
-                    <div className="mr-kanban-service">{req.serviceName}</div>
-                    <div className="mr-kanban-meta">
-                      <span>#{String(req.id).slice(0, 8)}</span>
-                      <StatusBadge status={req.paymentStatus} type="payment" />
+                  <button type="button" key={req.id} className={styles.kanbanCard} onClick={() => open(req.id)}>
+                    <div className={styles.kanbanService}>{req.serviceName}</div>
+                    <div className={styles.kanbanMeta}>
+                      <span>#{req.requestNumber || String(req.id).slice(0, 8)}</span>
+                      {col.statuses.length > 1 && <RequestStatusBadge status={req.status} />}
+                      <PaymentStatusBadge status={req.paymentStatus} />
                     </div>
                   </button>
                 ))}
-                {byColumn[col.key].length === 0 && <div className="mr-kanban-empty">—</div>}
+                {byColumn[col.key].length === 0 && <div className={styles.kanbanEmpty}>—</div>}
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </PortalPageShell>
   );
-};
+}
 
 export default MyRequests;

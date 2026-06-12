@@ -1,11 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, MoveUp, MoveDown, ChevronRight, CheckCircle } from "lucide-react";
 import FormBuilder from "./FormBuilder";
+import { WORKFLOW_STEP_TYPE, WORKFLOW_STEP_TYPE_NAMES } from "../../../core/constants/workflowTypes";
 import "../styles/components/WorkflowBuilder.css";
-
-const stepTypeToNumber = { Form: 1, Review: 2, Payment: 3 };
-const numberToStepType = { 1: "Form", 2: "Review", 3: "Payment" };
 
 const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
   const { t } = useTranslation();
@@ -14,7 +12,7 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
   const commit = (updated) => { setSteps(updated); onChange({ steps: updated }); };
 
   const addStep = () => {
-    const newStep = { order: steps.length + 1, title: "New Step", description: "", stepType: 1, isRequired: true, fields: [] };
+    const newStep = { order: steps.length + 1, title: t("new_step"), description: "", stepType: WORKFLOW_STEP_TYPE.Form, isRequired: true, fields: [] };
     commit([...steps, newStep]);
   };
 
@@ -37,16 +35,16 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
   const handleFieldsChange = (order, fields) =>
     commit(steps.map(s => s.order === order ? { ...s, fields } : s));
 
-  const getStepTypeStr = (v) => typeof v === "number" ? numberToStepType[v] || "Form" : v;
+  const getStepTypeStr = (v) => typeof v === "number" ? WORKFLOW_STEP_TYPE_NAMES[v] || "Form" : v;
 
   const handleStepTypeChange = (order, str) =>
-    updateStep(order, "stepType", stepTypeToNumber[str] || 1);
+    updateStep(order, "stepType", WORKFLOW_STEP_TYPE[str] || WORKFLOW_STEP_TYPE.Form);
 
   return (
     <div className="wb-container">
       <div className="wb-header">
         <h4>{t("workflow_steps")}</h4>
-        <button className="wb-add-step" onClick={addStep}>
+        <button className="btn-primary" onClick={addStep}>
           <Plus size={13} /> {t("add_step")}
         </button>
       </div>
@@ -85,7 +83,7 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
                 rows="2"
               />
               <div className="wb-step-type">
-                <span style={{ fontSize: 9, fontWeight: 800, color: "#6b7280", textTransform: "uppercase", letterSpacing: ".5px" }}>
+                <span className="wb-step-type-label">
                   {t("step_type")}
                 </span>
                 <div className="wb-select-wrap">
@@ -93,9 +91,9 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
                     value={getStepTypeStr(step.stepType)}
                     onChange={e => handleStepTypeChange(step.order, e.target.value)}
                   >
-                    <option value="Form">Form (نموذج)</option>
-                    <option value="Review">Review (مراجعة)</option>
-                    <option value="Payment">Payment (دفع)</option>
+                    <option value="Form">{t("form")}</option>
+                    <option value="Review">{t("review")}</option>
+                    <option value="Payment">{t("payment")}</option>
                   </select>
                   <ChevronRight size={13} className="wb-select-arrow" />
                 </div>
@@ -112,7 +110,7 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
               </div>
             </div>
 
-            {step.stepType === 1 && (
+            {step.stepType === WORKFLOW_STEP_TYPE.Form && (
               <div className="wb-step-fields">
                 <FormBuilder
                   fields={step.fields || []}

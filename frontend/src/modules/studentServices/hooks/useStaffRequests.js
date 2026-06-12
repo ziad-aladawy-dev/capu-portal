@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getAllRequests,
   getStudentRequestById,
@@ -10,6 +11,7 @@ import {
 } from "../services/studentServicesService";
 
 export const useStaffRequests = () => {
+  const queryClient = useQueryClient();
   const [requests, setRequests] = useState([]);
   const [assignedToMe, setAssignedToMe] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -76,6 +78,7 @@ export const useStaffRequests = () => {
     setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
     setAssignedToMe(prev => prev.map(r => r.id === requestId ? updated : r));
     if (currentRequest?.id === requestId) setCurrentRequest(updated);
+    queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
     return updated;
   };
 
@@ -84,6 +87,7 @@ export const useStaffRequests = () => {
     setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
     setAssignedToMe(prev => prev.map(r => r.id === requestId ? updated : r));
     if (currentRequest?.id === requestId) setCurrentRequest(updated);
+    queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
     return updated;
   };
 

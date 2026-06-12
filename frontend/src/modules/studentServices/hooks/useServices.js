@@ -6,8 +6,9 @@ export const useServices = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // No leading setLoading(true): `loading` starts true and the mount effect
+  // must not setState synchronously (react-hooks/set-state-in-effect).
   const loadServices = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await getServices();
       setServices(Array.isArray(data) ? data : []);
@@ -39,6 +40,7 @@ export const useServices = () => {
     await loadServices();
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async loader; setState only after await
   useEffect(() => { loadServices(); }, [loadServices]);
 
   return { services, loading, error, addService, editService, removeService, toggleStatus, refresh: loadServices };

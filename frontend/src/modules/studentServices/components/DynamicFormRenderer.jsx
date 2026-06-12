@@ -1,6 +1,7 @@
-import React from "react";
+
 import { useTranslation } from "react-i18next";
 import FileUploader from "./FileUploader";
+import { STEP_FIELD_TYPE } from "../../../core/constants/workflowTypes";
 import "../styles/components/DynamicFormRenderer.css";
 
 const DynamicFormRenderer = ({ fields = [], value = {}, onChange, requestId }) => {
@@ -11,39 +12,56 @@ const DynamicFormRenderer = ({ fields = [], value = {}, onChange, requestId }) =
 
   const getFieldTypeNumber = (ft) => {
     if (typeof ft === "number") return ft;
-    const map = { Text:1, TextArea:2, Number:3, Date:4, Select:5, MultiSelect:6, File:7, Checkbox:8, Radio:9 };
-    return map[ft] || 1;
+    return STEP_FIELD_TYPE[ft] || STEP_FIELD_TYPE.Text;
   };
 
   const renderField = (field) => {
     const typeNum = getFieldTypeNumber(field.fieldType);
     const val = value[field.id] ?? "";
     switch (typeNum) {
-      case 1: // Text
+      case STEP_FIELD_TYPE.Text:
         return <input type="text" value={val} onChange={e => handleChange(field.id, e.target.value)} required={field.isRequired} />;
-      case 2: // TextArea
+      case STEP_FIELD_TYPE.TextArea:
         return <textarea rows="3" value={val} onChange={e => handleChange(field.id, e.target.value)} required={field.isRequired} />;
-      case 3: // Number
+      case STEP_FIELD_TYPE.Number:
         return <input type="number" value={val} onChange={e => handleChange(field.id, e.target.value)} required={field.isRequired} />;
-      case 4: // Date
+      case STEP_FIELD_TYPE.Date:
         return <input type="date" value={val} onChange={e => handleChange(field.id, e.target.value)} required={field.isRequired} />;
-      case 5: // Select
+      case STEP_FIELD_TYPE.Select:
         return (
           <select value={val} onChange={e => handleChange(field.id, e.target.value)} required={field.isRequired}>
             <option value="">{t("select_option")}</option>
             {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         );
-      case 6: // MultiSelect
+      case STEP_FIELD_TYPE.MultiSelect:
         return (
           <select multiple value={Array.isArray(val) ? val : []} onChange={e => handleChange(field.id, Array.from(e.target.selectedOptions, o => o.value))} required={field.isRequired}>
             {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         );
-      case 7: // File
+      case STEP_FIELD_TYPE.File:
         return <FileUploader requestId={requestId} stepKey={field.id} value={val} onChange={(files) => handleChange(field.id, files)} />;
-      case 8: // Checkbox
+      case STEP_FIELD_TYPE.Checkbox:
         return <input type="checkbox" checked={!!val} onChange={e => handleChange(field.id, e.target.checked)} />;
+      case STEP_FIELD_TYPE.Radio:
+        return (
+          <div className="dfr-radio-group" role="radiogroup">
+            {field.options?.map(opt => (
+              <label key={opt} className="dfr-radio-option">
+                <input
+                  type="radio"
+                  name={field.id}
+                  value={opt}
+                  checked={val === opt}
+                  onChange={() => handleChange(field.id, opt)}
+                  required={field.isRequired}
+                />
+                <span>{opt}</span>
+              </label>
+            ))}
+          </div>
+        );
       default:
         return <input type="text" value={val} onChange={e => handleChange(field.id, e.target.value)} />;
     }

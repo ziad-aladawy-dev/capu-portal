@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, GripVertical, Trash2, MoveUp, MoveDown, ChevronRight, CheckCircle } from "lucide-react";
+import { STEP_FIELD_TYPE_NAMES } from "../../../core/constants/workflowTypes";
 import "../styles/components/FormBuilder.css";
 
-const fieldTypes = [
-  { value: "Text",        label: "نص قصير" },
-  { value: "TextArea",    label: "نص طويل" },
-  { value: "Number",      label: "رقم" },
-  { value: "Date",        label: "تاريخ" },
-  { value: "Select",      label: "قائمة منسدلة" },
-  { value: "MultiSelect", label: "قائمة متعددة" },
-  { value: "File",        label: "رفع ملف" },
-  { value: "Checkbox",    label: "خانة اختيار" },
-];
+// One entry per backend StepFieldType (core/constants/workflowTypes.js) —
+// incl. Radio(9). Labels resolve via i18n (field_type_* keys).
+const FIELD_TYPE_OPTIONS = Object.values(STEP_FIELD_TYPE_NAMES).map((name) => ({
+  value: name,
+  labelKey: `field_type_${name.toLowerCase()}`,
+}));
 
 const generateId = () => Date.now() + "-" + Math.random().toString(36).substr(2, 9);
 
@@ -27,9 +24,13 @@ const FormBuilder = ({ fields = [], onChange }) => {
   const { t } = useTranslation();
   const [localFields, setLocalFields] = useState(() => ensureUniqueIds(fields));
 
-  useEffect(() => {
+  // Sync from props using the render-time adjustment pattern (no effect —
+  // avoids the cascading re-render react-hooks/set-state-in-effect flags).
+  const [prevFields, setPrevFields] = useState(fields);
+  if (prevFields !== fields) {
+    setPrevFields(fields);
     setLocalFields(ensureUniqueIds(fields));
-  }, [fields]);
+  }
 
   const commit = (updated) => {
     setLocalFields(updated);
@@ -65,7 +66,7 @@ const FormBuilder = ({ fields = [], onChange }) => {
     <div className="fb-container">
       <div className="fb-header">
         <h4>{t("dynamic_fields")}</h4>
-        <button className="fb-add-btn" onClick={addField}>
+        <button className="btn-secondary" onClick={addField}>
           <Plus size={12} /> {t("add_field")}
         </button>
       </div>
@@ -79,8 +80,8 @@ const FormBuilder = ({ fields = [], onChange }) => {
             <div className="fb-field-controls">
               <div className="fb-select-wrap">
                 <select value={field.type} onChange={e => updateField(field.id, "type", e.target.value)}>
-                  {fieldTypes.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  {FIELD_TYPE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                   ))}
                 </select>
                 <ChevronRight size={12} className="fb-select-arrow" />

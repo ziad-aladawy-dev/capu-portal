@@ -1,0 +1,49 @@
+/* Category sub-navigation bar — rendered by DashboardLayout above the routed
+   page. Visual language matches the former AcademicShell tab bar. */
+
+.cat-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background: var(--color-surface, #fff);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  border-radius: 8px 8px 0 0;
+}
+
+.cat-tab:hover {
+  color: var(--color-primary, #1a1f5e);
+  background: var(--bg-hover, #f8f9fc);
+}
+
+.cat-tab.is-active {
+  color: var(--color-primary, #1a1f5e);
+  border-bottom-color: var(--color-primary, #1a1f5e);
+}
+
+@media (max-width: 768px) {
+  .cat-tabs {
+    padding: 0 12px;
+  }
+
+  .cat-tab {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}

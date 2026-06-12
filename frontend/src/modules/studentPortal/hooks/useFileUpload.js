@@ -19,7 +19,7 @@ export const useFileUpload = () => {
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Upload failed";
       setError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setUploading(false);
     }
@@ -42,7 +42,7 @@ export const useFileUpload = () => {
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Download failed";
       setError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setDownloading(false);
     }
@@ -56,7 +56,7 @@ export const useFileUpload = () => {
     } catch (err) {
       const msg = err.response?.data?.message || err.message || "Delete failed";
       setError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     }
   }, []);
 

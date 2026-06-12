@@ -215,7 +215,7 @@ export const getAcademicYears = async () => {
 };
 
 export const getSemestersByYear = async (academicYearId) => {
-  const response = await apiClient.get(`/api/academic-years/${academicYearId}/semesters`);
+  const response = await apiClient.get(`/academic-years/${academicYearId}/semesters`);
   return response.data;
 };
 
@@ -225,7 +225,7 @@ export const getFaculties = async () => {
 };
 
 export const getProgramsByFaculty = async (facultyId) => {
-  const response = await apiClient.get(`/api/structure/lookups/faculties/${facultyId}/programs`);
+  const response = await apiClient.get(`/structure/lookups/faculties/${facultyId}/programs`);
   return response.data;
 };
 

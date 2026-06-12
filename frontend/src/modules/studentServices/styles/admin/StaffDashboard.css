@@ -1,31 +1,16 @@
-.sd-container { padding: 1.5rem; background: #f5f6fa; min-height: 100vh; font-family: "DM Sans", sans-serif; }
-.sd-view-all { background: rgba(255,255,255,0.12); border: none; border-radius: 2rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: white; font-weight: 600; transition: background 0.2s; }
-.sd-view-all:hover { background: rgba(255,255,255,0.2); }
+.sd-container { padding: 1.5rem; font-family: "DM Sans", sans-serif; }
 .sd-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.sd-stat-card { background: white; border-radius: 1rem; padding: 1rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); transition: transform 0.2s; }
+.sd-stat-card { background: var(--color-surface); border-radius: 1rem; padding: 1rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); transition: transform 0.2s; }
 .sd-stat-card:hover { transform: translateY(-3px); }
-.sd-stat-card.navy .sd-stat-icon { background: rgba(26,31,94,0.1); color: var(--color-text-primary); }
-.sd-stat-card.gold .sd-stat-icon { background: rgba(201,168,76,0.1); color: var(--gold); }
-.sd-stat-card.blue .sd-stat-icon { background: rgba(37,99,235,0.1); color: var(--color-info); }
-.sd-stat-card.orange .sd-stat-icon { background: rgba(245,158,11,0.1); color: #f59e0b; }
-.sd-stat-card.purple .sd-stat-icon { background: rgba(124,58,237,0.1); color: #7c3aed; }
-.sd-stat-card.green .sd-stat-icon { background: rgba(22,163,74,0.1); color: var(--color-success); }
-.sd-stat-card.teal .sd-stat-icon { background: rgba(20,184,166,0.1); color: #14b8a6; }
 .sd-stat-content span { font-size: 0.7rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; }
 .sd-stat-content h3 { margin: 0.25rem 0 0; font-size: 1.5rem; font-family: "Space Mono", monospace; }
-.sd-recent-card { background: white; border-radius: 1rem; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); }
+.sd-recent-card { background: var(--color-surface); border-radius: 1rem; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); }
 .sd-recent-card h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--color-text-primary); }
 .sd-table-wrapper { overflow-x: auto; }
 .sd-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-.sd-table th { text-align: left; padding: 0.75rem 0.5rem; background: #f8fafc; font-size: 0.7rem; font-weight: 700; color: #4b5563; text-transform: uppercase; }
+.sd-table th { text-align: start; padding: 0.75rem 0.5rem; background: var(--color-background); font-size: 0.7rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; }
 .sd-table td { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--color-border); font-size: 0.85rem; }
 .sd-number { font-family: monospace; font-weight: 600; }
-.sd-status-badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 700; }
-.sd-status-review { background: #dbeafe; color: #1e40af; }
-.sd-status-pending { background: #fef3c7; color: #b45309; }
-.sd-status-approved { background: #d1fae5; color: #065f46; }
-.sd-view-btn { background: transparent; border: 1px solid var(--gold); border-radius: 0.5rem; padding: 0.25rem 0.7rem; cursor: pointer; font-weight: 600; color: var(--gold); transition: all 0.2s; }
-.sd-view-btn:hover { background: var(--gold); color: var(--color-text-primary); }
 @media (max-width: 768px) {
   .sd-container { padding: 1rem; }
   .sd-stats-grid { grid-template-columns: repeat(2, 1fr); }

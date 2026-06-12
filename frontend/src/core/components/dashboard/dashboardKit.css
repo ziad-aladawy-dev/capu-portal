@@ -1,0 +1,339 @@
+/* Shared admin-dashboard widget kit (.dk- prefix — flat CSS is global). */
+
+.dk-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1280px) {
+  .dk-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .dk-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dk-stat-card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 18px rgba(26, 31, 94, 0.05);
+  transition: all 0.25s ease;
+  animation: dkFadeIn 0.45s ease both;
+}
+
+.dk-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(26, 31, 94, 0.1);
+}
+
+.dk-stat-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dk-stat-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--gray-400);
+}
+
+.dk-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dk-stat-value {
+  font-family: "Space Mono", monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  margin: 0 0 5px;
+}
+
+.dk-stat-sub {
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.dk-stat-sub.up { color: #16a34a; }
+.dk-stat-sub.warn { color: #b45309; }
+.dk-stat-sub.down { color: #dc2626; }
+
+/* Chart cards */
+
+.dk-chart-card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  padding: 20px;
+  box-shadow: 0 4px 18px rgba(26, 31, 94, 0.05);
+  min-width: 0;
+  animation: dkFadeIn 0.45s ease both;
+}
+
+.dk-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.dk-chart-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  font-family: "Space Mono", monospace;
+  margin: 0;
+}
+
+.dk-chart-subtitle {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px;
+}
+
+.dk-chart-head svg {
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.dk-chart-body {
+  min-width: 0;
+}
+
+.dk-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 12px;
+}
+
+/* Donut legend */
+
+.dk-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dk-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+
+.dk-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dk-legend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.dk-legend-value {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.dk-donut-wrap {
+  position: relative;
+}
+
+.dk-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dk-donut-center b {
+  font-family: "Space Mono", monospace;
+  font-size: 22px;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+
+.dk-donut-center span {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gray-400);
+}
+
+/* Recharts tooltip */
+
+.dk-tooltip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(26, 31, 94, 0.14);
+  padding: 8px 11px;
+  font-size: 12px;
+}
+
+.dk-tooltip-label {
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 3px;
+}
+
+.dk-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.dk-tooltip-row i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dk-tooltip-row b {
+  font-family: "Space Mono", monospace;
+  color: var(--color-text-primary);
+}
+
+/* SVG chart primitives */
+
+.dk-svg-label {
+  font-size: 11px;
+  fill: #6b7280;
+  font-family: "DM Sans", sans-serif;
+}
+
+.dk-svg-value {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--color-text-primary, #1f2430);
+  font-family: "Space Mono", monospace;
+}
+
+.dk-donut-slice,
+.dk-bar {
+  transition: opacity 0.15s ease;
+}
+
+.dk-donut-slice:hover,
+.dk-bar:hover {
+  opacity: 0.82;
+}
+
+/* Loading skeleton */
+
+.dk-skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--gray-50) 25%, #eef0f6 50%, var(--gray-50) 75%);
+  background-size: 200% 100%;
+  animation: dkShimmer 1.3s infinite linear;
+}
+
+.dk-skeleton-line {
+  height: 28px;
+  width: 90px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--gray-50) 25%, #eef0f6 50%, var(--gray-50) 75%);
+  background-size: 200% 100%;
+  animation: dkShimmer 1.3s infinite linear;
+}
+
+@keyframes dkShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes dkFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Common dashboard page scaffolding */
+
+.dk-page {
+  padding: 22px;
+  min-height: 100%;
+}
+
+.dk-section {
+  display: grid;
+  gap: 15px;
+  margin-top: 18px;
+}
+
+.dk-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.dk-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.dk-grid-21 {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 1100px) {
+  .dk-grid-2,
+  .dk-grid-3,
+  .dk-grid-21 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* RTL */
+
+[dir="rtl"] .dk-stat-label,
+[dir="rtl"] .dk-legend-name {
+  text-align: right;
+}

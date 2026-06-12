@@ -142,7 +142,7 @@ const PORTAL_ROUTES = [
       label: "Services",
       icon: "LayoutGrid",
     },
-    meta: { title: "Services", showInBottomNav: true, bottomNavIndex: 2, group: "services", skeleton: "cards", badge: "services" },
+    meta: { title: "Services", showInBottomNav: true, bottomNavIndex: 2, group: "services", skeleton: "cards" },
   },
   {
     path: "/student/services/:id",

@@ -686,19 +686,15 @@ public static class DataSeeder
             }
         }
 
-        // Super Admin — full access to every seeded resource. Resources declare
-        // different verb sets (e.g. notifications only has View/Insert) and
-        // ExpandActionNames returns an empty set for undeclared verbs, so walk
-        // the ladder down until the manifest yields a non-empty expansion.
-        var superAdminVerbLadder = new[] { "Delete", "Open", "EditClose", "Insert", "View" };
+        // Super Admin — full access to every seeded resource. Grant every action
+        // the manifest declares: ladder-walking the hierarchical verbs misses
+        // Explicit actions that sit outside the implies graph (e.g.
+        // student-services.requests.Assign), which left the seeded admin 403'd
+        // on assign. Grant() expands implies and dedupes, so this is idempotent.
         foreach (var res in resources)
         {
-            foreach (var verb in superAdminVerbLadder)
-            {
-                if (actionExpander.ExpandActionNames(res.Module.ModuleKey, res.Key, verb).Count == 0) continue;
-                Grant("Super Admin", res.Module.ModuleKey, res.Key, verb);
-                break;
-            }
+            foreach (var action in actionExpander.DeclaredActionNames(res.Module.ModuleKey, res.Key))
+                Grant("Super Admin", res.Module.ModuleKey, res.Key, action);
         }
 
         // Faculty Admin

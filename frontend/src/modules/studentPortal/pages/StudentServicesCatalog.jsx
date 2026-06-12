@@ -6,7 +6,10 @@ import { useAuth } from "../../../core/auth/useAuth";
 import { useServicesCatalog } from "../hooks/useServicesCatalog";
 import { SERVICE_TYPE, SERVICE_TYPE_LABELS } from "../constants/requestStatus";
 import { fmtAmount } from "../../../core/services/treasuryPaymentService";
-import "../styles/studentServicesCatalog.css";
+import PortalPageShell from "../components/shared/PortalPageShell";
+import PortalEmptyState from "../components/shared/PortalEmptyState";
+import PortalSkeleton from "../components/shared/PortalSkeleton";
+import styles from "./StudentServicesCatalog.module.css";
 
 const TYPE_FILTERS = [
   { value: "", label: "All Types" },
@@ -19,7 +22,7 @@ function StudentServicesCatalog() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useServicesCatalog(user?.id);
+  const { data, isLoading, isError, refetch } = useServicesCatalog(user?.id);
 
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
@@ -42,66 +45,84 @@ function StudentServicesCatalog() {
   }, [data, search, type, fee, sort]);
 
   return (
-    <div className="ssc-container">
-      <div className="ssc-header">
-        <h1>{t("services.catalog_title", { defaultValue: "Student Services" })}</h1>
-        <p>{t("services.catalog_subtitle", { defaultValue: "Browse and request available university services" })}</p>
-      </div>
-
-      <div className="ssc-toolbar">
-        <div className="ssc-search">
+    <PortalPageShell
+      title={t("portal_services.title", { defaultValue: "Student Services" })}
+      subtitle={t("portal_services.subtitle", { defaultValue: "Browse and request available university services" })}
+    >
+      <div className={styles.toolbar}>
+        <div className={styles.search}>
           <Search size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("services.search", { defaultValue: "Search services…" })}
+            placeholder={t("portal_services.search", { defaultValue: "Search services…" })}
           />
         </div>
-        <select value={type} onChange={(e) => setType(e.target.value)}>
+        <select className={styles.select} value={type} onChange={(e) => setType(e.target.value)}>
           {TYPE_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>{t(`services.type_${f.value || "all"}`, { defaultValue: f.label })}</option>
+            <option key={f.value} value={f.value}>
+              {t(`portal_services.type_${f.value === "" ? "all" : f.value}`, { defaultValue: f.label })}
+            </option>
           ))}
         </select>
-        <select value={fee} onChange={(e) => setFee(e.target.value)}>
-          <option value="">{t("services.fee_all", { defaultValue: "All Fees" })}</option>
-          <option value="free">{t("services.fee_free", { defaultValue: "Free" })}</option>
-          <option value="paid">{t("services.fee_paid", { defaultValue: "Paid" })}</option>
+        <select className={styles.select} value={fee} onChange={(e) => setFee(e.target.value)}>
+          <option value="">{t("portal_services.fee_all", { defaultValue: "All Fees" })}</option>
+          <option value="free">{t("portal_services.fee_free", { defaultValue: "Free" })}</option>
+          <option value="paid">{t("portal_services.fee_paid", { defaultValue: "Paid" })}</option>
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="name">{t("services.sort_name", { defaultValue: "Sort: Name" })}</option>
-          <option value="price">{t("services.sort_price", { defaultValue: "Sort: Price" })}</option>
+        <select className={styles.select} value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="name">{t("portal_services.sort_name", { defaultValue: "Sort: Name" })}</option>
+          <option value="price">{t("portal_services.sort_price", { defaultValue: "Sort: Price" })}</option>
         </select>
       </div>
 
       {isLoading ? (
-        <div className="ssc-state ssc-muted">{t("common.loading", { defaultValue: "Loading…" })}</div>
-      ) : isError ? (
-        <div className="ssc-state ssc-error"><AlertCircle size={18} /> {t("services.load_error", { defaultValue: "Couldn't load services." })}</div>
-      ) : services.length === 0 ? (
-        <div className="ssc-state ssc-empty">
-          <PackageOpen size={32} />
-          <p>{t("services.none", { defaultValue: "No services match your search." })}</p>
+        <div className={styles.grid}>
+          {Array.from({ length: 6 }).map((_, i) => <PortalSkeleton key={i} variant="block" height={150} />)}
         </div>
+      ) : isError ? (
+        <PortalEmptyState
+          icon={AlertCircle}
+          title={t("portal_services.load_error", { defaultValue: "Couldn't load services." })}
+          onAction={() => refetch()}
+          actionLabel={t("retry", { defaultValue: "Retry" })}
+        />
+      ) : services.length === 0 ? (
+        <PortalEmptyState
+          icon={PackageOpen}
+          title={t("portal_services.none", { defaultValue: "No services match your search." })}
+        />
       ) : (
-        <div className="ssc-grid">
+        <div className={styles.grid}>
           {services.map((s) => (
-            <button key={s.id} className="ssc-card" onClick={() => navigate(`/student/services/${s.id}`)}>
-              <div className="ssc-card-top">
-                <span className="ssc-type">{SERVICE_TYPE_LABELS[s.type] || "—"}</span>
-                <span className={`ssc-fee ${s.isPaid ? "paid" : "free"}`}>
-                  {s.isPaid ? `${fmtAmount(s.price)} EGP` : t("services.free", { defaultValue: "Free" })}
+            <button
+              type="button"
+              key={s.id}
+              className={styles.card}
+              onClick={() => navigate(`/student/services/${s.id}`)}
+            >
+              <div className={styles.cardTop}>
+                <span className={styles.type}>
+                  {SERVICE_TYPE_LABELS[s.type]
+                    ? t(`portal_services.type_${s.type}`, { defaultValue: SERVICE_TYPE_LABELS[s.type] })
+                    : "—"}
+                </span>
+                <span className={`${styles.fee} ${s.isPaid ? styles.feePaid : styles.feeFree}`}>
+                  {s.isPaid
+                    ? `${fmtAmount(s.price)} EGP`
+                    : t("portal_services.free", { defaultValue: "Free" })}
                 </span>
               </div>
-              <h3 className="ssc-name">{s.name}</h3>
-              {s.description && <p className="ssc-desc">{s.description}</p>}
-              <span className="ssc-apply">
-                {t("services.view", { defaultValue: "View & Apply" })} <ArrowRight size={14} />
+              <h3 className={styles.name}>{s.name}</h3>
+              {s.description && <p className={styles.desc}>{s.description}</p>}
+              <span className={styles.apply}>
+                {t("portal_services.view", { defaultValue: "View & Apply" })} <ArrowRight size={14} />
               </span>
             </button>
           ))}
         </div>
       )}
-    </div>
+    </PortalPageShell>
   );
 }
 

@@ -6,8 +6,8 @@
   font-weight: 700;
   margin-bottom: 1rem;
   color: var(--color-text-primary);
-  border-left: 3px solid var(--gold);
-  padding-left: 0.75rem;
+  border-inline-start: 3px solid var(--gold);
+  padding-inline-start: 0.75rem;
 }
 .rt-items {
   display: flex;

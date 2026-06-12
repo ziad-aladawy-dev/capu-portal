@@ -3,7 +3,7 @@ import { getPagedStaffRequests } from "../services/studentServicesService";
 
 export const useStaffRequestsPaged = (initialPageSize = 10) => {
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -15,9 +15,9 @@ export const useStaffRequestsPaged = (initialPageSize = 10) => {
   const [sortBy, setSortBy] = useState("requestnumber");
   const [ascending, setAscending] = useState(false);
 
+  // No synchronous setState before the await — the effect below calls this on
+  // mount and on every param change (react-hooks/set-state-in-effect).
   const loadRequests = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const data = await getPagedStaffRequests(
         pagination.page,
@@ -26,6 +26,7 @@ export const useStaffRequestsPaged = (initialPageSize = 10) => {
         sortBy,
         ascending
       );
+      setError(null);
       setRequests(data.items || []);
       setPagination(prev => ({
         ...prev,
@@ -41,6 +42,7 @@ export const useStaffRequestsPaged = (initialPageSize = 10) => {
   }, [pagination.page, pagination.pageSize, search, sortBy, ascending]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async loader; setState only after await
     loadRequests();
   }, [loadRequests]);
 

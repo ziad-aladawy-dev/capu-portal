@@ -1,33 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getStaffStatistics, getRecentRequests } from "../services/studentServicesService";
+import { useScopeKeyPart } from "../../../core/query/scopedKeys";
 
+// Staff dashboard read-side. The apiClient interceptor stamps scope headers on
+// every request, so the query key embeds the active scope (useScopeKeyPart
+// pattern — see core/query/useDashboardStats.js). Mutations elsewhere in the
+// module invalidate ["staff-dashboard"] to refresh these numbers.
 export const useStaffDashboard = () => {
-  const [stats, setStats] = useState(null);
-  const [recentRequests, setRecentRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const scopePart = useScopeKeyPart();
+  const queryClient = useQueryClient();
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [statsData, recentData] = await Promise.all([
+  const query = useQuery({
+    queryKey: ["staff-dashboard", scopePart],
+    queryFn: async () => {
+      const [stats, recent] = await Promise.all([
         getStaffStatistics(),
-        getRecentRequests(5)
+        getRecentRequests(5),
       ]);
-      setStats(statsData);
-      setRecentRequests(recentData);
-    } catch (err) {
-      console.error("Dashboard loading error:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return { stats, recentRequests: Array.isArray(recent) ? recent : [] };
+    },
+    staleTime: 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  return { stats, recentRequests, loading, error, refresh: loadDashboard };
+  return {
+    stats: query.data?.stats ?? null,
+    recentRequests: query.data?.recentRequests ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    refresh: () => queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] }),
+  };
 };

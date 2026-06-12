@@ -17,7 +17,6 @@ import DataTable from "../../../../core/components/DataTable";
 import Drawer from "../../../../core/components/Drawer";
 import ConfirmDialog from "../../../../core/components/ConfirmDialog";
 import { useAcademicPlans } from "../../../../core/query/useAcademicPlans";
-import AcademicShell from "../../layout/AcademicShell";
 import shared from "../../styles/academic.module.css";
 import "./programs.css";
 
@@ -296,7 +295,6 @@ function ProgramsPage() {
   ];
 
   return (
-    <AcademicShell>
     <div className="prog-page" style={{ padding: 0 }}>
       <div className="prog-header">
         <div className="prog-header-left">
@@ -458,7 +456,6 @@ function ProgramsPage() {
         variant="danger"
       />
     </div>
-    </AcademicShell>
   );
 }
 

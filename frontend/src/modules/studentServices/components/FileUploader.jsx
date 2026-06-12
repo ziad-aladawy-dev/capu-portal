@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload, X, File, Loader2 } from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload";
@@ -8,43 +8,52 @@ const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
   const { t } = useTranslation();
   const { upload, uploading, error } = useFileUpload();
   const fileInputRef = useRef(null);
+  const tempSeqRef = useRef(0);
   const [uploadingIds, setUploadingIds] = useState([]);
 
   const safeValue = Array.isArray(value) ? value : [];
 
+  // Multiple sequential uploads mutate the list between awaits; a snapshot
+  // captured at select-time loses the attachmentId written by earlier files.
+  // Route every update through a ref so each commit sees the latest list.
+  const listRef = useRef(safeValue);
+  useEffect(() => { listRef.current = safeValue; }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commit = (updater) => {
+    listRef.current = updater(listRef.current);
+    onChange(listRef.current);
+  };
+
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
-    const newFiles = [...safeValue];
-    
+
     for (const file of files) {
-      const tempId = Date.now() + Math.random();
-      const newFile = { 
-        id: tempId, 
-        name: file.name, 
-        size: file.size, 
-        file, 
+      tempSeqRef.current += 1;
+      const tempId = `temp-upload-${tempSeqRef.current}`;
+      const newFile = {
+        id: tempId,
+        name: file.name,
+        size: file.size,
+        file,
         uploading: true,
         uploaded: false
       };
-      newFiles.push(newFile);
-      onChange(newFiles);
+      commit(list => [...list, newFile]);
       setUploadingIds(prev => [...prev, tempId]);
-      
+
       try {
         const result = await upload(requestId, stepKey, file);
-        const finalFile = { 
-          id: result.attachmentId, 
-          name: file.name, 
-          size: file.size, 
-          attachmentId: result.attachmentId, 
+        const finalFile = {
+          id: result.attachmentId,
+          name: file.name,
+          size: file.size,
+          attachmentId: result.attachmentId,
           uploaded: true,
           uploading: false
         };
-        const updatedFiles = newFiles.map(f => f.id === tempId ? finalFile : f);
-        onChange(updatedFiles);
-      } catch (err) {
-        const updatedFiles = newFiles.filter(f => f.id !== tempId);
-        onChange(updatedFiles);
+        commit(list => list.map(f => f.id === tempId ? finalFile : f));
+      } catch {
+        commit(list => list.filter(f => f.id !== tempId));
       } finally {
         setUploadingIds(prev => prev.filter(id => id !== tempId));
       }
@@ -53,8 +62,7 @@ const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
   };
 
   const removeFile = (file) => {
-    const updated = safeValue.filter(f => f.id !== file.id);
-    onChange(updated);
+    commit(list => list.filter(f => f.id !== file.id));
   };
 
   const formatFileSize = (bytes) => {

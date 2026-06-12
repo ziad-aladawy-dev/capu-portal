@@ -12,7 +12,7 @@ public class CoursesControllerTests
     private static CoursesController NewController(out Mock<ICourseService> svc)
     {
         svc = new Mock<ICourseService>(MockBehavior.Strict);
-        return new CoursesController(svc.Object);
+        return new CoursesController(svc.Object, new Mock<ICoursePrerequisiteService>().Object);
     }
 
     [Fact]

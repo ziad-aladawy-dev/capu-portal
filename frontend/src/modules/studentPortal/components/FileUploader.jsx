@@ -1,47 +1,78 @@
-import React, { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Upload, X, File, Loader2 } from "lucide-react";
+import { Upload, X, File, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload";
-import "../../studentServices/styles/components/FileUploader.css";
+import styles from "./FileUploader.module.css";
 
-const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
+/**
+ * Upload-on-select file list for one workflow File field.
+ *
+ * Contract: `onChange` always receives the NEXT ARRAY (never a functional
+ * updater) — parents may store the argument verbatim. A ref mirrors the
+ * latest list so sequential awaited uploads never act on a stale closure.
+ */
+function FileUploader({ requestId, stepKey, value = [], onChange, disabled = false }) {
   const { t } = useTranslation();
-  const { upload, remove, uploading, error } = useFileUpload();
+  const { upload, remove } = useFileUpload();
   const fileInputRef = useRef(null);
-  const [uploadingIds, setUploadingIds] = useState([]);
+
+  const listRef = useRef(value);
+  useEffect(() => { listRef.current = value; }, [value]);
+
+  const commit = (next) => {
+    listRef.current = next;
+    onChange(next);
+  };
+
+  const uploadOne = async (entry) => {
+    commit(listRef.current.map((f) => (f.id === entry.id ? { ...f, uploading: true, error: null } : f)));
+    try {
+      const result = await upload(requestId, stepKey, entry.file);
+      commit(listRef.current.map((f) =>
+        f.id === entry.id
+          ? { ...f, id: result.attachmentId, attachmentId: result.attachmentId, uploading: false, uploaded: true, error: null }
+          : f
+      ));
+    } catch (err) {
+      // Keep the row visible with an explicit error — no silent removal.
+      commit(listRef.current.map((f) =>
+        f.id === entry.id
+          ? { ...f, uploading: false, uploaded: false, error: err.message || t("portal_requests.upload_failed", { defaultValue: "Upload failed" }) }
+          : f
+      ));
+    }
+  };
 
   const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files);
-    const newFiles = [];
-    for (const file of files) {
-      const tempId = Date.now() + Math.random();
-      newFiles.push({ id: tempId, name: file.name, size: file.size, file, uploading: true });
-      setUploadingIds((prev) => [...prev, tempId]);
-      onChange([...value, ...newFiles.filter(f => f.id === tempId)]);
-      try {
-        const result = await upload(requestId, stepKey, file);
-        const finalFile = {
-          id: result.attachmentId,
-          name: file.name,
-          size: file.size,
-          attachmentId: result.attachmentId,
-          uploaded: true,
-        };
-        onChange((prev) => prev.map(f => f.id === tempId ? finalFile : f));
-      } catch (err) {
-        onChange((prev) => prev.filter(f => f.id !== tempId));
-      } finally {
-        setUploadingIds((prev) => prev.filter(id => id !== tempId));
-      }
-    }
+    const files = Array.from(e.target.files || []);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!files.length || !requestId) return;
+
+    const entries = files.map((file) => ({
+      id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: file.name,
+      size: file.size,
+      file,
+      uploading: true,
+      uploaded: false,
+      error: null,
+    }));
+    commit([...listRef.current, ...entries]);
+
+    for (const entry of entries) {
+      await uploadOne(entry);
+    }
   };
 
   const removeFile = async (file) => {
     if (file.attachmentId) {
-      await remove(file.attachmentId);
+      try {
+        await remove(file.attachmentId);
+      } catch {
+        // Server copy may already be gone; still drop it locally.
+      }
     }
-    onChange(value.filter(f => f.id !== file.id));
+    commit(listRef.current.filter((f) => f.id !== file.id));
   };
 
   const formatFileSize = (bytes) => {
@@ -51,49 +82,76 @@ const FileUploader = ({ requestId, stepKey, value = [], onChange }) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const isUploading = (file) => uploadingIds.includes(file.id);
+  const canPick = Boolean(requestId) && !disabled;
 
   return (
-    <div className="fu-container">
-      <div className="fu-dropzone" onClick={() => fileInputRef.current?.click()}>
-        <Upload size={32} />
-        <p>{t("drag_drop_or_click")}</p>
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          style={{ display: "none" }}
-          disabled={uploading}
-        />
-      </div>
-      {error && <div className="fu-error">{error}</div>}
+    <div className={styles.container}>
+      <button
+        type="button"
+        className={styles.dropzone}
+        onClick={() => canPick && fileInputRef.current?.click()}
+        disabled={!canPick}
+      >
+        <Upload size={26} />
+        <span>{t("portal_requests.upload_click", { defaultValue: "Click to choose files" })}</span>
+      </button>
+      <input
+        type="file"
+        multiple
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        className={styles.hiddenInput}
+        disabled={!canPick}
+      />
+
       {value.length > 0 && (
-        <div className="fu-list">
+        <ul className={styles.list}>
           {value.map((file) => (
-            <div key={file.id} className="fu-item">
-              {isUploading(file) ? (
-                <Loader2 size={18} className="fu-spinner" />
-              ) : (
-                <File size={18} />
+            <li key={file.id} className={`${styles.item} ${file.error ? styles.itemError : ""}`}>
+              <span className={styles.itemIcon}>
+                {file.uploading ? (
+                  <Loader2 size={16} className={styles.spinner} />
+                ) : file.error ? (
+                  <AlertCircle size={16} />
+                ) : (
+                  <File size={16} />
+                )}
+              </span>
+              <span className={styles.fileInfo}>
+                <span className={styles.fileName}>{file.name}</span>
+                <span className={styles.fileMeta}>
+                  {file.uploading
+                    ? t("portal_requests.uploading", { defaultValue: "Uploading…" })
+                    : file.error
+                      ? file.error
+                      : formatFileSize(file.size)}
+                </span>
+              </span>
+              {file.error && file.file && (
+                <button
+                  type="button"
+                  className={styles.retryBtn}
+                  onClick={() => uploadOne(file)}
+                  title={t("portal_requests.retry_upload", { defaultValue: "Retry" })}
+                >
+                  <RotateCcw size={13} />
+                </button>
               )}
-              <div className="fu-file-info">
-                <span className="fu-file-name">{file.name}</span>
-                <span className="fu-file-size">{formatFileSize(file.size)}</span>
-              </div>
               <button
+                type="button"
+                className={styles.removeBtn}
                 onClick={() => removeFile(file)}
-                className="fu-remove-btn"
-                disabled={isUploading(file)}
+                disabled={file.uploading}
+                title={t("portal_requests.remove_file", { defaultValue: "Remove" })}
               >
-                <X size={14} />
+                <X size={13} />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
-};
+}
 
 export default FileUploader;

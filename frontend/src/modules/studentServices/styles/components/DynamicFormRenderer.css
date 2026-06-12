@@ -15,7 +15,20 @@
 }
 .dfr-required {
   color: var(--color-error);
-  margin-left: 0.2rem;
+  margin-inline-start: 0.2rem;
+}
+.dfr-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dfr-radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
 }
 .dfr-field input,
 .dfr-field textarea,

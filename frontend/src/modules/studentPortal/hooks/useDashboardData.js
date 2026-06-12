@@ -35,7 +35,7 @@ function resolveScopeIds(activeScope) {
     const sem = JSON.parse(localStorage.getItem("capu_selected_semester"));
     if (!semId) semId = sem?.id || null;
     semesterName = sem?.name || null;
-  } catch {}
+  } catch { /* scope stash unreadable — fall back to nulls */ }
   return { nodeId, semId, semesterName };
 }
 

@@ -20,7 +20,6 @@ import {
   useRemovePlanCourse, useBulkDeleteAcademicPlans, useBatchSetPlanCourses,
 } from "../../../../core/query/useAcademicPlans";
 import { useAllPrerequisitePairs } from "../../../../core/query/useCourses";
-import AcademicShell from "../../layout/AcademicShell";
 import CurriculumGrid from "./CurriculumGrid";
 import CurriculumTable from "./CurriculumTable";
 import "./academicPlans.css";
@@ -342,7 +341,6 @@ function AcademicPlansPage() {
   const planReadOnly = !!selectedPlan?.isClosed;
 
   return (
-    <AcademicShell>
     <div className="aplans-page" style={{ padding: 0 }}>
       <div className="aplans-header">
         <div className="aplans-header-left">
@@ -737,7 +735,6 @@ function AcademicPlansPage() {
         </div>
       )}
     </div>
-    </AcademicShell>
   );
 }
 

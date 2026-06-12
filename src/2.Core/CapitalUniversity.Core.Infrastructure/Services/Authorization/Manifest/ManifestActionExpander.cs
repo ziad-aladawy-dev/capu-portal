@@ -39,5 +39,19 @@ public sealed class ManifestActionExpander
         return resource is null ? Empty : resource.ExpandReverseImplied(action);
     }
 
+    /// <summary>
+    /// Every action name the manifest declares for a resource — hierarchical AND
+    /// explicit (e.g. student-services.requests.Assign). Explicit actions sit outside
+    /// the implies graph, so ladder-walking grants never reach them; full-access
+    /// seeding must enumerate this set instead. Unknown resource yields an empty set.
+    /// </summary>
+    public IReadOnlySet<string> DeclaredActionNames(string module, string resourceKey)
+    {
+        var resource = _registry.GetResource(module, resourceKey);
+        return resource is null
+            ? Empty
+            : resource.Actions.Select(a => a.Name).ToHashSet();
+    }
+
     public static readonly IReadOnlySet<string> Empty = new HashSet<string>();
 }
