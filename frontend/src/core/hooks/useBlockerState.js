@@ -49,7 +49,7 @@ export function buildCompleteness(student, records) {
   const emergency = (records || []).find((r) => r.category === EMERGENCY_CATEGORY);
   const emergencyData = safeParse(emergency?.dataJson);
   const contact = (records || []).find(
-    (r) => r.category === CUSTOM_CATEGORY && r.customKey === CONTACT_RECORD_KEY
+    (r) => r.category === CUSTOM_CATEGORY && r.customCategoryKey === CONTACT_RECORD_KEY
   );
   const contactData = safeParse(contact?.dataJson);
 

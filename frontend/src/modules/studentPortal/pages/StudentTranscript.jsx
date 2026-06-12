@@ -31,16 +31,16 @@ function StudentTranscript() {
   return (
     <div className="tr-container">
       <div className="tr-header">
-        <h1>{t("transcript.title", { defaultValue: "Transcript & Course History" })}</h1>
-        <p>{t("transcript.subtitle", { defaultValue: "Your official academic record, synced from academic systems" })}</p>
+        <h1>{t("portal_transcript.title", { defaultValue: "Transcript & Course History" })}</h1>
+        <p>{t("portal_transcript.subtitle", { defaultValue: "Your official academic record, synced from academic systems" })}</p>
       </div>
 
       <div className="tr-tabs">
         <button className={`tr-tab ${tab === "transcript" ? "active" : ""}`} onClick={() => setTab("transcript")}>
-          <FileText size={16} /> {t("transcript.tab_transcript", { defaultValue: "Transcript" })}
+          <FileText size={16} /> {t("portal_transcript.tab_transcript", { defaultValue: "Transcript" })}
         </button>
         <button className={`tr-tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")}>
-          <History size={16} /> {t("transcript.tab_history", { defaultValue: "Course History" })}
+          <History size={16} /> {t("portal_transcript.tab_history", { defaultValue: "Course History" })}
         </button>
       </div>
 
@@ -62,19 +62,19 @@ function TranscriptTab() {
     try {
       await downloadTranscriptPdf();
     } catch {
-      setDownloadError(t("transcript.pdf_error", { defaultValue: "Couldn't generate the PDF. Please try again." }));
+      setDownloadError(t("portal_transcript.pdf_error", { defaultValue: "Couldn't generate the PDF. Please try again." }));
     } finally {
       setDownloading(false);
     }
   }
 
   if (isLoading) {
-    return <div className="tr-section tr-muted">{t("common.loading", { defaultValue: "Loading…" })}</div>;
+    return <div className="tr-section tr-muted">{t("loading", { defaultValue: "Loading…" })}</div>;
   }
   if (isError) {
     return (
       <div className="tr-section tr-error">
-        <AlertCircle size={18} /> {t("transcript.load_error", { defaultValue: "Couldn't load your transcript." })}
+        <AlertCircle size={18} /> {t("portal_transcript.load_error", { defaultValue: "Couldn't load your transcript." })}
       </div>
     );
   }
@@ -82,7 +82,7 @@ function TranscriptTab() {
     return (
       <div className="tr-section tr-empty">
         <GraduationCap size={32} />
-        <p>{t("transcript.empty", { defaultValue: "No transcript records have been synced yet." })}</p>
+        <p>{t("portal_transcript.empty", { defaultValue: "No transcript records have been synced yet." })}</p>
       </div>
     );
   }
@@ -99,13 +99,13 @@ function TranscriptTab() {
         <div className="tr-identity-actions">
           <button className="tr-pdf-btn tr-print-btn" onClick={() => window.print()} type="button">
             <Printer size={16} />
-            {t("transcript.print", { defaultValue: "Print" })}
+            {t("portal_transcript.print", { defaultValue: "Print" })}
           </button>
           <button className="tr-pdf-btn" onClick={handleDownload} disabled={downloading}>
             {downloading ? <Loader2 size={16} className="tr-spin" /> : <Download size={16} />}
             {downloading
-              ? t("transcript.generating", { defaultValue: "Generating…" })
-              : t("transcript.download_pdf", { defaultValue: "Download Official PDF" })}
+              ? t("portal_transcript.generating", { defaultValue: "Generating…" })
+              : t("portal_transcript.download_pdf", { defaultValue: "Download Official PDF" })}
           </button>
         </div>
       </div>
@@ -113,10 +113,10 @@ function TranscriptTab() {
 
       {summary && (
         <div className="tr-summary-grid">
-          <SummaryCard label={t("grades.cgpa", { defaultValue: "Cumulative GPA" })} value={Number(summary.cgpa).toFixed(2)} highlight />
-          <SummaryCard label={t("transcript.earned_credits", { defaultValue: "Credits Earned" })} value={summary.earnedCredits} />
-          <SummaryCard label={t("transcript.remaining_credits", { defaultValue: "Credits Remaining" })} value={summary.remainingCredits} />
-          <SummaryCard label={t("grades.standing", { defaultValue: "Academic Standing" })} value={summary.academicStanding || "—"} />
+          <SummaryCard label={t("portal_grades.cgpa", { defaultValue: "Cumulative GPA" })} value={Number(summary.cgpa).toFixed(2)} highlight />
+          <SummaryCard label={t("portal_transcript.earned_credits", { defaultValue: "Credits Earned" })} value={summary.earnedCredits} />
+          <SummaryCard label={t("portal_transcript.remaining_credits", { defaultValue: "Credits Remaining" })} value={summary.remainingCredits} />
+          <SummaryCard label={t("portal_grades.standing", { defaultValue: "Academic Standing" })} value={summary.academicStanding || "—"} />
         </div>
       )}
 
@@ -156,18 +156,18 @@ function CategoryBlock({ category }) {
         {open ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         <span className="tr-category-name">{category.displayName}</span>
         <span className="tr-category-meta">
-          {all.length} {t("transcript.courses", { defaultValue: "courses" })} · {earned}/{totalCredits} {t("transcript.cr", { defaultValue: "cr" })}
+          {all.length} {t("portal_transcript.courses", { defaultValue: "courses" })} · {earned}/{totalCredits} {t("portal_transcript.cr", { defaultValue: "cr" })}
         </span>
       </button>
       {open && (
         <div className="tr-category-body">
           {compulsory.length > 0 && (
-            <CourseTable title={t("transcript.compulsory", { defaultValue: "Compulsory" })} courses={compulsory} />
+            <CourseTable title={t("portal_transcript.compulsory", { defaultValue: "Compulsory" })} courses={compulsory} />
           )}
           {elective.length > 0 && (
-            <CourseTable title={t("transcript.elective", { defaultValue: "Elective" })} courses={elective} />
+            <CourseTable title={t("portal_transcript.elective", { defaultValue: "Elective" })} courses={elective} />
           )}
-          {all.length === 0 && <p className="tr-muted tr-pad">{t("transcript.no_courses", { defaultValue: "No courses in this category." })}</p>}
+          {all.length === 0 && <p className="tr-muted tr-pad">{t("portal_transcript.no_courses", { defaultValue: "No courses in this category." })}</p>}
         </div>
       )}
     </div>
@@ -182,12 +182,12 @@ function CourseTable({ title, courses }) {
       <table className="tr-table">
         <thead>
           <tr>
-            <th>{t("transcript.code", { defaultValue: "Code" })}</th>
-            <th>{t("transcript.course", { defaultValue: "Course" })}</th>
-            <th>{t("transcript.cr", { defaultValue: "Cr" })}</th>
-            <th>{t("transcript.grade", { defaultValue: "Grade" })}</th>
-            <th>{t("transcript.score", { defaultValue: "Score" })}</th>
-            <th>{t("transcript.earned", { defaultValue: "Earned" })}</th>
+            <th>{t("portal_transcript.code", { defaultValue: "Code" })}</th>
+            <th>{t("portal_transcript.course", { defaultValue: "Course" })}</th>
+            <th>{t("portal_transcript.cr", { defaultValue: "Cr" })}</th>
+            <th>{t("portal_transcript.grade", { defaultValue: "Grade" })}</th>
+            <th>{t("portal_transcript.score", { defaultValue: "Score" })}</th>
+            <th>{t("portal_transcript.earned", { defaultValue: "Earned" })}</th>
           </tr>
         </thead>
         <tbody>
@@ -213,12 +213,12 @@ function CourseHistoryTab() {
   const { data: history = [], isLoading, isError } = useRegistrationHistory();
 
   if (isLoading) {
-    return <div className="tr-section tr-muted">{t("common.loading", { defaultValue: "Loading…" })}</div>;
+    return <div className="tr-section tr-muted">{t("loading", { defaultValue: "Loading…" })}</div>;
   }
   if (isError) {
     return (
       <div className="tr-section tr-error">
-        <AlertCircle size={18} /> {t("transcript.history_error", { defaultValue: "Couldn't load your course history." })}
+        <AlertCircle size={18} /> {t("portal_transcript.history_error", { defaultValue: "Couldn't load your course history." })}
       </div>
     );
   }
@@ -226,7 +226,7 @@ function CourseHistoryTab() {
     return (
       <div className="tr-section tr-empty">
         <History size={32} />
-        <p>{t("transcript.history_empty", { defaultValue: "No registration history recorded yet." })}</p>
+        <p>{t("portal_transcript.history_empty", { defaultValue: "No registration history recorded yet." })}</p>
       </div>
     );
   }
@@ -240,11 +240,11 @@ function CourseHistoryTab() {
             <thead>
               <tr>
                 <th></th>
-                <th>{t("transcript.code", { defaultValue: "Code" })}</th>
-                <th>{t("transcript.course", { defaultValue: "Course" })}</th>
-                <th>{t("transcript.cr", { defaultValue: "Cr" })}</th>
-                <th>{t("transcript.attempt", { defaultValue: "Attempt" })}</th>
-                <th>{t("transcript.status", { defaultValue: "Status" })}</th>
+                <th>{t("portal_transcript.code", { defaultValue: "Code" })}</th>
+                <th>{t("portal_transcript.course", { defaultValue: "Course" })}</th>
+                <th>{t("portal_transcript.cr", { defaultValue: "Cr" })}</th>
+                <th>{t("portal_transcript.attempt", { defaultValue: "Attempt" })}</th>
+                <th>{t("portal_transcript.status", { defaultValue: "Status" })}</th>
               </tr>
             </thead>
             <tbody>
@@ -273,7 +273,7 @@ function HistoryRow({ course }) {
         <td>{course.courseCode}</td>
         <td className="tr-course-title">
           {course.courseTitle}
-          {isRepeat && <span className="tr-repeat-tag">{t("transcript.retake", { defaultValue: "Retake" })} #{course.attemptNumber}</span>}
+          {isRepeat && <span className="tr-repeat-tag">{t("portal_transcript.retake", { defaultValue: "Retake" })} #{course.attemptNumber}</span>}
         </td>
         <td>{course.creditHours}</td>
         <td>{course.attemptNumber}</td>
@@ -283,12 +283,12 @@ function HistoryRow({ course }) {
         <tr className="tr-attempts-row">
           <td colSpan={6}>
             {isLoading ? (
-              <span className="tr-muted"><Loader2 size={14} className="tr-spin" /> {t("common.loading", { defaultValue: "Loading…" })}</span>
+              <span className="tr-muted"><Loader2 size={14} className="tr-spin" /> {t("loading", { defaultValue: "Loading…" })}</span>
             ) : attempts.length <= 1 ? (
-              <span className="tr-muted">{t("transcript.single_attempt", { defaultValue: "No repeat history — taken once." })}</span>
+              <span className="tr-muted">{t("portal_transcript.single_attempt", { defaultValue: "No repeat history — taken once." })}</span>
             ) : (
               <div className="tr-attempts">
-                <span className="tr-attempts-title"><BadgeCheck size={14} /> {t("transcript.all_attempts", { defaultValue: "All attempts" })}:</span>
+                <span className="tr-attempts-title"><BadgeCheck size={14} /> {t("portal_transcript.all_attempts", { defaultValue: "All attempts" })}:</span>
                 {attempts.map((a) => (
                   <div key={a.id} className="tr-attempt-item">
                     <span>#{a.attemptNumber}</span>

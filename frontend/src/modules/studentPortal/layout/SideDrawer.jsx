@@ -60,6 +60,18 @@ function SideDrawer({ badges = {}, collapsed, onToggleCollapsed }) {
 
   return (
     <aside className={`${styles.drawer} ${collapsed ? styles.collapsed : ""}`}>
+      <div className={styles.brand}>
+        <span className={styles.brandMark}>
+          <img src="/images/UniLogo2.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.brandLogo} />
+        </span>
+        {!collapsed && (
+          <span className={styles.brandText}>
+            <strong className={styles.brandName}>{t("university_name_full", { defaultValue: "Capital University" })}</strong>
+            <span className={styles.brandSub}>{t("student_portal_label", { defaultValue: "Student Portal" })}</span>
+          </span>
+        )}
+      </div>
+
       <div className={styles.profile}>
         <div className={styles.avatar}>{initial}</div>
         {!collapsed && (
@@ -112,7 +124,7 @@ function SideDrawer({ badges = {}, collapsed, onToggleCollapsed }) {
           type="button"
           className={styles.footerBtn}
           onClick={onToggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("expand", { defaultValue: "Expand" }) : t("collapse", { defaultValue: "Collapse" })}
         >
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           {!collapsed && t("collapse", { defaultValue: "Collapse" })}

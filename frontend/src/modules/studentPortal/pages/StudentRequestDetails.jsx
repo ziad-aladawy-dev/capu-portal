@@ -17,6 +17,7 @@ import PortalPageShell from "../components/shared/PortalPageShell";
 import PortalCard from "../components/shared/PortalCard";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
+import { formatDateTime } from "../utils/format";
 import styles from "./StudentRequestDetails.module.css";
 
 /** SubmittedData arrives as a JSON string (or object) keyed by step order. */
@@ -54,7 +55,7 @@ function formatFileSize(bytes) {
 function StudentRequestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
 
   const requestQuery = useStudentRequest(id);
@@ -226,7 +227,7 @@ function StudentRequestDetails() {
             <div className={styles.metaRow}>
               <span className={styles.metaItem}>
                 {t("portal_requests.submitted_on", { defaultValue: "Submitted on" })}:{" "}
-                {req.submittedAt ? new Date(req.submittedAt).toLocaleString() : t("portal_requests.no_value", { defaultValue: "—" })}
+                {req.submittedAt ? formatDateTime(req.submittedAt, i18n.language) : t("portal_requests.no_value", { defaultValue: "—" })}
               </span>
               <span className={styles.metaItem}>
                 {t("portal_requests.payment", { defaultValue: "Payment" })}: <PaymentStatusBadge status={req.paymentStatus} />

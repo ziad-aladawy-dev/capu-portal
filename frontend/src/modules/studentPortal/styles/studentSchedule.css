@@ -1,12 +1,12 @@
 .student-schedule-container {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 .ss-header { margin-bottom: 24px; }
 .ss-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-.ss-header p { font-size: 13px; color: #6b7280; margin: 0; }
+.ss-header p { font-size: 13px; color: var(--portal-text-muted); margin: 0; }
 
 .ss-content {
   display: grid;
@@ -17,12 +17,12 @@
 
 .ss-weekly {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 20px;
 }
 
-.ss-weekly h2, .ss-section h2 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: #1a1f5e; }
+.ss-weekly h2, .ss-section h2 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--portal-primary); }
 
 .ss-timetable { position: relative; }
 
@@ -34,7 +34,7 @@
 }
 
 .time-label-header { height: 0; }
-.day-header { text-align: center; font-size: 11px; font-weight: 600; color: #6b7280; padding: 4px; }
+.day-header { text-align: center; font-size: 11px; font-weight: 600; color: var(--portal-text-muted); padding: 4px; }
 
 .ss-time-grid { display: flex; gap: 4px; position: relative; }
 
@@ -102,7 +102,7 @@
 /* Calendar */
 .ss-calendar {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 16px;
   height: fit-content;
@@ -115,7 +115,7 @@
   margin-bottom: 12px;
 }
 
-.calendar-header h3 { font-size: 14px; font-weight: 700; margin: 0; color: #1a1f5e; }
+.calendar-header h3 { font-size: 14px; font-weight: 700; margin: 0; color: var(--portal-primary); }
 
 .calendar-header button {
   display: flex;
@@ -124,14 +124,14 @@
   width: 32px;
   height: 32px;
   border: none;
-  background: #f3f4f6;
+  background: var(--portal-bg);
   border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   transition: all 0.2s;
 }
 
-.calendar-header button:hover { background: #e5e7eb; color: #1a1f5e; }
+.calendar-header button:hover { background: var(--portal-border); color: var(--portal-primary); }
 
 .calendar-weekdays {
   display: grid;
@@ -160,14 +160,14 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   border-radius: 6px;
   position: relative;
   cursor: default;
 }
 
 .calendar-day.empty { visibility: hidden; }
-.calendar-day.today { background: #1a1f5e; color: #e0c06a; font-weight: 700; }
+.calendar-day.today { background: var(--portal-primary); color: var(--portal-accent-light); font-weight: 700; }
 .calendar-day.has-events::after {
   content: "";
   position: absolute;
@@ -175,9 +175,9 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #c9a84c;
+  background: var(--portal-accent);
 }
-.calendar-day.today.has-events::after { background: #e0c06a; }
+.calendar-day.today.has-events::after { background: var(--portal-accent-light); }
 
 .day-number { line-height: 1; }
 
@@ -195,7 +195,7 @@
   align-items: center;
   gap: 14px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 16px;
   flex-wrap: wrap;
@@ -209,7 +209,7 @@
 }
 
 .detail-info { flex: 1; min-width: 120px; }
-.detail-info h4 { margin: 0; font-size: 14px; font-weight: 600; color: #1a1f5e; }
+.detail-info h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--portal-primary); }
 .detail-info p { margin: 2px 0 0; font-size: 11px; color: #9ca3af; }
 
 .detail-meta {
@@ -218,7 +218,7 @@
   gap: 4px;
 }
 
-.meta-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b7280; }
+.meta-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--portal-text-muted); }
 
 .detail-times { display: flex; flex-wrap: wrap; gap: 4px; }
 
@@ -226,11 +226,11 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--portal-bg);
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 10px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
 }
 
 /* Loading / Error / Empty states */
@@ -242,15 +242,15 @@
   padding: 60px 20px;
   text-align: center;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
 }
 
 .ss-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f4f6;
-  border-top-color: #1a1f5e;
+  border: 3px solid var(--portal-bg);
+  border-top-color: var(--portal-primary);
   border-radius: 50%;
   animation: ss-spin 0.8s linear infinite;
 }
@@ -263,19 +263,19 @@
   font-size: 16px;
   font-weight: 700;
   margin: 16px 0 8px;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 .ss-status-text {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   margin: 0 0 16px;
   max-width: 400px;
 }
 
 .ss-retry-btn {
   padding: 8px 20px;
-  background: #1a1f5e;
+  background: var(--portal-primary);
   color: white;
   border: none;
   border-radius: 8px;

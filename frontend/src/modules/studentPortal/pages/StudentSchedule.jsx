@@ -13,6 +13,7 @@ import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
 import { useStudentSchedule, downloadIcs } from "../hooks/useStudentSchedule";
 import { SCHEDULE_START_HOUR, SCHEDULE_END_HOUR } from "../../../core/constants/scheduleConfig";
+import { formatDate } from "../utils/format";
 import styles from "./StudentSchedule.module.css";
 
 const DAY_KEYS = { 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday", 7: "sunday" };
@@ -151,7 +152,7 @@ function StudentSchedule() {
 
   const rows = schedule.data || [];
   const semesterLabel = selectedSemesterObj
-    ? `${getLocalized(selectedSemesterObj.name, i18n.language)} · ${new Date(selectedSemesterObj.startDate).toLocaleDateString()} – ${new Date(selectedSemesterObj.endDate).toLocaleDateString()}`
+    ? `${getLocalized(selectedSemesterObj.name, i18n.language)} · ${formatDate(selectedSemesterObj.startDate, i18n.language)} – ${formatDate(selectedSemesterObj.endDate, i18n.language)}`
     : null;
 
   const scopeMissing = !schedule.isLoading && !schedule.isError && schedule.fetchStatus === "idle" && !schedule.data;

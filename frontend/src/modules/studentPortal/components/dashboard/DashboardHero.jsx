@@ -13,7 +13,8 @@ import {
 } from "../../hooks/useDashboardData";
 import styles from "./DashboardHero.module.css";
 
-const egp = (n) => `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} EGP`;
+const egp = (n, t) =>
+  `${Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t("egp", { defaultValue: "EGP" })}`;
 
 function greetingKey(hour) {
   if (hour < 12) return ["good_morning", "Good morning", "☀️"];
@@ -59,7 +60,7 @@ function DashboardHero() {
     alerts.push({
       key: "fees", icon: CreditCard, tone: styles.alertDanger, to: "/student/payments",
       text: t("portal_dashboard.alert_unpaid_fees", { defaultValue: "Unpaid fees" }),
-      value: egp(outstanding),
+      value: egp(outstanding, t),
     });
   }
   if ((requests.data?.length ?? 0) > 0) {

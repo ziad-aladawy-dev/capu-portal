@@ -2,20 +2,20 @@
    Student Payments Page
    Follows existing student portal conventions:
    - font-family: "Outfit", sans-serif
-   - primary: #1a1f5e / gold accent: #e0c06a
-   - border-radius: 12px cards, 1px solid #e5e7eb borders
+   - primary: var(--portal-primary) / gold accent: var(--portal-accent-light)
+   - border-radius: 12px cards, 1px solid var(--portal-border) borders
    ══════════════════════════════════════════════════════════════════ */
 
 .student-payments {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 /* ── Header ──────────────────────────────────────────────────── */
 .sp-header { margin-bottom: 28px; }
 .sp-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-.sp-header p { font-size: 13px; color: #6b7280; margin: 0; }
+.sp-header p { font-size: 13px; color: var(--portal-text-muted); margin: 0; }
 
 /* ── Summary Cards Grid ──────────────────────────────────────── */
 .sp-summary-grid {
@@ -29,7 +29,7 @@
   background: white;
   border-radius: 14px;
   padding: 22px 20px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -57,10 +57,10 @@
 
 .sp-summary-card:hover::after { opacity: 1; }
 
-.sp-summary-card.total-fees::after { background: #2563eb; }
-.sp-summary-card.discount::after { background: #7c3aed; }
+.sp-summary-card.total-fees::after { background: var(--portal-info); }
+.sp-summary-card.discount::after { background: var(--portal-accent); }
 .sp-summary-card.total-paid::after { background: #166534; }
-.sp-summary-card.balance-due::after { background: #dc2626; }
+.sp-summary-card.balance-due::after { background: var(--portal-danger); }
 
 .sp-summary-card.balance-due {
   background: #fef2f2;
@@ -77,10 +77,10 @@
   flex-shrink: 0;
 }
 
-.sp-card-icon.total-fees { background: #dbeafe; color: #2563eb; }
-.sp-card-icon.discount { background: #f3e8ff; color: #7c3aed; }
-.sp-card-icon.total-paid { background: #dcfce7; color: #166534; }
-.sp-card-icon.balance-due { background: #fee2e2; color: #dc2626; }
+.sp-card-icon.total-fees { background: var(--portal-info-soft); color: var(--portal-info); }
+.sp-card-icon.discount { background: var(--portal-accent-soft); color: var(--portal-accent); }
+.sp-card-icon.total-paid { background: var(--portal-success-soft); color: #166534; }
+.sp-card-icon.balance-due { background: var(--portal-danger-soft); color: var(--portal-danger); }
 
 .sp-card-info { flex: 1; min-width: 0; }
 
@@ -89,14 +89,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   margin-bottom: 4px;
 }
 
 .sp-card-value {
   font-size: 22px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   line-height: 1.1;
 }
 
@@ -108,7 +108,7 @@
 }
 
 .sp-summary-card.balance-due .sp-card-value {
-  color: #dc2626;
+  color: var(--portal-danger);
 }
 
 .sp-card-sub {
@@ -124,7 +124,7 @@
   gap: 4px;
   margin-bottom: 20px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 10px;
   padding: 4px;
   width: fit-content;
@@ -139,7 +139,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   font-family: "Outfit", sans-serif;
   display: flex;
   align-items: center;
@@ -147,11 +147,11 @@
   white-space: nowrap;
 }
 
-.sp-tab:hover { color: #1a1f5e; background: #f8f9fd; }
+.sp-tab:hover { color: var(--portal-primary); background: #f8f9fd; }
 
 .sp-tab.active {
-  background: #1a1f5e;
-  color: #e0c06a;
+  background: var(--portal-primary);
+  color: var(--portal-accent-light);
 }
 
 .sp-tab-badge {
@@ -169,17 +169,17 @@
 
 .sp-tab.active .sp-tab-badge {
   background: rgba(224, 192, 106, 0.2);
-  color: #e0c06a;
+  color: var(--portal-accent-light);
 }
 
 .sp-tab:not(.active) .sp-tab-badge {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--portal-bg);
+  color: var(--portal-text-muted);
 }
 
 .sp-tab:not(.active) .sp-tab-badge.urgent {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--portal-danger-soft);
+  color: var(--portal-danger);
 }
 
 /* ── Toolbar ─────────────────────────────────────────────────── */
@@ -195,18 +195,18 @@
   gap: 6px;
   padding: 8px 16px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   cursor: pointer;
   font-family: "Outfit", sans-serif;
   transition: all 0.2s ease;
 }
 
 .sp-recheck-btn:hover {
-  border-color: #1a1f5e;
+  border-color: var(--portal-primary);
   box-shadow: 0 2px 8px rgba(26, 31, 94, 0.1);
 }
 
@@ -228,7 +228,7 @@
 .sp-table-wrapper {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   background: white;
   margin-bottom: 24px;
 }
@@ -241,7 +241,7 @@
 
 .sp-table th {
   background: #f8f9fd;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   padding: 12px 14px;
   text-align: left;
   font-weight: 600;
@@ -249,7 +249,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--portal-border);
 }
 
 .sp-table td {
@@ -267,7 +267,7 @@
 
 .sp-fee-title {
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 .sp-amount {
@@ -276,7 +276,7 @@
 }
 
 .sp-amount.paid { color: #166534; }
-.sp-amount.remaining { color: #dc2626; }
+.sp-amount.remaining { color: var(--portal-danger); }
 .sp-amount.green { color: #166534; }
 
 .sp-dash {
@@ -294,28 +294,28 @@
 }
 
 .sp-status-badge.unpaid {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--portal-bg);
+  color: var(--portal-text-muted);
 }
 
 .sp-status-badge.paid {
-  background: #dcfce7;
+  background: var(--portal-success-soft);
   color: #166534;
 }
 
 .sp-status-badge.partial {
-  background: #fef3c7;
+  background: var(--portal-warning-soft);
   color: #b45309;
 }
 
 .sp-status-badge.pending {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--portal-info-soft);
+  color: var(--portal-info);
 }
 
 /* ── Treasury payment flow ───────────────────────────────────── */
 .sp-select-col { width: 40px; text-align: center; }
-.sp-select-col input { width: 16px; height: 16px; cursor: pointer; accent-color: #1a1f5e; }
+.sp-select-col input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--portal-primary); }
 .sp-row-selected td { background: #f0f4ff !important; }
 .sp-row-locked td { opacity: 0.7; }
 .sp-lock-icon { color: #9ca3af; }
@@ -331,12 +331,12 @@
   margin-top: 16px;
   padding: 14px 20px;
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(26,31,94,0.14);
 }
-.sp-pay-bar-info { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #6b7280; }
-.sp-pay-bar-info strong { font-size: 18px; color: #1a1f5e; }
+.sp-pay-bar-info { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--portal-text-muted); }
+.sp-pay-bar-info strong { font-size: 18px; color: var(--portal-primary); }
 
 .sp-pay-btn {
   display: inline-flex;
@@ -347,7 +347,7 @@
   font-size: 14px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #1a1f5e, #2d3480);
+  background: var(--portal-navy-grad);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -375,42 +375,42 @@
   box-shadow: 0 20px 50px rgba(0,0,0,0.25);
 }
 .sp-modal-head { display: flex; align-items: center; justify-content: space-between; }
-.sp-modal-head h3 { font-size: 17px; font-weight: 700; margin: 0; color: #1a1f5e; }
+.sp-modal-head h3 { font-size: 17px; font-weight: 700; margin: 0; color: var(--portal-primary); }
 .sp-modal-close { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 4px; }
-.sp-modal-total { font-size: 14px; color: #6b7280; margin: 10px 0 14px; }
-.sp-modal-total strong { color: #1a1f5e; }
+.sp-modal-total { font-size: 14px; color: var(--portal-text-muted); margin: 10px 0 14px; }
+.sp-modal-total strong { color: var(--portal-primary); }
 .sp-modal-error {
   display: flex; align-items: center; gap: 8px;
-  background: #fef2f2; color: #dc2626;
+  background: #fef2f2; color: var(--portal-danger);
   padding: 9px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px;
 }
 .sp-gateway-list { display: flex; flex-direction: column; gap: 10px; }
 .sp-gateway-option {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px;
-  font: inherit; font-size: 14px; font-weight: 600; color: #1a1f5e;
-  background: #f8f9fd; border: 1px solid #e5e7eb; border-radius: 10px;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--portal-primary);
+  background: #f8f9fd; border: 1px solid var(--portal-border); border-radius: 10px;
   cursor: pointer; text-align: start;
 }
 .sp-gateway-option span { flex: 1; }
-.sp-gateway-option:hover { border-color: #c9a84c; background: #fff; }
+.sp-gateway-option:hover { border-color: var(--portal-accent); background: #fff; }
 .sp-gateway-option:disabled { opacity: 0.6; cursor: default; }
 .sp-modal-note { font-size: 12px; color: #9ca3af; margin: 14px 0 0; text-align: center; }
 
 /* Orders */
 .sp-orders { display: flex; flex-direction: column; gap: 14px; }
 .sp-order-card {
-  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 18px;
+  background: #fff; border: 1px solid var(--portal-border); border-radius: 12px; padding: 16px 18px;
 }
 .sp-order-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.sp-order-id { font-size: 14px; font-weight: 700; color: #1a1f5e; }
-.sp-order-meta { font-size: 12px; color: #6b7280; margin-top: 3px; }
+.sp-order-id { font-size: 14px; font-weight: 700; color: var(--portal-primary); }
+.sp-order-meta { font-size: 12px; color: var(--portal-text-muted); margin-top: 3px; }
 .sp-order-right { text-align: end; }
-.sp-order-total { font-size: 16px; font-weight: 700; color: #1a1f5e; margin-bottom: 5px; }
+.sp-order-total { font-size: 16px; font-weight: 700; color: var(--portal-primary); margin-bottom: 5px; }
 .sp-order-actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
-.sp-confirm-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
-.sp-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 600; color: #6b7280; cursor: pointer; padding: 0; }
-.sp-link.danger { color: #dc2626; }
+.sp-confirm-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--portal-text-muted); }
+.sp-link { background: none; border: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--portal-text-muted); cursor: pointer; padding: 0; }
+.sp-link.danger { color: var(--portal-danger); }
 .sp-link:disabled { opacity: 0.5; cursor: default; }
 
 .sp-spin { animation: sp-spin 0.8s linear infinite; }
@@ -425,16 +425,16 @@
 .sp-return-state { padding: 32px 24px; }
 .sp-return-icon { margin-bottom: 16px; }
 .sp-return-state.ok .sp-return-icon { color: #166534; }
-.sp-return-state.fail .sp-return-icon { color: #dc2626; }
-.sp-return-state.pending .sp-return-icon { color: #2563eb; }
-.sp-return-state h2 { font-size: 20px; font-weight: 700; margin: 0 0 8px; color: #1a1f5e; }
-.sp-return-state p { font-size: 14px; color: #6b7280; margin: 0; line-height: 1.5; }
+.sp-return-state.fail .sp-return-icon { color: var(--portal-danger); }
+.sp-return-state.pending .sp-return-icon { color: var(--portal-info); }
+.sp-return-state h2 { font-size: 20px; font-weight: 700; margin: 0 0 8px; color: var(--portal-primary); }
+.sp-return-state p { font-size: 14px; color: var(--portal-text-muted); margin: 0; line-height: 1.5; }
 .sp-return-amount { font-size: 24px; font-weight: 700; color: #166534; margin-bottom: 10px; }
 .sp-return-link {
   display: inline-block; margin-top: 22px;
   padding: 10px 22px;
   font-size: 14px; font-weight: 600; text-decoration: none;
-  color: #1a1f5e; background: #f8f9fd; border: 1px solid #e5e7eb; border-radius: 8px;
+  color: var(--portal-primary); background: #f8f9fd; border: 1px solid var(--portal-border); border-radius: 8px;
 }
 
 /* ── Academic Year Accordion ─────────────────────────────────── */
@@ -452,7 +452,7 @@
 .sp-year-header h3 {
   font-size: 15px;
   font-weight: 700;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   margin: 0;
 }
 
@@ -465,7 +465,7 @@
 /* ── Payment History Row ─────────────────────────────────────── */
 .sp-table .payment-date {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   white-space: nowrap;
 }
 
@@ -485,13 +485,13 @@
   justify-content: center;
   padding: 60px 20px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   text-align: center;
 }
 
 .sp-empty-state svg { color: #d1d5db; margin-bottom: 16px; }
-.sp-empty-state h3 { font-size: 15px; font-weight: 600; color: #6b7280; margin: 0 0 4px; }
+.sp-empty-state h3 { font-size: 15px; font-weight: 600; color: var(--portal-text-muted); margin: 0 0 4px; }
 .sp-empty-state p { font-size: 12px; color: #9ca3af; margin: 0; }
 
 /* ── Loading ─────────────────────────────────────────────────── */
@@ -515,23 +515,23 @@
   text-align: center;
 }
 
-.sp-error h3 { font-size: 15px; color: #dc2626; margin: 0; }
-.sp-error p { font-size: 13px; color: #6b7280; margin: 0; max-width: 400px; }
+.sp-error h3 { font-size: 15px; color: var(--portal-danger); margin: 0; }
+.sp-error p { font-size: 13px; color: var(--portal-text-muted); margin: 0; max-width: 400px; }
 
 .sp-retry-btn {
   padding: 8px 20px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   cursor: pointer;
   font-family: "Outfit", sans-serif;
   transition: all 0.2s;
 }
 
-.sp-retry-btn:hover { border-color: #1a1f5e; }
+.sp-retry-btn:hover { border-color: var(--portal-primary); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 1024px) {

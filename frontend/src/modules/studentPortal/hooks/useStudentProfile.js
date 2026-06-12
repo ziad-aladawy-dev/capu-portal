@@ -38,7 +38,7 @@ export function useStudentProfile() {
       const records = Array.isArray(recordsResult) ? recordsResult : recordsResult?.items || [];
       const emergencyRecord = records.find((r) => r.category === STUDENT_PROFILE_CATEGORY.EmergencyContact);
       const contactRecord = records.find(
-        (r) => r.category === STUDENT_PROFILE_CATEGORY.Custom && r.customKey === CONTACT_RECORD_KEY
+        (r) => r.category === STUDENT_PROFILE_CATEGORY.Custom && r.customCategoryKey === CONTACT_RECORD_KEY
       );
       return {
         student,
@@ -89,7 +89,7 @@ export function useUpsertProfileRecord() {
     mutationFn: ({ category, customKey, data, isSensitive = false }) =>
       upsertProfileRecord(studentId, {
         category,
-        customKey,
+        customCategoryKey: customKey,
         schemaVersion: 1,
         isSensitive,
         dataJson: JSON.stringify(data),

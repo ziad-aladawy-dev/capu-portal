@@ -1,7 +1,7 @@
 .course-registration-container {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 .cr-header {
@@ -13,7 +13,7 @@
 }
 
 .cr-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-.cr-header p { font-size: 13px; color: #6b7280; margin: 0; }
+.cr-header p { font-size: 13px; color: var(--portal-text-muted); margin: 0; }
 
 .cr-header-actions { display: flex; align-items: center; gap: 12px; }
 
@@ -24,7 +24,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #f3f4f6;
+  background: var(--portal-bg);
   border-radius: 8px;
 }
 
@@ -34,8 +34,8 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  background: linear-gradient(135deg, #c9a84c, #e0c06a);
-  color: #1a1f5e;
+  background: var(--portal-gold-grad);
+  color: var(--portal-primary);
   font-size: 11px;
   font-weight: 700;
   border-radius: 50%;
@@ -65,9 +65,9 @@
 .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
 .cr-section { margin-bottom: 28px; }
-.cr-section h2 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: #1a1f5e; }
+.cr-section h2 { font-size: 16px; font-weight: 700; margin: 0 0 16px; color: var(--portal-primary); }
 
-.cr-enrolled-list { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+.cr-enrolled-list { background: white; border: 1px solid var(--portal-border); border-radius: 12px; overflow: hidden; }
 
 .enrolled-item {
   display: flex;
@@ -79,12 +79,12 @@
 .enrolled-item:last-child { border-bottom: none; }
 
 .enrolled-info { display: flex; align-items: center; gap: 12px; }
-.enrolled-info strong { font-size: 14px; color: #1a1f5e; }
-.enrolled-info p { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
+.enrolled-info strong { font-size: 14px; color: var(--portal-primary); }
+.enrolled-info p { margin: 2px 0 0; font-size: 12px; color: var(--portal-text-muted); }
 
 .course-code-badge {
-  background: #1a1f5e;
-  color: #e0c06a;
+  background: var(--portal-primary);
+  color: var(--portal-accent-light);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -93,7 +93,7 @@
 }
 
 .enrolled-badge {
-  background: #dcfce7;
+  background: var(--portal-success-soft);
   color: #166534;
   padding: 4px 10px;
   border-radius: 20px;
@@ -112,7 +112,7 @@
   align-items: center;
   gap: 8px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 8px;
   padding: 8px 12px;
   flex: 1;
@@ -124,17 +124,17 @@
   outline: none;
   font-size: 13px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   width: 100%;
 }
 
 .faculty-select {
   padding: 8px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 8px;
   font-size: 13px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
   background: white;
 }
 
@@ -146,26 +146,26 @@
 
 .cr-course-card {
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--portal-border);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.cr-course-card:hover { border-color: #1a1f5e; box-shadow: 0 2px 8px rgba(26,31,94,0.1); }
+.cr-course-card:hover { border-color: var(--portal-primary); box-shadow: 0 2px 8px rgba(26,31,94,0.1); }
 .cr-course-card.selected { border-color: #166534; background: #f0fdf4; }
 .cr-course-card.full { opacity: 0.6; cursor: not-allowed; }
 
 .cr-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-.cr-card-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: #1a1f5e; }
+.cr-card-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--portal-primary); }
 .cr-card-body { margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
-.cr-info-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+.cr-info-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--portal-text-muted); }
 
 .cr-card-footer { display: flex; justify-content: space-between; align-items: center; }
 
 .capacity-bar {
-  background: #f3f4f6;
+  background: var(--portal-bg);
   height: 6px;
   border-radius: 3px;
   flex: 1;
@@ -176,7 +176,7 @@
 
 .capacity-fill {
   height: 100%;
-  background: linear-gradient(90deg, #c9a84c, #e0c06a);
+  background: var(--portal-gold-grad);
   border-radius: 3px;
   transition: width 0.3s;
 }
@@ -201,17 +201,17 @@
   flex-shrink: 0;
 }
 
-.full-badge { background: #fef2f2; color: #dc2626; }
-.selected-badge { background: #dcfce7; color: #166534; }
-.add-badge { background: #f3f4f6; color: #6b7280; }
+.full-badge { background: #fef2f2; color: var(--portal-danger); }
+.selected-badge { background: var(--portal-success-soft); color: #166534; }
+.add-badge { background: var(--portal-bg); color: var(--portal-text-muted); }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #6b7280;
+  color: var(--portal-text-muted);
 }
 
-.empty-state h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; color: #1a1f5e; }
+.empty-state h3 { font-size: 16px; font-weight: 600; margin: 12px 0 4px; color: var(--portal-primary); }
 .empty-state p { font-size: 13px; margin: 0; }
 
 @media (max-width: 768px) {

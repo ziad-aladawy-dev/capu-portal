@@ -12,6 +12,7 @@ import {
 import {
   useStudentFees, useStudentOrders, useCreateOrder, useCancelOrder,
 } from "../hooks/usePayments";
+import { formatDate } from "../utils/format";
 import "../styles/studentPayments.css";
 
 const GATEWAYS = [GATEWAY.Mastercard, GATEWAY.BankMisr, GATEWAY.EFinance];
@@ -50,7 +51,7 @@ function StudentPaymentsPage() {
   if (feesQ.isLoading) {
     return (
       <div className="student-payments">
-        <div className="sp-loading"><div className="spinner" /><p>{t("payments.loading", { defaultValue: "Loading your fees…" })}</p></div>
+        <div className="sp-loading"><div className="spinner" /><p>{t("portal_payments.loading", { defaultValue: "Loading your fees…" })}</p></div>
       </div>
     );
   }
@@ -61,22 +62,22 @@ function StudentPaymentsPage() {
   return (
     <div className="student-payments">
       <div className="sp-header">
-        <h1>{t("payments.title", { defaultValue: "Payments & Fees" })}</h1>
-        <p>{t("payments.subtitle", { defaultValue: "Pay your university fees through HU Treasury" })}</p>
+        <h1>{t("portal_payments.title", { defaultValue: "Payments & Fees" })}</h1>
+        <p>{t("portal_payments.subtitle", { defaultValue: "Pay your university fees through HU Treasury" })}</p>
       </div>
 
       <div className="sp-summary-grid">
-        <SummaryCard variant="balance-due" icon={<DollarSign size={22} />} label={t("payments.outstanding", { defaultValue: "Outstanding" })} value={outstanding} sub={`${pendingFees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
-        <SummaryCard variant="discount" icon={<ShoppingCart size={22} />} label={t("payments.in_order", { defaultValue: "In Open Orders" })} value={inOrder} sub={`${inOrderFees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
-        <SummaryCard variant="total-paid" icon={<CheckCircle size={22} />} label={t("payments.paid", { defaultValue: "Paid" })} value={paid} />
-        <SummaryCard variant="total-fees" icon={<Receipt size={22} />} label={t("payments.total", { defaultValue: "Total Fees" })} value={fees.reduce((s, f) => s + Number(f.totalAmount), 0)} sub={`${fees.length} ${t("payments.fees", { defaultValue: "fee(s)" })}`} />
+        <SummaryCard variant="balance-due" icon={<DollarSign size={22} />} label={t("portal_payments.outstanding", { defaultValue: "Outstanding" })} value={outstanding} sub={`${pendingFees.length} ${t("portal_payments.fees_count", { defaultValue: "fee(s)" })}`} />
+        <SummaryCard variant="discount" icon={<ShoppingCart size={22} />} label={t("portal_payments.in_order", { defaultValue: "In Open Orders" })} value={inOrder} sub={`${inOrderFees.length} ${t("portal_payments.fees_count", { defaultValue: "fee(s)" })}`} />
+        <SummaryCard variant="total-paid" icon={<CheckCircle size={22} />} label={t("portal_payments.paid", { defaultValue: "Paid" })} value={paid} />
+        <SummaryCard variant="total-fees" icon={<Receipt size={22} />} label={t("portal_payments.total", { defaultValue: "Total Fees" })} value={fees.reduce((s, f) => s + Number(f.totalAmount), 0)} sub={`${fees.length} ${t("portal_payments.fees_count", { defaultValue: "fee(s)" })}`} />
       </div>
 
       {(paid + outstanding + inOrder) > 0 && (
         <div className="sp-progress-card">
           <div className="sp-progress-head">
-            <span>{t("payments.payment_progress", { defaultValue: "Payment progress" })}</span>
-            <strong>{Math.round((paid / (paid + outstanding + inOrder)) * 100)}% {t("payments.paid_pct", { defaultValue: "paid" })}</strong>
+            <span>{t("portal_payments.payment_progress", { defaultValue: "Payment progress" })}</span>
+            <strong>{Math.round((paid / (paid + outstanding + inOrder)) * 100)}% {t("portal_payments.paid_pct", { defaultValue: "paid" })}</strong>
           </div>
           <div className="sp-progress-track">
             <div className="sp-progress-fill" style={{ width: `${(paid / (paid + outstanding + inOrder)) * 100}%` }} />
@@ -86,11 +87,11 @@ function StudentPaymentsPage() {
 
       <div className="sp-tabs-bar">
         <button className={`sp-tab${activeTab === 0 ? " active" : ""}`} onClick={() => setActiveTab(0)}>
-          {t("payments.tab_pay", { defaultValue: "Pay Fees" })}
+          {t("portal_payments.tab_pay", { defaultValue: "Pay Fees" })}
           {pendingFees.length > 0 && <span className="sp-tab-badge urgent">{pendingFees.length}</span>}
         </button>
         <button className={`sp-tab${activeTab === 1 ? " active" : ""}`} onClick={() => setActiveTab(1)}>
-          {t("payments.tab_orders", { defaultValue: "Orders" })}
+          {t("portal_payments.tab_orders", { defaultValue: "Orders" })}
           {pendingOrders.length > 0 && <span className="sp-tab-badge">{pendingOrders.length}</span>}
         </button>
       </div>
@@ -118,12 +119,13 @@ function StudentPaymentsPage() {
 }
 
 function SummaryCard({ variant, icon, label, value, sub }) {
+  const { t } = useTranslation();
   return (
     <div className={`sp-summary-card ${variant}`}>
       <div className={`sp-card-icon ${variant}`}>{icon}</div>
       <div className="sp-card-info">
         <div className="sp-card-label">{label}</div>
-        <div className="sp-card-value">{fmtAmount(value)}<span className="currency">EGP</span></div>
+        <div className="sp-card-value">{fmtAmount(value)}<span className="currency">{t("egp", { defaultValue: "EGP" })}</span></div>
         {sub && <div className="sp-card-sub">{sub}</div>}
       </div>
     </div>
@@ -142,9 +144,9 @@ function PayFeesTab({
     return (
       <div className="sp-error">
         <AlertCircle size={36} color="#dc2626" />
-        <h3>{t("payments.load_error", { defaultValue: "Couldn't load your fees" })}</h3>
-        <p>{t("payments.load_error_hint", { defaultValue: "Please try again in a moment." })}</p>
-        <button className="sp-retry-btn" onClick={onRecheck}>{t("common.retry", { defaultValue: "Retry" })}</button>
+        <h3>{t("portal_payments.load_error", { defaultValue: "Couldn't load your fees" })}</h3>
+        <p>{t("portal_payments.load_error_hint", { defaultValue: "Please try again in a moment." })}</p>
+        <button className="sp-retry-btn" onClick={onRecheck}>{t("retry", { defaultValue: "Retry" })}</button>
       </div>
     );
   }
@@ -156,15 +158,15 @@ function PayFeesTab({
       <div className="sp-toolbar">
         <button className="sp-recheck-btn" onClick={onRecheck} disabled={refreshing}>
           <RefreshCw size={14} className={refreshing ? "spinning" : ""} />
-          {t("payments.recheck", { defaultValue: "Refresh" })}
+          {t("portal_payments.recheck", { defaultValue: "Refresh" })}
         </button>
       </div>
 
       {nothing ? (
         <div className="sp-empty-state">
           <CheckCircle size={40} />
-          <h3>{t("payments.all_clear", { defaultValue: "Nothing to pay" })}</h3>
-          <p>{t("payments.all_clear_hint", { defaultValue: "You have no outstanding fees right now." })}</p>
+          <h3>{t("portal_payments.all_clear", { defaultValue: "Nothing to pay" })}</h3>
+          <p>{t("portal_payments.all_clear_hint", { defaultValue: "You have no outstanding fees right now." })}</p>
         </div>
       ) : (
         <div className="sp-table-wrapper">
@@ -173,15 +175,15 @@ function PayFeesTab({
               <tr>
                 <th className="sp-select-col">
                   {pendingFees.length > 0 && (
-                    <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="select all" />
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label={t("portal_payments.select_all", { defaultValue: "Select all" })} />
                   )}
                 </th>
-                <th>{t("payments.fee", { defaultValue: "Fee" })}</th>
-                <th>{t("payments.source", { defaultValue: "Source" })}</th>
-                <th className="text-right">{t("payments.unit", { defaultValue: "Unit" })}</th>
-                <th className="text-center">{t("payments.qty", { defaultValue: "Qty" })}</th>
-                <th className="text-right">{t("payments.amount", { defaultValue: "Amount" })}</th>
-                <th className="text-center">{t("payments.status", { defaultValue: "Status" })}</th>
+                <th>{t("portal_payments.fee", { defaultValue: "Fee" })}</th>
+                <th>{t("portal_payments.source", { defaultValue: "Source" })}</th>
+                <th className="text-right">{t("portal_payments.unit", { defaultValue: "Unit" })}</th>
+                <th className="text-center">{t("portal_payments.qty", { defaultValue: "Qty" })}</th>
+                <th className="text-right">{t("portal_payments.amount", { defaultValue: "Amount" })}</th>
+                <th className="text-center">{t("portal_payments.status", { defaultValue: "Status" })}</th>
               </tr>
             </thead>
             <tbody>
@@ -195,7 +197,7 @@ function PayFeesTab({
                   <td className="text-right">{fmtAmount(f.unitAmount)}</td>
                   <td className="text-center">{f.quantity}</td>
                   <td className="text-right"><span className="sp-amount remaining">{fmtAmount(f.totalAmount)}</span></td>
-                  <td className="text-center"><span className="sp-status-badge unpaid">{t("payments.pending", { defaultValue: "Pending" })}</span></td>
+                  <td className="text-center"><span className="sp-status-badge unpaid">{t("portal_payments.pending", { defaultValue: "Pending" })}</span></td>
                 </tr>
               ))}
               {inOrderFees.map((f) => (
@@ -206,7 +208,7 @@ function PayFeesTab({
                   <td className="text-right">{fmtAmount(f.unitAmount)}</td>
                   <td className="text-center">{f.quantity}</td>
                   <td className="text-right"><span className="sp-amount">{fmtAmount(f.totalAmount)}</span></td>
-                  <td className="text-center"><span className="sp-status-badge partial">{t("payments.in_order_short", { defaultValue: "In Order" })}</span></td>
+                  <td className="text-center"><span className="sp-status-badge partial">{t("portal_payments.in_order_short", { defaultValue: "In Order" })}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -217,11 +219,11 @@ function PayFeesTab({
       {selectedFees.length > 0 && (
         <div className="sp-pay-bar">
           <div className="sp-pay-bar-info">
-            <span>{selectedFees.length} {t("payments.selected", { defaultValue: "selected" })}</span>
-            <strong>{fmtAmount(selectedTotal)} EGP</strong>
+            <span>{selectedFees.length} {t("portal_payments.selected", { defaultValue: "selected" })}</span>
+            <strong>{fmtAmount(selectedTotal)} {t("egp", { defaultValue: "EGP" })}</strong>
           </div>
           <button className="sp-pay-btn" onClick={() => setShowGateways(true)}>
-            <CreditCard size={16} /> {t("payments.pay_selected", { defaultValue: "Pay Selected" })}
+            <CreditCard size={16} /> {t("portal_payments.pay_selected", { defaultValue: "Pay Selected" })}
           </button>
         </div>
       )}
@@ -261,8 +263,8 @@ function GatewayModal({ studentId, feeIds, total, onClose }) {
       const status = err?.response?.status;
       setError(
         status === 403
-          ? t("payments.pay_forbidden", { defaultValue: "You don't have permission to pay these fees." })
-          : t("payments.pay_error", { defaultValue: "Couldn't start the payment. Please try again." })
+          ? t("portal_payments.pay_forbidden", { defaultValue: "You don't have permission to pay these fees." })
+          : t("portal_payments.pay_error", { defaultValue: "Couldn't start the payment. Please try again." })
       );
       setBusy(false);
     }
@@ -272,10 +274,10 @@ function GatewayModal({ studentId, feeIds, total, onClose }) {
     <div className="sp-modal-overlay" onClick={busy ? undefined : onClose}>
       <div className="sp-modal" onClick={(e) => e.stopPropagation()}>
         <div className="sp-modal-head">
-          <h3>{t("payments.choose_gateway", { defaultValue: "Choose a payment method" })}</h3>
+          <h3>{t("portal_payments.choose_gateway", { defaultValue: "Choose a payment method" })}</h3>
           <button className="sp-modal-close" onClick={onClose} disabled={busy}><X size={18} /></button>
         </div>
-        <p className="sp-modal-total">{t("payments.total_due", { defaultValue: "Total" })}: <strong>{fmtAmount(total)} EGP</strong></p>
+        <p className="sp-modal-total">{t("portal_payments.total_due", { defaultValue: "Total" })}: <strong>{fmtAmount(total)} {t("egp", { defaultValue: "EGP" })}</strong></p>
         {error && <div className="sp-modal-error"><AlertCircle size={15} /> {error}</div>}
         <div className="sp-gateway-list">
           {GATEWAYS.map((g) => (
@@ -286,7 +288,7 @@ function GatewayModal({ studentId, feeIds, total, onClose }) {
             </button>
           ))}
         </div>
-        <p className="sp-modal-note">{t("payments.redirect_note", { defaultValue: "You'll be redirected to the secure HU Treasury payment page." })}</p>
+        <p className="sp-modal-note">{t("portal_payments.redirect_note", { defaultValue: "You'll be redirected to the secure HU Treasury payment page." })}</p>
       </div>
     </div>
   );
@@ -295,10 +297,10 @@ function GatewayModal({ studentId, feeIds, total, onClose }) {
 // ── Orders tab ───────────────────────────────────────────────────────────────
 function OrdersTab({ studentId, orders, isError, isLoading }) {
   const { t } = useTranslation();
-  if (isLoading) return <div className="sp-empty-state"><Loader2 size={32} className="sp-spin" /><p>{t("common.loading", { defaultValue: "Loading…" })}</p></div>;
-  if (isError) return <div className="sp-error"><AlertCircle size={36} color="#dc2626" /><h3>{t("payments.orders_error", { defaultValue: "Couldn't load your orders" })}</h3></div>;
+  if (isLoading) return <div className="sp-empty-state"><Loader2 size={32} className="sp-spin" /><p>{t("loading", { defaultValue: "Loading…" })}</p></div>;
+  if (isError) return <div className="sp-error"><AlertCircle size={36} color="#dc2626" /><h3>{t("portal_payments.orders_error", { defaultValue: "Couldn't load your orders" })}</h3></div>;
   if (orders.length === 0) {
-    return <div className="sp-empty-state"><Inbox size={40} /><h3>{t("payments.no_orders", { defaultValue: "No orders yet" })}</h3><p>{t("payments.no_orders_hint", { defaultValue: "Your payment orders will appear here." })}</p></div>;
+    return <div className="sp-empty-state"><Inbox size={40} /><h3>{t("portal_payments.no_orders", { defaultValue: "No orders yet" })}</h3><p>{t("portal_payments.no_orders_hint", { defaultValue: "Your payment orders will appear here." })}</p></div>;
   }
   return (
     <div className="sp-orders">
@@ -308,7 +310,7 @@ function OrdersTab({ studentId, orders, isError, isLoading }) {
 }
 
 function OrderCard({ order, studentId }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const cancelOrder = useCancelOrder(studentId);
   const [confirming, setConfirming] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -331,7 +333,7 @@ function OrderCard({ order, studentId }) {
       if (!session?.redirectUrl) throw new Error("no redirect url");
       window.location.assign(session.redirectUrl);
     } catch {
-      setError(t("payments.resume_error", { defaultValue: "Couldn't resume payment." }));
+      setError(t("portal_payments.resume_error", { defaultValue: "Couldn't resume payment." }));
       setResuming(false);
     }
   }
@@ -342,12 +344,14 @@ function OrderCard({ order, studentId }) {
         <div>
           <div className="sp-order-id">#{order.merchantOrderId || order.id.slice(0, 8)}</div>
           <div className="sp-order-meta">
-            {GATEWAY_LABELS[order.gateway]} · {(order.fees || []).length} {t("payments.fees", { defaultValue: "fee(s)" })} · {new Date(order.createdAt).toLocaleDateString()}
+            {GATEWAY_LABELS[order.gateway]} · {(order.fees || []).length} {t("portal_payments.fees_count", { defaultValue: "fee(s)" })} · {formatDate(order.createdAt, i18n.language)}
           </div>
         </div>
         <div className="sp-order-right">
-          <div className="sp-order-total">{fmtAmount(order.totalAmount)} EGP</div>
-          <span className={`sp-status-badge ${statusCls}`}>{ORDER_STATUS_LABELS[order.status]}</span>
+          <div className="sp-order-total">{fmtAmount(order.totalAmount)} {t("egp", { defaultValue: "EGP" })}</div>
+          <span className={`sp-status-badge ${statusCls}`}>
+            {t(`portal_payments.order_status_${order.status}`, { defaultValue: ORDER_STATUS_LABELS[order.status] })}
+          </span>
         </div>
       </div>
       {error && <div className="sp-modal-error"><AlertCircle size={14} /> {error}</div>}
@@ -355,19 +359,19 @@ function OrderCard({ order, studentId }) {
         <div className="sp-order-actions">
           <button className="sp-pay-btn small" onClick={resume} disabled={resuming || cancelOrder.isPending}>
             {resuming ? <Loader2 size={14} className="sp-spin" /> : <CreditCard size={14} />}
-            {t("payments.continue_payment", { defaultValue: "Continue Payment" })}
+            {t("portal_payments.continue_payment", { defaultValue: "Continue Payment" })}
           </button>
           {confirming ? (
             <span className="sp-confirm-inline">
-              {t("payments.cancel_confirm", { defaultValue: "Cancel this order?" })}
+              {t("portal_payments.cancel_confirm", { defaultValue: "Cancel this order?" })}
               <button className="sp-link danger" onClick={() => cancelOrder.mutate(order.id)} disabled={cancelOrder.isPending}>
-                {t("common.yes", { defaultValue: "Yes" })}
+                {t("yes", { defaultValue: "Yes" })}
               </button>
-              <button className="sp-link" onClick={() => setConfirming(false)}>{t("common.no", { defaultValue: "No" })}</button>
+              <button className="sp-link" onClick={() => setConfirming(false)}>{t("no", { defaultValue: "No" })}</button>
             </span>
           ) : (
             <button className="sp-link danger" onClick={() => setConfirming(true)} disabled={cancelOrder.isPending}>
-              {t("payments.cancel_order", { defaultValue: "Cancel Order" })}
+              {t("portal_payments.cancel_order", { defaultValue: "Cancel Order" })}
             </button>
           )}
         </div>

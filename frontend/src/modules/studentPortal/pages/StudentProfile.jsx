@@ -18,13 +18,14 @@ import ProfileCompleteness from "../components/profile/ProfileCompleteness";
 import {
   useStudentProfile, useUpdateStudent, useUpsertProfileRecord, CONTACT_RECORD_KEY,
 } from "../hooks/useStudentProfile";
+import { formatDate } from "../utils/format";
 import styles from "./StudentProfile.module.css";
 
 const PHONE_RE = /^01[0-9]{9}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function StudentProfile() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addToast } = useToast();
   const profile = useStudentProfile();
   const updateStudent = useUpdateStudent();
@@ -160,7 +161,7 @@ function StudentProfile() {
           fields={[
             { key: "nameAr", label: t("portal_profile.name_ar", { defaultValue: "Name (Arabic)" }), value: nameAr },
             { key: "nameEn", label: t("portal_profile.name_en", { defaultValue: "Name (English)" }), value: nameEn },
-            { key: "birthDate", label: t("portal_profile.dob", { defaultValue: "Date of Birth" }), value: student.birthDate ? new Date(student.birthDate).toLocaleDateString() : "" },
+            { key: "birthDate", label: t("portal_profile.dob", { defaultValue: "Date of Birth" }), value: formatDate(student.birthDate, i18n.language) },
             { key: "nationalId", label: t("portal_profile.national_id", { defaultValue: "National ID" }), value: student.nationalId },
             { key: "gender", label: t("portal_profile.gender", { defaultValue: "Gender" }), value: student.gender },
           ]}
@@ -215,7 +216,7 @@ function StudentProfile() {
             { key: "faculty", label: t("portal_profile.faculty", { defaultValue: "Faculty" }), value: student.facultyName },
             { key: "program", label: t("portal_profile.program", { defaultValue: "Program" }), value: student.programName },
             { key: "level", label: t("portal_profile.level", { defaultValue: "Level" }), value: student.levelName },
-            { key: "memberSince", label: t("portal_profile.member_since", { defaultValue: "Member Since" }), value: student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "" },
+            { key: "memberSince", label: t("portal_profile.member_since", { defaultValue: "Member Since" }), value: formatDate(student.createdAt, i18n.language) },
           ]}
         />
 
@@ -238,7 +239,7 @@ function StudentProfile() {
             {
               key: "passwordExpiry",
               label: t("portal_profile.password_expiry", { defaultValue: "Password Expires" }),
-              value: student.passwordExpiry ? new Date(student.passwordExpiry).toLocaleDateString() : "",
+              value: formatDate(student.passwordExpiry, i18n.language),
             },
           ]}
         />

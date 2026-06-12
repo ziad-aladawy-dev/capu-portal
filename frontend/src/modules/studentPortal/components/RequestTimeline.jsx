@@ -3,6 +3,7 @@ import {
   CheckCircle, Clock, AlertCircle, Send, UserCheck, XCircle, CreditCard, FileText, PlusCircle,
 } from "lucide-react";
 import { REQUEST_STATUS_NAMES, REQUEST_STATUS } from "../constants/requestStatus";
+import { formatDateTime } from "../utils/format";
 import styles from "./RequestTimeline.module.css";
 
 // Known backend HistoryEntryDto.Action strings → i18n keys (raw value is the fallback).
@@ -30,7 +31,7 @@ function getIcon(action) {
 
 // Backend HistoryEntryDto: { action, comment, performedByUserId, performedByRole, performedAt }.
 function RequestTimeline({ timeline = [] }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const actionLabel = (action) => {
     if (!action) return "";
@@ -51,7 +52,7 @@ function RequestTimeline({ timeline = [] }) {
   const roleLabel = (role) =>
     role ? t(`portal_requests.role_${role}`, { defaultValue: role }) : "";
 
-  const formatDate = (dateStr) => (dateStr ? new Date(dateStr).toLocaleString() : "");
+  const formatDate = (dateStr) => formatDateTime(dateStr, i18n.language);
 
   return (
     <div className={styles.timeline}>

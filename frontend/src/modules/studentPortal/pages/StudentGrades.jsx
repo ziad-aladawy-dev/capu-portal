@@ -47,7 +47,7 @@ function StudentGrades() {
   if (summaryQ.isLoading || historyQ.isLoading) {
     return (
       <div className="student-grades-container">
-        <div className="sg-header"><h1>{t("grades", { defaultValue: "Grades" })}</h1></div>
+        <div className="sg-header"><h1>{t("portal_grades.title_short", { defaultValue: "Grades" })}</h1></div>
         <div className="sg-stat-card"><div className="stat-value">…</div></div>
       </div>
     );
@@ -56,8 +56,8 @@ function StudentGrades() {
   return (
     <div className="student-grades-container">
       <div className="sg-header">
-        <h1>{t("grades_title", { defaultValue: "Grades & Academic Performance" })}</h1>
-        <p>{t("grades.subtitle", { defaultValue: "Your academic records, synced from academic systems" })}</p>
+        <h1>{t("portal_grades.title", { defaultValue: "Grades & Academic Performance" })}</h1>
+        <p>{t("portal_grades.subtitle", { defaultValue: "Your academic records, synced from academic systems" })}</p>
       </div>
 
       <div className="sg-stats-grid">
@@ -65,43 +65,43 @@ function StudentGrades() {
           <div className="stat-icon"><BarChart3 size={24} /></div>
           <div>
             <div className="stat-value">{summary ? Number(summary.cgpa).toFixed(2) : "—"}</div>
-            <div className="stat-label">{t("grades.cgpa", { defaultValue: "Cumulative GPA" })}</div>
+            <div className="stat-label">{t("portal_grades.cgpa", { defaultValue: "Cumulative GPA" })}</div>
           </div>
         </div>
         <div className="sg-stat-card">
           <div className="stat-icon completed"><Award size={24} /></div>
           <div>
             <div className="stat-value">{summary ? Number(summary.gpa).toFixed(2) : "—"}</div>
-            <div className="stat-label">{t("grades.term_gpa", { defaultValue: "Term GPA" })}</div>
+            <div className="stat-label">{t("portal_grades.term_gpa", { defaultValue: "Term GPA" })}</div>
           </div>
         </div>
         <div className="sg-stat-card">
           <div className="stat-icon credits"><BookOpen size={24} /></div>
           <div>
             <div className="stat-value">{summary?.earnedCredits ?? 0}</div>
-            <div className="stat-label">{t("grades.credits_earned", { defaultValue: "Credits Earned" })}</div>
+            <div className="stat-label">{t("portal_grades.credits_earned", { defaultValue: "Credits Earned" })}</div>
           </div>
         </div>
         <div className="sg-stat-card">
           <div className="stat-icon trend"><TrendingUp size={24} /></div>
           <div>
             <div className="stat-value">{summary?.academicStanding || "—"}</div>
-            <div className="stat-label">{t("grades.standing", { defaultValue: "Academic Standing" })}</div>
+            <div className="stat-label">{t("portal_grades.standing", { defaultValue: "Academic Standing" })}</div>
           </div>
         </div>
       </div>
 
       {historyQ.isError ? (
-        <div className="sg-section"><AlertCircle size={18} /> Couldn't load grade history.</div>
+        <div className="sg-section"><AlertCircle size={18} /> {t("portal_grades.load_failed", { defaultValue: "Couldn't load grade history." })}</div>
       ) : history.length === 0 ? (
-        <div className="sg-section"><p>No grades recorded yet.</p></div>
+        <div className="sg-section"><p>{t("portal_grades.empty", { defaultValue: "No grades recorded yet." })}</p></div>
       ) : (
         <>
           <GpaTrendChart history={history} />
 
           <div className="sg-tabs">
             <button className={`tab ${activeTab === "all" ? "active" : ""}`} onClick={() => setActiveTab("all")}>
-              {t("grades.all_semesters", { defaultValue: "All Semesters" })}
+              {t("portal_grades.all_semesters", { defaultValue: "All Semesters" })}
             </button>
             {semesters.map((s) => (
               <button key={s.id} className={`tab ${activeTab === s.id ? "active" : ""}`} onClick={() => setActiveTab(s.id)}>{s.name}</button>
@@ -112,7 +112,12 @@ function StudentGrades() {
             <table className="sg-table">
               <thead>
                 <tr>
-                  <th>Course</th><th>Code</th><th>Credits</th><th>Grade</th><th>Score</th><th>Semester</th>
+                  <th>{t("portal_grades.col_course", { defaultValue: "Course" })}</th>
+                  <th>{t("portal_grades.col_code", { defaultValue: "Code" })}</th>
+                  <th>{t("portal_grades.col_credits", { defaultValue: "Credits" })}</th>
+                  <th>{t("portal_grades.col_grade", { defaultValue: "Grade" })}</th>
+                  <th>{t("portal_grades.col_score", { defaultValue: "Score" })}</th>
+                  <th>{t("portal_grades.col_semester", { defaultValue: "Semester" })}</th>
                 </tr>
               </thead>
               <tbody>
@@ -134,7 +139,7 @@ function StudentGrades() {
 
           {/* Semester GPA breakdown */}
           <div className="sg-section">
-            <h2>{t("grades.semester_breakdown", { defaultValue: "Semester Breakdown" })}</h2>
+            <h2>{t("portal_grades.semester_breakdown", { defaultValue: "Semester Breakdown" })}</h2>
             <div className="sg-semester-cards">
               {history.map((sem) => {
                 const graded = (sem.courses || []).filter((c) => GRADE_POINTS[c.grade] != null);
@@ -144,7 +149,11 @@ function StudentGrades() {
                   <div key={sem.semesterId} className="sg-semester-card">
                     <h3>{sem.semesterName}</h3>
                     <div className="sem-gpa">{cr ? (pts / cr).toFixed(2) : "—"}</div>
-                    <p>Courses: {graded.length} | Credits: {cr}</p>
+                    <p>
+                      {t("portal_grades.courses_count", { defaultValue: "Courses: {{count}}", count: graded.length })}
+                      {" | "}
+                      {t("portal_grades.credits_count", { defaultValue: "Credits: {{count}}", count: cr })}
+                    </p>
                   </div>
                 );
               })}
@@ -156,12 +165,12 @@ function StudentGrades() {
       {/* GPA Projection calculator */}
       {inProgress.length > 0 && (
         <div className="sg-section sg-projection">
-          <h2><Calculator size={18} /> {t("grades.projection", { defaultValue: "GPA Projection (What-If)" })}</h2>
-          <p className="sg-muted">Pick expected grades for your in-progress courses to project your cumulative GPA.</p>
+          <h2><Calculator size={18} /> {t("portal_grades.projection", { defaultValue: "GPA Projection (What-If)" })}</h2>
+          <p className="sg-muted">{t("portal_grades.projection_hint", { defaultValue: "Pick expected grades for your in-progress courses to project your cumulative GPA." })}</p>
           <div className="sg-projection-rows">
             {inProgress.map((c) => (
               <div key={c.id} className="sg-projection-row">
-                <span>{c.courseCode} · {c.courseTitle} ({c.creditHours} cr)</span>
+                <span>{c.courseCode} · {c.courseTitle} ({c.creditHours} {t("portal_grades.cr", { defaultValue: "cr" })})</span>
                 <select
                   value={planned[c.id] || ""}
                   onChange={(e) => setPlanned((p) => ({ ...p, [c.id]: e.target.value }))}
@@ -173,8 +182,8 @@ function StudentGrades() {
             ))}
           </div>
           <div className="sg-projection-result">
-            {t("grades.projected_cgpa", { defaultValue: "Projected CGPA" })}: <strong>{projected.toFixed(2)}</strong>
-            <span className="sg-muted"> (current {summary ? Number(summary.cgpa).toFixed(2) : "—"})</span>
+            {t("portal_grades.projected_cgpa", { defaultValue: "Projected CGPA" })}: <strong>{projected.toFixed(2)}</strong>
+            <span className="sg-muted"> ({t("portal_grades.current_label", { defaultValue: "current" })} {summary ? Number(summary.cgpa).toFixed(2) : "—"})</span>
           </div>
         </div>
       )}

@@ -11,13 +11,14 @@ import { RequestStatusBadge, PaymentStatusBadge } from "../components/RequestBad
 import {
   REQUEST_STATUS_NAMES, REQUEST_STATUS_LABELS, KANBAN_COLUMNS,
 } from "../constants/requestStatus";
+import { formatDate } from "../utils/format";
 import styles from "./MyRequests.module.css";
 
 // Every status (1..10) is filterable so no request is ever invisible.
 const FILTER_OPTIONS = Object.keys(REQUEST_STATUS_NAMES).map(Number);
 
 function MyRequests() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const listQuery = useMyRequests();
   const [filterStatus, setFilterStatus] = useState(""); // "" = all, else int
@@ -126,7 +127,7 @@ function MyRequests() {
                     <tr key={req.id}>
                       <td className={styles.reqNum}>#{req.requestNumber || String(req.id).slice(0, 8)}</td>
                       <td>{req.serviceName}</td>
-                      <td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "—"}</td>
+                      <td>{req.submittedAt ? formatDate(req.submittedAt, i18n.language) : "—"}</td>
                       <td><RequestStatusBadge status={req.status} /></td>
                       <td><PaymentStatusBadge status={req.paymentStatus} /></td>
                       <td>

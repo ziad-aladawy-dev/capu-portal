@@ -120,7 +120,7 @@ function CompleteProfileWizard({ student, emergencyData, contactData }) {
       await studentService.updateStudent(user.id, { phoneNumber: form.phoneNumber.trim() });
       await upsertProfileRecord(user.id, {
         category: STUDENT_PROFILE_CATEGORY.Custom,
-        customKey: CONTACT_RECORD_KEY,
+        customCategoryKey: CONTACT_RECORD_KEY,
         schemaVersion: 1,
         isSensitive: false,
         dataJson: JSON.stringify({

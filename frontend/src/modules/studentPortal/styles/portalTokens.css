@@ -1,20 +1,25 @@
 /*
- * Student portal design tokens — scoped under .student-portal so the admin
- * shell keeps its navy/gold identity. CSS-only layer: components consume
- * var(--portal-*) and inherit a softer consumer-app look.
+ * Student portal design tokens — scoped under .student-portal. The palette
+ * mirrors the admin shell's navy/gold identity (core/styles/tokens.css) so
+ * both portals share one visual soul; only layout/radius stay consumer-soft.
  */
 .student-portal {
-  /* Palette */
-  --portal-primary: #2563eb;
-  --portal-primary-soft: #dbeafe;
-  --portal-primary-strong: #1d4ed8;
-  --portal-accent: #8b5cf6;
-  --portal-accent-soft: #ede9fe;
+  /* Palette — navy primary + gold accent, same hues as the admin shell */
+  --portal-primary: #1a1f5e;
+  --portal-primary-soft: #e9ebf7;
+  --portal-primary-strong: #141848;
+  --portal-accent: #c9a84c;
+  --portal-accent-light: #e0c06a;
+  --portal-accent-soft: #f7f0dc;
   --portal-surface: #ffffff;
-  --portal-bg: #f8fafc;
-  --portal-text: #0f172a;
-  --portal-text-muted: #64748b;
-  --portal-border: #e2e8f0;
+  --portal-bg: #f4f5f7;
+  --portal-text: #1a1f5e;
+  --portal-text-muted: #6b7280;
+  --portal-border: #e5e7eb;
+
+  /* Brand gradients — identical stops to navbar.css / shellComponents.css */
+  --portal-navy-grad: linear-gradient(135deg, #1a1f5e 0%, #232a74 40%, #2e3591 100%);
+  --portal-gold-grad: linear-gradient(135deg, #c9a84c, #e0c06a);
 
   /* Status */
   --portal-success: #16a34a;
@@ -23,18 +28,19 @@
   --portal-warning-soft: #fef3c7;
   --portal-danger: #dc2626;
   --portal-danger-soft: #fee2e2;
-  --portal-info: #0284c7;
-  --portal-info-soft: #e0f2fe;
+  --portal-info: #2563eb;
+  --portal-info-soft: #dbeafe;
 
-  /* Shape & depth */
+  /* Shape & depth — navy-tinted shadows like the admin shell */
   --portal-radius: 16px;
   --portal-radius-sm: 10px;
   --portal-radius-full: 999px;
-  --portal-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  --portal-shadow-lift: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --portal-shadow: 0 4px 24px rgba(26, 31, 94, 0.08);
+  --portal-shadow-lift: 0 8px 24px rgba(26, 31, 94, 0.18);
 
-  /* Type */
+  /* Type — Outfit for UI (admin --font-ui), Space Mono for headings */
   --portal-font: "Outfit", sans-serif;
+  --portal-font-heading: "Space Mono", monospace;
 
   /* Layout */
   --portal-bottom-nav-height: 64px;
@@ -44,6 +50,13 @@
   font-family: var(--portal-font);
   background: var(--portal-bg);
   color: var(--portal-text);
+}
+
+/* Admin-portal heading voice: monospace display type, navy ink. */
+.student-portal h1,
+.student-portal h2 {
+  font-family: var(--portal-font-heading);
+  letter-spacing: -0.02em;
 }
 
 /* Respect users who prefer less motion — animation helpers read this. */

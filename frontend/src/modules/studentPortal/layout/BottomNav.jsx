@@ -97,6 +97,15 @@ function BottomNav({ badges = {} }) {
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
             >
               <div className={styles.sheetHandle} />
+              <div className={styles.sheetBrand}>
+                <span className={styles.sheetBrandMark}>
+                  <img src="/images/UniLogo2.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.sheetBrandLogo} />
+                </span>
+                <span className={styles.sheetBrandText}>
+                  <strong>{t("university_name_full", { defaultValue: "Capital University" })}</strong>
+                  <small>{t("student_portal_label", { defaultValue: "Student Portal" })}</small>
+                </span>
+              </div>
               <div className={styles.sheetGrid}>
                 {moreRoutes.map((route) => {
                   const Icon = ICONS[route.menuItem.icon] || LayoutGrid;

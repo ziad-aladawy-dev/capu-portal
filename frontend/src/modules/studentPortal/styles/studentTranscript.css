@@ -1,19 +1,19 @@
 .tr-container {
   padding: 28px 32px;
   font-family: "Outfit", sans-serif;
-  color: #1a1f5e;
+  color: var(--portal-primary);
 }
 
 .tr-header { margin-bottom: 24px; }
 .tr-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-.tr-header p { font-size: 13px; color: #6b7280; margin: 0; }
+.tr-header p { font-size: 13px; color: var(--portal-text-muted); margin: 0; }
 
 /* Tabs */
 .tr-tabs {
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--portal-border);
 }
 .tr-tab {
   display: inline-flex;
@@ -23,14 +23,14 @@
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--portal-text-muted);
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
   margin-bottom: -1px;
 }
-.tr-tab.active { color: #1a1f5e; border-bottom-color: #c9a84c; }
+.tr-tab.active { color: var(--portal-primary); border-bottom-color: var(--portal-accent); }
 
 /* Identity + PDF */
 .tr-identity {
@@ -42,7 +42,7 @@
   flex-wrap: wrap;
 }
 .tr-student-name { font-size: 18px; font-weight: 700; }
-.tr-student-code { font-size: 13px; color: #6b7280; margin-top: 2px; }
+.tr-student-code { font-size: 13px; color: var(--portal-text-muted); margin-top: 2px; }
 
 .tr-pdf-btn {
   display: inline-flex;
@@ -53,7 +53,7 @@
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #1a1f5e, #2d3480);
+  background: var(--portal-navy-grad);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -69,15 +69,15 @@
 }
 .tr-summary-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 18px 20px;
 }
 .tr-summary-card.highlight {
-  background: linear-gradient(135deg, #1a1f5e, #2d3480);
-  border-color: #1a1f5e;
+  background: var(--portal-navy-grad);
+  border-color: var(--portal-primary);
 }
-.tr-summary-card.highlight .tr-summary-value { color: #e0c06a; }
+.tr-summary-card.highlight .tr-summary-value { color: var(--portal-accent-light); }
 .tr-summary-card.highlight .tr-summary-label { color: rgba(224,192,106,0.7); }
 .tr-summary-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
 .tr-summary-label { font-size: 12px; color: #9ca3af; margin-top: 6px; }
@@ -86,7 +86,7 @@
 .tr-categories { display: flex; flex-direction: column; gap: 14px; }
 .tr-category {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -103,7 +103,7 @@
   text-align: start;
 }
 .tr-category-name { font-size: 15px; font-weight: 700; flex: 1; }
-.tr-category-meta { font-size: 12px; color: #6b7280; }
+.tr-category-meta { font-size: 12px; color: var(--portal-text-muted); }
 .tr-category-body { padding: 6px 18px 16px; }
 
 .tr-course-group { margin-top: 12px; }
@@ -126,7 +126,7 @@
   letter-spacing: 0.03em;
   color: #9ca3af;
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--portal-border);
 }
 .tr-table td {
   padding: 9px 10px;
@@ -143,19 +143,19 @@
   border-radius: 6px;
   font-size: 12px;
   font-weight: 700;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--portal-bg);
+  color: var(--portal-text-muted);
 }
-.tr-grade-badge.grade-a { background: #dcfce7; color: #166534; }
-.tr-grade-badge.grade-b { background: #dbeafe; color: #2563eb; }
-.tr-grade-badge.grade-c { background: #fef3c7; color: #b45309; }
-.tr-grade-badge.grade-d { background: #fef2f2; color: #dc2626; }
+.tr-grade-badge.grade-a { background: var(--portal-success-soft); color: #166534; }
+.tr-grade-badge.grade-b { background: var(--portal-info-soft); color: var(--portal-info); }
+.tr-grade-badge.grade-c { background: var(--portal-warning-soft); color: #b45309; }
+.tr-grade-badge.grade-d { background: #fef2f2; color: var(--portal-danger); }
 
 /* Course history */
 .tr-history { display: flex; flex-direction: column; gap: 20px; }
 .tr-history-semester {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 16px 18px;
 }
@@ -168,7 +168,7 @@
   font-size: 11px;
   font-weight: 700;
   color: #b45309;
-  background: #fef3c7;
+  background: var(--portal-warning-soft);
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -181,7 +181,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--portal-text-muted);
 }
 .tr-attempt-item {
   display: inline-flex;
@@ -197,18 +197,18 @@
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--portal-bg);
+  color: var(--portal-text-muted);
 }
-.tr-status-badge.ok { background: #dcfce7; color: #166534; }
-.tr-status-badge.active { background: #dbeafe; color: #2563eb; }
-.tr-status-badge.warn { background: #fef3c7; color: #b45309; }
-.tr-status-badge.bad { background: #fef2f2; color: #dc2626; }
+.tr-status-badge.ok { background: var(--portal-success-soft); color: #166534; }
+.tr-status-badge.active { background: var(--portal-info-soft); color: var(--portal-info); }
+.tr-status-badge.warn { background: var(--portal-warning-soft); color: #b45309; }
+.tr-status-badge.bad { background: #fef2f2; color: var(--portal-danger); }
 
 /* States */
 .tr-section {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--portal-border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -216,9 +216,9 @@
   gap: 10px;
   font-size: 14px;
 }
-.tr-muted { color: #6b7280; }
+.tr-muted { color: var(--portal-text-muted); }
 .tr-pad { padding: 8px 0; }
-.tr-error { color: #dc2626; }
+.tr-error { color: var(--portal-danger); }
 .tr-empty {
   flex-direction: column;
   justify-content: center;

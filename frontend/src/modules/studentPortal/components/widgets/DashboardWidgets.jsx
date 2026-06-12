@@ -19,7 +19,8 @@ import {
 } from "../../hooks/useDashboardData";
 import styles from "./widgets.module.css";
 
-const egp = (n) => `${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} EGP`;
+const egp = (n, t) =>
+  `${Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t("egp", { defaultValue: "EGP" })}`;
 
 const STATUS_TONE = {
   2: "warning",   // Pending
@@ -157,7 +158,11 @@ export const PendingRequestsWidget = memo(function PendingRequestsWidget() {
               {r.serviceName ?? r.requestNumber ?? t("portal_dashboard.request", { defaultValue: "Request" })}
             </Link>
             <PortalBadge tone={STATUS_TONE[r.status] ?? "neutral"}>
-              {REQUEST_STATUS_LABELS[r.status] ?? "?"}
+              {REQUEST_STATUS_LABELS[r.status]
+                ? t(`portal_requests.status_${REQUEST_STATUS_LABELS[r.status].replace(/\s+/g, "")}`, {
+                    defaultValue: REQUEST_STATUS_LABELS[r.status],
+                  })
+                : "?"}
             </PortalBadge>
           </li>
         ))}
@@ -192,11 +197,11 @@ export const FeeStatusWidget = memo(function FeeStatusWidget() {
       <div className={styles.feeAmounts}>
         <div>
           <span className={styles.feeLabel}>{t("portal_dashboard.outstanding", { defaultValue: "Outstanding" })}</span>
-          <strong className={outstanding > 0 ? styles.feeDue : styles.feeOk}>{egp(outstanding)}</strong>
+          <strong className={outstanding > 0 ? styles.feeDue : styles.feeOk}>{egp(outstanding, t)}</strong>
         </div>
         <div className={styles.feeEnd}>
           <span className={styles.feeLabel}>{t("portal_dashboard.total", { defaultValue: "Total" })}</span>
-          <strong>{egp(total)}</strong>
+          <strong>{egp(total, t)}</strong>
         </div>
       </div>
       <div className={styles.feeBar}>
@@ -291,7 +296,7 @@ export const AcademicCalendarWidget = memo(function AcademicCalendarWidget() {
         <span className={styles.milestoneIcon}><Hourglass size={18} /></span>
         <div className={styles.milestoneBody}>
           <strong>{t("portal_dashboard.semester_ends", { defaultValue: "Semester ends" })}</strong>
-          <span>{endDate?.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+          <span>{endDate?.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : "en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
         </div>
         {daysLeft != null && (
           <span className={styles.milestoneCount}>
