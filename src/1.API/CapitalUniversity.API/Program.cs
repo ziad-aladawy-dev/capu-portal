@@ -275,15 +275,18 @@ using (var scope = app.Services.CreateScope())
     // Guarded by IsRelational() so the in-memory provider used in tests skips it.
     var autoMigrate = builder.Configuration.GetValue("Database:AutoMigrate", true);
     var isTesting = builder.Environment.EnvironmentName == "Testing";
+    var isDev = builder.Environment.IsDevelopment();
     // CoreDbContext is normally in-memory under Testing (IsRelational == false →
     // skipped). The benchmark test re-points it at the shared SQL database, which
     // is EnsureCreated-provisioned without a migrations-history row — so use the
     // idempotent EnsureCreated there too; real deployments apply migrations.
+    // To prevent production deployment risks, automatic migrations are only executed
+    // in Development and Testing.
     if (autoMigrate && db.Database.IsRelational())
     {
         if (isTesting)
             await db.Database.EnsureCreatedAsync();
-        else
+        else if (isDev)
             await db.Database.MigrateAsync();
     }
 
@@ -297,7 +300,7 @@ using (var scope = app.Services.CreateScope())
     {
         if (isTesting)
             await studentServicesDbContext.Database.EnsureCreatedAsync();
-        else
+        else if (isDev)
             await studentServicesDbContext.Database.MigrateAsync();
     }
 

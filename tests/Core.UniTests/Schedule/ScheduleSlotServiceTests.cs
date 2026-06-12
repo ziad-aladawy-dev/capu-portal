@@ -255,7 +255,7 @@ public class ScheduleSlotServiceTests
 
         await sut.UpdateAsync(slot.Id, new UpdateScheduleSlotRequest { Location = "Hall B" });
 
-        LocalizedJson.Extract(slot.Location, "en").Should().Be("Hall B");
+        LocalizedJson.Extract(slot.Location ?? "", "en").Should().Be("Hall B");
         slotRepo.Verify(
             r => r.ExistsAsync(It.IsAny<Guid>(), It.IsAny<DayOfWeek>(), It.IsAny<TimeOnly>(), It.IsAny<TimeOnly>(), It.IsAny<CancellationToken>()),
             Times.Never);
