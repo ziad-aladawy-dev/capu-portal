@@ -137,3 +137,5 @@ tools/*
 
 Migrations/*
 .test*
+
+temp_bin*
