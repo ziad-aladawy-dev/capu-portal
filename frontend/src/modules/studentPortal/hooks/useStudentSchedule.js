@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../core/api/apiClient";
-import * as scheduleService from "../../../core/services/scheduleService";
-import * as courseService from "../../../core/services/courseService";
 
 const SLOT_COLORS = [
   "#2563eb", "#8b5cf6", "#059669", "#d97706", "#db2777",
@@ -16,74 +14,51 @@ function hashColor(code) {
 
 const trimTime = (s) => String(s || "").slice(0, 5);
 
-function resolveScope(activeScope) {
-  let nodeId = activeScope?.structural?.nodeId;
+function resolveSemesterId(activeScope) {
   let semesterId = activeScope?.temporal?.semesterId;
   try {
-    if (!nodeId) nodeId = JSON.parse(localStorage.getItem("capu_selected_scope_node"))?.id || null;
     if (!semesterId) semesterId = JSON.parse(localStorage.getItem("capu_selected_semester"))?.id || null;
   } catch { /* ignore */ }
-  return { nodeId, semesterId };
+  return semesterId;
 }
 
 /**
- * Weekly timetable entries for the student's scope: offerings → slots →
- * course titles, flattened to render-ready rows
- * { dayNum (1=Mon..7=Sun), start, end, code, title, room, color, sectionCode }.
+ * Weekly timetable rows for the logged-in student's OWN enrolled courses via
+ * the self-scoped GET /student/schedule aggregate (students hold no
+ * course-offerings/schedule-slots catalog grants, so the old offerings
+ * fan-out 403'd for every student).
+ *
+ * Day convention follows the backend's System.DayOfWeek: 0=Sun .. 6=Sat.
+ * Rows: { id, dayNum (0..6), start, end, code, title, room, color,
+ * sectionCode, isClosed }.
  */
 export function useStudentSchedule(activeScope) {
-  const { nodeId, semesterId } = resolveScope(activeScope);
+  const semesterId = resolveSemesterId(activeScope);
 
   return useQuery({
-    queryKey: ["portal", "schedule", nodeId, semesterId],
-    enabled: Boolean(nodeId && semesterId),
+    queryKey: ["portal", "schedule", semesterId ?? "all"],
     staleTime: 60_000,
     queryFn: async () => {
-      const offeringsResp = await api.get(`/course-offerings/node/${nodeId}/semester/${semesterId}`);
-      const offerings = Array.isArray(offeringsResp.data) ? offeringsResp.data : [];
-      if (offerings.length === 0) return [];
-
-      const slotsResults = await Promise.allSettled(
-        offerings.map((o) =>
-          scheduleService.fetchSlotsForOffering(o.id).then((slots) => ({
-            offering: o,
-            slots: Array.isArray(slots) ? slots : [],
-          }))
-        )
-      );
-
-      const courseIds = [...new Set(offerings.map((o) => o.courseId))];
-      const courseResults = await Promise.allSettled(courseIds.map((id) => courseService.fetchCourse(id)));
-      const courseMap = {};
-      courseIds.forEach((id, i) => {
-        if (courseResults[i].status === "fulfilled" && courseResults[i].value) courseMap[id] = courseResults[i].value;
+      const { data } = await api.get("/student/schedule", {
+        params: semesterId ? { semesterId } : undefined,
       });
-
-      const rows = [];
-      for (const r of slotsResults) {
-        if (r.status !== "fulfilled") continue;
-        const { offering, slots } = r.value;
-        const course = courseMap[offering.courseId];
-        if (!course) continue;
-        for (const slot of slots) {
-          const dayNum = Number(slot.dayOfWeek ?? slot.day);
-          if (!dayNum || dayNum < 1 || dayNum > 7) continue;
-          rows.push({
-            id: slot.id,
-            dayNum,
-            start: trimTime(slot.startTime),
-            end: trimTime(slot.endTime),
-            code: course.code || "?",
-            title: course.title || "",
-            room: slot.location || "",
-            color: hashColor(course.code || "?"),
-            sectionCode: offering.sectionCode,
-            isClosed: slot.isClosed,
-          });
-        }
-      }
-      rows.sort((a, b) => a.dayNum - b.dayNum || a.start.localeCompare(b.start));
-      return rows;
+      const slots = Array.isArray(data) ? data : [];
+      return slots
+        .filter((s) => Number.isInteger(s.dayOfWeek) && s.dayOfWeek >= 0 && s.dayOfWeek <= 6)
+        .map((s) => ({
+          id: s.id,
+          offeringId: s.courseOfferingId,
+          dayNum: s.dayOfWeek,
+          start: trimTime(s.startTime),
+          end: trimTime(s.endTime),
+          code: s.courseCode || "?",
+          title: s.courseTitle || "",
+          room: s.location || "",
+          instructorName: s.instructorName || "",
+          color: hashColor(s.courseCode || "?"),
+          sectionCode: s.sectionCode,
+          isClosed: s.isClosed,
+        }));
     },
   });
 }
@@ -91,13 +66,12 @@ export function useStudentSchedule(activeScope) {
 /* ── .ics export ──────────────────────────────────────────
    One weekly-recurring VEVENT per slot, until the semester end. */
 
-const ICS_DAY = { 1: "MO", 2: "TU", 3: "WE", 4: "TH", 5: "FR", 6: "SA", 7: "SU" };
+const ICS_DAY = { 0: "SU", 1: "MO", 2: "TU", 3: "WE", 4: "TH", 5: "FR", 6: "SA" };
 
 function nextDateForWeekday(dayNum) {
-  // dayNum: 1=Mon..7=Sun ; JS getDay: 0=Sun..6=Sat
-  const target = dayNum % 7; // 7→0 (Sun)
+  // dayNum follows JS getDay / System.DayOfWeek: 0=Sun..6=Sat.
   const d = new Date();
-  const delta = (target - d.getDay() + 7) % 7;
+  const delta = (dayNum - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + delta);
   return d;
 }

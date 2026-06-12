@@ -13,6 +13,7 @@ public interface IAcademicPlanRepository
     void Delete(AcademicPlan plan);
     Task<bool> ContainsCourseAsync(Guid planId, Guid courseId, CancellationToken cancellationToken = default);
     Task<AcademicPlanCourse?> GetPlanCourseAsync(Guid planCourseId, CancellationToken cancellationToken = default);
+    void AddPlanCourse(AcademicPlanCourse planCourse);
     void RemovePlanCourse(AcademicPlanCourse planCourse);
 
     /// <summary>Paged academic-plan search; never eager-loads composition.</summary>

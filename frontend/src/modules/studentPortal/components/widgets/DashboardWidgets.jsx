@@ -32,7 +32,7 @@ const STATUS_TONE = {
 
 /* Upcoming Schedule (span 2) */
 export const UpcomingScheduleWidget = memo(function UpcomingScheduleWidget() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeScope } = useAuth();
   const { data, isLoading, isError, refetch } = useTodaySchedule(activeScope);
   const next = (data || []).slice(0, 3);
@@ -56,7 +56,7 @@ export const UpcomingScheduleWidget = memo(function UpcomingScheduleWidget() {
               <Clock size={13} /> {String(s.startTime ?? "").slice(0, 5)}
             </span>
             <span className={styles.scheduleCourse}>
-              {s.courseTitle ?? s.courseCode ?? s.title ?? t("portal_dashboard.class", { defaultValue: "Class" })}
+              {getLocalized(s.courseTitle, i18n.language) || s.courseCode || s.title || t("portal_dashboard.class", { defaultValue: "Class" })}
             </span>
             {s.room && (
               <span className={styles.scheduleRoom}>
@@ -72,7 +72,7 @@ export const UpcomingScheduleWidget = memo(function UpcomingScheduleWidget() {
 
 /* Active Courses (span 2) */
 export const ActiveCoursesWidget = memo(function ActiveCoursesWidget() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeScope } = useAuth();
   const { data, isLoading, isError, refetch } = useAcademicOverview(activeScope);
 
@@ -96,7 +96,7 @@ export const ActiveCoursesWidget = memo(function ActiveCoursesWidget() {
         {(data?.courses ?? []).slice(0, 4).map((c) => (
           <li key={c.id} className={styles.courseItem}>
             <span className={styles.courseCode}>{c.code}</span>
-            <span className={styles.courseTitle}>{c.title}</span>
+            <span className={styles.courseTitle}>{getLocalized(c.title, i18n.language)}</span>
             <PortalBadge tone="primary">{c.creditHours} {t("portal_dashboard.cr", { defaultValue: "cr" })}</PortalBadge>
           </li>
         ))}

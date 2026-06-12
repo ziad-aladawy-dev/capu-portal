@@ -46,6 +46,9 @@ public class AcademicPlanRepository : IAcademicPlanRepository
     public Task<AcademicPlanCourse?> GetPlanCourseAsync(Guid planCourseId, CancellationToken cancellationToken = default) =>
         _context.AcademicPlanCourses.FirstOrDefaultAsync(pc => pc.Id == planCourseId, cancellationToken);
 
+    public void AddPlanCourse(AcademicPlanCourse planCourse) =>
+        _context.AcademicPlanCourses.Add(planCourse);
+
     public void RemovePlanCourse(AcademicPlanCourse planCourse) =>
         _context.AcademicPlanCourses.Remove(planCourse);
 

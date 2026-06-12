@@ -660,7 +660,7 @@ function PermissionsEditor({ user, tree, assignment }) {
                           title={outside
                             ? t("scope_outside_active", { defaultValue: "Outside your active scope" })
                             : t("assignment_scope")}
-                          style={outside ? { borderColor: "var(--color-warning)", background: "var(--color-warning-soft)", color: "var(--color-warning)" } : undefined}
+                          style={outside ? { borderColor: "var(--color-warning)", background: "#fffbeb", color: "var(--color-warning)" } : undefined}
                         >
                           <span className="perm-assigned-scope-icon">
                             {outside ? <AlertTriangle size={10} /> : nodeId ? <Building2 size={10} /> : <Globe size={10} />}
@@ -928,7 +928,7 @@ function PermissionsEditor({ user, tree, assignment }) {
               {scopeModalNodeOutside && (
                 <div role="alert" style={{
                   display: "flex", alignItems: "flex-start", gap: 8,
-                  background: "var(--color-warning-soft)", border: "1px solid #fde68a", borderRadius: 8,
+                  background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
                   padding: "8px 10px", fontSize: 12, color: "var(--color-warning)", marginBottom: 10,
                 }}>
                   <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />

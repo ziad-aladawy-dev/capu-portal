@@ -9,7 +9,7 @@ import StatusBadge from "../../../../core/components/StatusBadge";
 import PermissionGate from "../../../../core/auth/PermissionGate";
 import {
   findOverlappingSlots, getSlotKindClass,
-  timeToGridPosition, timeToRowSpan, generateTimeIntervals,
+  timeToGridPosition, timeToRowSpan, generateTimeIntervals, toMinutes,
 } from "../../../../core/utils/scheduleOverlap";
 
 const START_HOUR = 7;
@@ -17,23 +17,35 @@ const END_HOUR = 22;
 const intervals = generateTimeIntervals(START_HOUR, END_HOUR);
 const days = [0, 1, 2, 3, 4, 5, 6];
 
-function DroppableCell({ day, time, onDrop }) {
+function DroppableCell({ day, time, onClick }) {
   const id = `cell-${day}-${time}`;
   const { setNodeRef, isOver } = useDroppable({ id });
+  const timeStr = intervals[time] || "";
+  const isHour = timeStr.endsWith(":00");
+
+  const handleClick = () => {
+    if (onClick) {
+      const startTime = timeStr || "08:00";
+      const [h, m] = startTime.split(":").map(Number);
+      const endTime = `${String(h + 1).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      onClick(day, startTime, endTime);
+    }
+  };
 
   return (
     <div
       ref={setNodeRef}
-      className={`sch-drop-cell${isOver ? " is-over" : ""}`}
+      className={`sch-drop-cell${isOver ? " is-over" : ""}${isHour ? " is-hour" : ""}`}
       role="gridcell"
-      aria-label={`${DAY_LABELS[day]} ${intervals[time] || time}`}
+      aria-label={`${DAY_LABELS[day]} ${timeStr || time}`}
       style={{
         gridRow: parseInt(time) + 2,
         gridColumn: day + 2,
-        position: "relative",
+        cursor: onClick ? "cell" : undefined,
       }}
       data-day={day}
       data-time={time}
+      onClick={handleClick}
     />
   );
 }
@@ -51,14 +63,14 @@ function DraggableSlotBlock({ slot, kindLabel, hasConflict, closed, onEdit, onDe
   const style = {
     gridRow: `${startRow} / span ${span}`,
     gridColumn: slot.dayOfWeek + 2,
-    opacity: closed ? 0.55 : isDragging ? 0.3 : 1,
+    opacity: closed ? 0.55 : isDragging ? 0.25 : 1,
     filter: closed ? "grayscale(0.6)" : "none",
-    cursor: closed ? "default" : "grab",
+    cursor: closed ? "default" : isDragging ? "grabbing" : "grab",
     borderColor: hasConflict ? "#dc2626" : undefined,
     borderWidth: hasConflict ? 2 : undefined,
-    boxShadow: hasConflict ? "0 0 0 2px rgba(220,38,38,0.3)" : isDragging ? "0 4px 12px rgba(0,0,0,0.2)" : undefined,
-    transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-    zIndex: isDragging ? 100 : undefined,
+    boxShadow: hasConflict ? "0 0 0 2px rgba(220,38,38,0.3)" : undefined,
+    zIndex: isDragging ? 1 : undefined,
+    pointerEvents: isDragging ? "none" : undefined,
   };
 
   return (
@@ -119,7 +131,7 @@ function DraggableSlotBlock({ slot, kindLabel, hasConflict, closed, onEdit, onDe
   );
 }
 
-function UnscheduledOffering({ offering, index }) {
+function SectionRow({ offering, selected, onSelect }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `offering-${offering.id}`,
     data: { ...offering, _isOffering: true },
@@ -136,18 +148,25 @@ function UnscheduledOffering({ offering, index }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="sch-unscheduled-card"
+      className={`sch-offering-card sch-section-row${selected ? " is-selected" : ""}`}
       style={style}
       role="button"
       tabIndex={0}
-      aria-label={`Drag ${offering.courseCode} to schedule`}
+      aria-pressed={selected}
+      aria-label={`${offering.courseCode} ${offering.courseTitle} - Section ${offering.sectionCode}`}
+      onClick={() => onSelect?.(offering.id)}
+      onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(offering.id); }}
     >
-      <Move size={10} style={{ flexShrink: 0, color: "#9ca3af" }} />
-      <div className="sch-unscheduled-info">
-        <strong>{offering.courseCode}</strong>
-        <span>{offering.courseTitle} ({offering.sectionCode})</span>
-      </div>
-      <StatusBadge status={offering.isClosed ? "closed" : "open"} label={offering.isClosed ? "Closed" : "Open"} style={{ fontSize: 8 }} />
+      <Move size={10} className="sch-offering-card-grip" aria-hidden="true" />
+      <span className="sch-section-chip">{offering.sectionCode}</span>
+      <span className={`sch-section-label${offering.instructorName ? "" : " is-unassigned"}`}>
+        {offering.instructorName || "No instructor"}
+      </span>
+      {offering.slotCount > 0 ? (
+        <span className="sch-offering-count has-slots">{offering.slotCount} slot{offering.slotCount !== 1 ? "s" : ""}</span>
+      ) : (
+        <span className="sch-offering-count">Unscheduled</span>
+      )}
     </div>
   );
 }
@@ -161,6 +180,9 @@ export default function DraggableScheduleGrid({
   onDeleteSlot,
   onToggleLifecycle,
   onCreateSlot,
+  onMoveSlot,
+  onCellClick,
+  backgroundSlots = [],
   slotOverlaps = {},
   openLoading,
   closeLoading,
@@ -171,6 +193,7 @@ export default function DraggableScheduleGrid({
   const [showRoomModal, setShowRoomModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState("");
   const [roomError, setRoomError] = useState("");
+  const [offeringSearch, setOfferingSearch] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -178,15 +201,35 @@ export default function DraggableScheduleGrid({
     })
   );
 
-  const scheduledOfferingIds = useMemo(() => {
-    const ids = new Set();
-    for (const s of slots) ids.add(s.courseOfferingId);
-    return ids;
-  }, [slots]);
-
-  const unscheduled = useMemo(() => {
-    return offerings.filter((o) => !scheduledOfferingIds.has(o.id));
-  }, [offerings, scheduledOfferingIds]);
+  const courseGroups = useMemo(() => {
+    const q = offeringSearch.trim().toLowerCase();
+    const filtered = q
+      ? offerings.filter((o) =>
+          `${o.courseCode} ${o.courseTitle} ${o.sectionCode}`.toLowerCase().includes(q))
+      : offerings;
+    const byCourse = new Map();
+    for (const o of filtered) {
+      if (!byCourse.has(o.courseId)) {
+        byCourse.set(o.courseId, {
+          courseId: o.courseId,
+          courseCode: o.courseCode,
+          courseTitle: o.courseTitle,
+          sections: [],
+        });
+      }
+      byCourse.get(o.courseId).sections.push(o);
+    }
+    const groups = [...byCourse.values()];
+    for (const g of groups) {
+      g.sections.sort((a, b) =>
+        String(a.sectionCode).localeCompare(String(b.sectionCode), undefined, { numeric: true }));
+      g.scheduled = g.sections.filter((s) => s.slotCount > 0).length;
+    }
+    groups.sort((a, b) =>
+      (a.scheduled === a.sections.length) - (b.scheduled === b.sections.length) ||
+      String(a.courseCode).localeCompare(String(b.courseCode)));
+    return groups;
+  }, [offerings, offeringSearch]);
 
   const handleDragStart = useCallback((event) => {
     setDragTarget(event.active.data.current);
@@ -201,15 +244,14 @@ export default function DraggableScheduleGrid({
     const data = active.data.current;
     const dropId = over.id;
 
-    // Check if dropped on a cell
     if (typeof dropId === "string" && dropId.startsWith("cell-")) {
       const parts = dropId.split("-");
       const day = parseInt(parts[1]);
       const timeIdx = parseInt(parts[2]);
+      const time = intervals[timeIdx] || "08:00";
 
       if (data._isOffering) {
-        // Dropping a new offering onto the grid
-        const time = intervals[timeIdx] || "08:00";
+        // Dragging a new offering from the sidebar → show room modal
         const endTime = addHour(time);
         const dayOfWeek = day;
 
@@ -226,9 +268,20 @@ export default function DraggableScheduleGrid({
         setSelectedRoom("");
         setRoomError("");
         setShowRoomModal(true);
+      } else if (data.id && onMoveSlot) {
+        // Dragging an existing slot to a new cell → move it
+        const startMin = toMinutes(data.startTime?.slice(0, 5));
+        const endMin = toMinutes(data.endTime?.slice(0, 5));
+        const durationMin = endMin - startMin;
+        const newStartMin = toMinutes(time);
+        const newEndH = Math.floor((newStartMin + durationMin) / 60);
+        const newEndM = (newStartMin + durationMin) % 60;
+        const endTime = `${String(newEndH).padStart(2, "0")}:${String(newEndM).padStart(2, "0")}`;
+
+        onMoveSlot({ slot: data, dayOfWeek: day, startTime: time, endTime });
       }
     }
-  }, [intervals]);
+  }, [intervals, onMoveSlot]);
 
   const handleDragCancel = useCallback(() => {
     setDragTarget(null);
@@ -290,20 +343,50 @@ export default function DraggableScheduleGrid({
     >
       <div className="sch-drag-layout">
         {/* Unscheduled sidebar */}
-        <div className="sch-unscheduled-sidebar" role="list" aria-label="Unscheduled offerings, drag to timetable">
+        <div className="sch-unscheduled-sidebar" role="list" aria-label="Course offerings, drag to timetable">
           <div className="sch-unscheduled-header">
             <Clock size={13} />
-            <span>Unscheduled</span>
+            <span>Offerings ({offerings.length})</span>
           </div>
-          {unscheduled.length === 0 ? (
-            <div className="sch-unscheduled-empty">All offerings scheduled</div>
+          <input
+            type="search"
+            className="sch-offering-search"
+            placeholder="Search offerings..."
+            value={offeringSearch}
+            onChange={(e) => setOfferingSearch(e.target.value)}
+            aria-label="Search offerings"
+          />
+          {courseGroups.length === 0 ? (
+            <div className="sch-unscheduled-empty">No matches</div>
           ) : (
             <div className="sch-unscheduled-list">
-              {unscheduled.map((o, idx) => (
-                <UnscheduledOffering key={o.id} offering={o} index={idx} />
+              {courseGroups.map((g) => (
+                <div className="sch-course-group" key={g.courseId}>
+                  <div className="sch-course-group-header" title={`${g.courseCode} — ${g.courseTitle}`}>
+                    <strong>{g.courseCode}</strong>
+                    <span className="sch-course-group-title">{g.courseTitle}</span>
+                    <span
+                      className={`sch-course-progress${g.scheduled === g.sections.length ? " done" : ""}`}
+                      title={`${g.scheduled}/${g.sections.length} sections scheduled`}
+                    >
+                      {g.scheduled}/{g.sections.length}
+                    </span>
+                  </div>
+                  {g.sections.map((o) => (
+                    <SectionRow
+                      key={o.id}
+                      offering={o}
+                      selected={o.id === selectedOfferingId}
+                      onSelect={onSelectOffering}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           )}
+          <div className="sch-sidebar-hint">
+            💡 Drag a section onto the timetable to schedule it, or click any empty cell to create a slot manually.
+          </div>
         </div>
 
         {/* Timetable grid */}
@@ -323,14 +406,23 @@ export default function DraggableScheduleGrid({
               </div>
             ))}
 
-            {intervals.map((time, rowIdx) => (
+            {intervals.map((time, rowIdx) => {
+              const isHour = time.endsWith(":00");
+              return (
               <div key={`row-${time}`} role="row" style={{ display: "contents" }}>
-                <div className="sch-time-label" role="rowheader" style={{ gridRow: rowIdx + 2, gridColumn: 1 }}>{time}</div>
-                {days.map((d, colIdx) => (
-                  <DroppableCell key={`cell-${d}-${rowIdx}`} day={d} time={rowIdx} />
+                <div
+                  className={`sch-time-label${isHour ? " is-hour" : ""}`}
+                  role="rowheader"
+                  style={{ gridRow: rowIdx + 2, gridColumn: 1 }}
+                >
+                  {time}
+                </div>
+                {days.map((d) => (
+                  <DroppableCell key={`cell-${d}-${rowIdx}`} day={d} time={rowIdx} onClick={onCellClick} />
                 ))}
               </div>
-            ))}
+              );
+            })}
 
             {slots.map((slot) => {
               const kindLabel = SLOT_KIND_LABELS[slot.kind] || "Other";
@@ -350,6 +442,27 @@ export default function DraggableScheduleGrid({
                   openLoading={openLoading}
                   closeLoading={closeLoading}
                 />
+              );
+            })}
+
+            {/* Ghost blocks: other offerings' slots */}
+            {backgroundSlots.map((gs) => {
+              const startRow = timeToGridPosition(gs.startTime?.slice(0, 5), START_HOUR);
+              const span = timeToRowSpan(gs.startTime?.slice(0, 5), gs.endTime?.slice(0, 5));
+              return (
+                <div
+                  key={`ghost-${gs.id}`}
+                  className={`sch-slot-ghost ${getSlotKindClass(gs.kind)}`}
+                  style={{
+                    gridRow: `${startRow} / span ${span}`,
+                    gridColumn: gs.dayOfWeek + 2,
+                  }}
+                  title={`${gs.courseCode} ${gs.sectionCode || ""} · ${gs.startTime?.slice(0,5)}–${gs.endTime?.slice(0,5)}`}
+                  onClick={() => onSelectOffering?.(gs.courseOfferingId)}
+                >
+                  <span className="sch-slot-ghost-code">{gs.courseCode}</span>
+                  <span className="sch-slot-ghost-room">{gs.location || ""}</span>
+                </div>
               );
             })}
           </div>
@@ -391,21 +504,31 @@ export default function DraggableScheduleGrid({
       </table>
 
       {/* Drag overlay */}
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {dragTarget ? (
           <div
             style={{
-              padding: "6px 10px",
+              padding: "8px 14px",
               background: "#1a1f5e",
               color: "white",
               borderRadius: 8,
               fontSize: 12,
               fontWeight: 600,
               whiteSpace: "nowrap",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              maxWidth: 200,
             }}
           >
-            {dragTarget.courseCode || dragTarget._isOffering ? dragTarget.courseCode : `${DAY_LABELS[dragTarget.dayOfWeek]} ${dragTarget.startTime?.slice(0,5)}`}
+            <span>{dragTarget._isOffering
+              ? `${dragTarget.courseCode} · ${dragTarget.sectionCode || ""}`
+              : `${SLOT_KIND_LABELS[dragTarget.kind] || ""} ${dragTarget.startTime?.slice(0,5)}–${dragTarget.endTime?.slice(0,5)}`
+            }</span>
+            {!dragTarget._isOffering && dragTarget.location && (
+              <span style={{ fontSize: 10, opacity: 0.7 }}>{dragTarget.location}</span>
+            )}
           </div>
         ) : null}
       </DragOverlay>

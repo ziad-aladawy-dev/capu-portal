@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "../../../core/api/apiClient";
-import * as courseService from "../../../core/services/courseService";
 import * as treasuryService from "../../../core/services/treasuryService";
-import * as scheduleService from "../../../core/services/scheduleService";
 import { fetchUnreadNotifications } from "../../../core/services/notificationService";
 import { getAvailableServicesForStudent } from "../../studentServices/services/studentServicesService";
 
@@ -39,38 +37,28 @@ function resolveScopeIds(activeScope) {
   return { nodeId, semId, semesterName };
 }
 
-async function loadOfferings(nodeId, semId) {
-  const resp = await api.get(`/course-offerings/node/${nodeId}/semester/${semId}`);
-  return Array.isArray(resp.data) ? resp.data : [];
-}
-
-/** Offerings / courses (with titles+credits) / total credits for the active scope. */
+/** The student's OWN enrolled courses (titles + credits) via the self-scoped
+ *  GET /courses/registered (RegisteredCourses.View is an implicit student
+ *  grant). The old offerings+courses catalog fan-out 403'd for students. */
 export function useAcademicOverview(activeScope) {
-  const { nodeId, semId, semesterName } = resolveScopeIds(activeScope);
+  const { semId, semesterName } = resolveScopeIds(activeScope);
   return useQuery({
-    queryKey: ["dashboard", "academic-overview", nodeId, semId],
-    enabled: Boolean(nodeId && semId),
+    queryKey: ["dashboard", "academic-overview", semId ?? "all"],
     staleTime: STALE,
     queryFn: async () => {
-      const offerings = await loadOfferings(nodeId, semId);
-      const courseIds = [...new Set(offerings.map((o) => o.courseId))];
-      const results = await Promise.allSettled(courseIds.map((id) => courseService.fetchCourse(id)));
-      let totalCredits = 0;
-      const courses = [];
-      for (const r of results) {
-        if (r.status !== "fulfilled" || !r.value) continue;
-        if (r.value.creditHours) totalCredits += r.value.creditHours;
-        courses.push({
-          id: r.value.id,
-          code: r.value.code,
-          title: r.value.title,
-          creditHours: r.value.creditHours ?? 0,
-        });
-      }
+      const { data } = await api.get("/courses/registered");
+      const registered = (Array.isArray(data) ? data : [])
+        .filter((c) => !semId || c.semesterId === semId);
+      const courses = registered.map((c) => ({
+        id: c.id,
+        code: c.courseCode,
+        title: c.courseTitle,
+        creditHours: c.creditHours ?? 0,
+      }));
       return {
-        offeringCount: offerings.length,
-        courseCount: courseIds.length,
-        totalCredits,
+        offeringCount: registered.length,
+        courseCount: courses.length,
+        totalCredits: courses.reduce((s, c) => s + c.creditHours, 0),
         semesterName,
         courses,
       };
@@ -162,30 +150,24 @@ export function useFinancialSnapshot(studentId) {
   });
 }
 
-/** Today's classes derived from the active-scope offerings' schedule slots. */
+/** Today's classes from the self-scoped student schedule aggregate
+ *  (GET /student/schedule — students hold no catalog grants, so the old
+ *  offerings fan-out 403'd; dayOfWeek is 0=Sun..6=Sat, same as JS getDay). */
 export function useTodaySchedule(activeScope) {
-  const { nodeId, semId } = resolveScopeIds(activeScope);
+  const { semId } = resolveScopeIds(activeScope);
   return useQuery({
-    queryKey: ["dashboard", "today-schedule", nodeId, semId],
-    enabled: Boolean(nodeId && semId),
+    queryKey: ["dashboard", "today-schedule", semId ?? "all"],
     staleTime: STALE,
     queryFn: async () => {
-      const offerings = await loadOfferings(nodeId, semId);
-      const today = new Date().getDay(); // 0=Sun..6=Sat
-      const slotLists = await Promise.allSettled(
-        offerings.slice(0, 12).map((o) => scheduleService.fetchSlotsForOffering(o.id ?? o.offeringId))
-      );
-      const slots = [];
-      for (const r of slotLists) {
-        if (r.status !== "fulfilled") continue;
-        const list = Array.isArray(r.value) ? r.value : r.value?.items || [];
-        for (const s of list) {
-          const day = s.dayOfWeek ?? s.day;
-          if (day === today || day === today + 1 /* 1-indexed schemas */) slots.push(s);
-        }
-      }
-      slots.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
-      return slots.slice(0, 6);
+      const { data } = await api.get("/student/schedule", {
+        params: semId ? { semesterId: semId } : undefined,
+      });
+      const today = new Date().getDay();
+      return (Array.isArray(data) ? data : [])
+        .filter((s) => s.dayOfWeek === today)
+        .map((s) => ({ ...s, room: s.location }))
+        .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)))
+        .slice(0, 6);
     },
   });
 }

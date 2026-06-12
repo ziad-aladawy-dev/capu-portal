@@ -112,21 +112,19 @@
 
 .sheetBrandMark {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 68px;
   border-radius: 10px;
-  background: var(--portal-gold-grad);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .sheetBrandLogo {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .sheetBrandText {

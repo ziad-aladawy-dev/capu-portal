@@ -1,11 +1,24 @@
 import { lazy } from "react";
 import { studentDirectoryConfig } from "../../core/components/directory/directoryConfigs";
 
+const PeopleDashboardPage = lazy(() => import("./pages/PeopleDashboardPage"));
 const DirectoryPage = lazy(() => import("../../core/components/directory/DirectoryPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 const StudentAcademicHubPage = lazy(() => import("./pages/StudentAcademicHubPage"));
 
 export default [
+  {
+    path: "/admin/people/dashboard",
+    component: PeopleDashboardPage,
+    permission: "dashboard.dashboard.view",
+    pageType: "management",
+    applicableTo: "both",
+    menuItem: {
+      category: "People Management",
+      label: "Overview",
+      icon: "BarChart3",
+    },
+  },
   {
     path: "/admin/students",
     component: DirectoryPage,

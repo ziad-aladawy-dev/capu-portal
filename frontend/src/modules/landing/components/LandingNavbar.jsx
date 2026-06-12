@@ -37,7 +37,7 @@ function LandingNavbar() {
       <div className="navbar-container">
         <div className="navbar-brand">
           <img
-            src="/images/UniLogo2.png"
+            src="/images/capital-uni-logo-nobackground.png"
             alt="Capital University"
             className="navbar-logo-img"
           />

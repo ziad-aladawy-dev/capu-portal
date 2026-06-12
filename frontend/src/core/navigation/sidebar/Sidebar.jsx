@@ -81,7 +81,7 @@ function Sidebar({ isOpen, isMobile, onClose }) {
 
       <div className="sidebar-brand">
         <div className="sidebar-logo-mark">
-          <img src="/images/UniLogo2.png" alt="Capital University" className="sidebar-logo-img" />
+          <img src="/images/capital-uni-logo-nobackground.png" alt="Capital University" className="sidebar-logo-img" />
         </div>
         <div className="sidebar-university-name">{t("app_name")}</div>
         <div className="sidebar-university-sub">{t("control_panel")}</div>

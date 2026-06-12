@@ -380,11 +380,13 @@ public class AcademicPlanService : IAcademicPlanService
             Semester = request.Semester,
             IsMandatory = request.IsMandatory,
         };
-        // The plan is tracked, so the new child is picked up by change
-        // detection on its own. Deliberately NOT calling _plans.Update(plan):
-        // that would force a rewrite of the (unchanged) plan row under its
-        // RowVersion guard, making concurrent composition edits conflict
-        // with each other for no reason.
+        // Track the new child EXPLICITLY as Added. BaseEntity pre-assigns the
+        // Guid key, so relationship-fixup discovery would track it as Modified
+        // (UPDATE on a row that doesn't exist → DbUpdateConcurrencyException).
+        // Deliberately NOT calling _plans.Update(plan): that would force a
+        // rewrite of the (unchanged) plan row under its RowVersion guard,
+        // making concurrent composition edits conflict with each other for no reason.
+        _plans.AddPlanCourse(entry);
         plan.PlanCourses.Add(entry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
@@ -457,14 +459,18 @@ public class AcademicPlanService : IAcademicPlanService
                 throw new ConflictException(LocalizedKeys.Courses.PlanCourseAlreadyPresent);
             }
 
-            plan.PlanCourses.Add(new AcademicPlanCourse
+            var entry = new AcademicPlanCourse
             {
                 AcademicPlanId = planId,
                 CourseId = course.Id,
                 Level = add.Level,
                 Semester = add.Semester,
                 IsMandatory = add.IsMandatory,
-            });
+            };
+            // Explicit Add — see AddCourseAsync: fixup discovery would track
+            // the pre-keyed child as Modified, not Added.
+            _plans.AddPlanCourse(entry);
+            plan.PlanCourses.Add(entry);
         }
 
         // Composition changes are INSERTs/DELETEs on AcademicPlanCourses only —
@@ -473,7 +479,7 @@ public class AcademicPlanService : IAcademicPlanService
         // so two overlapping batch edits (e.g. rapid drag-drops in the
         // curriculum grid) would collide on the parent row and surface as
         // DbUpdateConcurrencyException even though they touch different
-        // courses. The plan is tracked, so child adds/removes save on their own.
+        // courses.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(planId), cancellationToken);
         await BumpCollectionVersionAsync(cancellationToken);

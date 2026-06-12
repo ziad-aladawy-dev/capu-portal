@@ -334,7 +334,7 @@ function RolesPage() {
               background: "var(--color-surface)", border: "1px solid var(--color-border)",
               borderRadius: 6, padding: "6px 10px",
             }}>
-              <Search size={13} color="var(--gray-400)" />
+              <Search size={13} color="#9ca3af" />
               <input
                 type="text"
                 placeholder={t("search_roles")}
@@ -350,7 +350,7 @@ function RolesPage() {
           </div>
           <div className="roles-sidebar-list">
             {filteredRoles.length === 0 && roleSearch && (
-              <div style={{ padding: 20, textAlign: "center", color: "var(--gray-400)", fontSize: 12 }}>
+              <div style={{ padding: 20, textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
                 {t("no_roles_match", { search: roleSearch })}
               </div>
             )}
@@ -535,7 +535,7 @@ function RolesPage() {
                         </div>
                       ) : members.length === 0 ? (
                         <div className="role-members-empty">
-                          <Users size={32} color="var(--gray-300)" style={{ marginBottom: 8 }} />
+                          <Users size={32} color="#d1d5db" style={{ marginBottom: 8 }} />
                           <p>{t("no_members")}</p>
                         </div>
                       ) : members.length > MEMBER_VIRTUALIZE_THRESHOLD ? (
@@ -610,7 +610,7 @@ function RolesPage() {
             </div>
             <div className="roles-modal-body">
               <div className="role-add-member-search">
-                <Search size={14} color="var(--gray-400)" />
+                <Search size={14} color="#9ca3af" />
                 <input
                   type="text"
                   className="role-add-member-input"
@@ -624,12 +624,12 @@ function RolesPage() {
               <div className="role-add-member-results">
                 {memberSearchResults.length === 0 && memberSearch.trim() && !memberSearching ? (
                   <div className="role-add-member-empty">
-                    <Users size={24} color="var(--gray-300)" />
+                    <Users size={24} color="#d1d5db" />
                     <p>{t("no_staff_found")}</p>
                   </div>
                 ) : memberSearchResults.length === 0 && !memberSearch.trim() && !memberSearching ? (
                   <div className="role-add-member-empty">
-                    <UserPlus size={24} color="var(--gray-300)" />
+                    <UserPlus size={24} color="#d1d5db" />
                     <p>{t("type_to_search_staff")}</p>
                   </div>
                 ) : (

@@ -169,7 +169,7 @@ body {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--gray-400);
+  color: #9ca3af;
 }
 
 .search-input {
@@ -236,7 +236,7 @@ body {
   font-weight: 800;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: var(--gray-400);
+  color: #9ca3af;
 }
 
 .stat-icon {
@@ -360,7 +360,7 @@ body {
 .activity-time {
   margin-left: auto;
   font-size: 10px;
-  color: var(--gray-400);
+  color: #9ca3af;
   white-space: nowrap;
 }
 
@@ -427,7 +427,7 @@ body {
 }
 
 .qa-arrow {
-  color: var(--gray-400);
+  color: #9ca3af;
   transition: 0.2s ease;
 }
 

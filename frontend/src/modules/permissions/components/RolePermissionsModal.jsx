@@ -101,7 +101,7 @@ function RolePermissionsModal({ role, onClose }) {
             />
           )}
 
-          <div style={{ fontSize: 12, color: "var(--gray-400)", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: "8px 0 0", borderTop: "1px solid #f0f1f8", marginTop: 12 }}>
             {t("resources_configured", { configured: totalConfigured, total: totalResources })}
           </div>
         </div>

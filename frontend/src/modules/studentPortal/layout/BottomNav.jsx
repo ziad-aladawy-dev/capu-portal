@@ -99,7 +99,7 @@ function BottomNav({ badges = {} }) {
               <div className={styles.sheetHandle} />
               <div className={styles.sheetBrand}>
                 <span className={styles.sheetBrandMark}>
-                  <img src="/images/UniLogo2.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.sheetBrandLogo} />
+                  <img src="/images/capital-uni-logo-nobackground.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.sheetBrandLogo} />
                 </span>
                 <span className={styles.sheetBrandText}>
                   <strong>{t("university_name_full", { defaultValue: "Capital University" })}</strong>

@@ -1,9 +1,22 @@
 import { lazy } from "react";
 
+const FinanceDashboardPage = lazy(() => import("./pages/FinanceDashboardPage"));
 const TreasuryHubPage = lazy(() => import("./pages/TreasuryHubPage"));
 const BillingSetupPage = lazy(() => import("./pages/BillingSetupPage"));
 
 export default [
+  {
+    path: "/admin/finance/dashboard",
+    component: FinanceDashboardPage,
+    permission: "dashboard.dashboard.view",
+    pageType: "management",
+    applicableTo: "both",
+    menuItem: {
+      category: "Finance",
+      label: "Overview",
+      icon: "BarChart3",
+    },
+  },
   {
     path: "/admin/finance/treasury",
     component: TreasuryHubPage,

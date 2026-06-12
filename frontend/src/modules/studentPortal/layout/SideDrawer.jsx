@@ -62,7 +62,7 @@ function SideDrawer({ badges = {}, collapsed, onToggleCollapsed }) {
     <aside className={`${styles.drawer} ${collapsed ? styles.collapsed : ""}`}>
       <div className={styles.brand}>
         <span className={styles.brandMark}>
-          <img src="/images/UniLogo2.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.brandLogo} />
+          <img src="/images/capital-uni-logo-nobackground.png" alt={t("app_name", { defaultValue: "Capital University" })} className={styles.brandLogo} />
         </span>
         {!collapsed && (
           <span className={styles.brandText}>
