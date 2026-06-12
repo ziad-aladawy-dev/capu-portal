@@ -3,12 +3,14 @@ using CapitalUniversity.Core.Abstractions.Courses;
 using CapitalUniversity.Core.Abstractions.Courses.DTOs;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
 
 [ApiController]
 [Route("api/courses")]
+[Authorize]
 public class CoursesController : ControllerBase
 {
     private readonly ICourseService _service;

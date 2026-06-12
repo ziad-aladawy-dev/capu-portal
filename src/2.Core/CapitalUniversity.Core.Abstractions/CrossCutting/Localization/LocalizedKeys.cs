@@ -106,6 +106,22 @@ public static class LocalizedKeys
         public const string StudentNotFound       = "studentinfo.student_not_found";
         public const string InvalidJson           = "studentinfo.invalid_json";
         public const string CustomCategoryKeyRequired = "studentinfo.custom_category_key_required";
+        public const string CodeInUse             = "studentinfo.code_in_use";
+        public const string EmailInUse            = "studentinfo.email_in_use";
+        public const string NationalIdInUse       = "studentinfo.national_id_in_use";
+        public const string PasswordsDoNotMatch   = "studentinfo.passwords_do_not_match";
+        public const string StructureNodeNotFound = "studentinfo.structure_node_not_found";
+        public const string MustBeLevelNode       = "studentinfo.must_be_level_node";
+    }
+
+    public static class StaffManagement
+    {
+        public const string StaffNotFound         = "staff.not_found";
+        public const string CodeInUse             = "staff.code_in_use";
+        public const string EmailInUse            = "staff.email_in_use";
+        public const string NationalIdInUse       = "staff.national_id_in_use";
+        public const string PasswordsDoNotMatch   = "staff.passwords_do_not_match";
+        public const string StructureNodeNotFound = "staff.structure_node_not_found";
     }
 
     public static class CourseOfferings

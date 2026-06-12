@@ -93,6 +93,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.St
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapitalUniversity.Module.StudentServices.Abstractions", "src\4.Modules\CapitalUniversity.Module.StudentServices.Abstractions\CapitalUniversity.Module.StudentServices.Abstractions.csproj", "{431CF557-345F-4E6D-B2FC-5BF6AFCEF024}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{2BE666DB-745C-03CC-3972-90F557DCC8CD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StudentServices.UnitTests", "StudentServices.UnitTests", "{C66222DF-3424-D57A-DC7C-BC6D78CFF891}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -570,6 +574,8 @@ Global
 		{E27D320E-DED0-4BC9-9ADE-89EDC48E44DA} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 		{1EF42DCC-B429-4876-BA03-179E4D2075BE} = {05BB4593-248D-4292-B05B-06FF83355A2D}
 		{431CF557-345F-4E6D-B2FC-5BF6AFCEF024} = {05BB4593-248D-4292-B05B-06FF83355A2D}
+		{2BE666DB-745C-03CC-3972-90F557DCC8CD} = {0D47B5B3-C8F4-4034-92A3-7A0091B7E2BB}
+		{C66222DF-3424-D57A-DC7C-BC6D78CFF891} = {2BE666DB-745C-03CC-3972-90F557DCC8CD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8DF18C70-881E-4A42-A9B0-BAD283D97E48}

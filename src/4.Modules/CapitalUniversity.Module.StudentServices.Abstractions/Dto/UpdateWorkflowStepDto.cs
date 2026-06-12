@@ -8,5 +8,6 @@ public class UpdateWorkflowStepDto
     public string? Title { get; set; }
     public string? Description { get; set; }
     public WorkflowStepType? StepType { get; set; }
+    public WorkflowTransitionType? TransitionType { get; set; }
     public bool? IsRequired { get; set; }
 }

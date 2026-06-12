@@ -13,6 +13,8 @@ public class StudentFeeResponse
     public string SourceModule { get; set; } = string.Empty;
     public Guid? SourceReferenceId { get; set; }
     public Guid? OrderId { get; set; }
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -26,6 +28,8 @@ public class OrderResponse
     public string RedirectUrl { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public string Currency { get; set; } = "EGP";
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<StudentFeeResponse> Fees { get; set; } = new();
 }

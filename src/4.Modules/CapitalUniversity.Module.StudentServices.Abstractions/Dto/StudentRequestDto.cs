@@ -17,5 +17,7 @@ public class StudentRequestDto
     public DateTime? CompletedAt { get; set; }
     public int RequestNumber { get; set; }
     public decimal? ServicePrice { get; set; }
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public List<HistoryEntryDto> History { get; set; } = new();
-}
+    }

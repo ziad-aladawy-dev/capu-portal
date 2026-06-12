@@ -43,8 +43,9 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var triggerQueue = _options.Value.DefaultQueue;
+        var defaultCron = _options.Value.DefaultCronExpression;
 
-        _logger.LogInformation("Registering recurring sync jobs on queue {Queue}.", triggerQueue);
+        _logger.LogInformation("Registering recurring sync jobs on queue {Queue} with cadence {Cron}.", triggerQueue, defaultCron);
 
         // Drop legacy verification-only recurring entries that earlier versions
         // installed unconditionally. Idempotent no-op when not present.
@@ -55,37 +56,37 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             recurringJobId: "student-sync-pull",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(StudentSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "student-sync-push",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(StudentSyncModule.Name, SyncDirection.Push),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "staff-sync-pull",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(StaffSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "staff-sync-push",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(StaffSyncModule.Name, SyncDirection.Push),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "courses-sync-pull",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(CoursesSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "courses-sync-push",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(CoursesSyncModule.Name, SyncDirection.Push),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         // finance-sync removed (Treasury owns fees). Drop any previously
         // installed finance recurring entries so they stop firing.
@@ -96,13 +97,13 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             recurringJobId: "schedules-sync-pull",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(SchedulesSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         _recurringJobManager.AddOrUpdate<SyncRecurringTrigger>(
             recurringJobId: "schedules-sync-push",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(SchedulesSyncModule.Name, SyncDirection.Push),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
 
         // Registration is pull-only — the portal never originates registration
         // changes, so there is no matching '-push' job. Drop any push entry a
@@ -111,7 +112,7 @@ public sealed class SyncRecurringJobsRegistrar : IHostedService
             recurringJobId: "registration-sync-pull",
             queue: triggerQueue,
             methodCall: trigger => trigger.TriggerAsync(RegistrationSyncModule.Name, SyncDirection.Pull),
-            cronExpression: Cron.Minutely());
+            cronExpression: defaultCron);
         _recurringJobManager.RemoveIfExists("registration-sync-push");
 
         // Phase 9: retention sweeper. Always registered so its cron is observable in

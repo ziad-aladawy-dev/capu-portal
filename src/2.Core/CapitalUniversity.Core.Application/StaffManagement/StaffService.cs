@@ -5,6 +5,7 @@ using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Shared.BulkActions;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using System.Text.Json;
@@ -41,17 +42,17 @@ public class StaffService : IStaffService
     {
         if (await _repository.EmailExistsAsync(request.Email))
         {
-            throw new Exception("Email already exists");
+            throw new ValidationException("Email", LocalizedKeys.StaffManagement.EmailInUse);
         }
 
         if (await _repository.NationalIdExistsAsync(request.NationalId))
         {
-            throw new Exception("National ID already exists");
+            throw new ValidationException("NationalId", LocalizedKeys.StaffManagement.NationalIdInUse);
         }
 
         if (request.Password != request.ConfirmPassword)
         {
-            throw new Exception("Passwords do not match");
+            throw new ValidationException("Password", LocalizedKeys.StaffManagement.PasswordsDoNotMatch);
         }
 
         var hashedPassword = _passwordHasher.HashPassword(request.Password);
@@ -60,7 +61,7 @@ public class StaffService : IStaffService
 
         if (structureNode == null)
         {
-            throw new Exception("Structure node not found");
+            throw new ValidationException("StructureNodeId", LocalizedKeys.StaffManagement.StructureNodeNotFound);
         }
 
         if (string.IsNullOrWhiteSpace(request.EmployeeCode))
@@ -72,7 +73,7 @@ public class StaffService : IStaffService
 
         if (codeExists)
         {
-            throw new Exception("Employee code already exists");
+            throw new ValidationException("EmployeeCode", LocalizedKeys.StaffManagement.CodeInUse);
         }
 
         var nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
@@ -131,34 +132,34 @@ public class StaffService : IStaffService
         var staff = await _repository.GetByIdAsync(id);
 
         if (staff == null)
-            throw new Exception("Staff not found");
+            throw new NotFoundException(LocalizedKeys.StaffManagement.StaffNotFound);
 
         var structureNode = await _structureRepository.GetByIdAsync(request.StructureNodeId);
 
         if (structureNode == null)
         {
-            throw new Exception("Structure node not found");
+            throw new ValidationException("StructureNodeId", LocalizedKeys.StaffManagement.StructureNodeNotFound);
         }
 
         bool emailExists = await _repository.EmailExistsAsync(request.Email);
 
         if (emailExists && staff.Email != request.Email)
         {
-            throw new Exception("Email already exists");
+            throw new ValidationException("Email", LocalizedKeys.StaffManagement.EmailInUse);
         }
 
         bool nationalIdExists = await _repository.NationalIdExistsAsync(request.NationalId);
 
         if (nationalIdExists && staff.NationalId != request.NationalId)
         {
-            throw new Exception("National ID already exists");
+            throw new ValidationException("NationalId", LocalizedKeys.StaffManagement.NationalIdInUse);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             if (request.Password != request.ConfirmPassword)
             {
-                throw new Exception("Passwords do not match");
+                throw new ValidationException("Password", LocalizedKeys.StaffManagement.PasswordsDoNotMatch);
             }
             staff.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
@@ -206,7 +207,7 @@ public class StaffService : IStaffService
         bool exists = await _repository.ExistsAsync(id);
 
         if (!exists)
-            throw new Exception("Staff not found");
+            throw new NotFoundException(LocalizedKeys.StaffManagement.StaffNotFound);
 
         await _repository.SoftDeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
@@ -225,7 +226,7 @@ public class StaffService : IStaffService
                 var staff = await _repository.GetByIdAsync(id);
                 if (staff is null)
                 {
-                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Staff not found" });
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = LocalizedKeys.StaffManagement.StaffNotFound });
                     continue;
                 }
                 if (staff.IsActive == isActive)
@@ -258,7 +259,7 @@ public class StaffService : IStaffService
             {
                 if (!await _repository.ExistsAsync(id))
                 {
-                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = "Staff not found" });
+                    failures.Add(new BulkActionFailure { Id = id, Code = BulkFailureCodes.NotFound, Message = LocalizedKeys.StaffManagement.StaffNotFound });
                     continue;
                 }
                 await _repository.SoftDeleteAsync(id);
@@ -281,7 +282,7 @@ public class StaffService : IStaffService
 
         if (!exists)
         {
-            throw new Exception("Staff not found");
+            throw new NotFoundException(LocalizedKeys.StaffManagement.StaffNotFound);
         }
 
         await _repository.ToggleStatusAsync(id);
@@ -346,7 +347,7 @@ public class StaffService : IStaffService
     {
         var staff = await _repository.GetByIdAsync(id);
         if (staff == null)
-            throw new Exception("Staff not found");
+            throw new NotFoundException(LocalizedKeys.StaffManagement.StaffNotFound);
 
         staff.PhotoUrl = photoUrl;
         staff.UpdatedAt = DateTime.UtcNow;

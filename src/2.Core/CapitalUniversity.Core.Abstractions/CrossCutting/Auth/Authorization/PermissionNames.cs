@@ -268,6 +268,24 @@ public static class PermissionNames
     /// <see cref="AuditLogsController"/>; declared by <c>SystemPermissionManifest</c>.
     /// Granted to Super Admin via the seeder's "every resource" loop.
     /// </summary>
+    public static class Staff
+    {
+        public const string View      = "staff.staff.View";
+        public const string Insert    = "staff.staff.Insert";
+        public const string EditClose = "staff.staff.EditClose";
+        public const string Open      = "staff.staff.Open";
+        public const string Delete    = "staff.staff.Delete";
+    }
+
+    public static class UniversityStructure
+    {
+        public const string View      = "structure.structure.View";
+        public const string Insert    = "structure.structure.Insert";
+        public const string EditClose = "structure.structure.EditClose";
+        public const string Open      = "structure.structure.Open";
+        public const string Delete    = "structure.structure.Delete";
+    }
+
     public static class AuditLogs
     {
         public const string View = "system.audit-logs.View";

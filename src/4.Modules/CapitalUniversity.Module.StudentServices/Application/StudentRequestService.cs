@@ -21,30 +21,38 @@ public class StudentRequestService : IStudentRequestService
     private readonly INotificationService _notificationService;
     private readonly IHubContext<StudentServicesHub> _hubContext;
     private readonly ICurrentUser _currentUser;
+    private readonly IEffectiveScope _effectiveScope;
 
     public StudentRequestService(
         IStudentRequestRepository requestRepository,
         IServiceRepository serviceRepository,
         INotificationService notificationService,
         IHubContext<StudentServicesHub> hubContext,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IEffectiveScope effectiveScope)
     {
         _requestRepository = requestRepository;
         _serviceRepository = serviceRepository;
         _notificationService = notificationService;
         _hubContext = hubContext;
         _currentUser = currentUser;
+        _effectiveScope = effectiveScope;
     }
 
     public async Task<StudentRequestDto> GetStudentRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
         var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
         return MapToDto(request);
     }
 
     public async Task<List<StudentRequestDto>> GetStudentRequestsAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
+        await EnsureAccessAsync(studentId, cancellationToken);
+
         var requests = await _requestRepository.GetByStudentIdAsync(studentId, cancellationToken);
         return requests.Select(MapToDto).ToList();
     }
@@ -52,11 +60,24 @@ public class StudentRequestService : IStudentRequestService
     public async Task<List<StudentRequestDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default)
     {
         var requests = await _requestRepository.GetAllForStaffAsync(cancellationToken);
-        return requests.Select(MapToDto).ToList();
+        
+        // Apply scope filtering in-memory as per existing repository pattern
+        var filteredRequests = new List<StudentRequest>();
+        foreach (var req in requests)
+        {
+            if (await _effectiveScope.CanAccessStudentAsync(req.StudentId, cancellationToken))
+            {
+                filteredRequests.Add(req);
+            }
+        }
+
+        return filteredRequests.Select(MapToDto).ToList();
     }
 
     public async Task<StudentRequestDto> CreateDraftAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
     {
+        await EnsureAccessAsync(studentId, cancellationToken);
+
         var service = await _serviceRepository.GetByIdAsync(serviceId, cancellationToken);
         if (service == null) throw new NotFoundException("Service not found");
         if (!service.IsActive) throw new InvalidOperationException("Service is not active");
@@ -90,6 +111,11 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.EnsureMutable();
+
         if (request.Status != RequestStatus.Draft && request.Status != RequestStatus.MoreInfoRequired && request.Status != RequestStatus.PaymentPending)
             throw new InvalidOperationException("Cannot modify data at this status");
 
@@ -130,6 +156,10 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.EnsureMutable();
 
         if (request.Service.IsPaid && request.PaymentStatus != PaymentStatus.Paid)
         {
@@ -195,6 +225,11 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.EnsureMutable();
+
         if (request.Status != RequestStatus.PaymentPending)
             throw new InvalidOperationException("Request is not in payment pending state");
 
@@ -237,6 +272,11 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.EnsureMutable();
+
         if (request.Status != RequestStatus.Pending && request.Status != RequestStatus.UnderReview)
             throw new InvalidOperationException("Only pending or under-review requests can be assigned");
 
@@ -264,11 +304,33 @@ public class StudentRequestService : IStudentRequestService
 
     public async Task<StudentRequestDto> UpdateStatusAsync(Guid requestId, RequestStatus newStatus, string? comment = null, CancellationToken cancellationToken = default)
     {
-        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        if (!IsValidTransition(request.Status, newStatus))
-            throw new InvalidOperationException($"Invalid status transition from {request.Status} to {newStatus}");
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        var userRole = _currentUser.Role ?? "Staff";
+        
+        // Workflow-aware guard: If the next step in the workflow requires a specific role, enforce it.
+        var workflow = request.Service?.Workflow;
+        if (workflow != null)
+        {
+            var currentStep = workflow.Steps.FirstOrDefault(s => s.Order == request.CurrentStepOrder);
+            var nextStep = workflow.Steps.OrderBy(s => s.Order).FirstOrDefault(s => s.Order > request.CurrentStepOrder);
+
+            // If we are moving to a "Review" related status, check if the current or next step allows it for this role
+            if (IsReviewStatus(newStatus))
+            {
+                var reviewStep = nextStep?.StepType == WorkflowStepType.Review ? nextStep : (currentStep?.StepType == WorkflowStepType.Review ? currentStep : null);
+                if (reviewStep != null && reviewStep.TransitionType == WorkflowTransitionType.Staff && userRole != "Staff" && userRole != "Admin")
+                {
+                    throw new UnauthorizedAccessException("Only staff can perform review-related transitions for this workflow step.");
+                }
+            }
+        }
+
+        if (!IsValidTransition(request.Status, newStatus, userRole))
+            throw new InvalidOperationException($"Invalid status transition from {request.Status} to {newStatus} for role {userRole}");
 
         var oldStatus = request.Status;
         request.Status = newStatus;
@@ -279,8 +341,8 @@ public class StudentRequestService : IStudentRequestService
         {
             Action = $"StatusChanged_{newStatus}",
             Comment = comment ?? $"Status changed from {oldStatus} to {newStatus}",
-            PerformedByUserId = null,
-            PerformedByRole = "Staff",
+            PerformedByUserId = _currentUser.Id,
+            PerformedByRole = userRole,
             PerformedAt = DateTime.UtcNow
         });
 
@@ -294,6 +356,13 @@ public class StudentRequestService : IStudentRequestService
             NotificationType.Info,
             cancellationToken: cancellationToken);
 
+        if (newStatus == RequestStatus.Completed || newStatus == RequestStatus.Rejected || newStatus == RequestStatus.Cancelled)
+        {
+            request.Close();
+            _requestRepository.Update(request);
+            await _requestRepository.SaveChangesAsync(cancellationToken);
+        }
+
         return MapToDto(request);
     }
 
@@ -301,6 +370,10 @@ public class StudentRequestService : IStudentRequestService
     {
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.EnsureMutable();
 
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
@@ -327,11 +400,33 @@ public class StudentRequestService : IStudentRequestService
 
     public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, CancellationToken cancellationToken = default)
     {
-        return await _requestRepository.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
+        var result = await _requestRepository.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
+
+        // Filter items in-memory based on scope
+        var filteredItems = new List<StaffRequestListItemDto>();
+        foreach (var item in result.Items)
+        {
+            var request = await _requestRepository.GetByIdAsync(item.Id, cancellationToken);
+            if (request != null && await _effectiveScope.CanAccessStudentAsync(request.StudentId, cancellationToken))
+            {
+                filteredItems.Add(item);
+            }
+        }
+
+        result.Items = filteredItems;
+        result.TotalCount = filteredItems.Count; // Adjust count based on filtered results
+        result.TotalPages = (int)Math.Ceiling(result.TotalCount / (double)pageSize);
+
+        return result;
     }
 
     public async Task<List<RequestAttachmentDto>> GetAttachmentsByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
+        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
         var attachments = await _requestRepository.GetAttachmentsByRequestIdAsync(requestId, cancellationToken);
         return attachments.Select(a => new RequestAttachmentDto
         {
@@ -348,13 +443,76 @@ public class StudentRequestService : IStudentRequestService
 
     public async Task<StudentRequestDto?> GetPendingRequestForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
     {
+        await EnsureAccessAsync(studentId, cancellationToken);
+
         var request = await _requestRepository.GetPendingForStudentAndServiceAsync(studentId, serviceId, cancellationToken);
         return request == null ? null : MapToDto(request);
     }
 
-    private bool IsValidTransition(RequestStatus current, RequestStatus next)
+    public async Task<StudentRequestDto> CloseRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
-        return (current, next) switch
+        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
+        if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.Close();
+        request.HistoryEntries.Add(new RequestHistoryEntry
+        {
+            Action = "Closed",
+            Comment = "Record closed manually",
+            PerformedByUserId = _currentUser.Id,
+            PerformedByRole = _currentUser.Role ?? "Staff",
+            PerformedAt = DateTime.UtcNow
+        });
+
+        _requestRepository.Update(request);
+        await _requestRepository.SaveChangesAsync(cancellationToken);
+        return MapToDto(request);
+    }
+
+    public async Task<StudentRequestDto> OpenRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
+    {
+        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
+        if (request == null) throw new NotFoundException("Request not found");
+
+        await EnsureAccessAsync(request.StudentId, cancellationToken);
+
+        request.Reopen();
+        request.HistoryEntries.Add(new RequestHistoryEntry
+        {
+            Action = "Reopened",
+            Comment = "Record reopened manually",
+            PerformedByUserId = _currentUser.Id,
+            PerformedByRole = _currentUser.Role ?? "Staff",
+            PerformedAt = DateTime.UtcNow
+        });
+
+        _requestRepository.Update(request);
+        await _requestRepository.SaveChangesAsync(cancellationToken);
+        return MapToDto(request);
+    }
+
+    private async Task EnsureAccessAsync(Guid studentId, CancellationToken cancellationToken)
+    {
+        if (!await _effectiveScope.CanAccessStudentAsync(studentId, cancellationToken))
+        {
+            throw new NotFoundException("Request not found");
+        }
+    }
+
+    private bool IsReviewStatus(RequestStatus status)
+    {
+        return status == RequestStatus.Approved ||
+               status == RequestStatus.Rejected ||
+               status == RequestStatus.UnderReview ||
+               status == RequestStatus.MoreInfoRequired;
+    }
+
+    private bool IsValidTransition(RequestStatus current, RequestStatus next, string role)
+    {
+        // Basic state machine validation
+        bool isBasicValid = (current, next) switch
         {
             (RequestStatus.Draft, RequestStatus.Pending) => true,
             (RequestStatus.Draft, RequestStatus.Cancelled) => true,
@@ -373,6 +531,24 @@ public class StudentRequestService : IStudentRequestService
             (_, RequestStatus.Cancelled) => true,
             _ => false
         };
+
+        if (!isBasicValid) return false;
+
+        // Role-based guards
+        if (role == "Student")
+        {
+            // Students can only submit (Draft -> Pending) or cancel
+            return next == RequestStatus.Pending || next == RequestStatus.Cancelled;
+        }
+
+        if (role == "Staff" || role == "Admin")
+        {
+            // Staff cannot "un-submit" a request to Draft (unless specifically allowed by business logic, but usually it's MoreInfoRequired)
+            if (next == RequestStatus.Draft) return false;
+            return true;
+        }
+
+        return false;
     }
 
     private StudentRequestDto MapToDto(StudentRequest request)
@@ -392,6 +568,8 @@ public class StudentRequestService : IStudentRequestService
             CompletedAt = request.CompletedAt,
             RequestNumber = request.RequestNumber,
             ServicePrice = request.Service?.Price,
+            IsClosed = request.IsClosed,
+            ClosedAt = request.ClosedAt,
             History = request.HistoryEntries.Select(h => new HistoryEntryDto
             {
                 Action = h.Action,
@@ -402,4 +580,4 @@ public class StudentRequestService : IStudentRequestService
             }).ToList()
         };
     }
-}
+    }

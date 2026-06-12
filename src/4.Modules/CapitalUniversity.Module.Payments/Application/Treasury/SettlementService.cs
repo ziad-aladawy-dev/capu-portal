@@ -148,14 +148,19 @@ public sealed class SettlementService : ISettlementService
                         PaidAt = DateTime.UtcNow,
                     }, cancellationToken);
                 }
+
+                fee.EnsureMutable();
                 fee.Status = FeeStatus.Paid;
                 fee.OrderId = order.Id;
+                fee.Close();
                 _fees.Update(fee);
                 paidFees.Add(fee);
             }
 
+            order.EnsureMutable();
             order.Status = OrderStatus.Paid;
             order.UpdatedAt = DateTime.UtcNow;
+            order.Close();
             _orders.Update(order);
 
             if (wasReleased)
@@ -178,18 +183,22 @@ public sealed class SettlementService : ISettlementService
         }
         else if (outcome is SettlementOutcome.Failed or SettlementOutcome.Expired && order.Status == OrderStatus.PendingPayment)
         {
+            order.EnsureMutable();
             order.Status = outcome == SettlementOutcome.Expired ? OrderStatus.Expired : OrderStatus.Failed;
             order.UpdatedAt = DateTime.UtcNow;
+            order.Close();
             foreach (var fee in order.Fees)
             {
                 // Keep fee.OrderId so a late Paid can re-open and settle this order
                 // (D5). The fee is released for re-ordering via its status; if it is
                 // selected into a new order, OrderService reassigns OrderId.
+                fee.EnsureMutable();
                 fee.Status = FeeStatus.Pending;
                 _fees.Update(fee);
             }
             _orders.Update(order);
         }
+
 
         try
         {
@@ -217,6 +226,13 @@ public sealed class SettlementService : ISettlementService
     private static bool IsUniqueViolation(DbUpdateException ex)
     {
         if (ex.InnerException is not Microsoft.Data.SqlClient.SqlException sql) return false;
-        return sql.Number is 2627 or 2601;
+
+        var isUnique = sql.Number is 2627 or 2601;
+        if (!isUnique) return false;
+
+        // Strict narrowing: only treat specific idempotency/deduplication indexes as success.
+        // Unrelated unique violations (if any) should bubble up as genuine errors.
+        return sql.Message.Contains("IX_TreasuryPaymentTransactions_MerchantOrderId_IdempotencyKey") ||
+               sql.Message.Contains("IX_Payments_FeeId");
     }
 }

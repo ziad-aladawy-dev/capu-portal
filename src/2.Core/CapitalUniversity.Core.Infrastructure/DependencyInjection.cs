@@ -290,7 +290,9 @@ public static class DependencyInjection
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
                               CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SyncPermissionManifest>();
         services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
-                              CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SystemPermissionManifest>();
+            CapitalUniversity.Core.Application.CrossCutting.Auth.Authorization.Manifest.SystemPermissionManifest>();
+        services.AddSingleton<CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization.Manifest.IPermissionManifest,
+            CapitalUniversity.Core.Application.StaffManagement.Authorization.StaffPermissionManifest>();
         // PaymentsPermissionManifest moved to Module.Payments.Abstractions —
         // registered by AddPaymentsModule().
         // StudentInformationPermissionManifest moved to

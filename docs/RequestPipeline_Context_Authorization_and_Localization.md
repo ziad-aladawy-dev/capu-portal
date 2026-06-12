@@ -38,9 +38,8 @@ Translations
 Formatting (dates, numbers)
 RequestContext
 Reads headers:
-X-Faculty-Id
-X-Program-Id
-X-Year-Id
+X-StructureNode-Id
+X-AcademicYear-Id
 X-Semester-Id
 Represents requested scope (untrusted)
 Authentication

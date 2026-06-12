@@ -95,6 +95,22 @@ public class StudentProfileRecordsController : ControllerBase
         return Ok(new { Message = "Profile record deleted" });
     }
 
+    [HttpPost("{recordId:guid}/close-record")]
+    [HasPermission(PermissionNames.StudentProfileRecords.EditClose, PermissionScopeKind.Student, "studentId")]
+    public async Task<IActionResult> CloseRecord(Guid studentId, Guid recordId, CancellationToken cancellationToken)
+    {
+        await _service.CloseRecordAsync(studentId, recordId, cancellationToken);
+        return Ok(new { Message = "Profile record closed" });
+    }
+
+    [HttpPost("{recordId:guid}/open-record")]
+    [HasPermission(PermissionNames.StudentProfileRecords.Open, PermissionScopeKind.Student, "studentId")]
+    public async Task<IActionResult> OpenRecord(Guid studentId, Guid recordId, CancellationToken cancellationToken)
+    {
+        await _service.OpenRecordAsync(studentId, recordId, cancellationToken);
+        return Ok(new { Message = "Profile record reopened" });
+    }
+
     /// <summary>
     /// 3.5 — bulk upsert. Body: <c>{ records: [UpsertStudentProfileRecordRequest...] }</c>.
     /// Independent per-row commits — see <see cref="BulkActionResult"/>.

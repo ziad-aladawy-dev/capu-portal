@@ -131,8 +131,34 @@ public class StudentRepository : IStudentRepository
                     .ThenInclude(x => x!.Parent)
                         .ThenInclude(x => x!.Parent);
 
-        var items = await query
-            .OrderBy(x => x.StudentCode)
+        IOrderedQueryable<Student> orderedQuery;
+
+        switch (request.SortBy?.ToLower())
+        {
+            case "name":
+                orderedQuery = request.Ascending
+                    ? query.OrderBy(x => x.Name)
+                    : query.OrderByDescending(x => x.Name);
+                break;
+            case "email":
+                orderedQuery = request.Ascending
+                    ? query.OrderBy(x => x.Email)
+                    : query.OrderByDescending(x => x.Email);
+                break;
+            case "createdat":
+                orderedQuery = request.Ascending
+                    ? query.OrderBy(x => x.CreatedAt)
+                    : query.OrderByDescending(x => x.CreatedAt);
+                break;
+            case "studentcode":
+            default:
+                orderedQuery = request.Ascending
+                    ? query.OrderBy(x => x.StudentCode)
+                    : query.OrderByDescending(x => x.StudentCode);
+                break;
+        }
+
+        var items = await orderedQuery
             .Skip((request.Page - 1)
                 * request.PageSize)
             .Take(request.PageSize)

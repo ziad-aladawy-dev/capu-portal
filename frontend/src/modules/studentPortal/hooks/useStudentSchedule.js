@@ -17,7 +17,7 @@ const trimTime = (s) => String(s || "").slice(0, 5);
 function resolveSemesterId(activeScope) {
   let semesterId = activeScope?.temporal?.semesterId;
   try {
-    if (!semesterId) semesterId = JSON.parse(localStorage.getItem("capu_selected_semester"))?.id || null;
+    if (!semesterId) semesterId = JSON.parse(sessionStorage.getItem("capu_selected_semester"))?.id || null;
   } catch { /* ignore */ }
   return semesterId;
 }

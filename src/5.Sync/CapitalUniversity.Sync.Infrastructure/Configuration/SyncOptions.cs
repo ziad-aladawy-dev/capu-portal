@@ -32,6 +32,12 @@ public sealed class SyncOptions
     public string DefaultQueue { get; set; } = "default";
 
     /// <summary>
+    /// Default cadence for all module pull/push jobs. Documentation (Sync_Platform_Model.md)
+    /// requires a "Scheduled Daily Sync" (e.g. 2 AM). Default aligns with docs.
+    /// </summary>
+    public string DefaultCronExpression { get; set; } = "0 2 * * *";
+
+    /// <summary>
     /// Defence-in-depth gate for the Hangfire dashboard and the verification/operator
     /// admin endpoints. Default <c>false</c> — even Development must opt in explicitly.
     /// Production NEVER flips this true without first wiring real auth (the dashboard

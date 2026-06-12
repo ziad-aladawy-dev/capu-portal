@@ -4,6 +4,7 @@ using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
+using CapitalUniversity.Core.Domain.Common.Exceptions;
 using CapitalUniversity.Core.Domain.Identity;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using System.Text.Json;
@@ -35,22 +36,22 @@ public class StudentService : IStudentService
 
         if (codeExists)
         {
-            throw new Exception("Student code already exists");
+            throw new ValidationException("StudentCode", LocalizedKeys.StudentInformation.CodeInUse);
         }
 
         if (await _repository.EmailExistsAsync(request.Email))
         {
-            throw new Exception("Email already exists");
+            throw new ValidationException("Email", LocalizedKeys.StudentInformation.EmailInUse);
         }
 
         if (await _repository.NationalIdExistsAsync(request.NationalId))
         {
-            throw new Exception("National ID already exists");
+            throw new ValidationException("NationalId", LocalizedKeys.StudentInformation.NationalIdInUse);
         }
 
         if (request.Password != request.ConfirmPassword)
         {
-            throw new Exception("Passwords do not match");
+            throw new ValidationException("Password", LocalizedKeys.StudentInformation.PasswordsDoNotMatch);
         }
 
         var hashedPassword = _passwordHasher.HashPassword(request.Password);
@@ -59,12 +60,12 @@ public class StudentService : IStudentService
 
         if (structureNode == null)
         {
-            throw new Exception("Structure node not found");
+            throw new ValidationException("StructureNodeId", LocalizedKeys.StudentInformation.StructureNodeNotFound);
         }
 
         if (structureNode.Type != StructureNodeType.Level)
         {
-            throw new Exception("Student must be assigned to level node");
+            throw new ValidationException("StructureNodeId", LocalizedKeys.StudentInformation.MustBeLevelNode);
         }
 
         if (string.IsNullOrWhiteSpace(request.StudentCode))
@@ -125,7 +126,7 @@ public class StudentService : IStudentService
         var student = await _repository.GetByIdAsync(id);
 
         if (student == null)
-            throw new Exception("Student not found");
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
 
         if (request.StructureNodeId.HasValue)
         {
@@ -133,12 +134,12 @@ public class StudentService : IStudentService
 
             if (structureNode == null)
             {
-                throw new Exception("Structure node not found");
+                throw new ValidationException("StructureNodeId", LocalizedKeys.StudentInformation.StructureNodeNotFound);
             }
 
             if (structureNode.Type != StructureNodeType.Level)
             {
-                throw new Exception("Student must be assigned to a level");
+                throw new ValidationException("StructureNodeId", LocalizedKeys.StudentInformation.MustBeLevelNode);
             }
 
             student.StructureNodeId = request.StructureNodeId.Value;
@@ -148,7 +149,7 @@ public class StudentService : IStudentService
         {
             if (await _repository.EmailExistsAsync(request.Email))
             {
-                throw new Exception("Email already exists");
+                throw new ValidationException("Email", LocalizedKeys.StudentInformation.EmailInUse);
             }
 
             student.Email = request.Email;
@@ -158,7 +159,7 @@ public class StudentService : IStudentService
         {
             if (await _repository.NationalIdExistsAsync(request.NationalId))
             {
-                throw new Exception("National ID already exists");
+                throw new ValidationException("NationalId", LocalizedKeys.StudentInformation.NationalIdInUse);
             }
 
             student.NationalId = request.NationalId;
@@ -168,7 +169,7 @@ public class StudentService : IStudentService
         {
             if (request.Password != request.ConfirmPassword)
             {
-                throw new Exception("Passwords do not match");
+                throw new ValidationException("Password", LocalizedKeys.StudentInformation.PasswordsDoNotMatch);
             }
             student.PasswordHash = _passwordHasher.HashPassword(request.Password);
         }
@@ -211,7 +212,7 @@ public class StudentService : IStudentService
         bool exists = await _repository.ExistsAsync(id);
 
         if (!exists)
-            throw new Exception("Student not found");
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
 
         await _repository.SoftDeleteAsync(id);
         await _repository.SaveChangesAsync();
@@ -223,7 +224,7 @@ public class StudentService : IStudentService
 
         if (!exists)
         {
-            throw new Exception("Student not found");
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
         }
 
         await _repository.ToggleStatusAsync(id);
@@ -269,7 +270,7 @@ public class StudentService : IStudentService
     {
         var student = await _repository.GetByIdAsync(id);
         if (student == null)
-            throw new Exception("Student not found");
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
 
         student.PhotoUrl = photoUrl;
         student.UpdatedAt = DateTime.UtcNow;

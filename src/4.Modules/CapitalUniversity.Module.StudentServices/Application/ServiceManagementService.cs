@@ -149,6 +149,7 @@ public class ServiceManagementService : IServiceManagementService
                 Title = stepDto.Title,
                 Description = stepDto.Description,
                 StepType = stepDto.StepType,
+                TransitionType = stepDto.TransitionType,
                 IsRequired = stepDto.IsRequired,
                 Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
                 {
@@ -235,6 +236,7 @@ public class ServiceManagementService : IServiceManagementService
                     Title = stepDto.Title,
                     Description = stepDto.Description,
                     StepType = stepDto.StepType,
+                    TransitionType = stepDto.TransitionType,
                     IsRequired = stepDto.IsRequired,
                     Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
                     {
@@ -343,6 +345,7 @@ public class ServiceManagementService : IServiceManagementService
                 Title = s.Title,
                 Description = s.Description,
                 StepType = s.StepType,
+                TransitionType = s.TransitionType,
                 IsRequired = s.IsRequired,
                 Fields = s.Fields.OrderBy(f => f.Order).Select(f => new WorkflowStepFieldDto
                 {

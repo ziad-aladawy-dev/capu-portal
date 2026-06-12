@@ -178,5 +178,116 @@ public class StudentProfileServiceTests
         await sut.GetByIdAsync(id);
 
         repo.Verify(r => r.GetByIdAsync(id, default), Times.Once);
-    }
-}
+        }
+
+        [Fact]
+        public async Task Upsert_ClosedRecord_ThrowsConflict()
+        {
+        var (sut, repo, _, _) = Build();
+        var studentId = Guid.NewGuid();
+        var existing = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Category = StudentProfileCategory.EmergencyContact,
+            SchemaVersion = 1,
+            DataJson = "{}",
+        };
+        existing.Close();
+        repo.Setup(r => r.GetForStudentCategoryAsync(studentId, StudentProfileCategory.EmergencyContact, "", default))
+            .ReturnsAsync(existing);
+
+        var act = () => sut.UpsertAsync(studentId, new UpsertStudentProfileRecordRequest
+        {
+            Category = StudentProfileCategory.EmergencyContact,
+            SchemaVersion = 2,
+            DataJson = "{\"new\":true}",
+        });
+
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*closed*");
+        }
+
+        [Fact]
+        public async Task Verify_ClosedRecord_ThrowsConflict()
+        {
+        var (sut, repo, _, _) = Build();
+        var studentId = Guid.NewGuid();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Category = StudentProfileCategory.MilitaryInformation,
+            SchemaVersion = 1,
+            DataJson = "{}",
+        };
+        record.Close();
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        var act = () => sut.VerifyAsync(studentId, record.Id, new VerifyStudentProfileRecordRequest { VerifiedBy = Guid.NewGuid() });
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*closed*");
+        }
+
+        [Fact]
+        public async Task Delete_ClosedRecord_ThrowsConflict()
+        {
+        var (sut, repo, _, _) = Build();
+        var studentId = Guid.NewGuid();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Category = StudentProfileCategory.EmergencyContact,
+            SchemaVersion = 1,
+            DataJson = "{}",
+        };
+        record.Close();
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        var act = () => sut.DeleteAsync(studentId, record.Id);
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*closed*");
+        }
+
+        [Fact]
+        public async Task CloseRecord_HappyPath_LocksRecord()
+        {
+        var (sut, repo, uow, cache) = Build();
+        var studentId = Guid.NewGuid();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Category = StudentProfileCategory.EmergencyContact,
+        };
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        await sut.CloseRecordAsync(studentId, record.Id);
+
+        record.IsClosed.Should().BeTrue();
+        record.ClosedAt.Should().NotBeNull();
+        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        cache.RemoveCalls.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task OpenRecord_HappyPath_UnlocksRecord()
+        {
+        var (sut, repo, uow, cache) = Build();
+        var studentId = Guid.NewGuid();
+        var record = new StudentProfileRecord
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Category = StudentProfileCategory.EmergencyContact,
+        };
+        record.Close();
+        repo.Setup(r => r.GetByIdAsync(record.Id, default)).ReturnsAsync(record);
+
+        await sut.OpenRecordAsync(studentId, record.Id);
+
+        record.IsClosed.Should().BeFalse();
+        record.ClosedAt.Should().BeNull();
+        uow.Verify(u => u.SaveChangesAsync(default), Times.Once);
+        cache.RemoveCalls.Should().Be(1);
+        }
+        }
+

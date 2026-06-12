@@ -11,6 +11,8 @@ public class StudentProfileRecordResponse
     public Guid? VerifiedBy { get; set; }
     public DateTime? VerifiedAt { get; set; }
     public bool IsSensitive { get; set; }
+    public bool IsClosed { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

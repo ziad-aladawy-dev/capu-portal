@@ -152,6 +152,7 @@ public class StudentProfileService : IStudentProfileService
         var existing = await _records.GetForStudentCategoryAsync(studentId, request.Category, customKey, cancellationToken);
         if (existing is not null)
         {
+            existing.EnsureMutable();
             existing.SchemaVersion = request.SchemaVersion;
             existing.DataJson = request.DataJson;
             existing.IsSensitive = request.IsSensitive;
@@ -209,6 +210,7 @@ public class StudentProfileService : IStudentProfileService
             throw new NotFoundException(ProfileRecordNotFound);
         }
 
+        record.EnsureMutable();
         record.VerifiedBy = request.VerifiedBy;
         record.VerifiedAt = DateTime.UtcNow;
         record.UpdatedAt = DateTime.UtcNow;
@@ -234,7 +236,38 @@ public class StudentProfileService : IStudentProfileService
             throw new NotFoundException(ProfileRecordNotFound);
         }
 
+        record.EnsureMutable();
         _records.Delete(record);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
+    }
+
+    public async Task CloseRecordAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default)
+    {
+        var record = await _records.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        if (record.StudentId != studentId) throw new NotFoundException(ProfileRecordNotFound);
+        if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken)) throw new NotFoundException(ProfileRecordNotFound);
+
+        record.Close();
+        _records.Update(record);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKey(id), cancellationToken);
+        await BumpCollectionVersionAsync(cancellationToken);
+    }
+
+    public async Task OpenRecordAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default)
+    {
+        var record = await _records.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(ProfileRecordNotFound);
+
+        if (record.StudentId != studentId) throw new NotFoundException(ProfileRecordNotFound);
+        if (!await _scope.CanAccessStudentAsync(record.StudentId, cancellationToken)) throw new NotFoundException(ProfileRecordNotFound);
+
+        record.Reopen();
+        _records.Update(record);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _cache.RemoveAsync(CacheKey(id), cancellationToken);
         await BumpCollectionVersionAsync(cancellationToken);
@@ -326,6 +359,8 @@ public class StudentProfileService : IStudentProfileService
         VerifiedBy = record.VerifiedBy,
         VerifiedAt = record.VerifiedAt,
         IsSensitive = record.IsSensitive,
+        IsClosed = record.IsClosed,
+        ClosedAt = record.ClosedAt,
         CreatedAt = record.CreatedAt,
         UpdatedAt = record.UpdatedAt,
     };

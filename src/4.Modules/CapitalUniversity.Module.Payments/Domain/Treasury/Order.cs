@@ -38,4 +38,29 @@ public class Order : BaseEntity, ISoftDeletable
     public ICollection<PaymentTransaction> Transactions { get; set; } = new List<PaymentTransaction>();
 
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Payment order is closed and cannot be modified.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Payment order is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Payment order is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

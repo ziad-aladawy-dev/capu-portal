@@ -130,6 +130,8 @@ public sealed class OrderService : IOrderService
             throw new NotFoundException("Order not found.");
         }
 
+        order.EnsureMutable();
+
         if (order.Status != OrderStatus.Created)
         {
             throw new ConflictException("Only a Created order can be cancelled.");
@@ -139,12 +141,23 @@ public sealed class OrderService : IOrderService
         order.UpdatedAt = DateTime.UtcNow;
         foreach (var fee in order.Fees)
         {
+            fee.EnsureMutable();
             fee.Status = FeeStatus.Pending;
             fee.OrderId = null;
             _fees.Update(fee);
         }
         _orders.Update(order);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task<OrderResponse> CloseRecordAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new OrderResponse());
+    }
+
+    public Task<OrderResponse> OpenRecordAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new OrderResponse());
     }
 
     private static OrderResponse ToResponse(Order o, IEnumerable<StudentFee> fees) => new()
@@ -157,6 +170,8 @@ public sealed class OrderService : IOrderService
         RedirectUrl = o.RedirectUrl,
         TotalAmount = o.TotalAmount,
         Currency = o.Currency,
+        IsClosed = o.IsClosed,
+        ClosedAt = o.ClosedAt,
         CreatedAt = o.CreatedAt,
         Fees = fees.Select(ToFeeResponse).ToList(),
     };
@@ -174,6 +189,8 @@ public sealed class OrderService : IOrderService
         SourceModule = f.SourceModule,
         SourceReferenceId = f.SourceReferenceId,
         OrderId = f.OrderId,
+        IsClosed = f.IsClosed,
+        ClosedAt = f.ClosedAt,
         CreatedAt = f.CreatedAt,
     };
 }

@@ -35,5 +35,37 @@ public class StudentRequest : BaseEntity
 
     public byte[]? RowVersion { get; set; }
 
+    /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/>.
+    /// </summary>
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    /// <summary>
+    /// Guards every mutating operation on the entity.
+    /// </summary>
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student request is closed and cannot be modified. Reopen it first.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student request is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student request is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public ICollection<RequestHistoryEntry> HistoryEntries { get; set; } = new List<RequestHistoryEntry>();
-}
+    }

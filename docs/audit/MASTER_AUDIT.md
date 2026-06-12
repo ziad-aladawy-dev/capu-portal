@@ -22,7 +22,8 @@
 | 7 | `Schedules_Model.md` | `Schedules_Audit.md` | 8 | 9 | 9 | 8 |
 | 8 | `caching-strategy.md` | `Caching_Audit.md` | 6 | 9 | 7 | 9 |
 | 9 | `Sync_Platform_Model.md` | `SyncPlatform_Audit.md` | 9 | 8 | 9 | 9 |
-| | **Average** | | **7.9** | **8.7** | **7.9** | **8.2** |
+| 10 | Record Locking Lifecycle | `RecordLocking_Audit.md` | 9 | 9 | 9 | 9 |
+| | **Average** | | **8.0** | **8.8** | **8.0** | **8.3** |
 
 **Reading of the spread.** Logic correctness is uniformly high (8–9) — *what is built behaves correctly*. The lower Architecture scores cluster where the **document over-describes** relative to the build (RequestPipeline 6, Caching 6) or where the code **adds platform features the doc forbade/deferred** (Schedules 8, Courses 8). No document scored below 6 on any axis.
 

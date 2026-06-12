@@ -10,7 +10,7 @@ export const DomainProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.id) setScopeNode(parsed);
@@ -23,15 +23,15 @@ export const DomainProvider = ({ children }) => {
     const value = node && node.id ? { id: node.id, name: node.name, type: node.type } : null;
     setScopeNode(value);
     if (value) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value));
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }, []);
 
   const clearScope = useCallback(() => {
     setScopeNode(null);
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (

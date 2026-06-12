@@ -19,9 +19,11 @@ public static class DependencyInjection
         string connectionStringKey = "DefaultConnection")
     {
         services.AddDbContext<StudentServicesDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString(connectionStringKey),
-                sqlOptions => sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_StudentServices", "StudentServices")));
+            options
+                .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+                .UseSqlServer(
+                    configuration.GetConnectionString(connectionStringKey),
+                    sqlOptions => sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory_StudentServices", "StudentServices")));
 
         services.AddScoped<IServiceRepository, ServiceRepository>();
         services.AddScoped<IStudentRequestRepository, StudentRequestRepository>();

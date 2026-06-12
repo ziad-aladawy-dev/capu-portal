@@ -12,6 +12,7 @@ public class WorkflowStep : BaseEntity
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public WorkflowStepType StepType { get; set; } = WorkflowStepType.Form;
+    public WorkflowTransitionType TransitionType { get; set; } = WorkflowTransitionType.Staff;
 
     public bool IsRequired { get; set; } = true;
 

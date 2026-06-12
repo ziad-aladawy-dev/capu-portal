@@ -1,12 +1,16 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.UniversityStructure.DTOs;
+using CapitalUniversity.API.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.API.Controllers;
 
 [ApiController]
 [Route("api/university-structure")]
+[Authorize]
 public class UniversityStructureController : ControllerBase
 {
     private readonly IUniversityStructureService _service;
@@ -20,6 +24,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("tree")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult> GetTree()
     {
         var result = await _service.GetTreeAsync();
@@ -28,6 +33,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -39,6 +45,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(PermissionNames.UniversityStructure.Insert)]
     public async Task<IActionResult> Create(
         [FromBody] CreateStructureNodeRequest request)
     {
@@ -52,6 +59,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.EditClose)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateStructureNodeRequest request)
@@ -65,6 +73,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteNodeAsync(id);
@@ -76,6 +85,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpPut("move/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.EditClose)]
     public async Task<IActionResult> Move(
         Guid id,
         [FromBody] MoveStructureNodeRequest request)
@@ -89,6 +99,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("roots")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult> GetRoots()
     {
         var result = await _service.GetRootsAsync();
@@ -97,6 +108,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("children/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult> GetChildren(Guid id)
     {
         var result = await _service.GetChildrenAsync(id);
@@ -105,6 +117,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("breadcrumb/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult>
         GetBreadcrumb(Guid id)
     {
@@ -115,6 +128,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("subtree/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult>
         GetSubTree(Guid id)
     {
@@ -128,6 +142,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpGet("ancestors/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.View)]
     public async Task<IActionResult>
         GetAncestors(Guid id)
     {
@@ -138,6 +153,7 @@ public class UniversityStructureController : ControllerBase
     }
 
     [HttpPut("reorder/{id}")]
+    [HasPermission(PermissionNames.UniversityStructure.EditClose)]
     public async Task<IActionResult>
         Reorder(
             Guid id,

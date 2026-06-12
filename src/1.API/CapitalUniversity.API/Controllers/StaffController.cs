@@ -1,4 +1,6 @@
-﻿using CapitalUniversity.Core.Abstractions.Shared;
+﻿using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using ClosedXML.Excel;
@@ -26,6 +28,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("search")]
+    [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> Search([FromQuery] StaffQueryRequest request)
     {
         var result = await _service.SearchAsync(request);
@@ -34,6 +37,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -50,6 +54,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(PermissionNames.Staff.Insert)]
     public async Task<IActionResult> Create(
         [FromBody] CreateStaffRequest request)
     {
@@ -64,6 +69,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission(PermissionNames.Staff.EditClose)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateStaffRequest request)
@@ -77,6 +83,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission(PermissionNames.Staff.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);
@@ -88,6 +95,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPatch("{id}/toggle-status")]
+    [HasPermission(PermissionNames.Staff.EditClose)]
     public async Task<IActionResult> ToggleStatus(Guid id)
     {
         await _service.ToggleStatusAsync(id);
@@ -99,6 +107,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("statistics")]
+    [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> GetStatistics(
         [FromQuery]
     UserStatisticsRequest request)
@@ -111,6 +120,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("export/csv")]
+    [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> ExportCsv([FromQuery] StaffQueryRequest request)
     {
         request.Page = 1;
@@ -162,6 +172,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost("{id}/photo")]
+    [HasPermission(PermissionNames.Staff.EditClose)]
     public async Task<IActionResult> UploadPhoto(Guid id, IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -192,16 +203,22 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost("bulk-import")]
+    [HasPermission(PermissionNames.Staff.Insert)]
     public async Task<IActionResult> BulkImport(
         [FromBody] List<CreateStaffRequest> requests)
     {
         var createdIds = new List<Guid>();
 
-        foreach (var request in requests)
+        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
         {
-            var id = await _service.CreateAsync(request);
+            foreach (var request in requests)
+            {
+                var id = await _service.CreateAsync(request);
 
-            createdIds.Add(id);
+                createdIds.Add(id);
+            }
+
+            transaction.Complete();
         }
 
         return Ok(new
@@ -212,6 +229,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpGet("export-excel")]
+    [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> ExportExcel(
     [FromQuery] StaffQueryRequest request)
     {
@@ -278,6 +296,7 @@ public class StaffController : ControllerBase
     }
 
     [HttpPost("import-excel")]
+    [HasPermission(PermissionNames.Staff.Insert)]
     public async Task<IActionResult> ImportExcel(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -295,24 +314,28 @@ public class StaffController : ControllerBase
 
         var rows = worksheet.RowsUsed().Skip(1);
 
-        foreach (var row in rows)
+        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
         {
-            var request = new CreateStaffRequest
+            foreach (var row in rows)
             {
-                EmployeeCode = row.Cell(1).GetString(),
-                NameAr = row.Cell(2).GetString(),
-                NameEn = row.Cell(3).GetString(),
-                NationalId = row.Cell(4).GetString(),
-                Email = row.Cell(5).GetString(),
-                PhoneNumber = row.Cell(6).GetString(),
-                Role = row.Cell(7).GetString(),
-                JobTitle = row.Cell(8).GetString(),
-                Password = row.Cell(9).GetString(),
-                ConfirmPassword = row.Cell(9).GetString(),
-                StructureNodeId = Guid.Parse(row.Cell(10).GetString())
-            };
+                var request = new CreateStaffRequest
+                {
+                    EmployeeCode = row.Cell(1).GetString(),
+                    NameAr = row.Cell(2).GetString(),
+                    NameEn = row.Cell(3).GetString(),
+                    NationalId = row.Cell(4).GetString(),
+                    Email = row.Cell(5).GetString(),
+                    PhoneNumber = row.Cell(6).GetString(),
+                    Role = row.Cell(7).GetString(),
+                    JobTitle = row.Cell(8).GetString(),
+                    Password = row.Cell(9).GetString(),
+                    ConfirmPassword = row.Cell(9).GetString(),
+                    StructureNodeId = Guid.Parse(row.Cell(10).GetString())
+                };
 
-            await _service.CreateAsync(request);
+                await _service.CreateAsync(request);
+            }
+            transaction.Complete();
         }
 
         return Ok(new

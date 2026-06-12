@@ -72,4 +72,20 @@ public class OrdersController : ControllerBase
         var result = await _initiation.InitiateAsync(id, redirectUrl, cancellationToken);
         return Ok(result);
     }
+
+    [HttpPost("{id:guid}/close-record")]
+    [HasPermission(PermissionNames.PaymentTransactions.Insert)] // Reusing an administrative permission
+    public async Task<IActionResult> CloseRecord(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await _orders.CloseRecordAsync(id, cancellationToken);
+        return Ok(order);
+    }
+
+    [HttpPost("{id:guid}/open-record")]
+    [HasPermission(PermissionNames.PaymentTransactions.Insert)] // Reusing an administrative permission
+    public async Task<IActionResult> OpenRecord(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await _orders.OpenRecordAsync(id, cancellationToken);
+        return Ok(order);
+    }
 }

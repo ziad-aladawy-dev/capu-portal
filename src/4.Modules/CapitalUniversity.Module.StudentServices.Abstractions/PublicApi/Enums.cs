@@ -49,3 +49,10 @@ public enum WorkflowStepType
     Review = 2,
     Payment = 3
 }
+
+public enum WorkflowTransitionType
+{
+    Student = 1,
+    Staff = 2,
+    System = 3
+}

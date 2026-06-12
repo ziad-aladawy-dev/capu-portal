@@ -35,25 +35,25 @@ export const AcademicProvider = ({ children }) => {
 
   const saveYear = useCallback((year) => {
     if (year?.id) {
-      localStorage.setItem(YEAR_STORAGE_KEY, JSON.stringify({ id: year.id, name: year.name }));
+      sessionStorage.setItem(YEAR_STORAGE_KEY, JSON.stringify({ id: year.id, name: year.name }));
     } else {
-      localStorage.removeItem(YEAR_STORAGE_KEY);
+      sessionStorage.removeItem(YEAR_STORAGE_KEY);
     }
   }, []);
 
   const saveSemester = useCallback((sem) => {
     if (sem?.id) {
-      localStorage.setItem(SEMESTER_STORAGE_KEY, JSON.stringify({ id: sem.id, name: sem.name }));
+      sessionStorage.setItem(SEMESTER_STORAGE_KEY, JSON.stringify({ id: sem.id, name: sem.name }));
     } else {
-      localStorage.removeItem(SEMESTER_STORAGE_KEY);
+      sessionStorage.removeItem(SEMESTER_STORAGE_KEY);
     }
   }, []);
 
   // Restore saved selections on mount
   useEffect(() => {
     try {
-      const savedYear = localStorage.getItem(YEAR_STORAGE_KEY);
-      const savedSem = localStorage.getItem(SEMESTER_STORAGE_KEY);
+      const savedYear = sessionStorage.getItem(YEAR_STORAGE_KEY);
+      const savedSem = sessionStorage.getItem(SEMESTER_STORAGE_KEY);
       // We'll apply them after the API data loads — just mark them for now
       if (savedYear) {
         const parsed = JSON.parse(savedYear);
@@ -85,7 +85,7 @@ export const AcademicProvider = ({ children }) => {
         let saved = savedYearRef.current;
         if (!saved) {
           try {
-            const localSaved = localStorage.getItem(YEAR_STORAGE_KEY);
+            const localSaved = sessionStorage.getItem(YEAR_STORAGE_KEY);
             if (localSaved) saved = JSON.parse(localSaved);
           } catch {}
         }
@@ -125,7 +125,7 @@ export const AcademicProvider = ({ children }) => {
         let saved = savedSemRef.current;
         if (!saved) {
           try {
-            const localSaved = localStorage.getItem(SEMESTER_STORAGE_KEY);
+            const localSaved = sessionStorage.getItem(SEMESTER_STORAGE_KEY);
             if (localSaved) saved = JSON.parse(localSaved);
           } catch {}
         }
@@ -151,7 +151,7 @@ export const AcademicProvider = ({ children }) => {
     (yearNameOrObj) => {
       if (yearNameOrObj === null) {
         setSelectedYear(null);
-        localStorage.removeItem(YEAR_STORAGE_KEY);
+        sessionStorage.removeItem(YEAR_STORAGE_KEY);
         return;
       }
       const found =
@@ -170,7 +170,7 @@ export const AcademicProvider = ({ children }) => {
     (semNameOrObj) => {
       if (semNameOrObj === null) {
         setSelectedSemester(null);
-        localStorage.removeItem(SEMESTER_STORAGE_KEY);
+        sessionStorage.removeItem(SEMESTER_STORAGE_KEY);
         return;
       }
       const found =

@@ -22,4 +22,7 @@ public interface IOrderService
 
     /// <summary>Cancels a <c>Created</c> order and releases its fees back to Pending.</summary>
     Task CancelAsync(Guid orderId, CancellationToken cancellationToken = default);
+
+    Task<OrderResponse> CloseRecordAsync(Guid orderId, CancellationToken cancellationToken = default);
+    Task<OrderResponse> OpenRecordAsync(Guid orderId, CancellationToken cancellationToken = default);
 }

@@ -47,4 +47,29 @@ public class Student : BaseEntity, IExternallySourced
     /// rows have <see cref="ExternallySourcedData.ExternalId"/> = <c>null</c>.
     /// </summary>
     public ExternallySourcedData ExternallySourced { get; set; } = new();
+
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student record is closed and cannot be modified.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student record is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student record is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

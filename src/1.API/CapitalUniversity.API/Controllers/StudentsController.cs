@@ -1,13 +1,17 @@
-﻿using CapitalUniversity.Core.Abstractions.Shared;
+﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
+using CapitalUniversity.API.Infrastructure;
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CapitalUniversity.Api.Controllers;
 
 [ApiController]
 [Route("api/students")]
+[Authorize]
 public class StudentsController : ControllerBase
 {
     private readonly IStudentService _service;
@@ -19,6 +23,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> GetAll()
     {
         var result = await _service.GetAllAsync();
@@ -27,6 +32,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet("search")]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> Search(
         [FromQuery] StudentQueryRequest request)
     {
@@ -36,6 +42,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
@@ -50,6 +57,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPost]
+    [HasPermission(PermissionNames.StudentProfileRecords.Insert)]
     public async Task<IActionResult> Create(
         [FromBody] CreateStudentRequest request)
     {
@@ -64,6 +72,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HasPermission(PermissionNames.StudentProfileRecords.EditClose)]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateStudentRequest request)
@@ -77,6 +86,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [HasPermission(PermissionNames.StudentProfileRecords.Delete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteAsync(id);
@@ -88,6 +98,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPatch("{id}/toggle-status")]
+    [HasPermission(PermissionNames.StudentProfileRecords.EditClose)]
     public async Task<IActionResult> ToggleStatus(Guid id)
     {
         await _service.ToggleStatusAsync(id);
@@ -99,6 +110,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet("statistics")]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> GetStatistics(
         [FromQuery]
     UserStatisticsRequest request)
@@ -111,6 +123,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet("export/csv")]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> ExportCsv(
     [FromQuery] StudentQueryRequest request)
     {
@@ -166,6 +179,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPost("{id}/photo")]
+    [HasPermission(PermissionNames.StudentProfileRecords.EditClose)]
     public async Task<IActionResult> UploadPhoto(Guid id, IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -196,16 +210,22 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPost("bulk-import")]
+    [HasPermission(PermissionNames.StudentProfileRecords.Insert)]
     public async Task<IActionResult> BulkImport(
         [FromBody] List<CreateStudentRequest> requests)
     {
         var createdIds = new List<Guid>();
 
-        foreach (var request in requests)
+        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
         {
-            var id = await _service.CreateAsync(request);
+            foreach (var request in requests)
+            {
+                var id = await _service.CreateAsync(request);
 
-            createdIds.Add(id);
+                createdIds.Add(id);
+            }
+
+            transaction.Complete();
         }
 
         return Ok(new
@@ -216,6 +236,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpGet("export-excel")]
+    [HasPermission(PermissionNames.StudentProfileRecords.View)]
     public async Task<IActionResult> ExportExcel(
     [FromQuery] StudentQueryRequest request)
     {
@@ -284,6 +305,7 @@ public class StudentsController : ControllerBase
     }
 
     [HttpPost("import-excel")]
+    [HasPermission(PermissionNames.StudentProfileRecords.Insert)]
     public async Task<IActionResult> ImportExcel(
     IFormFile file)
     {
@@ -305,22 +327,27 @@ public class StudentsController : ControllerBase
         var rows =
             worksheet.RowsUsed().Skip(1);
 
-        foreach (var row in rows)
+        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
         {
-            var request = new CreateStudentRequest
+            foreach (var row in rows)
             {
-                StudentCode = row.Cell(1).GetString(),
-                NameAr = row.Cell(2).GetString(),
-                NameEn = row.Cell(3).GetString(),
-                NationalId = row.Cell(4).GetString(),
-                Email = row.Cell(5).GetString(),
-                PhoneNumber = row.Cell(6).GetString(),
-                Password = row.Cell(7).GetString(),
-                ConfirmPassword = row.Cell(7).GetString(),
-                StructureNodeId = Guid.Parse(row.Cell(8).GetString())
-            };
+                var request = new CreateStudentRequest
+                {
+                    StudentCode = row.Cell(1).GetString(),
+                    NameAr = row.Cell(2).GetString(),
+                    NameEn = row.Cell(3).GetString(),
+                    NationalId = row.Cell(4).GetString(),
+                    Email = row.Cell(5).GetString(),
+                    PhoneNumber = row.Cell(6).GetString(),
+                    Password = row.Cell(7).GetString(),
+                    ConfirmPassword = row.Cell(7).GetString(),
+                    StructureNodeId = Guid.Parse(row.Cell(8).GetString())
+                };
 
-            await _service.CreateAsync(request);
+                await _service.CreateAsync(request);
+            }
+
+            transaction.Complete();
         }
 
         return Ok(new

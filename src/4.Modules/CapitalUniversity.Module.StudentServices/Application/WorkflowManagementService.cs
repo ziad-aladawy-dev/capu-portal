@@ -50,6 +50,7 @@ public class WorkflowManagementService : IWorkflowManagementService
                 Title = stepDto.Title,
                 Description = stepDto.Description,
                 StepType = stepDto.StepType,
+                TransitionType = stepDto.TransitionType,
                 IsRequired = stepDto.IsRequired,
                 Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
                 {
@@ -102,6 +103,7 @@ public class WorkflowManagementService : IWorkflowManagementService
             Title = dto.Title,
             Description = dto.Description,
             StepType = dto.StepType,
+            TransitionType = dto.TransitionType,
             IsRequired = dto.IsRequired,
             Fields = dto.Fields.Select(fieldDto => new WorkflowStepField
             {
@@ -128,6 +130,7 @@ public class WorkflowManagementService : IWorkflowManagementService
         if (dto.Title != null) step.Title = dto.Title;
         if (dto.Description != null) step.Description = dto.Description;
         if (dto.StepType.HasValue) step.StepType = dto.StepType.Value;
+        if (dto.TransitionType.HasValue) step.TransitionType = dto.TransitionType.Value;
         if (dto.IsRequired.HasValue) step.IsRequired = dto.IsRequired.Value;
 
         _workflowRepository.UpdateStep(step);
@@ -154,6 +157,7 @@ public class WorkflowManagementService : IWorkflowManagementService
                 Title = s.Title,
                 Description = s.Description,
                 StepType = s.StepType,
+                TransitionType = s.TransitionType,
                 IsRequired = s.IsRequired,
                 Fields = s.Fields.OrderBy(f => f.Order).Select(f => new WorkflowStepFieldDto
                 {

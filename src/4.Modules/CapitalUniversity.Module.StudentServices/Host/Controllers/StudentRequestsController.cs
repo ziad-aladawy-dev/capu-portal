@@ -121,6 +121,22 @@ public class StudentRequestsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("{id:guid}/close-record")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsEditClose)]
+    public async Task<IActionResult> CloseRecord(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _requestService.CloseRequestAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/open-record")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsOpen)]
+    public async Task<IActionResult> OpenRecord(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _requestService.OpenRequestAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("assigned-to-me")]
     [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetAssignedToMe(CancellationToken cancellationToken)

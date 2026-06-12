@@ -29,8 +29,8 @@ function resolveScopeIds(activeScope) {
   let semId = activeScope?.temporal?.semesterId;
   let semesterName = null;
   try {
-    if (!nodeId) nodeId = JSON.parse(localStorage.getItem("capu_selected_scope_node"))?.id || null;
-    const sem = JSON.parse(localStorage.getItem("capu_selected_semester"));
+    if (!nodeId) nodeId = JSON.parse(sessionStorage.getItem("capu_selected_scope_node"))?.id || null;
+    const sem = JSON.parse(sessionStorage.getItem("capu_selected_semester"));
     if (!semId) semId = sem?.id || null;
     semesterName = sem?.name || null;
   } catch { /* scope stash unreadable — fall back to nulls */ }

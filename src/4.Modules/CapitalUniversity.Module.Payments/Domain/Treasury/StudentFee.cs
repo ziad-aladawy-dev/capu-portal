@@ -40,4 +40,29 @@ public class StudentFee : BaseEntity, ISoftDeletable
 
     /// <summary>SQL Server <c>rowversion</c> — optimistic concurrency on the status flip.</summary>
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student fee is closed and cannot be modified.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student fee is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student fee is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

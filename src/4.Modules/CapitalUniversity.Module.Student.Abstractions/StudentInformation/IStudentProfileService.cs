@@ -21,6 +21,9 @@ public interface IStudentProfileService
     Task VerifyAsync(Guid studentId, Guid id, VerifyStudentProfileRecordRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default);
 
+    Task CloseRecordAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default);
+    Task OpenRecordAsync(Guid studentId, Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// 3.5 — bulk upsert. Routes each record through the single-row
     /// <see cref="UpsertAsync"/> so scope + validation + re-verification clear

@@ -43,6 +43,7 @@ const renderProbe = () => render(
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 describe("useScopeKeyPart (Scenario B: scope-reactive query keys)", () => {
@@ -59,9 +60,10 @@ describe("useScopeKeyPart (Scenario B: scope-reactive query keys)", () => {
     expect(screen.getByTestId("scope").textContent).toBe("null");
   });
 
-  it("persists the selected scope for the next session", () => {
+  it("persists the selected scope for the current session (isolated)", () => {
     renderProbe();
     fireEvent.click(screen.getByText("set-scope"));
-    expect(JSON.parse(localStorage.getItem("capu_selected_scope_node")).id).toBe("eng-1");
+    expect(JSON.parse(sessionStorage.getItem("capu_selected_scope_node")).id).toBe("eng-1");
+    expect(localStorage.getItem("capu_selected_scope_node")).toBeNull();
   });
 });

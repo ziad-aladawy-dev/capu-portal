@@ -1,8 +1,12 @@
 import axios from "axios";
+import * as Sentry from "@sentry/react";
 
 let onUnauthorizedCallback = null;
 let isRefreshing = false;
 let failedQueue = [];
+
+const REFRESH_LOCK_KEY = "capu_refresh_lock";
+const REFRESH_LOCK_TTL = 10000; // 10 seconds
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5256/api",
@@ -26,6 +30,7 @@ apiClient.getRefreshToken = () => {
 apiClient.clearTokens = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem(REFRESH_LOCK_KEY);
 };
 
 apiClient.setToken = (token) => {
@@ -47,6 +52,20 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Listen for token updates or errors from other tabs
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "accessToken" && e.newValue) {
+      isRefreshing = false;
+      processQueue(null, e.newValue);
+    } else if (e.key === "capu_refresh_error" && e.newValue) {
+      isRefreshing = false;
+      const error = new Error("Token refresh failed in another tab");
+      processQueue(error, null);
+    }
+  });
+}
+
 apiClient.interceptors.request.use((config) => {
   if (config.skipScope) return config;
   const token = apiClient.getToken();
@@ -56,15 +75,15 @@ apiClient.interceptors.request.use((config) => {
   // Attach language header for i18n
   const lang = localStorage.getItem("i18nextLng") || "ar";
   config.headers["Accept-Language"] = lang;
-  // Auto-attach scope context from localStorage to every request
+  // Auto-attach scope context from storage to every request
   // Both query params AND headers are sent: query-params support existing
   // backend DTOs (StudentQueryRequest.ScopeNodeId etc.), while headers
   // support the IRequestContext interface (X-StructureNode-Id etc.) used
   // by permission and effective-scope services.
   try {
-    const scopeNode = JSON.parse(localStorage.getItem("capu_selected_scope_node"));
-    const academicYear = JSON.parse(localStorage.getItem("capu_selected_academic_year"));
-    const semester = JSON.parse(localStorage.getItem("capu_selected_semester"));
+    const scopeNode = JSON.parse(sessionStorage.getItem("capu_selected_scope_node"));
+    const academicYear = JSON.parse(sessionStorage.getItem("capu_selected_academic_year"));
+    const semester = JSON.parse(sessionStorage.getItem("capu_selected_semester"));
     const params = {};
     if (scopeNode?.id) {
       params.ScopeNodeId = scopeNode.id;
@@ -83,7 +102,7 @@ apiClient.interceptors.request.use((config) => {
     }
     return config;
   } catch {
-    // localStorage items may be absent or invalid
+    // storage items may be absent or invalid
   }
   return config;
 });
@@ -103,6 +122,10 @@ apiClient.interceptors.response.use(
       // or refresh-token replay). The refresh token is revoked too, so a refresh
       // would only fail — log out immediately and surface the reason.
       if (error.response?.data?.reason === "session_revoked") {
+        Sentry.captureMessage("Session revoked by server", {
+          level: "info",
+          extra: { path: window.location.pathname }
+        });
         apiClient.clearTokens();
         if (onUnauthorizedCallback) {
           onUnauthorizedCallback("revoked");
@@ -123,11 +146,29 @@ apiClient.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
+      // Cross-tab synchronization: check if another tab is already refreshing
+      const lockValue = localStorage.getItem(REFRESH_LOCK_KEY);
+      const now = Date.now();
+      if (lockValue && now - parseInt(lockValue) < REFRESH_LOCK_TTL) {
+        isRefreshing = true;
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
       isRefreshing = true;
+      localStorage.setItem(REFRESH_LOCK_KEY, now.toString());
+      localStorage.removeItem("capu_refresh_error");
 
       const refreshToken = apiClient.getRefreshToken();
       if (!refreshToken) {
+        Sentry.captureMessage("Refresh token missing from storage", { level: "warning" });
         apiClient.clearTokens();
         if (onUnauthorizedCallback) {
           onUnauthorizedCallback();
@@ -155,6 +196,10 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
+        Sentry.captureException(refreshError, {
+          tags: { type: "auth_refresh_failure" }
+        });
+        localStorage.setItem("capu_refresh_error", Date.now().toString());
         processQueue(refreshError, null);
         apiClient.clearTokens();
         if (onUnauthorizedCallback) {
@@ -165,6 +210,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+        localStorage.removeItem(REFRESH_LOCK_KEY);
       }
     }
 

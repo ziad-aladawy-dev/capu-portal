@@ -46,4 +46,37 @@ public class StudentProfileRecord : BaseEntity, ISoftDeletable
 
     /// <summary>True for medical / disability / military / similar restricted categories. Drives audit logging.</summary>
     public bool IsSensitive { get; set; }
+
+    /// <summary>
+    /// Closable lifecycle. Once true the entity is immutable under
+    /// <see cref="EnsureMutable"/>. Only callers holding the <c>Open</c>
+    /// permission may reopen via <see cref="Reopen"/>.
+    /// </summary>
+    public bool IsClosed { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    /// <summary>
+    /// Guards every mutating operation on the entity.
+    /// </summary>
+    public void EnsureMutable()
+    {
+        if (IsClosed)
+            throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student profile record is closed and cannot be modified. Reopen it first.");
+    }
+
+    public void Close()
+    {
+        if (IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student profile record is already closed.");
+        IsClosed = true;
+        ClosedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reopen()
+    {
+        if (!IsClosed) throw new CapitalUniversity.Core.Domain.Common.Exceptions.ConflictException("Student profile record is not closed.");
+        IsClosed = false;
+        ClosedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
