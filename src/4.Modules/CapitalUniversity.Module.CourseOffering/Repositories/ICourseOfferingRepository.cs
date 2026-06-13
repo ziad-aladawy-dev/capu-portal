@@ -30,6 +30,11 @@ public interface ICourseOfferingRepository
         Guid semesterId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Batch version — single SQL query for multiple (course, semester) pairs. No N+1.</summary>
+    Task<IReadOnlyList<CourseOfferingEntity>> GetForCoursesAsync(
+        IReadOnlyList<(Guid CourseId, Guid SemesterId)> pairs,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Returns true if a non-deleted offering already occupies the (course, semester, node, section) slot. Used as a create-time precheck on top of the DB unique index.</summary>
     Task<bool> SectionExistsAsync(Guid courseId, Guid semesterId, Guid structureNodeId, string sectionCode, CancellationToken cancellationToken = default);
 

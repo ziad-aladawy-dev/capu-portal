@@ -12,7 +12,7 @@ public class PaymentRepository : IPaymentRepository
     public PaymentRepository(CoreDbContext context) => _context = context;
 
     public Task<Payment?> GetByFeeIdAsync(Guid feeId, CancellationToken cancellationToken = default) =>
-        _context.Set<Payment>().FirstOrDefaultAsync(p => p.FeeId == feeId, cancellationToken);
+        _context.Set<Payment>().AsNoTracking().FirstOrDefaultAsync(p => p.FeeId == feeId, cancellationToken);
 
     public async Task AddAsync(Payment payment, CancellationToken cancellationToken = default) =>
         await _context.Set<Payment>().AddAsync(payment, cancellationToken);

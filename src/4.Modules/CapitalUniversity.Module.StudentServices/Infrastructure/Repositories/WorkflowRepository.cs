@@ -17,16 +17,18 @@ public class WorkflowRepository : IWorkflowRepository
     }
 
     public async Task<Workflow?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.Workflows.FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
+        => await _context.Workflows.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
 
     public async Task<Workflow?> GetByIdWithStepsAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Workflows
+            .AsNoTracking()
             .Include(w => w.Steps)
                 .ThenInclude(s => s.Fields)
             .FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
 
     public async Task<List<Workflow>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.Workflows
+            .AsNoTracking()
             .Include(w => w.Steps)
                 .ThenInclude(s => s.Fields)
             .ToListAsync(cancellationToken);
@@ -138,10 +140,11 @@ public class WorkflowRepository : IWorkflowRepository
     public void Delete(Workflow workflow) => _context.Workflows.Remove(workflow);
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.Workflows.AnyAsync(w => w.Id == id, cancellationToken);
+        => await _context.Workflows.AsNoTracking().AnyAsync(w => w.Id == id, cancellationToken);
 
     public async Task<WorkflowStep?> GetStepByIdAsync(Guid stepId, CancellationToken cancellationToken = default)
         => await _context.WorkflowSteps
+            .AsNoTracking()
             .Include(s => s.Fields)
             .FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken);
 

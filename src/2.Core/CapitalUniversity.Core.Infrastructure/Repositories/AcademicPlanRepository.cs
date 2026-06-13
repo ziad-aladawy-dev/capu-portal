@@ -44,7 +44,7 @@ public class AcademicPlanRepository : IAcademicPlanRepository
             .AnyAsync(pc => pc.AcademicPlanId == planId && pc.CourseId == courseId, cancellationToken);
 
     public Task<AcademicPlanCourse?> GetPlanCourseAsync(Guid planCourseId, CancellationToken cancellationToken = default) =>
-        _context.AcademicPlanCourses.FirstOrDefaultAsync(pc => pc.Id == planCourseId, cancellationToken);
+        _context.AcademicPlanCourses.AsNoTracking().FirstOrDefaultAsync(pc => pc.Id == planCourseId, cancellationToken);
 
     public void AddPlanCourse(AcademicPlanCourse planCourse) =>
         _context.AcademicPlanCourses.Add(planCourse);

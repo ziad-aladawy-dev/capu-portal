@@ -17,7 +17,7 @@ public class ScheduleSlotRepository : IScheduleSlotRepository
     }
 
     public Task<ScheduleSlot?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Set<ScheduleSlot>().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        _context.Set<ScheduleSlot>().AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<ScheduleSlot>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default) =>
         await _context.Set<ScheduleSlot>()
@@ -25,6 +25,16 @@ public class ScheduleSlotRepository : IScheduleSlotRepository
             .Where(s => s.CourseOfferingId == courseOfferingId)
             .OrderBy(s => s.DayOfWeek).ThenBy(s => s.StartTime)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ScheduleSlot>> GetForOfferingsAsync(IReadOnlyList<Guid> courseOfferingIds, CancellationToken cancellationToken = default)
+    {
+        if (courseOfferingIds.Count == 0) return Array.Empty<ScheduleSlot>();
+        return await _context.Set<ScheduleSlot>()
+            .AsNoTracking()
+            .Where(s => courseOfferingIds.Contains(s.CourseOfferingId))
+            .OrderBy(s => s.CourseOfferingId).ThenBy(s => s.DayOfWeek).ThenBy(s => s.StartTime)
+            .ToListAsync(cancellationToken);
+    }
 
     private static readonly HashSet<string> SlotSortFields = new(StringComparer.OrdinalIgnoreCase) { "dayOfWeek", "startTime", "createdAt" };
 
@@ -93,6 +103,7 @@ public class ScheduleSlotRepository : IScheduleSlotRepository
 
     public Task<bool> ExistsAsync(Guid courseOfferingId, DayOfWeek dayOfWeek, TimeOnly start, TimeOnly end, CancellationToken cancellationToken = default) =>
         _context.Set<ScheduleSlot>()
+            .AsNoTracking()
             .AnyAsync(
                 s => s.CourseOfferingId == courseOfferingId
                   && s.DayOfWeek == dayOfWeek
@@ -115,6 +126,7 @@ public class ScheduleSlotRepository : IScheduleSlotRepository
         // the predicate's leading equality filters, so the database scans a
         // narrow range per call — no extra index needed.
         var query = _context.Set<ScheduleSlot>()
+            .AsNoTracking()
             .Where(s => s.CourseOfferingId == courseOfferingId
                      && s.DayOfWeek == dayOfWeek
                      && s.StartTime < end

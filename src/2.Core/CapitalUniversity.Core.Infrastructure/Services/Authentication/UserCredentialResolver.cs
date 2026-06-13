@@ -16,42 +16,42 @@ public class UserCredentialResolver : IUserCredentialResolver
 
     public async Task<IUserCredential?> ResolveCredentialAsync(string identifier, CancellationToken cancellationToken = default)
     {
-        var student = await _dbContext.Students
+        var studentTask = _dbContext.Students
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.NationalId == identifier
                                    || s.Email == identifier
                                    || s.StudentCode == identifier, cancellationToken);
 
-        if (student != null)
-        {
-            return new StudentUserCredential(student);
-        }
-
-        var staff = await _dbContext.Staffs
+        var staffTask = _dbContext.Staffs
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.NationalId == identifier
                                    || s.Email == identifier
                                    || s.EmployeeCode == identifier, cancellationToken);
 
-        if (staff != null)
-        {
-            return new StaffUserCredential(staff);
-        }
+        await Task.WhenAll(studentTask, staffTask);
+
+        if (studentTask.Result != null)
+            return new StudentUserCredential(studentTask.Result);
+
+        if (staffTask.Result != null)
+            return new StaffUserCredential(staffTask.Result);
 
         return null;
     }
 
     public async Task<IUserCredential?> ResolveByIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var staff = await _dbContext.Staffs
+        var staffTask = _dbContext.Staffs
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (staff != null) return new StaffUserCredential(staff);
+        var studentTask = _dbContext.Students
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
 
-        var student = await _dbContext.Students
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (student != null) return new StudentUserCredential(student);
+        await Task.WhenAll(staffTask, studentTask);
+
+        if (staffTask.Result != null) return new StaffUserCredential(staffTask.Result);
+        if (studentTask.Result != null) return new StudentUserCredential(studentTask.Result);
 
         return null;
     }
@@ -63,20 +63,23 @@ public class UserCredentialResolver : IUserCredentialResolver
         IPasswordHasher hasher,
         CancellationToken cancellationToken = default)
     {
-        var staff = await _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (staff != null)
+        var staffTask = _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        var studentTask = _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+
+        await Task.WhenAll(staffTask, studentTask);
+
+        if (staffTask.Result != null)
         {
-            if (!hasher.VerifyHashedPassword(staff.PasswordHash ?? string.Empty, currentPassword)) return false;
-            staff.PasswordHash = hasher.HashPassword(newPassword);
+            if (!hasher.VerifyHashedPassword(staffTask.Result.PasswordHash ?? string.Empty, currentPassword)) return false;
+            staffTask.Result.PasswordHash = hasher.HashPassword(newPassword);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
 
-        var student = await _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (student != null)
+        if (studentTask.Result != null)
         {
-            if (!hasher.VerifyHashedPassword(student.PasswordHash ?? string.Empty, currentPassword)) return false;
-            student.PasswordHash = hasher.HashPassword(newPassword);
+            if (!hasher.VerifyHashedPassword(studentTask.Result.PasswordHash ?? string.Empty, currentPassword)) return false;
+            studentTask.Result.PasswordHash = hasher.HashPassword(newPassword);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -90,18 +93,21 @@ public class UserCredentialResolver : IUserCredentialResolver
         IPasswordHasher hasher,
         CancellationToken cancellationToken = default)
     {
-        var staff = await _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (staff != null)
+        var staffTask = _dbContext.Staffs.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+        var studentTask = _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+
+        await Task.WhenAll(staffTask, studentTask);
+
+        if (staffTask.Result != null)
         {
-            staff.PasswordHash = hasher.HashPassword(newPassword);
+            staffTask.Result.PasswordHash = hasher.HashPassword(newPassword);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
 
-        var student = await _dbContext.Students.FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
-        if (student != null)
+        if (studentTask.Result != null)
         {
-            student.PasswordHash = hasher.HashPassword(newPassword);
+            studentTask.Result.PasswordHash = hasher.HashPassword(newPassword);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }

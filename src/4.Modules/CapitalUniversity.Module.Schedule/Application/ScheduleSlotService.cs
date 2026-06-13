@@ -158,6 +158,30 @@ public class ScheduleSlotService : IScheduleSlotService
         return (cached ?? new List<ScheduleSlotResponse>()).Select(LocalizeCopy).ToList();
     }
 
+    public async Task<IReadOnlyList<ScheduleSlotResponse>> GetForOfferingsAsync(
+        IReadOnlyList<Guid> courseOfferingIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (courseOfferingIds.Count == 0) return Array.Empty<ScheduleSlotResponse>();
+
+        // Single DB query for all slots across the given offerings.
+        var raw = await _slots.GetForOfferingsAsync(courseOfferingIds, cancellationToken);
+        if (raw.Count == 0) return Array.Empty<ScheduleSlotResponse>();
+
+        // Group by offering to hydrate per-offering cache entries.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var allSlots = new List<ScheduleSlotResponse>(raw.Count);
+        foreach (var group in raw.GroupBy(s => s.CourseOfferingId))
+        {
+            var mapped = group.Select(MapToResponse).ToList();
+            var key = $"{OfferingListKeyPrefix}{group.Key:N}:{version}";
+            await _cache.SetAsync(key, mapped, CacheTtl, cancellationToken);
+            allSlots.AddRange(mapped.Select(LocalizeCopy));
+        }
+
+        return allSlots;
+    }
+
     public async Task<Guid> CreateAsync(CreateScheduleSlotRequest request, CancellationToken cancellationToken = default)
     {
         var validation = await _validators.Create.ValidateAsync(request, cancellationToken);

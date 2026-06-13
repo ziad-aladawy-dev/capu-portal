@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
 using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
@@ -21,12 +21,14 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<StudentRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
+            .AsNoTracking()
             .Include(r => r.Service)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<StudentRequest?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var request = await _context.StudentRequests
+            .AsNoTracking()
             .Include(r => r.Service)
                 .ThenInclude(s => s.Workflow)
                     .ThenInclude(w => w.Steps)
@@ -51,6 +53,7 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<List<StudentRequest>> GetByStudentIdAsync(Guid studentId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
+            .AsNoTracking()
             .Where(r => r.StudentId == studentId)
             .Include(r => r.Service)
             .OrderByDescending(r => r.CreatedAt)
@@ -58,6 +61,7 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<List<StudentRequest>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
+            .AsNoTracking()
             .Where(r => r.AssignedToStaffId == staffId)
             .Include(r => r.Service)
                 .ThenInclude(s => s.Workflow)
@@ -67,6 +71,7 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<List<StudentRequest>> GetAllForStaffAsync(CancellationToken cancellationToken = default)
         => await _context.StudentRequests
+            .AsNoTracking()
             .Include(r => r.Service)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -89,6 +94,7 @@ public class StudentRequestRepository : IStudentRequestRepository
     public async Task<RequestCountsDto> GetRequestCountsByStatusAsync(CancellationToken cancellationToken = default)
     {
         var groups = await _context.StudentRequests
+            .AsNoTracking()
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
@@ -99,6 +105,7 @@ public class StudentRequestRepository : IStudentRequestRepository
     public async Task<RequestCountsDto> GetRequestCountsByStatusForStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
         var groups = await _context.StudentRequests
+            .AsNoTracking()
             .Where(r => r.StudentId == studentId)
             .GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -109,33 +116,47 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
         => await _context.StudentRequests
+            .AsNoTracking()
             .Where(r => r.PaymentStatus == PaymentStatus.Paid && r.AmountPaid.HasValue)
             .SumAsync(r => r.AmountPaid ?? 0, cancellationToken);
 
     public async Task<StaffStatisticsDto> GetStaffStatisticsAsync(CancellationToken cancellationToken = default)
     {
-        var totalServices = await _context.Services.CountAsync(cancellationToken);
-        var activeServices = await _context.Services.CountAsync(s => s.IsActive, cancellationToken);
+        var serviceStats = await _context.Services
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalServices = g.Count(),
+                ActiveServices = g.Count(s => s.IsActive)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var totalRequests = await _context.StudentRequests.CountAsync(cancellationToken);
-        var pendingRequests = await _context.StudentRequests.CountAsync(r => r.Status == RequestStatus.Pending, cancellationToken);
-        var underReviewRequests = await _context.StudentRequests.CountAsync(r => r.Status == RequestStatus.UnderReview, cancellationToken);
-        var completedRequests = await _context.StudentRequests.CountAsync(r => r.Status == RequestStatus.Completed, cancellationToken);
-        var paidRequests = await _context.StudentRequests.CountAsync(r => r.PaymentStatus == PaymentStatus.Paid, cancellationToken);
-        var totalRevenue = await _context.StudentRequests
-            .Where(r => r.PaymentStatus == PaymentStatus.Paid && r.AmountPaid.HasValue)
-            .SumAsync(r => r.AmountPaid ?? 0, cancellationToken);
+        var requestStats = await _context.StudentRequests
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalRequests = g.Count(),
+                PendingRequests = g.Count(r => r.Status == RequestStatus.Pending),
+                UnderReviewRequests = g.Count(r => r.Status == RequestStatus.UnderReview),
+                CompletedRequests = g.Count(r => r.Status == RequestStatus.Completed),
+                PaidRequests = g.Count(r => r.PaymentStatus == PaymentStatus.Paid),
+                TotalRevenue = g.Where(r => r.PaymentStatus == PaymentStatus.Paid && r.AmountPaid.HasValue)
+                    .Sum(r => r.AmountPaid ?? 0)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         return new StaffStatisticsDto
         {
-            TotalServices = totalServices,
-            ActiveServices = activeServices,
-            TotalRequests = totalRequests,
-            PendingRequests = pendingRequests,
-            AwaitingApproval = underReviewRequests,
-            CompletedRequests = completedRequests,
-            PaidRequests = paidRequests,
-            TotalRevenue = totalRevenue
+            TotalServices = serviceStats?.TotalServices ?? 0,
+            ActiveServices = serviceStats?.ActiveServices ?? 0,
+            TotalRequests = requestStats?.TotalRequests ?? 0,
+            PendingRequests = requestStats?.PendingRequests ?? 0,
+            AwaitingApproval = requestStats?.UnderReviewRequests ?? 0,
+            CompletedRequests = requestStats?.CompletedRequests ?? 0,
+            PaidRequests = requestStats?.PaidRequests ?? 0,
+            TotalRevenue = requestStats?.TotalRevenue ?? 0
         };
     }
 
@@ -160,6 +181,7 @@ public class StudentRequestRepository : IStudentRequestRepository
 
         var studentIds = recentRequests.Select(r => r.StudentId).Distinct().ToList();
         var students = await _coreDbContext.Students
+            .AsNoTracking()
             .Where(s => studentIds.Contains(s.Id))
             .Select(s => new { s.Id, s.Name })
             .ToListAsync(cancellationToken);
@@ -181,67 +203,70 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.StudentRequests.Include(r => r.Service).AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search) && int.TryParse(search, out int reqNumber))
-        {
-            query = query.Where(r => r.RequestNumber == reqNumber);
-        }
+        // Join with Students table in SQL (cross-module read-only mapping).
+        var query = _context.StudentRequests
+            .AsNoTracking()
+            .Join(_context.Set<CapitalUniversity.Core.Domain.Identity.Student>(),
+                r => r.StudentId,
+                s => s.Id,
+                (r, s) => new { Request = r, StudentName = s.Name })
+            .AsQueryable();
 
         // Assignment visibility: unassigned requests visible to all, assigned only to the assignee
         if (staffId.HasValue)
         {
-            query = query.Where(r => r.AssignedToStaffId == null || r.AssignedToStaffId == staffId);
+            query = query.Where(x => x.Request.AssignedToStaffId == null || x.Request.AssignedToStaffId == staffId.Value);
         }
 
-        var allRequests = await query.ToListAsync(cancellationToken);
-        var studentIds = allRequests.Select(r => r.StudentId).Distinct().ToList();
-        var studentsDict = new Dictionary<Guid, string>();
-        if (studentIds.Any())
+        // Numeric search → filter by request number.
+        int.TryParse(search, out int parsedNumber);
+        var isNumericSearch = !string.IsNullOrWhiteSpace(search) && parsedNumber > 0;
+        if (isNumericSearch)
+            query = query.Where(x => x.Request.RequestNumber == parsedNumber);
+
+        // Text search → filter by student name directly in SQL.
+        if (!string.IsNullOrWhiteSpace(search) && !isNumericSearch)
+            query = query.Where(x => x.StudentName.Contains(search));
+
+        // Sorting — pushed to SQL for all fields, including student name.
+        bool sortByStudentName = string.Equals(sortBy, "studentname", StringComparison.OrdinalIgnoreCase);
+
+        if (sortByStudentName)
         {
-            var students = await _coreDbContext.Students
-                .Where(s => studentIds.Contains(s.Id))
-                .Select(s => new { s.Id, s.Name })
-                .ToListAsync(cancellationToken);
-            studentsDict = students.ToDictionary(s => s.Id, s => s.Name);
+            query = ascending
+                ? query.OrderBy(x => x.StudentName).ThenByDescending(x => x.Request.CreatedAt)
+                : query.OrderByDescending(x => x.StudentName).ThenByDescending(x => x.Request.CreatedAt);
+        }
+        else
+        {
+            query = (sortBy?.ToLower(), ascending) switch
+            {
+                ("requestnumber", true) => query.OrderBy(x => x.Request.RequestNumber),
+                ("requestnumber", false) => query.OrderByDescending(x => x.Request.RequestNumber),
+                _ => query.OrderByDescending(x => x.Request.CreatedAt)
+            };
         }
 
-        var detailedRequests = allRequests.Select(r => new
+        var totalCount = await query.CountAsync(cancellationToken);
+        if (totalCount == 0)
         {
-            Request = r,
-            StudentName = studentsDict.GetValueOrDefault(r.StudentId) ?? string.Empty
-        }).ToList();
-
-        if (!string.IsNullOrWhiteSpace(search) && !int.TryParse(search, out _))
-        {
-            var searchLower = search.ToLowerInvariant();
-            detailedRequests = detailedRequests
-                .Where(x => x.StudentName.ToLowerInvariant().Contains(searchLower))
-                .ToList();
+            return new PagedResult<StaffRequestListItemDto>
+            {
+                Items = new List<StaffRequestListItemDto>(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+                TotalPages = 0
+            };
         }
 
-        var totalCount = detailedRequests.Count;
-        IOrderedEnumerable<dynamic> ordered;
-        switch (sortBy?.ToLower())
-        {
-            case "requestnumber":
-                ordered = ascending
-                    ? detailedRequests.OrderBy(x => x.Request.RequestNumber)
-                    : detailedRequests.OrderByDescending(x => x.Request.RequestNumber);
-                break;
-            case "studentname":
-                ordered = ascending
-                    ? detailedRequests.OrderBy(x => x.StudentName)
-                    : detailedRequests.OrderByDescending(x => x.StudentName);
-                break;
-            default:
-                ordered = detailedRequests.OrderByDescending(x => x.Request.CreatedAt);
-                break;
-        }
+        var items = await query
+            .Include(x => x.Request.Service)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
 
-        var pagedList = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-        var items = pagedList.Select(x => new StaffRequestListItemDto
+        var dtos = items.Select(x => new StaffRequestListItemDto
         {
             Id = x.Request.Id,
             RequestNumber = x.Request.RequestNumber,
@@ -256,7 +281,7 @@ public class StudentRequestRepository : IStudentRequestRepository
 
         return new PagedResult<StaffRequestListItemDto>
         {
-            Items = items,
+            Items = dtos,
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
@@ -266,16 +291,18 @@ public class StudentRequestRepository : IStudentRequestRepository
 
     public async Task<List<RequestAttachment>> GetAttachmentsByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
         => await _context.RequestAttachments
+            .AsNoTracking()
             .Where(a => a.StudentRequestId == requestId)
             .ToListAsync(cancellationToken);
 
     public async Task<StudentRequest?> GetPendingForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
-            .Include(r => r.Service)
-                .ThenInclude(s => s.Workflow)
-                    .ThenInclude(w => w.Steps)
-                        .ThenInclude(s => s.Fields)
-            .Include(r => r.HistoryEntries)
+            .AsNoTracking()
+            .Include(r => r.Service!)
+                .ThenInclude(s => s.Workflow!)
+                    .ThenInclude(w => w.Steps!)
+                        .ThenInclude(s => s.Fields!)
+            .Include(r => r.HistoryEntries!)
             .FirstOrDefaultAsync(r => r.StudentId == studentId && r.ServiceId == serviceId &&
                 (r.Status == RequestStatus.Draft || r.Status == RequestStatus.PaymentPending), cancellationToken);
 

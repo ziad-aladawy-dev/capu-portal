@@ -13,11 +13,13 @@ public class ServiceReceiptMappingRepository : IServiceReceiptMappingRepository
 
     public Task<ServiceReceiptMapping?> GetActiveByServiceAsync(Guid studentServiceId, CancellationToken cancellationToken = default) =>
         _context.Set<ServiceReceiptMapping>()
+            .AsNoTracking()
             .Include(m => m.Receipt)
             .FirstOrDefaultAsync(m => m.StudentServiceId == studentServiceId && m.IsActive, cancellationToken);
 
     public Task<ServiceReceiptMapping?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         _context.Set<ServiceReceiptMapping>()
+            .AsNoTracking()
             .Include(m => m.Receipt)
             .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 

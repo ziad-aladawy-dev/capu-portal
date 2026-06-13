@@ -20,6 +20,9 @@ public interface IScheduleSlotService
     /// <summary>All slots attached to one offering, ordered by day then start time. Returns empty when the offering is not visible to the caller.</summary>
     Task<IReadOnlyList<ScheduleSlotResponse>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default);
 
+    /// <summary>Batch version — single SQL query for multiple offering IDs. No N+1.</summary>
+    Task<IReadOnlyList<ScheduleSlotResponse>> GetForOfferingsAsync(IReadOnlyList<Guid> courseOfferingIds, CancellationToken cancellationToken = default);
+
     Task<Guid> CreateAsync(CreateScheduleSlotRequest request, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Guid id, UpdateScheduleSlotRequest request, CancellationToken cancellationToken = default);

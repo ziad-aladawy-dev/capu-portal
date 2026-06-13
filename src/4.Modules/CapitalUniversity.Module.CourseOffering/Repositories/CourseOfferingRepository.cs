@@ -18,7 +18,7 @@ public class CourseOfferingRepository : ICourseOfferingRepository
     }
 
     public Task<CourseOfferingEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Set<CourseOfferingEntity>().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+        _context.Set<CourseOfferingEntity>().AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<CourseOfferingEntity>> GetForNodeSemesterAsync(
         Guid structureNodeId,
@@ -117,6 +117,23 @@ public class CourseOfferingRepository : ICourseOfferingRepository
             .OrderBy(o => o.StructureNodeId).ThenBy(o => o.SectionCode)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CourseOfferingEntity>> GetForCoursesAsync(
+        IReadOnlyList<(Guid CourseId, Guid SemesterId)> pairs,
+        CancellationToken cancellationToken = default)
+    {
+        if (pairs.Count == 0) return Array.Empty<CourseOfferingEntity>();
+        var courseIds = pairs.Select(p => p.CourseId).Distinct().ToList();
+        var semesterIds = pairs.Select(p => p.SemesterId).Distinct().ToList();
+        var offerings = await _context.Set<CourseOfferingEntity>()
+            .AsNoTracking()
+            .Where(o => courseIds.Contains(o.CourseId) && semesterIds.Contains(o.SemesterId))
+            .OrderBy(o => o.StructureNodeId).ThenBy(o => o.SectionCode)
+            .ToListAsync(cancellationToken);
+        return offerings
+            .Where(o => pairs.Any(p => p.CourseId == o.CourseId && p.SemesterId == o.SemesterId))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<CourseOfferingEntity>> GetForSemesterAsync(
         Guid semesterId,
         Guid? structureNodeId = null,
@@ -136,6 +153,7 @@ public class CourseOfferingRepository : ICourseOfferingRepository
 
     public Task<bool> SectionExistsAsync(Guid courseId, Guid semesterId, Guid structureNodeId, string sectionCode, CancellationToken cancellationToken = default) =>
         _context.Set<CourseOfferingEntity>()
+            .AsNoTracking()
             .AnyAsync(
                 o => o.CourseId == courseId
                   && o.SemesterId == semesterId

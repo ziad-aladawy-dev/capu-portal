@@ -34,6 +34,11 @@ public interface ICourseOfferingService
         Guid semesterId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Batch version — single SQL query for multiple (course, semester) pairs. No N+1.</summary>
+    Task<IReadOnlyList<CourseOfferingResponse>> GetForCoursesAsync(
+        IReadOnlyList<(Guid CourseId, Guid SemesterId)> pairs,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> CreateAsync(CreateCourseOfferingRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>

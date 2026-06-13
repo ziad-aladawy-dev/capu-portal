@@ -14,6 +14,8 @@ public interface IStudentRepository
 
     Task AddAsync(Student student);
 
+    Task AddRangeAsync(IReadOnlyList<Student> students);
+
     Task UpdateAsync(Student student);
 
     Task SoftDeleteAsync(Guid id);
@@ -25,6 +27,8 @@ public interface IStudentRepository
     Task<bool> EmailExistsAsync(string email);
 
     Task<bool> NationalIdExistsAsync(string nationalId);
+
+    Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
 
     Task<string?> GetLastStudentCodeAsync();
 

@@ -17,5 +17,6 @@ public class PaymentTransactionRepository : IPaymentTransactionRepository
 
     public Task<bool> ExistsAsync(string merchantOrderId, string idempotencyKey, CancellationToken cancellationToken = default) =>
         _context.Set<PaymentTransaction>()
+            .AsNoTracking()
             .AnyAsync(t => t.MerchantOrderId == merchantOrderId && t.IdempotencyKey == idempotencyKey, cancellationToken);
 }

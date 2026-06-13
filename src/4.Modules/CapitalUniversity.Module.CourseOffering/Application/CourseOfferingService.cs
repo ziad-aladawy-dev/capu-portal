@@ -151,6 +151,45 @@ public class CourseOfferingService : ICourseOfferingService
         return visible;
     }
 
+    public async Task<IReadOnlyList<CourseOfferingResponse>> GetForCoursesAsync(
+        IReadOnlyList<(Guid CourseId, Guid SemesterId)> pairs,
+        CancellationToken cancellationToken = default)
+    {
+        if (pairs.Count == 0) return Array.Empty<CourseOfferingResponse>();
+
+        // Filter out pairs whose semester is out of scope.
+        var validPairs = new List<(Guid, Guid)>(pairs.Count);
+        foreach (var pair in pairs)
+        {
+            if (await _scope.CanAccessSemesterAsync(pair.SemesterId, cancellationToken))
+                validPairs.Add(pair);
+        }
+        if (validPairs.Count == 0) return Array.Empty<CourseOfferingResponse>();
+
+        // Batch DB query — single SQL round trip.
+        var allOfferings = await _offerings.GetForCoursesAsync(validPairs, cancellationToken);
+        if (allOfferings.Count == 0) return Array.Empty<CourseOfferingResponse>();
+
+        // Cache each (course, semester) result individually so future single-pair
+        // lookups still hit cache.
+        var version = await GetCollectionVersionAsync(cancellationToken);
+        var byKey = allOfferings.GroupBy(o => (o.CourseId, o.SemesterId));
+        foreach (var group in byKey)
+        {
+            var key = $"{CourseSemesterKeyPrefix}{group.Key.CourseId:N}:{group.Key.SemesterId:N}:{version}";
+            await _cache.SetAsync(key, group.Select(ToResponse).ToList(), CacheTtl, cancellationToken);
+        }
+
+        // Per-node scope filter.
+        var visible = new List<CourseOfferingResponse>(allOfferings.Count);
+        foreach (var offering in allOfferings)
+        {
+            if (await _scope.CanAccessStructureNodeAsync(offering.StructureNodeId, cancellationToken))
+                visible.Add(ToResponse(offering));
+        }
+        return visible;
+    }
+
     public async Task<Guid> CreateAsync(CreateCourseOfferingRequest request, CancellationToken cancellationToken = default)
     {
         var validation = await _createValidator.ValidateAsync(request, cancellationToken);

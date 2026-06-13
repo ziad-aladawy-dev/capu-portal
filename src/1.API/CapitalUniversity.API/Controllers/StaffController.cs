@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.API.Infrastructure;
+using CapitalUniversity.API.Infrastructure;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement;
@@ -123,47 +123,61 @@ public class StaffController : ControllerBase
     [HasPermission(PermissionNames.Staff.View)]
     public async Task<IActionResult> ExportCsv([FromQuery] StaffQueryRequest request)
     {
+        const int chunkSize = 1000;
         request.Page = 1;
-        request.PageSize = 10000;
+        request.PageSize = chunkSize;
 
-        var result = await _service.SearchAsync(request);
+        var firstPage = await _service.SearchAsync(request);
+        var totalPages = firstPage.TotalPages;
 
-        var lines = new List<string>
+        var sb = new System.Text.StringBuilder(firstPage.TotalCount * 128 + 200);
+        sb.AppendLine("EmployeeCode,NameAr,NameEn,NationalId,Email,Phone,Role,JobTitle,Faculty,Status,PasswordStatus");
+
+        for (var page = 1; page <= totalPages; page++)
         {
-            "EmployeeCode,NameAr,NameEn,NationalId,Email,Phone,Role,JobTitle,Faculty,Status,PasswordStatus"
-        };
-
-        foreach (var staff in result.Items)
-        {
-            string nameAr = "", nameEn = "";
-            if (!string.IsNullOrEmpty(staff.Name))
-            {
-                try
+            var pageResult = page == 1
+                ? firstPage
+                : await _service.SearchAsync(new StaffQueryRequest
                 {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
-                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
-                    nameEn = dict?.GetValueOrDefault("en") ?? "";
-                }
-                catch { }
-            }
+                    ScopeNodeId = request.ScopeNodeId,
+                    Search = request.Search,
+                    IsActive = request.IsActive,
+                    Role = request.Role,
+                    JobTitle = request.JobTitle,
+                    StructureNodeId = request.StructureNodeId,
+                    Page = page,
+                    PageSize = chunkSize
+                });
 
-            lines.Add(
-                $"{staff.EmployeeCode}," +
-                $"{EscapeCsv(nameAr)}," +
-                $"{EscapeCsv(nameEn)}," +
-                $"{staff.NationalId}," +
-                $"{staff.Email}," +
-                $"{staff.PhoneNumber}," +
-                $"{staff.Role}," +
-                $"{staff.JobTitle}," +
-                $"{staff.FacultyName}," +
-                $"{(staff.IsActive ? "Active" : "Inactive")}," +
-                $"{staff.PasswordStatus}");
+            foreach (var staff in pageResult.Items)
+            {
+                string nameAr = "", nameEn = "";
+                if (!string.IsNullOrEmpty(staff.Name))
+                {
+                    try
+                    {
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
+                        nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                        nameEn = dict?.GetValueOrDefault("en") ?? "";
+                    }
+                    catch { }
+                }
+
+                sb.Append(staff.EmployeeCode);
+                sb.Append(',').Append(EscapeCsv(nameAr));
+                sb.Append(',').Append(EscapeCsv(nameEn));
+                sb.Append(',').Append(staff.NationalId);
+                sb.Append(',').Append(staff.Email);
+                sb.Append(',').Append(staff.PhoneNumber);
+                sb.Append(',').Append(staff.Role);
+                sb.Append(',').Append(staff.JobTitle);
+                sb.Append(',').Append(staff.FacultyName);
+                sb.Append(',').Append(staff.IsActive ? "Active" : "Inactive");
+                sb.Append(',').AppendLine(staff.PasswordStatus);
+            }
         }
 
-        var csv = string.Join(Environment.NewLine, lines);
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
 
         return File(
             bytes,
@@ -207,19 +221,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> BulkImport(
         [FromBody] List<CreateStaffRequest> requests)
     {
-        var createdIds = new List<Guid>();
-
-        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
-        {
-            foreach (var request in requests)
-            {
-                var id = await _service.CreateAsync(request);
-
-                createdIds.Add(id);
-            }
-
-            transaction.Complete();
-        }
+        var createdIds = await _service.BulkCreateAsync(requests);
 
         return Ok(new
         {
@@ -233,13 +235,14 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> ExportExcel(
     [FromQuery] StaffQueryRequest request)
     {
+        const int chunkSize = 1000;
         request.Page = 1;
-        request.PageSize = 10000;
+        request.PageSize = chunkSize;
 
-        var result = await _service.SearchAsync(request);
+        var firstPage = await _service.SearchAsync(request);
+        var totalPages = firstPage.TotalPages;
 
         using var workbook = new XLWorkbook();
-
         var worksheet = workbook.Worksheets.Add("Staff");
 
         worksheet.Cell(1, 1).Value = "Employee Code";
@@ -256,46 +259,60 @@ public class StaffController : ControllerBase
 
         int row = 2;
 
-        foreach (var staff in result.Items)
+        for (var page = 1; page <= totalPages; page++)
         {
-            string nameAr = "", nameEn = "";
-            if (!string.IsNullOrEmpty(staff.Name))
-            {
-                try
+            var pageResult = page == 1
+                ? firstPage
+                : await _service.SearchAsync(new StaffQueryRequest
                 {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
-                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
-                    nameEn = dict?.GetValueOrDefault("en") ?? "";
-                }
-                catch { }
-            }
+                    ScopeNodeId = request.ScopeNodeId,
+                    Search = request.Search,
+                    IsActive = request.IsActive,
+                    Role = request.Role,
+                    JobTitle = request.JobTitle,
+                    StructureNodeId = request.StructureNodeId,
+                    Page = page,
+                    PageSize = chunkSize
+                });
 
-            worksheet.Cell(row, 1).Value = staff.EmployeeCode;
-            worksheet.Cell(row, 2).Value = nameAr;
-            worksheet.Cell(row, 3).Value = nameEn;
-            worksheet.Cell(row, 4).Value = staff.NationalId;
-            worksheet.Cell(row, 5).Value = staff.Email;
-            worksheet.Cell(row, 6).Value = staff.PhoneNumber;
-            worksheet.Cell(row, 7).Value = staff.Role;
-            worksheet.Cell(row, 8).Value = staff.JobTitle;
-            worksheet.Cell(row, 9).Value = staff.FacultyName;
-            worksheet.Cell(row, 10).Value = staff.IsActive ? "Active" : "Inactive";
-            worksheet.Cell(row, 11).Value = staff.PasswordStatus;
-            row++;
+            foreach (var staff in pageResult.Items)
+            {
+                string nameAr = "", nameEn = "";
+                if (!string.IsNullOrEmpty(staff.Name))
+                {
+                    try
+                    {
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(staff.Name);
+                        nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                        nameEn = dict?.GetValueOrDefault("en") ?? "";
+                    }
+                    catch { }
+                }
+
+                worksheet.Cell(row, 1).Value = staff.EmployeeCode;
+                worksheet.Cell(row, 2).Value = nameAr;
+                worksheet.Cell(row, 3).Value = nameEn;
+                worksheet.Cell(row, 4).Value = staff.NationalId;
+                worksheet.Cell(row, 5).Value = staff.Email;
+                worksheet.Cell(row, 6).Value = staff.PhoneNumber;
+                worksheet.Cell(row, 7).Value = staff.Role;
+                worksheet.Cell(row, 8).Value = staff.JobTitle;
+                worksheet.Cell(row, 9).Value = staff.FacultyName;
+                worksheet.Cell(row, 10).Value = staff.IsActive ? "Active" : "Inactive";
+                worksheet.Cell(row, 11).Value = staff.PasswordStatus;
+                row++;
+            }
         }
 
         worksheet.Columns().AdjustToContents();
 
         using var stream = new MemoryStream();
-
         workbook.SaveAs(stream);
 
-        var content = stream.ToArray();
-
         return File(
-            content,
+            stream.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "staff.xlsx");
+            $"staff-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
     }
 
     [HttpPost("import-excel")]

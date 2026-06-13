@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
@@ -127,50 +127,60 @@ public class StudentsController : ControllerBase
     public async Task<IActionResult> ExportCsv(
     [FromQuery] StudentQueryRequest request)
     {
+        const int chunkSize = 1000;
         request.Page = 1;
-        request.PageSize = 10000;
+        request.PageSize = chunkSize;
 
-        var result = await _service.SearchAsync(request);
+        var firstPage = await _service.SearchAsync(request);
+        var totalPages = firstPage.TotalPages;
 
-        var lines = new List<string>
+        var sb = new System.Text.StringBuilder(firstPage.TotalCount * 128 + 200);
+        sb.AppendLine("StudentCode,NameAr,NameEn,NationalId,Email,Phone,Faculty,Program,Level,Status,PasswordStatus");
+
+        for (var page = 1; page <= totalPages; page++)
         {
-            "StudentCode,NameAr,NameEn,NationalId,Email,Phone,Faculty,Program,Level,Status,PasswordStatus"
-        };
-
-        foreach (var student in result.Items)
-        {
-            string nameAr = "", nameEn = "";
-            if (!string.IsNullOrEmpty(student.Name))
-            {
-                try
+            var pageResult = page == 1
+                ? firstPage
+                : await _service.SearchAsync(new StudentQueryRequest
                 {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
-                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
-                    nameEn = dict?.GetValueOrDefault("en") ?? "";
-                }
-                catch { }
-            }
+                    ScopeNodeId = request.ScopeNodeId,
+                    Search = request.Search,
+                    IsActive = request.IsActive,
+                    SortBy = request.SortBy,
+                    Ascending = request.Ascending,
+                    Page = page,
+                    PageSize = chunkSize
+                });
 
-            lines.Add(
-                $"{student.StudentCode}," +
-                $"{EscapeCsv(nameAr)}," +
-                $"{EscapeCsv(nameEn)}," +
-                $"{student.NationalId}," +
-                $"{student.Email}," +
-                $"{student.PhoneNumber}," +
-                $"{student.FacultyName}," +
-                $"{student.ProgramName}," +
-                $"{student.LevelName}," +
-                $"{(student.IsActive ? "Active" : "Inactive")}," +
-                $"{student.PasswordStatus}");
+            foreach (var student in pageResult.Items)
+            {
+                string nameAr = "", nameEn = "";
+                if (!string.IsNullOrEmpty(student.Name))
+                {
+                    try
+                    {
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
+                        nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                        nameEn = dict?.GetValueOrDefault("en") ?? "";
+                    }
+                    catch { }
+                }
+
+                sb.Append(student.StudentCode);
+                sb.Append(',').Append(EscapeCsv(nameAr));
+                sb.Append(',').Append(EscapeCsv(nameEn));
+                sb.Append(',').Append(student.NationalId);
+                sb.Append(',').Append(student.Email);
+                sb.Append(',').Append(student.PhoneNumber);
+                sb.Append(',').Append(student.FacultyName);
+                sb.Append(',').Append(student.ProgramName);
+                sb.Append(',').Append(student.LevelName);
+                sb.Append(',').Append(student.IsActive ? "Active" : "Inactive");
+                sb.Append(',').AppendLine(student.PasswordStatus);
+            }
         }
 
-        var csv = string.Join(
-            Environment.NewLine,
-            lines);
-
-        var bytes =
-            System.Text.Encoding.UTF8.GetBytes(csv);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
 
         return File(
             bytes,
@@ -214,19 +224,7 @@ public class StudentsController : ControllerBase
     public async Task<IActionResult> BulkImport(
         [FromBody] List<CreateStudentRequest> requests)
     {
-        var createdIds = new List<Guid>();
-
-        using (var transaction = new System.Transactions.TransactionScope(System.Transactions.TransactionScopeAsyncFlowOption.Enabled))
-        {
-            foreach (var request in requests)
-            {
-                var id = await _service.CreateAsync(request);
-
-                createdIds.Add(id);
-            }
-
-            transaction.Complete();
-        }
+        var createdIds = await _service.BulkCreateAsync(requests);
 
         return Ok(new
         {
@@ -240,15 +238,15 @@ public class StudentsController : ControllerBase
     public async Task<IActionResult> ExportExcel(
     [FromQuery] StudentQueryRequest request)
     {
+        const int chunkSize = 1000;
         request.Page = 1;
-        request.PageSize = 10000;
+        request.PageSize = chunkSize;
 
-        var result = await _service.SearchAsync(request);
+        var firstPage = await _service.SearchAsync(request);
+        var totalPages = firstPage.TotalPages;
 
         using var workbook = new XLWorkbook();
-
-        var worksheet =
-            workbook.Worksheets.Add("Students");
+        var worksheet = workbook.Worksheets.Add("Students");
 
         worksheet.Cell(1, 1).Value = "Student Code";
         worksheet.Cell(1, 2).Value = "Name (Arabic)";
@@ -264,38 +262,53 @@ public class StudentsController : ControllerBase
 
         int row = 2;
 
-        foreach (var student in result.Items)
+        for (var page = 1; page <= totalPages; page++)
         {
-            string nameAr = "", nameEn = "";
-            if (!string.IsNullOrEmpty(student.Name))
-            {
-                try
+            var pageResult = page == 1
+                ? firstPage
+                : await _service.SearchAsync(new StudentQueryRequest
                 {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
-                    nameAr = dict?.GetValueOrDefault("ar") ?? "";
-                    nameEn = dict?.GetValueOrDefault("en") ?? "";
-                }
-                catch { }
-            }
+                    ScopeNodeId = request.ScopeNodeId,
+                    Search = request.Search,
+                    IsActive = request.IsActive,
+                    SortBy = request.SortBy,
+                    Ascending = request.Ascending,
+                    Page = page,
+                    PageSize = chunkSize
+                });
 
-            worksheet.Cell(row, 1).Value = student.StudentCode;
-            worksheet.Cell(row, 2).Value = nameAr;
-            worksheet.Cell(row, 3).Value = nameEn;
-            worksheet.Cell(row, 4).Value = student.NationalId;
-            worksheet.Cell(row, 5).Value = student.Email;
-            worksheet.Cell(row, 6).Value = student.PhoneNumber;
-            worksheet.Cell(row, 7).Value = student.FacultyName;
-            worksheet.Cell(row, 8).Value = student.ProgramName;
-            worksheet.Cell(row, 9).Value = student.LevelName;
-            worksheet.Cell(row, 10).Value = student.IsActive ? "Active" : "Inactive";
-            worksheet.Cell(row, 11).Value = student.PasswordStatus;
-            row++;
+            foreach (var student in pageResult.Items)
+            {
+                string nameAr = "", nameEn = "";
+                if (!string.IsNullOrEmpty(student.Name))
+                {
+                    try
+                    {
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(student.Name);
+                        nameAr = dict?.GetValueOrDefault("ar") ?? "";
+                        nameEn = dict?.GetValueOrDefault("en") ?? "";
+                    }
+                    catch { }
+                }
+
+                worksheet.Cell(row, 1).Value = student.StudentCode;
+                worksheet.Cell(row, 2).Value = nameAr;
+                worksheet.Cell(row, 3).Value = nameEn;
+                worksheet.Cell(row, 4).Value = student.NationalId;
+                worksheet.Cell(row, 5).Value = student.Email;
+                worksheet.Cell(row, 6).Value = student.PhoneNumber;
+                worksheet.Cell(row, 7).Value = student.FacultyName;
+                worksheet.Cell(row, 8).Value = student.ProgramName;
+                worksheet.Cell(row, 9).Value = student.LevelName;
+                worksheet.Cell(row, 10).Value = student.IsActive ? "Active" : "Inactive";
+                worksheet.Cell(row, 11).Value = student.PasswordStatus;
+                row++;
+            }
         }
 
         worksheet.Columns().AdjustToContents();
 
         using var stream = new MemoryStream();
-
         workbook.SaveAs(stream);
 
         return File(

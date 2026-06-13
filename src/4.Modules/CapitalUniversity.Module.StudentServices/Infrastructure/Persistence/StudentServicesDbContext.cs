@@ -21,16 +21,23 @@ public class StudentServicesDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Ignore StructureNode entity (already mapped in CoreDbContext)
+        // Map Students for cross-module JOINs (read-only, excluded from migrations)
+        modelBuilder.Entity<CapitalUniversity.Core.Domain.Identity.Student>(entity =>
+        {
+            entity.ToTable("Students", "dbo", t => t.ExcludeFromMigrations());
+            entity.HasKey(e => e.Id);
+        });
+
+        // Map StructureNodes for cross-module JOINs (read-only, excluded from migrations)
         modelBuilder.Entity<StructureNode>(entity =>
         {
             entity.ToTable("StructureNodes", "dbo", t => t.ExcludeFromMigrations());
             entity.HasKey(e => e.Id);
-            entity.Ignore(e => e.Name);
+            // Ignore fields not used in StudentServices module to keep the model lean,
+            // but keep Path/Name for scope resolution and display.
             entity.Ignore(e => e.Type);
             entity.Ignore(e => e.ParentId);
             entity.Ignore(e => e.Order);
-            entity.Ignore(e => e.Path);
             entity.Ignore(e => e.Depth);
             entity.Ignore(e => e.IsActive);
             entity.Ignore(e => e.Parent);

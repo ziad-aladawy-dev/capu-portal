@@ -16,24 +16,28 @@ public class ServiceRepository : IServiceRepository
 
     public async Task<Service?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsNoTracking()
             .Include(s => s.ScopeNodes)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     public async Task<Service?> GetByIdWithWorkflowAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsNoTracking()
             .Include(s => s.ScopeNodes)
-            .Include(s => s.Workflow)
-                .ThenInclude(w => w.Steps)
-                    .ThenInclude(step => step.Fields)
+            .Include(s => s.Workflow!)
+                .ThenInclude(w => w.Steps!)
+                    .ThenInclude(step => step.Fields!)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     public async Task<Service?> GetByIdWithScopeAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsNoTracking()
             .Include(s => s.ScopeNodes)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
     public async Task<List<Service>> GetAllActiveAsync(CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsNoTracking()
             .Where(s => s.IsActive)
             .Include(s => s.Workflow)
             .OrderBy(s => s.Name)
@@ -41,6 +45,7 @@ public class ServiceRepository : IServiceRepository
 
     public async Task<List<Service>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsNoTracking()
             .Include(s => s.ScopeNodes)
             .Include(s => s.Workflow)
             .OrderBy(s => s.Name)
@@ -54,7 +59,7 @@ public class ServiceRepository : IServiceRepository
         Guid? currentSemesterId,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Services.Where(s => s.IsActive);
+        var query = _context.Services.AsNoTracking().Where(s => s.IsActive);
 
         if (currentAcademicYearId.HasValue)
             query = query.Where(s => s.AcademicYearId == null || s.AcademicYearId == currentAcademicYearId.Value);
@@ -63,51 +68,22 @@ public class ServiceRepository : IServiceRepository
         if (studentLevelNumber.HasValue)
             query = query.Where(s => s.LevelOrder == null || s.LevelOrder == studentLevelNumber.Value);
 
-        var services = await query.ToListAsync(cancellationToken);
-
-        var allServiceNodes = await _context.ServiceStructureNodes.ToListAsync(cancellationToken);
-        var allNodeIds = allServiceNodes.Select(sn => sn.StructureNodeId).Distinct().ToList();
-        var nodesDict = await _context.Set<StructureNode>()
-            .Where(n => allNodeIds.Contains(n.Id))
-            .ToDictionaryAsync(n => n.Id, cancellationToken);
-
-        var result = new List<Service>();
-        foreach (var service in services)
+        // Push scope filtering to SQL. A service is available if it has no scope 
+        // nodes (global) or if the student's node path matches one of its scope nodes.
+        if (!string.IsNullOrEmpty(studentNodePath))
         {
-            var scopeNodes = allServiceNodes.Where(sn => sn.ServiceId == service.Id).ToList();
-            if (!scopeNodes.Any())
-            {
-                result.Add(service);
-                continue;
-            }
-
-            if (string.IsNullOrEmpty(studentNodePath)) continue;
-
-            foreach (var sn in scopeNodes)
-            {
-                if (nodesDict.TryGetValue(sn.StructureNodeId, out var node))
-                {
-                    if (service.IncludeDescendants)
-                    {
-                        if (studentNodePath.StartsWith(node.Path))
-                        {
-                            result.Add(service);
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        if (studentNodePath == node.Path)
-                        {
-                            result.Add(service);
-                            break;
-                        }
-                    }
-                }
-            }
+            query = query.Where(s => !s.ScopeNodes.Any() || s.ScopeNodes.Any(sn =>
+                _context.Set<StructureNode>()
+                    .Where(n => n.Id == sn.StructureNodeId)
+                    .Any(n => s.IncludeDescendants
+                        ? studentNodePath.StartsWith(n.Path)
+                        : studentNodePath == n.Path)));
         }
 
-        return result;
+        return await query
+            .Include(s => s.Workflow)
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(Service service, CancellationToken cancellationToken = default)
@@ -144,20 +120,18 @@ public class ServiceRepository : IServiceRepository
                 CreatedAt = DateTime.UtcNow
             });
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public void Delete(Service service) => _context.Services.Remove(service);
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.Services.AnyAsync(s => s.Id == id, cancellationToken);
+        => await _context.Services.AsNoTracking().AnyAsync(s => s.Id == id, cancellationToken);
 
     public async Task<bool> IsServiceInUseAsync(Guid serviceId, CancellationToken cancellationToken = default)
-        => await _context.StudentRequests.AnyAsync(r => r.ServiceId == serviceId, cancellationToken);
+        => await _context.StudentRequests.AsNoTracking().AnyAsync(r => r.ServiceId == serviceId, cancellationToken);
 
     public async Task<bool> IsServiceInUseByWorkflowAsync(Guid workflowId, CancellationToken cancellationToken = default)
-        => await _context.Services.AnyAsync(s => s.WorkflowId == workflowId, cancellationToken);
+        => await _context.Services.AsNoTracking().AnyAsync(s => s.WorkflowId == workflowId, cancellationToken);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);

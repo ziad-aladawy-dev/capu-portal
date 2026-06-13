@@ -14,6 +14,9 @@ public interface IScheduleSlotRepository
     /// <summary>All slots attached to one offering, ordered by day then start time. Suitable for a weekly-timetable render.</summary>
     Task<IReadOnlyList<ScheduleSlot>> GetForOfferingAsync(Guid courseOfferingId, CancellationToken cancellationToken = default);
 
+    /// <summary>Batch version — single SQL query for multiple offering IDs. No N+1.</summary>
+    Task<IReadOnlyList<ScheduleSlot>> GetForOfferingsAsync(IReadOnlyList<Guid> courseOfferingIds, CancellationToken cancellationToken = default);
+
     /// <summary>Returns true if a non-deleted slot already occupies the (offering, day, start, end) slot. Create-time precheck mirroring the DB unique index.</summary>
     Task<bool> ExistsAsync(Guid courseOfferingId, DayOfWeek dayOfWeek, TimeOnly start, TimeOnly end, CancellationToken cancellationToken = default);
 

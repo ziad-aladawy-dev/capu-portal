@@ -1,7 +1,10 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+using System.Linq.Expressions;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
+using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.Common;
 using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +28,7 @@ public class StudentRepository : IStudentRepository
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x.Parent)
                         .ThenInclude(x => x.Parent)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -32,26 +36,23 @@ public class StudentRepository : IStudentRepository
     {
         return await _context.Students
             .AsNoTracking()
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-                        .ThenInclude(x => x!.Parent)
+            .Select(StudentWithAncestors)
             .OrderBy(x => x.StudentCode)
             .ToListAsync();
     }
 
-    public async Task<PagedResult<Student>> SearchAsync(StudentQueryRequest request)
+    public async Task<PagedResult<Student>>  SearchAsync(StudentQueryRequest request)
     {
         var query = _context.Students.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.ToLower();
+            var search = request.Search.Trim();
 
             query = query.Where(x =>
-                x.Name.ToLower().Contains(search) ||
-                x.StudentCode.ToLower().Contains(search) ||
-                x.Email.ToLower().Contains(search) ||
+                x.Name.Contains(search) ||
+                x.StudentCode.Contains(search) ||
+                x.Email.Contains(search) ||
                 x.NationalId.Contains(search));
         }
 
@@ -103,6 +104,7 @@ public class StudentRepository : IStudentRepository
             var facultyNode =
                 await _context.StructureNodes
                     .IgnoreQueryFilters()
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(x =>
                         x.Id ==
                         request.FacultyId.Value);
@@ -120,6 +122,7 @@ public class StudentRepository : IStudentRepository
             var scopeNode =
                 await _context.StructureNodes
                     .IgnoreQueryFilters()
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(x =>
                         x.Id ==
                         request.ScopeNodeId.Value);
@@ -136,10 +139,8 @@ public class StudentRepository : IStudentRepository
             await query.CountAsync();
 
         query = query
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-                        .ThenInclude(x => x!.Parent);
+            .AsNoTracking()
+            .Select(StudentWithAncestors);
 
         IOrderedQueryable<Student> orderedQuery;
 
@@ -196,6 +197,11 @@ public class StudentRepository : IStudentRepository
         await _context.Students.AddAsync(student);
     }
 
+    public async Task AddRangeAsync(IReadOnlyList<Student> students)
+    {
+        await _context.Students.AddRangeAsync(students);
+    }
+
     public Task UpdateAsync(Student student)
     {
         _context.Students.Update(student);
@@ -233,18 +239,21 @@ public class StudentRepository : IStudentRepository
     public async Task<bool> ExistsAsync(Guid id)
     {
         return await _context.Students
+            .AsNoTracking()
             .AnyAsync(x => x.Id == id);
     }
 
     public async Task<bool> StudentCodeExistsAsync(string studentCode)
     {
         return await _context.Students
+            .AsNoTracking()
             .AnyAsync(x => x.StudentCode == studentCode);
     }
 
     public async Task<bool> EmailExistsAsync(string email)
     {
         return await _context.Students
+            .AsNoTracking()
             .AnyAsync(x =>
                 x.Email == email);
     }
@@ -252,6 +261,7 @@ public class StudentRepository : IStudentRepository
     public async Task<bool> NationalIdExistsAsync(string nationalId)
     {
         return await _context.Students
+            .AsNoTracking()
             .AnyAsync(x =>
                 x.NationalId == nationalId);
     }
@@ -259,6 +269,7 @@ public class StudentRepository : IStudentRepository
     public async Task<string?> GetLastStudentCodeAsync()
     {
         return await _context.Students
+            .AsNoTracking()
             .OrderByDescending(x => x.StudentCode)
             .Select(x => x.StudentCode)
             .FirstOrDefaultAsync();
@@ -279,26 +290,78 @@ public class StudentRepository : IStudentRepository
                 query = query.Where(x => x.StructureNode.Path.StartsWith(scopeNode.Path));
         }
 
-        var counts = await query
+        var stats = await query
             .GroupBy(_ => 1)
             .Select(g => new
             {
-                Total = g.Count(),
-                Active = g.Count(x => x.IsActive),
-                Inactive = g.Count(x => !x.IsActive)
+                TotalStudents = g.Count(),
+                ActiveStudents = g.Count(x => x.IsActive),
+                InactiveStudents = g.Count(x => !x.IsActive)
             })
             .FirstOrDefaultAsync();
 
-        return new UserStatisticsDto
-        {
-            TotalStudents = counts?.Total ?? 0,
-            ActiveStudents = counts?.Active ?? 0,
-            InactiveStudents = counts?.Inactive ?? 0
-        };
+        return stats is null
+            ? new UserStatisticsDto()
+            : new UserStatisticsDto
+            {
+                TotalStudents = stats.TotalStudents,
+                ActiveStudents = stats.ActiveStudents,
+                InactiveStudents = stats.InactiveStudents
+            };
     }
 
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
     }
+
+    // Select projection that loads ONLY the ancestor fields consumed by
+    // StudentService.Map() — no unused Depth/Order/IsActive/Children columns.
+    private static readonly Expression<Func<Student, Student>> StudentWithAncestors = s => new Student
+    {
+        Id = s.Id,
+        StudentCode = s.StudentCode,
+        Name = s.Name,
+        NationalId = s.NationalId,
+        BirthDate = s.BirthDate,
+        PhoneNumber = s.PhoneNumber,
+        Email = s.Email,
+        PhotoUrl = s.PhotoUrl,
+        Gender = s.Gender,
+        GuardianName = s.GuardianName,
+        GuardianPhone = s.GuardianPhone,
+        StructureNodeId = s.StructureNodeId,
+        IsActive = s.IsActive,
+        PasswordExpiry = s.PasswordExpiry,
+        CreatedAt = s.CreatedAt,
+        ExternallySourced = new ExternallySourcedData { ExternalId = s.ExternallySourced.ExternalId },
+        StructureNode = s.StructureNode == null ? null : new StructureNode
+        {
+            Id = s.StructureNode.Id,
+            Name = s.StructureNode.Name,
+            Type = s.StructureNode.Type,
+            Path = s.StructureNode.Path,
+            Parent = s.StructureNode.Parent == null ? null : new StructureNode
+            {
+                Id = s.StructureNode.Parent.Id,
+                Name = s.StructureNode.Parent.Name,
+                Type = s.StructureNode.Parent.Type,
+                Path = s.StructureNode.Parent.Path,
+                Parent = s.StructureNode.Parent.Parent == null ? null : new StructureNode
+                {
+                    Id = s.StructureNode.Parent.Parent.Id,
+                    Name = s.StructureNode.Parent.Parent.Name,
+                    Type = s.StructureNode.Parent.Parent.Type,
+                    Path = s.StructureNode.Parent.Parent.Path,
+                    Parent = s.StructureNode.Parent.Parent.Parent == null ? null : new StructureNode
+                    {
+                        Id = s.StructureNode.Parent.Parent.Parent.Id,
+                        Name = s.StructureNode.Parent.Parent.Parent.Name,
+                        Type = s.StructureNode.Parent.Parent.Parent.Type,
+                        Path = s.StructureNode.Parent.Parent.Parent.Path,
+                    }
+                }
+            }
+        }
+    };
 }

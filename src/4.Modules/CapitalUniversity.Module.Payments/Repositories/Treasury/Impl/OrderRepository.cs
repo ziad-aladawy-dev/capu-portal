@@ -23,7 +23,7 @@ public class OrderRepository : IOrderRepository
 
     public Task<Order?> GetByMerchantOrderIdAsync(string merchantOrderId, bool includeFees = true, CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<Order>().AsQueryable();
+        var query = _context.Set<Order>().AsNoTracking().AsQueryable();
         if (includeFees) query = query.Include(o => o.Fees);
         return query.FirstOrDefaultAsync(o => o.MerchantOrderId == merchantOrderId, cancellationToken);
     }
@@ -37,6 +37,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<IReadOnlyList<Order>> GetPendingPaymentOlderThanAsync(DateTime cutoffUtc, int maxCount, CancellationToken cancellationToken = default) =>
         await _context.Set<Order>()
+            .AsNoTracking()
             .Where(o => o.Status == OrderStatus.PendingPayment && o.CreatedAt < cutoffUtc)
             .OrderBy(o => o.CreatedAt)
             .Take(maxCount)

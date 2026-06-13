@@ -127,6 +127,60 @@ public class StaffService : IStaffService
         return staff.Id;
     }
 
+    public async Task<List<Guid>> BulkCreateAsync(IReadOnlyList<CreateStaffRequest> requests)
+    {
+        var staffList = new List<Staff>(requests.Count);
+        var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var nationalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var nameJson = string.Empty;
+
+        foreach (var request in requests)
+        {
+            if (!emails.Add(request.Email))
+                throw new ValidationException("Email", LocalizedKeys.StaffManagement.EmailInUse);
+            if (!nationalIds.Add(request.NationalId))
+                throw new ValidationException("NationalId", LocalizedKeys.StaffManagement.NationalIdInUse);
+
+            nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                { "ar", request.NameAr },
+                { "en", string.IsNullOrWhiteSpace(request.NameEn) ? request.NameAr : request.NameEn }
+            });
+
+            var code = string.IsNullOrWhiteSpace(request.EmployeeCode)
+                ? GenerateEmployeeCodeAsync().GetAwaiter().GetResult()
+                : request.EmployeeCode;
+
+            if (!codes.Add(code))
+                throw new ValidationException("EmployeeCode", LocalizedKeys.StaffManagement.CodeInUse);
+
+            staffList.Add(new Staff
+            {
+                Id = Guid.NewGuid(),
+                EmployeeCode = code,
+                PasswordHash = _passwordHasher.HashPassword(request.Password),
+                Name = nameJson,
+                NationalId = request.NationalId,
+                BirthDate = request.BirthDate,
+                PhoneNumber = request.PhoneNumber,
+                Email = request.Email,
+                Role = request.Role,
+                JobTitle = request.JobTitle,
+                PhotoUrl = request.PhotoUrl,
+                Gender = request.Gender,
+                Qualification = request.Qualification,
+                StructureNodeId = request.StructureNodeId,
+                PasswordExpiry = request.PasswordExpiry,
+                IsActive = true
+            });
+        }
+
+        await _repository.AddRangeAsync(staffList);
+        await _unitOfWork.SaveChangesAsync();
+        return staffList.Select(s => s.Id).ToList();
+    }
+
     public async Task UpdateAsync(Guid id, UpdateStaffRequest request)
     {
         var staff = await _repository.GetByIdAsync(id);
@@ -297,6 +351,12 @@ public class StaffService : IStaffService
             return null;
 
         return Map(staff);
+    }
+
+    public async Task<IReadOnlyList<StaffDto>> GetRangeAsync(IReadOnlyList<Guid> ids)
+    {
+        var staff = await _repository.GetRangeAsync(ids);
+        return staff.Select(Map).ToList();
     }
 
     public async Task<List<StaffDto>> GetAllAsync()

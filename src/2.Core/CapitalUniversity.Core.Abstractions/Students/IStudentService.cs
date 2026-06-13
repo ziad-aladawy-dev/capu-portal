@@ -7,6 +7,8 @@ public interface IStudentService
 {
     Task<Guid> CreateAsync(CreateStudentRequest request);
 
+    Task<List<Guid>> BulkCreateAsync(IReadOnlyList<CreateStudentRequest> requests);
+
     Task UpdateAsync(Guid id, UpdateStudentRequest request);
 
     Task DeleteAsync(Guid id);

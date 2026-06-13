@@ -18,10 +18,10 @@ public class CourseRepository : ICourseRepository
     }
 
     public Task<Course?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Courses.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        _context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public Task<Course?> GetByCodeAsync(string code, CancellationToken cancellationToken = default) =>
-        _context.Courses.FirstOrDefaultAsync(c => c.Code == code, cancellationToken);
+        _context.Courses.AsNoTracking().FirstOrDefaultAsync(c => c.Code == code, cancellationToken);
 
     public async Task<IReadOnlyList<Course>> GetActiveAsync(CancellationToken cancellationToken = default) =>
         await _context.Courses
@@ -45,7 +45,7 @@ public class CourseRepository : ICourseRepository
     public void Delete(Course course) => _context.Courses.Remove(course);
 
     public Task<bool> IsReferencedByPlanAsync(Guid courseId, CancellationToken cancellationToken = default) =>
-        _context.Set<AcademicPlanCourse>().AnyAsync(apc => apc.CourseId == courseId, cancellationToken);
+        _context.Set<AcademicPlanCourse>().AsNoTracking().AnyAsync(apc => apc.CourseId == courseId, cancellationToken);
 
     public async Task<IReadOnlyList<Course>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default) =>
         await _context.Courses
@@ -55,6 +55,7 @@ public class CourseRepository : ICourseRepository
 
     public async Task<IReadOnlyList<CoursePrerequisite>> GetPrerequisiteRowsAsync(Guid courseId, CancellationToken cancellationToken = default) =>
         await _context.Set<CoursePrerequisite>()
+            .AsNoTracking()
             .Where(p => p.CourseId == courseId)
             .ToListAsync(cancellationToken);
 

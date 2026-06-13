@@ -13,10 +13,11 @@ public class TreasuryReceiptRepository : ITreasuryReceiptRepository
 
     public Task<TreasuryReceipt?> GetByExternalIdAsync(string externalReceiptId, CancellationToken cancellationToken = default) =>
         _context.Set<TreasuryReceipt>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.ExternalReceiptId == externalReceiptId, cancellationToken);
 
     public Task<TreasuryReceipt?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Set<TreasuryReceipt>().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        _context.Set<TreasuryReceipt>().AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<TreasuryReceipt>> GetActiveAsync(CancellationToken cancellationToken = default) =>
         await _context.Set<TreasuryReceipt>()

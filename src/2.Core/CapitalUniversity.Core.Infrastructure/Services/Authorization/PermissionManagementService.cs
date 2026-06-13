@@ -92,8 +92,11 @@ public class PermissionManagementService : IPermissionManagementService
         }
 
         // 2. Resolve Active Scope (Temporal)
-        var currentYear = await _dbContext.AcademicYears.AsNoTracking().FirstOrDefaultAsync(y => y.IsCurrent, cancellationToken);
-        var currentSem = await _dbContext.Semesters.AsNoTracking().FirstOrDefaultAsync(s => s.IsCurrent, cancellationToken);
+        var yearTask = _dbContext.AcademicYears.AsNoTracking().FirstOrDefaultAsync(y => y.IsCurrent, cancellationToken);
+        var semTask = _dbContext.Semesters.AsNoTracking().FirstOrDefaultAsync(s => s.IsCurrent, cancellationToken);
+        await Task.WhenAll(yearTask, semTask);
+        var currentYear = yearTask.Result;
+        var currentSem = semTask.Result;
 
         response.ActiveScope.Temporal.AcademicYearId = currentYear?.Id;
         response.ActiveScope.Temporal.SemesterId = currentSem?.Id;
@@ -383,36 +386,17 @@ public class PermissionManagementService : IPermissionManagementService
 
                 var rawPermissions = await _permissionService.GetAllPermissionsAsync(userId, scope, ct);
 
-                var roleIds = rawPermissions.Assignments.Select(a => a.RoleId).Distinct().ToList();
-                var rolePermsDb = await _dbContext.RolePermissions
-                    .Include(rp => rp.Resource)
-                        .ThenInclude(r => r.Module)
-                    .Where(rp => roleIds.Contains(rp.RoleId))
-                    .AsNoTracking()
-                    .ToListAsync(ct);
-
                 var built = new HashSet<string>(StringComparer.Ordinal);
                 var denied = new HashSet<string>(StringComparer.Ordinal);
 
-                foreach (var rp in rolePermsDb)
+                // rolePermissions and overrides are already fully loaded with Resource.Module
+                // includes by PermissionService.LoadAsync().
+                foreach (var rp in rawPermissions.RolePermissions.Cast<RolePermission>())
                 {
                     built.Add(PermissionIdentity.Create(rp.Resource.Module.ModuleKey, rp.Resource.Key, rp.Action));
                 }
 
-                // rawPermissions.Overrides is already expiry-filtered at the source
-                // (PermissionService.LoadOverridesAsync); the redundant ExpiresAt
-                // predicate here is defence-in-depth so this hot authorization path
-                // can never fail open on an expired override.
-                var nowLookup = DateTime.UtcNow;
-                var overridesDb = await _dbContext.StaffPermissions
-                    .Include(sp => sp.Resource)
-                        .ThenInclude(r => r.Module)
-                    .Where(sp => rawPermissions.Overrides.Select(o => o.Id).Contains(sp.Id)
-                        && (sp.ExpiresAt == null || sp.ExpiresAt > nowLookup))
-                    .AsNoTracking()
-                    .ToListAsync(ct);
-
-                foreach (var ov in overridesDb)
+                foreach (var ov in rawPermissions.Overrides.Cast<StaffPermissionOverride>())
                 {
                     var canonical = PermissionIdentity.Create(ov.Resource.Module.ModuleKey, ov.Resource.Key, ov.Action);
                     if (ov.Type == OverrideType.Allow) built.Add(canonical);

@@ -43,9 +43,17 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
         // For students, the assigned StructureNodeId is authoritative — the request
         // context cannot widen or redirect it. For staff, the requested node (if any)
         // is later intersected against the user's grant paths by PermissionService.
-        var student = await _dbContext.Students
+        var studentTask = _dbContext.Students
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == userId, cancellationToken);
+
+        // Start node path resolution in parallel if already known from request.
+        var nodeTask = scope.StructureNodeId.HasValue
+            ? _dbContext.StructureNodes.AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == scope.StructureNodeId.Value, cancellationToken)
+            : null;
+
+        var student = await studentTask;
 
         if (student != null)
         {
@@ -54,9 +62,10 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
 
         if (scope.StructureNodeId.HasValue)
         {
-            var node = await _dbContext.StructureNodes
-                .AsNoTracking()
-                .FirstOrDefaultAsync(n => n.Id == scope.StructureNodeId, cancellationToken);
+            var node = nodeTask is not null
+                ? await nodeTask
+                : await _dbContext.StructureNodes.AsNoTracking()
+                    .FirstOrDefaultAsync(n => n.Id == scope.StructureNodeId, cancellationToken);
             scope.StructureNodePath = node?.Path;
         }
 

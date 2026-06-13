@@ -123,6 +123,7 @@ public class NotificationService : INotificationService
             .AsNoTracking()
             .Where(n => n.RecipientUserId == userId)
             .OrderByDescending(n => n.CreatedAt)
+            .Take(100)
             .ToListAsync();
 
         return notifications.Select(n => Localize(_mapper.MapToDto(n)));
@@ -154,18 +155,13 @@ public class NotificationService : INotificationService
     {
         if (notificationIds is null || notificationIds.Count == 0) return 0;
 
-        // Dedup and project to a HashSet for the SQL IN clause.
         var ids = notificationIds.Distinct().ToArray();
 
-        var rows = await _context.Notifications
+        return await _context.Notifications
             .Where(n => n.RecipientUserId == userId && !n.IsRead && ids.Contains(n.Id))
-            .ToListAsync(cancellationToken);
-
-        if (rows.Count == 0) return 0;
-
-        foreach (var n in rows) n.IsRead = true;
-        await _context.SaveChangesAsync(cancellationToken);
-        return rows.Count;
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(n => n.IsRead, true),
+                cancellationToken);
     }
 
     private static readonly HashSet<string> NotificationSortFields = new(StringComparer.OrdinalIgnoreCase)
@@ -212,15 +208,13 @@ public class NotificationService : INotificationService
 
     public async Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var rows = await _context.Notifications
+        var count = await _context.Notifications
             .Where(n => n.RecipientUserId == userId && !n.IsRead)
-            .ToListAsync(cancellationToken);
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(n => n.IsRead, true),
+                cancellationToken);
 
-        if (rows.Count == 0) return 0;
-
-        foreach (var n in rows) n.IsRead = true;
-        await _context.SaveChangesAsync(cancellationToken);
-        return rows.Count;
+        return count;
     }
 }
 

@@ -16,18 +16,22 @@ public class SemesterRepository : ISemesterRepository
 
     public async Task<Semester?> GetByIdAsync(Guid id)
     {
-        return await _context.Set<Semester>().FindAsync(id);
+        return await _context.Set<Semester>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<Semester?> GetCurrentAsync()
     {
         return await _context.Set<Semester>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.IsCurrent);
     }
 
-    public async Task<IEnumerable<Semester>> GetByAcademicYearIdAsync(Guid academicYearId)
+    public async Task<IReadOnlyList<Semester>> GetByAcademicYearIdAsync(Guid academicYearId)
     {
         return await _context.Set<Semester>()
+            .AsNoTracking()
             .Where(x => x.AcademicYearId == academicYearId)
             .OrderBy(x => x.Order)
             .ToListAsync();
@@ -36,6 +40,7 @@ public class SemesterRepository : ISemesterRepository
     public async Task<bool> HasOverlapAsync(Guid academicYearId, DateTime startDate, DateTime endDate, Guid? excludeId = null)
     {
         var query = _context.Set<Semester>()
+            .AsNoTracking()
             .Where(x => x.AcademicYearId == academicYearId);
 
         if (excludeId.HasValue)

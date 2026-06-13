@@ -40,9 +40,6 @@ public class PermissionCacheInvalidator : IPermissionCacheInvalidator
 
     public async Task InvalidateRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
     {
-        // Walk current assignees and rotate each — bounded by current staff count,
-        // not by historical cache entries. Idempotent: each new version stamp is
-        // a fresh Guid so concurrent rotations don't fight over a single value.
         var staffIds = await _dbContext.StaffRoles
             .AsNoTracking()
             .Where(sr => sr.RoleId == roleId)
@@ -50,10 +47,7 @@ public class PermissionCacheInvalidator : IPermissionCacheInvalidator
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        foreach (var staffId in staffIds)
-        {
-            await InvalidateUserAsync(staffId, cancellationToken);
-        }
+        await Task.WhenAll(staffIds.Select(id => InvalidateUserAsync(id, cancellationToken)));
     }
 
     public Task InvalidateAllAsync(CancellationToken cancellationToken = default) =>

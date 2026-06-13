@@ -6,7 +6,7 @@ public interface IAcademicYearRepository
 {
     Task<AcademicYear?> GetByIdAsync(Guid id);
     Task<AcademicYear?> GetCurrentAsync();
-    Task<IEnumerable<AcademicYear>> GetAllAsync();
+    Task<IReadOnlyList<AcademicYear>> GetAllAsync();
     Task<bool> HasOverlapAsync(DateTime startDate, DateTime endDate, Guid? excludeId = null);
     Task AddAsync(AcademicYear academicYear);
     void Update(AcademicYear academicYear);

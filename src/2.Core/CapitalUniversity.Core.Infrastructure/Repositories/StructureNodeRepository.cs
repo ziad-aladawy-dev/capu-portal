@@ -17,14 +17,17 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<StructureNode?> GetByIdAsync(Guid id)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Include(x => x.Parent)
             .Include(x => x.Children)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<List<StructureNode>> GetRootsAsync()
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x => x.ParentId == null)
             .OrderBy(x => x.Order)
             .ToListAsync();
@@ -33,6 +36,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetChildrenAsync(Guid parentId)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x => x.ParentId == parentId)
             .OrderBy(x => x.Order)
             .ToListAsync();
@@ -41,6 +45,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetAllAsync()
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .OrderBy(x => x.Order)
             .ToListAsync();
     }
@@ -94,6 +99,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<bool> ExistsAsync(Guid id)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .AnyAsync(x => x.Id == id);
     }
 
@@ -105,6 +111,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetDescendantsAsync(string path)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x =>
                 x.Path.StartsWith(path) &&
                 !x.IsDeleted)
@@ -121,6 +128,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetChildrenOnlyAsync(Guid parentId)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x =>
                 x.ParentId == parentId &&
                 !x.IsDeleted)
@@ -131,6 +139,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetByIdsAsync(List<Guid> ids)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x => ids.Contains(x.Id))
             .ToListAsync();
     }
@@ -138,6 +147,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetDescendantsTreeAsync(string path)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x =>
                 x.Path.StartsWith(path) &&
                 !x.IsDeleted)
@@ -149,6 +159,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetAncestorsAsync(List<Guid> ids)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x =>
                 ids.Contains(x.Id) &&
                 !x.IsDeleted)
@@ -158,6 +169,7 @@ public class StructureNodeRepository : IStructureNodeRepository
     public async Task<List<StructureNode>> GetSiblingsAsync(Guid? parentId)
     {
         return await _context.StructureNodes
+            .AsNoTracking()
             .Where(x =>
                 x.ParentId == parentId &&
                 !x.IsDeleted)

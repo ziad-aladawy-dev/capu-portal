@@ -13,12 +13,13 @@ public class StudentFeeRepository : IStudentFeeRepository
     public StudentFeeRepository(CoreDbContext context) => _context = context;
 
     public Task<StudentFee?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        _context.Set<StudentFee>().FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+        _context.Set<StudentFee>().AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<StudentFee>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
     {
         if (ids.Count == 0) return Array.Empty<StudentFee>();
         return await _context.Set<StudentFee>()
+            .AsNoTracking()
             .Where(f => ids.Contains(f.Id))
             .ToListAsync(cancellationToken);
     }

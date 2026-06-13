@@ -63,38 +63,33 @@ public class StudentScheduleController : ControllerBase
         // Resolve offerings per (course, semester). NOT GetForNodeSemesterAsync:
         // registrations carry the student's LEVEL node while offerings are owned
         // by PROGRAM-level nodes, so an exact-node lookup returns nothing. The
-        // per-course query path-filters rows through EffectiveScope, which lets a
+        // batch query path-filters rows through EffectiveScope, which lets a
         // student see offerings on any ancestor of their own node.
-        // Sequential awaits on purpose: the offering/slot services share this
-        // request's scoped DbContext, so parallel Task.WhenAll fan-out throws
-        // "a second operation was started on this context instance".
         var pairs = enrolled
             .Select(r => (r.CourseId, r.SemesterId))
             .Distinct()
             .ToList();
-        var myOfferings = new List<CourseOfferingResponse>();
-        var seenOfferingIds = new HashSet<Guid>();
-        foreach (var (courseId, semId) in pairs)
-        {
-            foreach (var o in await _offerings.GetForCourseAsync(courseId, semId, cancellationToken))
-            {
-                if (courseInfo.ContainsKey(o.CourseId) && seenOfferingIds.Add(o.Id)) myOfferings.Add(o);
-            }
-        }
+        var allOfferings = await _offerings.GetForCoursesAsync(pairs, cancellationToken);
+        var myOfferings = allOfferings
+            .Where(o => courseInfo.ContainsKey(o.CourseId))
+            .DistinctBy(o => o.Id)
+            .ToList();
         if (myOfferings.Count == 0) return Ok(Array.Empty<StudentScheduleSlotRow>());
 
-        var slotLists = new List<IReadOnlyList<ScheduleSlotResponse>>(myOfferings.Count);
-        foreach (var offering in myOfferings)
-        {
-            slotLists.Add(await _slots.GetForOfferingAsync(offering.Id, cancellationToken));
-        }
+        // Batch slot query — single SQL round trip.
+        var allSlots = await _slots.GetForOfferingsAsync(
+            myOfferings.Select(o => o.Id).ToList(),
+            cancellationToken);
+        var slotsByOffering = allSlots
+            .GroupBy(s => s.CourseOfferingId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var rows = new List<StudentScheduleSlotRow>();
-        for (var i = 0; i < myOfferings.Count; i++)
+        foreach (var offering in myOfferings)
         {
-            var offering = myOfferings[i];
             var course = courseInfo[offering.CourseId];
-            foreach (var slot in slotLists[i])
+            if (!slotsByOffering.TryGetValue(offering.Id, out var offeringSlots)) continue;
+            foreach (var slot in offeringSlots)
             {
                 rows.Add(new StudentScheduleSlotRow
                 {
@@ -122,14 +117,14 @@ public class StudentScheduleController : ControllerBase
             .Distinct()
             .ToList();
         var instructorMap = new Dictionary<Guid, string>(instructorIds.Count);
-        foreach (var id in instructorIds)
+        if (instructorIds.Count > 0)
         {
-            var staff = await _staff.GetByIdAsync(id);
-            if (staff is not null)
+            var staffList = await _staff.GetRangeAsync(instructorIds);
+            foreach (var staff in staffList)
             {
                 // LocalizedName is "" when the stored name is a plain string
                 // (seeded instructors) rather than bilingual JSON — fall back.
-                instructorMap[id] = string.IsNullOrWhiteSpace(staff.LocalizedName)
+                instructorMap[staff.Id] = string.IsNullOrWhiteSpace(staff.LocalizedName)
                     ? staff.Name
                     : staff.LocalizedName;
             }

@@ -37,7 +37,10 @@ public class PermissionService : IPermissionService
         var roleIds = assignments.Select(a => a.RoleId).Distinct().ToList();
 
         var rolePermissions = await _dbContext.RolePermissions
+            .Include(rp => rp.Resource)
+                .ThenInclude(r => r.Module)
             .Where(rp => roleIds.Contains(rp.RoleId) && (resourceKey == null || rp.Resource.Key == resourceKey))
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
         var overrides = await LoadOverridesAsync(userId, resourceKey, scope, cancellationToken);
@@ -50,7 +53,7 @@ public class PermissionService : IPermissionService
 
     private Task<List<StaffRoleAssignment>> LoadAssignmentsAsync(Guid userId, AuthorizationScope? scope, CancellationToken cancellationToken)
     {
-        var query = _dbContext.StaffRoles.Where(sr => sr.StaffId == userId);
+        var query = _dbContext.StaffRoles.AsNoTracking().Where(sr => sr.StaffId == userId);
         if (scope is not null)
         {
             // Predicate stays inline so EF can translate it to SQL — every
@@ -74,6 +77,9 @@ public class PermissionService : IPermissionService
         // sweep physically removes the row. Null ExpiresAt = Global/never-expires.
         var now = DateTime.UtcNow;
         var query = _dbContext.StaffPermissions
+            .Include(sp => sp.Resource)
+                .ThenInclude(r => r.Module)
+            .AsNoTracking()
             .Where(sp => sp.StaffId == userId
                 && (resourceKey == null || sp.Resource.Key == resourceKey)
                 && (sp.ExpiresAt == null || sp.ExpiresAt > now));

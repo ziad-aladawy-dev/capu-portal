@@ -121,6 +121,53 @@ public class StudentService : IStudentService
         return student.Id;
     }
 
+    public async Task<List<Guid>> BulkCreateAsync(IReadOnlyList<CreateStudentRequest> requests)
+    {
+        var students = new List<Student>(requests.Count);
+        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var nationalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var request in requests)
+        {
+            if (!codes.Add(request.StudentCode))
+                throw new ValidationException("StudentCode", LocalizedKeys.StudentInformation.CodeInUse);
+            if (!emails.Add(request.Email))
+                throw new ValidationException("Email", LocalizedKeys.StudentInformation.EmailInUse);
+            if (!nationalIds.Add(request.NationalId))
+                throw new ValidationException("NationalId", LocalizedKeys.StudentInformation.NationalIdInUse);
+
+            var nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                { "ar", request.NameAr },
+                { "en", string.IsNullOrWhiteSpace(request.NameEn) ? request.NameAr : request.NameEn }
+            });
+
+            students.Add(new Student
+            {
+                Id = Guid.NewGuid(),
+                StudentCode = request.StudentCode,
+                Name = nameJson,
+                NationalId = request.NationalId,
+                BirthDate = request.BirthDate,
+                PhoneNumber = request.PhoneNumber,
+                Email = request.Email,
+                PhotoUrl = request.PhotoUrl,
+                Gender = request.Gender,
+                GuardianName = request.GuardianName,
+                GuardianPhone = request.GuardianPhone,
+                StructureNodeId = request.StructureNodeId,
+                PasswordHash = _passwordHasher.HashPassword(request.Password),
+                PasswordExpiry = request.PasswordExpiry,
+                IsActive = true
+            });
+        }
+
+        await _repository.AddRangeAsync(students);
+        await _repository.SaveChangesAsync();
+        return students.Select(s => s.Id).ToList();
+    }
+
     public async Task UpdateAsync(Guid id, UpdateStudentRequest request)
     {
         var student = await _repository.GetByIdAsync(id);

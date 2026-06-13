@@ -7,6 +7,8 @@ public interface IStaffService
 {
     Task<Guid> CreateAsync(CreateStaffRequest request);
 
+    Task<List<Guid>> BulkCreateAsync(IReadOnlyList<CreateStaffRequest> requests);
+
     Task UpdateAsync(Guid id, UpdateStaffRequest request);
 
     Task DeleteAsync(Guid id);
@@ -14,6 +16,9 @@ public interface IStaffService
     Task ToggleStatusAsync(Guid id);
 
     Task<StaffDto?> GetByIdAsync(Guid id);
+
+    /// <summary>Batch lookup by IDs. Single query. No N+1.</summary>
+    Task<IReadOnlyList<StaffDto>> GetRangeAsync(IReadOnlyList<Guid> ids);
 
     Task<List<StaffDto>> GetAllAsync();
 
