@@ -133,7 +133,15 @@ public class StaffService : IStaffService
         var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var nationalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var nameJson = string.Empty;
+
+        // Fetch the seed once to avoid N+1 queries/async-over-sync in the loop.
+        var lastCode = await _repository.GetLastEmployeeCodeAsync();
+        int nextNumber = 1001;
+        if (!string.IsNullOrWhiteSpace(lastCode))
+        {
+            var numberPart = lastCode.Replace("EMP-", "");
+            if (int.TryParse(numberPart, out int parsed)) nextNumber = parsed + 1;
+        }
 
         foreach (var request in requests)
         {
@@ -142,14 +150,14 @@ public class StaffService : IStaffService
             if (!nationalIds.Add(request.NationalId))
                 throw new ValidationException("NationalId", LocalizedKeys.StaffManagement.NationalIdInUse);
 
-            nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
+            var nameJson = JsonSerializer.Serialize(new Dictionary<string, string>
             {
                 { "ar", request.NameAr },
                 { "en", string.IsNullOrWhiteSpace(request.NameEn) ? request.NameAr : request.NameEn }
             });
 
             var code = string.IsNullOrWhiteSpace(request.EmployeeCode)
-                ? GenerateEmployeeCodeAsync().GetAwaiter().GetResult()
+                ? $"EMP-{nextNumber++}"
                 : request.EmployeeCode;
 
             if (!codes.Add(code))

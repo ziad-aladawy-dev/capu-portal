@@ -435,10 +435,7 @@ public class PermissionManagementService : IPermissionManagementService
         _dbContext.StaffPermissions.RemoveRange(expired);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        foreach (var userId in affectedUsers)
-        {
-            await InvalidateUserCacheAsync(userId, cancellationToken);
-        }
+        await Task.WhenAll(affectedUsers.Select(userId => InvalidateUserCacheAsync(userId, cancellationToken)));
 
         return expired.Count;
     }

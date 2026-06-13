@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Modules.Payments.Abstractions.Treasury;
+using CapitalUniversity.Modules.Payments.Abstractions.Treasury.DTOs;
 using CapitalUniversity.Modules.Payments.Repositories.Treasury;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,47 +42,68 @@ public sealed class ReconciliationService : IReconciliationService
 
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
-        // Grace window — don't poll orders younger than this (avoid racing the
-        // student's live payment). Per-run cap bounds work per tick.
         var cutoff = DateTime.UtcNow.AddMinutes(-Math.Max(0, _options.ReconciliationGraceMinutes));
         var batchSize = Math.Max(1, _options.ReconciliationBatchSize);
         var maxAttempts = Math.Max(1, _options.ReconciliationMaxAttempts);
 
         var pending = await _orders.GetPendingPaymentOlderThanAsync(cutoff, batchSize, cancellationToken);
+        if (!pending.Any()) return 0;
+
         var processed = 0;
-
-        foreach (var order in pending)
+        // Parallelize external API calls with a cap (e.g., 5 concurrent calls)
+        // to avoid sequential latency while not overwhelming the external gateway.
+        using var semaphore = new SemaphoreSlim(5);
+        var tasks = pending.Select(async order =>
         {
-            if (string.IsNullOrEmpty(order.MerchantOrderId)) continue;
+            if (string.IsNullOrEmpty(order.MerchantOrderId)) return null;
 
-            SettlementOutcome outcome;
-            string raw;
-            decimal? reportedAmount;
+            await semaphore.WaitAsync(cancellationToken);
             try
             {
                 var status = await _treasury.GetStatusAsync(order.Gateway, order.MerchantOrderId, cancellationToken);
-                outcome = TreasuryStatusMapper.Map(status.Status);
-                reportedAmount = status.Amount;
-                raw = JsonSerializer.Serialize(status);
+                return new { Order = order, Status = status, Error = (Exception?)null };
             }
             catch (Exception ex)
+            {
+                return new { Order = order, Status = (TreasuryStatusResult?)null, Error = (Exception?)ex };
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        // Process results sequentially to ensure DbContext thread safety.
+        foreach (var result in results)
+        {
+            if (result == null) continue;
+            var order = result.Order;
+
+            if (result.Error != null)
             {
                 order.ReconciliationAttempts++;
                 await _db.SaveChangesAsync(cancellationToken);
                 if (order.ReconciliationAttempts >= maxAttempts)
                 {
-                    _logger.LogError(ex,
+                    _logger.LogError(result.Error,
                         "Reconciliation: order {MerchantOrderId} has failed {Attempts} consecutive status checks; flagged for manual intervention.",
                         order.MerchantOrderId, order.ReconciliationAttempts);
                 }
                 else
                 {
-                    _logger.LogWarning(ex,
+                    _logger.LogWarning(result.Error,
                         "Reconciliation: status check failed for {MerchantOrderId} (attempt {Attempts}); will retry next tick.",
                         order.MerchantOrderId, order.ReconciliationAttempts);
                 }
                 continue;
             }
+
+            var status = result.Status!;
+            var outcome = TreasuryStatusMapper.Map(status.Status);
+            var reportedAmount = status.Amount;
+            var raw = JsonSerializer.Serialize(status);
 
             // Successful status check — clear the failure counter.
             if (order.ReconciliationAttempts != 0)
@@ -102,8 +124,6 @@ public sealed class ReconciliationService : IReconciliationService
             }
             else if (outcome == SettlementOutcome.Expired)
             {
-                // Treasury reported expired/timeout — release the order's fees now
-                // rather than waiting for the Portal TTL.
                 await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, null, cancellationToken);
                 processed++;
             }
@@ -112,7 +132,6 @@ public sealed class ReconciliationService : IReconciliationService
                 await _settlement.SettleAsync(order.MerchantOrderId, SettlementOutcome.Expired, TransactionType.StatusCheck, raw, null, cancellationToken);
                 processed++;
             }
-            // else still genuinely pending — leave for the next tick.
         }
 
         _logger.LogInformation("Reconciliation: examined {Count} pending order(s), acted on {Processed}.", pending.Count, processed);

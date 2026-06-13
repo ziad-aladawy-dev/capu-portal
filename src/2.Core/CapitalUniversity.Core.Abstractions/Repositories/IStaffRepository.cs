@@ -37,7 +37,5 @@ public interface IStaffRepository
 
     Task ToggleStatusAsync(Guid id);
 
-    Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
-
     Task SaveChangesAsync();
 }
