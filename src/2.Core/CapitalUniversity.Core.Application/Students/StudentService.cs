@@ -250,20 +250,7 @@ public class StudentService : IStudentService
 
     public async Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request)
     {
-        var result = await _repository.SearchAsync(request);
-
-        return new PagedResult<StudentDto>
-        {
-            Items = result.Items.Select(Map).ToList(),
-
-            Page = result.Page,
-
-            PageSize = result.PageSize,
-
-            TotalCount = result.TotalCount,
-
-            TotalPages = result.TotalPages
-        };
+        return await _repository.SearchAsync(request);
     }
 
     public async Task UpdatePhotoAsync(Guid id, string photoUrl)

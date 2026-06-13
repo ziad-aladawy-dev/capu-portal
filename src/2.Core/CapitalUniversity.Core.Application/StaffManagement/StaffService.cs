@@ -308,20 +308,7 @@ public class StaffService : IStaffService
 
     public async Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request)
     {
-        var result = await _repository.SearchAsync(request);
-
-        return new PagedResult<StaffDto>
-        {
-            Items = result.Items.Select(Map).ToList(),
-
-            Page = result.Page,
-
-            PageSize = result.PageSize,
-
-            TotalCount = result.TotalCount,
-
-            TotalPages = result.TotalPages
-        };
+        return await _repository.SearchAsync(request);
     }
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)

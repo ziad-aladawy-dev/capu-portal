@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.StaffManagement.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
@@ -39,26 +39,25 @@ public class StaffRepository : IStaffRepository
             .ToListAsync();
     }
 
-    public async Task<PagedResult<Staff>> SearchAsync(StaffQueryRequest request)
+    public async Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request)
     {
         var query = _context.Staffs.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.ToLower();
+            var search = request.Search;
 
             query = query.Where(x =>
-                x.Name.ToLower().Contains(search) ||
-                x.EmployeeCode.ToLower().Contains(search) ||
-                x.Email.ToLower().Contains(search) ||
+                x.Name.Contains(search) ||
+                x.EmployeeCode.Contains(search) ||
+                x.Email.Contains(search) ||
                 x.NationalId.Contains(search));
         }
 
         if (request.IsActive.HasValue)
         {
             query = query.Where(x =>
-                x.IsActive ==
-                request.IsActive.Value);
+                x.IsActive == request.IsActive.Value);
         }
 
         if (request.PasswordExpired.HasValue)
@@ -86,15 +85,13 @@ public class StaffRepository : IStaffRepository
         if (!string.IsNullOrWhiteSpace(request.JobTitle))
         {
             query = query.Where(x =>
-                x.JobTitle ==
-                request.JobTitle);
+                x.JobTitle == request.JobTitle);
         }
 
         if (request.StructureNodeId.HasValue)
         {
             query = query.Where(x =>
-                x.StructureNodeId ==
-                request.StructureNodeId.Value);
+                x.StructureNodeId == request.StructureNodeId.Value);
         }
 
         if (request.ScopeNodeId.HasValue)
@@ -102,48 +99,47 @@ public class StaffRepository : IStaffRepository
             var scopeNode =
                 await _context.StructureNodes
                     .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(x =>
-                        x.Id ==
-                        request.ScopeNodeId.Value);
+                    .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
 
             if (scopeNode != null)
             {
                 query = query.Where(x =>
-                    x.StructureNode.Path.StartsWith(
-                        scopeNode.Path));
+                    x.StructureNode.Path.StartsWith(scopeNode.Path));
             }
         }
 
-        int totalCount =
-            await query.CountAsync();
-
-        query = query
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-                        .ThenInclude(x => x!.Parent);
+        int totalCount = await query.CountAsync();
 
         var items = await query
             .OrderBy(x => x.EmployeeCode)
-            .Skip((request.Page - 1)
-                * request.PageSize)
+            .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Select(x => new StaffDto
+            {
+                Id = x.Id,
+                EmployeeCode = x.EmployeeCode,
+                Name = x.Name,
+                Email = x.Email,
+                NationalId = x.NationalId,
+                PhoneNumber = x.PhoneNumber,
+                BirthDate = x.BirthDate,
+                IsActive = x.IsActive,
+                PasswordExpiry = x.PasswordExpiry,
+                CreatedAt = x.CreatedAt,
+                Role = x.Role,
+                JobTitle = x.JobTitle,
+                StructureNodeName = x.StructureNode.Name,
+                FacultyName = (x.StructureNode.Parent != null && x.StructureNode.Parent.Parent != null) ? x.StructureNode.Parent.Parent.Name : string.Empty
+            })
             .ToListAsync();
 
-        return new PagedResult<Staff>
+        return new PagedResult<StaffDto>
         {
             Items = items,
-
             Page = request.Page,
-
             PageSize = request.PageSize,
-
             TotalCount = totalCount,
-
-            TotalPages =
-                (int)Math.Ceiling(
-                    totalCount /
-                    (double)request.PageSize)
+            TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
         };
     }
 
@@ -254,7 +250,5 @@ public class StaffRepository : IStaffRepository
         };
     }
 
-    // P0.7 — services/UoW own the transaction boundary. This delegate exists
-    // for legacy callers; new code MUST go through IUnitOfWork.SaveChangesAsync.
     public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
 }

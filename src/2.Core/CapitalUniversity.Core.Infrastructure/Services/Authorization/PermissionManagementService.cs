@@ -118,8 +118,27 @@ public class PermissionManagementService : IPermissionManagementService
     {
         var attributes = new UserAttributesDto();
 
-        var currentNode = node;
-        while (currentNode != null)
+        // Path is like "/rootId/childId/leafId". Split and fetch all ancestors in one go.
+        var ancestorIds = node.Path.Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => Guid.TryParse(s, out var id) ? id : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .ToList();
+
+        if (!ancestorIds.Contains(node.Id))
+        {
+            ancestorIds.Add(node.Id);
+        }
+
+        var nodes = await _dbContext.StructureNodes
+            .AsNoTracking()
+            .Where(n => ancestorIds.Contains(n.Id))
+            .ToListAsync(cancellationToken);
+
+        // Sort by Depth descending (leaf to root) to match the original loop's behavior
+        // where the last one (root-most) wins when multiple nodes match a type.
+        var orderedNodes = nodes.OrderByDescending(n => n.Depth).ToList();
+
+        foreach (var currentNode in orderedNodes)
         {
             switch (currentNode.Type)
             {
@@ -133,17 +152,6 @@ public class PermissionManagementService : IPermissionManagementService
                 case StructureNodeType.Program:
                     attributes.Department = _localization.Get<string>(currentNode.Name);
                     break;
-            }
-
-            if (currentNode.ParentId.HasValue)
-            {
-                currentNode = await _dbContext.StructureNodes
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(n => n.Id == currentNode.ParentId.Value, cancellationToken);
-            }
-            else
-            {
-                currentNode = null;
             }
         }
 

@@ -1,18 +1,19 @@
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Domain.Common.Exceptions;
+using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
+using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Application;
 using CapitalUniversity.Module.StudentServices.Domain;
+using CapitalUniversity.Module.StudentServices.Abstractions.Hubs;
 using CapitalUniversity.Module.StudentServices.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Xunit;
-using CapitalUniversity.Module.StudentServices.Abstractions.Hubs;
-using CapitalUniversity.Module.StudentServices.Abstractions.Dto;
-using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 
-namespace CapitalUniversity.Module.StudentServices.Tests.Application;
+namespace CapitalUniversity.Core.UniTests.StudentServices.Application;
 
 public class StudentRequestServiceScopeTests
 {
@@ -84,10 +85,10 @@ public class StudentRequestServiceScopeTests
         // Arrange
         var student1Id = Guid.NewGuid();
         var student2Id = Guid.NewGuid();
-        var requests = new List<StudentRequest>
+        var requests = new List<StaffRequestListItemDto>
         {
-            new StudentRequest { Id = Guid.NewGuid(), StudentId = student1Id },
-            new StudentRequest { Id = Guid.NewGuid(), StudentId = student2Id }
+            new StaffRequestListItemDto { Id = Guid.NewGuid(), StudentId = student1Id, StudentCode = "S1" },
+            new StaffRequestListItemDto { Id = Guid.NewGuid(), StudentId = student2Id, StudentCode = "S2" }
         };
 
         _requestRepositoryMock.Setup(r => r.GetAllForStaffAsync(It.IsAny<CancellationToken>()))

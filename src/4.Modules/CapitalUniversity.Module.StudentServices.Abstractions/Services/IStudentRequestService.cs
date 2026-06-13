@@ -8,7 +8,7 @@ public interface IStudentRequestService
 {
     Task<StudentRequestDto> GetStudentRequestAsync(Guid requestId, CancellationToken cancellationToken = default);
     Task<List<StudentRequestDto>> GetStudentRequestsAsync(Guid studentId, CancellationToken cancellationToken = default);
-    Task<List<StudentRequestDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default);
+    Task<List<StaffRequestListItemDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default);
     Task<StudentRequestDto> CreateDraftAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default);
     Task<StudentRequestDto> SaveStepDataAsync(Guid requestId, string stepKey, object data, CancellationToken cancellationToken = default);
     Task<StudentRequestDto> SubmitRequestAsync(Guid requestId, CancellationToken cancellationToken = default);
@@ -16,8 +16,8 @@ public interface IStudentRequestService
     Task<StudentRequestDto> AssignToStaffAsync(Guid requestId, Guid staffId, CancellationToken cancellationToken = default);
     Task<StudentRequestDto> UpdateStatusAsync(Guid requestId, RequestStatus newStatus, string? comment = null, CancellationToken cancellationToken = default);
     Task<StudentRequestDto> AddCommentAsync(Guid requestId, string comment, Guid? performedByUserId, string role, CancellationToken cancellationToken = default);
-    Task<List<StudentRequestDto>> GetPendingAssignmentsAsync(Guid staffId, CancellationToken cancellationToken = default);
-    Task<List<StudentRequestDto>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default);
+    Task<List<StaffRequestListItemDto>> GetPendingAssignmentsAsync(Guid staffId, CancellationToken cancellationToken = default);
+    Task<List<StaffRequestListItemDto>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default);
     Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default);
     Task<List<RequestAttachmentDto>> GetAttachmentsByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default);
     Task<StudentRequestDto?> GetPendingRequestForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default);

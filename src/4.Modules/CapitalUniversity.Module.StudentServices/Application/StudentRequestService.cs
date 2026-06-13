@@ -1,4 +1,6 @@
-﻿using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authentication;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Auth.Authorization;
+using CapitalUniversity.Core.Abstractions.CrossCutting.Localization;
 using CapitalUniversity.Core.Abstractions.CrossCutting.Notifications;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Domain.Common;
@@ -57,12 +59,12 @@ public class StudentRequestService : IStudentRequestService
         return requests.Select(MapToDto).ToList();
     }
 
-    public async Task<List<StudentRequestDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default)
+    public async Task<List<StaffRequestListItemDto>> GetAllRequestsForStaffAsync(CancellationToken cancellationToken = default)
     {
         var requests = await _requestRepository.GetAllForStaffAsync(cancellationToken);
         
-        // Apply scope filtering in-memory as per existing repository pattern
-        var filteredRequests = new List<StudentRequest>();
+        // Apply scope filtering in-memory
+        var filteredRequests = new List<StaffRequestListItemDto>();
         foreach (var req in requests)
         {
             if (await _effectiveScope.CanAccessStudentAsync(req.StudentId, cancellationToken))
@@ -71,16 +73,15 @@ public class StudentRequestService : IStudentRequestService
             }
         }
 
-        return filteredRequests.Select(MapToDto).ToList();
+        return filteredRequests;
     }
 
     public async Task<StudentRequestDto> CreateDraftAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
     {
         await EnsureAccessAsync(studentId, cancellationToken);
 
-        var service = await _serviceRepository.GetByIdAsync(serviceId, cancellationToken);
-        if (service == null) throw new NotFoundException("Service not found");
-        if (!service.IsActive) throw new InvalidOperationException("Service is not active");
+        var service = await _serviceRepository.GetByIdWithWorkflowAsync(serviceId, cancellationToken);
+        if (service == null || !service.IsActive) throw new NotFoundException("Service not found or inactive");
 
         var request = new StudentRequest
         {
@@ -88,8 +89,6 @@ public class StudentRequestService : IStudentRequestService
             ServiceId = serviceId,
             Status = RequestStatus.Draft,
             PaymentStatus = service.IsPaid ? PaymentStatus.Pending : PaymentStatus.NotRequired,
-            AmountPaid = null,
-            SubmittedData = "{}",
             CurrentStepOrder = 0
         };
 
@@ -104,51 +103,36 @@ public class StudentRequestService : IStudentRequestService
 
         await _requestRepository.AddAsync(request, cancellationToken);
         await _requestRepository.SaveChangesAsync(cancellationToken);
-        return MapToDto(request);
+
+        return await GetStudentRequestAsync(request.Id, cancellationToken);
     }
 
     public async Task<StudentRequestDto> SaveStepDataAsync(Guid requestId, string stepKey, object data, CancellationToken cancellationToken = default)
     {
-        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
         await EnsureAccessAsync(request.StudentId, cancellationToken);
 
-        request.EnsureMutable();
+        if (request.Status != RequestStatus.Draft)
+            throw new ConflictException("Can only save data in Draft status");
 
-        if (request.Status != RequestStatus.Draft && request.Status != RequestStatus.MoreInfoRequired && request.Status != RequestStatus.PaymentPending)
-            throw new InvalidOperationException("Cannot modify data at this status");
+        var submittedData = string.IsNullOrWhiteSpace(request.SubmittedData)
+            ? new Dictionary<string, object>()
+            : JsonSerializer.Deserialize<Dictionary<string, object>>(request.SubmittedData) ?? new Dictionary<string, object>();
 
-        var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(request.SubmittedData) ?? new Dictionary<string, object>();
-
-        if (data is JsonElement jsonElement)
-        {
-            var fieldValues = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonElement.GetRawText());
-            if (fieldValues != null)
-            {
-                foreach (var kv in fieldValues)
-                    dict[kv.Key] = kv.Value;
-            }
-        }
-        else if (data is Dictionary<string, object> fieldDict)
-        {
-            foreach (var kv in fieldDict)
-                dict[kv.Key] = kv.Value;
-        }
-        else
-        {
-            dict[stepKey] = data;
-        }
-
-        request.SubmittedData = JsonSerializer.Serialize(dict);
-
-        if (int.TryParse(stepKey, out int stepOrder))
+        submittedData[stepKey] = data;
+        request.SubmittedData = JsonSerializer.Serialize(submittedData);
+        
+        // Update current step order if it's the next step
+        if (int.TryParse(stepKey, out int stepOrder) && stepOrder > request.CurrentStepOrder)
         {
             request.CurrentStepOrder = stepOrder;
         }
 
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
+
         return MapToDto(request);
     }
 
@@ -159,91 +143,68 @@ public class StudentRequestService : IStudentRequestService
 
         await EnsureAccessAsync(request.StudentId, cancellationToken);
 
-        request.EnsureMutable();
+        if (request.Status != RequestStatus.Draft)
+            throw new ConflictException("Can only submit from Draft status");
 
-        if (request.Service.IsPaid && request.PaymentStatus != PaymentStatus.Paid)
+        // Simple validation: must have completed at least one step if workflow has steps
+        if (request.Service.Workflow != null && request.Service.Workflow.Steps.Any(s => s.StepType == WorkflowStepType.Form) && request.CurrentStepOrder == 0)
+            throw new ConflictException("Please complete the required form data");
+
+        if (request.Service.IsPaid)
         {
             request.Status = RequestStatus.PaymentPending;
             request.HistoryEntries.Add(new RequestHistoryEntry
             {
-                Action = "PaymentRequired",
-                Comment = "Payment is required to submit",
+                Action = "Submitted",
+                Comment = "Request submitted, awaiting payment",
                 PerformedByUserId = request.StudentId,
                 PerformedByRole = "Student",
                 PerformedAt = DateTime.UtcNow
             });
-            _requestRepository.Update(request);
-            await _requestRepository.SaveChangesAsync(cancellationToken);
-            return MapToDto(request);
         }
-
-        var workflow = request.Service.Workflow;
-        if (workflow == null) throw new InvalidOperationException("Service has no workflow defined");
-
-        // Only Form steps are required for submission (Review and Payment are optional)
-        var requiredStepOrders = workflow.Steps
-            .Where(s => s.IsRequired && s.StepType == WorkflowStepType.Form)
-            .Select(s => s.Order.ToString())
-            .ToList();
-
-        var submittedDict = JsonSerializer.Deserialize<Dictionary<string, object>>(request.SubmittedData) ?? new Dictionary<string, object>();
-        var missingSteps = requiredStepOrders.Except(submittedDict.Keys).ToList();
-        if (missingSteps.Any())
-            throw new ValidationException($"Missing required steps: {string.Join(", ", missingSteps)}");
-
-        request.Status = RequestStatus.Pending;
-        request.SubmittedAt = DateTime.UtcNow;
-        request.HistoryEntries.Add(new RequestHistoryEntry
+        else
         {
-            Action = "Submitted",
-            Comment = "Student submitted the request",
-            PerformedByUserId = request.StudentId,
-            PerformedByRole = "Student",
-            PerformedAt = DateTime.UtcNow
-        });
+            request.Status = RequestStatus.Pending;
+            request.SubmittedAt = DateTime.UtcNow;
+            request.HistoryEntries.Add(new RequestHistoryEntry
+            {
+                Action = "Submitted",
+                Comment = "Request submitted successfully",
+                PerformedByUserId = request.StudentId,
+                PerformedByRole = "Student",
+                PerformedAt = DateTime.UtcNow
+            });
+        }
 
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.CreateNotificationAsync(
-            Guid.Parse("00000000-0000-0000-0000-000000000001"),
-            "New Student Request",
-            $"Student {request.StudentId} submitted a request for service '{request.Service.Name}'",
-            NotificationType.Info);
-        await _hubContext.Clients.Group("staff-notifications").SendAsync("NewRequestReceived", new { requestId, serviceName = request.Service.Name });
+        await NotifyStatusChange(request);
 
-        await _notificationService.CreateNotificationAsync(
-            request.StudentId,
-            "Request Submitted",
-            $"Your request #{request.RequestNumber} has been submitted successfully.",
-            NotificationType.Info);
-
-        return MapToDto(request);
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     public async Task<StudentRequestDto> ProcessPaymentAsync(Guid requestId, string paymentMethod, CancellationToken cancellationToken = default)
     {
-        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
+        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
         await EnsureAccessAsync(request.StudentId, cancellationToken);
 
-        request.EnsureMutable();
-
         if (request.Status != RequestStatus.PaymentPending)
-            throw new InvalidOperationException("Request is not in payment pending state");
+            throw new ConflictException("Request is not awaiting payment");
 
-        request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
-
+        // Mock payment processing
         request.PaymentStatus = PaymentStatus.Paid;
-        request.AmountPaid = request.Service?.Price ?? 0;
-        request.PaymentTransactionId = Guid.NewGuid().ToString();
-        request.Status = RequestStatus.Draft;
+        request.AmountPaid = request.Service.Price;
+        request.PaymentTransactionId = "MOCK-" + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper();
+        request.Status = RequestStatus.Pending;
+        request.SubmittedAt = DateTime.UtcNow;
 
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
             Action = "PaymentCompleted",
-            Comment = $"Payment of {request.AmountPaid} completed via {paymentMethod}",
+            Comment = $"Payment processed via {paymentMethod}",
             PerformedByUserId = request.StudentId,
             PerformedByRole = "Student",
             PerformedAt = DateTime.UtcNow
@@ -252,20 +213,9 @@ public class StudentRequestService : IStudentRequestService
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.CreateNotificationAsync(
-            request.StudentId,
-            "Payment Successful",
-            $"Your payment of ${request.AmountPaid} for request #{request.RequestNumber} was successful.",
-            NotificationType.Info);
+        await NotifyStatusChange(request);
 
-        await _notificationService.CreateNotificationAsync(
-            Guid.Parse("00000000-0000-0000-0000-000000000001"),
-            "New Paid Student Request",
-            $"Student {request.StudentId} submitted and paid for request #{request.RequestNumber}",
-            NotificationType.Info);
-        await _hubContext.Clients.Group("staff-notifications").SendAsync("NewRequestReceived", new { requestId, serviceName = request.Service.Name });
-
-        return MapToDto(request);
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     public async Task<StudentRequestDto> AssignToStaffAsync(Guid requestId, Guid staffId, CancellationToken cancellationToken = default)
@@ -273,21 +223,18 @@ public class StudentRequestService : IStudentRequestService
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        await EnsureAccessAsync(request.StudentId, cancellationToken);
-
-        request.EnsureMutable();
-
-        if (request.Status != RequestStatus.Pending && request.Status != RequestStatus.UnderReview)
-            throw new InvalidOperationException("Only pending or under-review requests can be assigned");
-
         request.AssignedToStaffId = staffId;
         request.AssignedAt = DateTime.UtcNow;
-        request.Status = RequestStatus.UnderReview;
+        
+        if (request.Status == RequestStatus.Pending)
+        {
+            request.Status = RequestStatus.UnderReview;
+        }
 
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
             Action = "Assigned",
-            Comment = $"Assigned to staff {staffId}",
+            Comment = "Request assigned to staff",
             PerformedByUserId = staffId,
             PerformedByRole = "Staff",
             PerformedAt = DateTime.UtcNow
@@ -296,10 +243,9 @@ public class StudentRequestService : IStudentRequestService
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.CreateNotificationAsync(staffId, "Request Assigned", $"You have been assigned to request {requestId}", NotificationType.Info);
-        await _hubContext.Clients.Group($"request-{requestId}").SendAsync("Assigned", new { staffId });
+        await NotifyStatusChange(request);
 
-        return MapToDto(request);
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     public async Task<StudentRequestDto> UpdateStatusAsync(Guid requestId, RequestStatus newStatus, string? comment = null, CancellationToken cancellationToken = default)
@@ -307,63 +253,38 @@ public class StudentRequestService : IStudentRequestService
         var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        await EnsureAccessAsync(request.StudentId, cancellationToken);
+        if (!CanTransition(request.Status, newStatus))
+            throw new ConflictException($"Cannot transition from {request.Status} to {newStatus}");
 
-        var userRole = _currentUser.Role ?? "Staff";
-        
-        // Workflow-aware guard: If the next step in the workflow requires a specific role, enforce it.
-        var workflow = request.Service?.Workflow;
-        if (workflow != null)
-        {
-            var currentStep = workflow.Steps.FirstOrDefault(s => s.Order == request.CurrentStepOrder);
-            var nextStep = workflow.Steps.OrderBy(s => s.Order).FirstOrDefault(s => s.Order > request.CurrentStepOrder);
-
-            // If we are moving to a "Review" related status, check if the current or next step allows it for this role
-            if (IsReviewStatus(newStatus))
-            {
-                var reviewStep = nextStep?.StepType == WorkflowStepType.Review ? nextStep : (currentStep?.StepType == WorkflowStepType.Review ? currentStep : null);
-                if (reviewStep != null && reviewStep.TransitionType == WorkflowTransitionType.Staff && userRole != "Staff" && userRole != "Admin")
-                {
-                    throw new UnauthorizedAccessException("Only staff can perform review-related transitions for this workflow step.");
-                }
-            }
-        }
-
-        if (!IsValidTransition(request.Status, newStatus, userRole))
-            throw new InvalidOperationException($"Invalid status transition from {request.Status} to {newStatus} for role {userRole}");
-
-        var oldStatus = request.Status;
         request.Status = newStatus;
         if (newStatus == RequestStatus.Completed)
+        {
             request.CompletedAt = DateTime.UtcNow;
+        }
 
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
-            Action = $"StatusChanged_{newStatus}",
-            Comment = comment ?? $"Status changed from {oldStatus} to {newStatus}",
+            Action = "StatusChanged",
+            Comment = comment ?? $"Status updated to {newStatus}",
             PerformedByUserId = _currentUser.Id,
-            PerformedByRole = userRole,
+            PerformedByRole = _currentUser.Role == "Staff" ? "Staff" : "Student",
             PerformedAt = DateTime.UtcNow
         });
 
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
 
-        await _notificationService.CreateNotificationAsync(
-            request.StudentId,
-            $"Request Status Changed to {newStatus}",
-            $"Your request #{request.RequestNumber} status has been updated to {newStatus}. Comment: {comment ?? "No comment"}",
-            NotificationType.Info,
-            cancellationToken: cancellationToken);
+        await NotifyStatusChange(request);
 
-        if (newStatus == RequestStatus.Completed || newStatus == RequestStatus.Rejected || newStatus == RequestStatus.Cancelled)
+        if (!string.IsNullOrWhiteSpace(comment))
         {
-            request.Close();
-            _requestRepository.Update(request);
-            await _requestRepository.SaveChangesAsync(cancellationToken);
+            await _notificationService.EnqueueNotificationAsync(request.StudentId, 
+                "Status Update",
+                $"{request.Service.Name}: {comment}",
+                NotificationType.Info, cancellationToken);
         }
 
-        return MapToDto(request);
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     public async Task<StudentRequestDto> AddCommentAsync(Guid requestId, string comment, Guid? performedByUserId, string role, CancellationToken cancellationToken = default)
@@ -371,15 +292,11 @@ public class StudentRequestService : IStudentRequestService
         var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        await EnsureAccessAsync(request.StudentId, cancellationToken);
-
-        request.EnsureMutable();
-
         request.HistoryEntries.Add(new RequestHistoryEntry
         {
-            Action = "Comment",
+            Action = "CommentAdded",
             Comment = comment,
-            PerformedByUserId = performedByUserId,
+            PerformedByUserId = performedByUserId ?? _currentUser.Id,
             PerformedByRole = role,
             PerformedAt = DateTime.UtcNow
         });
@@ -387,21 +304,18 @@ public class StudentRequestService : IStudentRequestService
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
 
-        await _hubContext.Clients.Group($"request-{requestId}").SendAsync("NewComment", new { comment, performedByUserId, role });
-
-        return MapToDto(request);
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
-    public async Task<List<StudentRequestDto>> GetPendingAssignmentsAsync(Guid staffId, CancellationToken cancellationToken = default)
+    public async Task<List<StaffRequestListItemDto>> GetPendingAssignmentsAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
         var requests = await _requestRepository.GetAssignedToStaffAsync(staffId, cancellationToken);
-        return requests.Where(x => x.Status == RequestStatus.UnderReview).Select(MapToDto).ToList();
+        return requests.Where(x => x.Status == RequestStatus.UnderReview).ToList();
     }
 
-    public async Task<List<StudentRequestDto>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
+    public async Task<List<StaffRequestListItemDto>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
-        var requests = await _requestRepository.GetAssignedToStaffAsync(staffId, cancellationToken);
-        return requests.Select(MapToDto).ToList();
+        return await _requestRepository.GetAssignedToStaffAsync(staffId, cancellationToken);
     }
 
     public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default)
@@ -448,110 +362,64 @@ public class StudentRequestService : IStudentRequestService
 
     public async Task<StudentRequestDto?> GetPendingRequestForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
     {
-        await EnsureAccessAsync(studentId, cancellationToken);
-
         var request = await _requestRepository.GetPendingForStudentAndServiceAsync(studentId, serviceId, cancellationToken);
-        return request == null ? null : MapToDto(request);
+        return request != null ? MapToDto(request) : null;
     }
 
     public async Task<StudentRequestDto> CloseRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
-        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
+        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        await EnsureAccessAsync(request.StudentId, cancellationToken);
-
         request.Close();
-        request.HistoryEntries.Add(new RequestHistoryEntry
-        {
-            Action = "Closed",
-            Comment = "Record closed manually",
-            PerformedByUserId = _currentUser.Id,
-            PerformedByRole = _currentUser.Role ?? "Staff",
-            PerformedAt = DateTime.UtcNow
-        });
-
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
-        return MapToDto(request);
+
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     public async Task<StudentRequestDto> OpenRequestAsync(Guid requestId, CancellationToken cancellationToken = default)
     {
-        var request = await _requestRepository.GetByIdWithDetailsAsync(requestId, cancellationToken);
+        var request = await _requestRepository.GetByIdAsync(requestId, cancellationToken);
         if (request == null) throw new NotFoundException("Request not found");
 
-        await EnsureAccessAsync(request.StudentId, cancellationToken);
-
         request.Reopen();
-        request.HistoryEntries.Add(new RequestHistoryEntry
-        {
-            Action = "Reopened",
-            Comment = "Record reopened manually",
-            PerformedByUserId = _currentUser.Id,
-            PerformedByRole = _currentUser.Role ?? "Staff",
-            PerformedAt = DateTime.UtcNow
-        });
-
         _requestRepository.Update(request);
         await _requestRepository.SaveChangesAsync(cancellationToken);
-        return MapToDto(request);
+
+        return await GetStudentRequestAsync(requestId, cancellationToken);
     }
 
     private async Task EnsureAccessAsync(Guid studentId, CancellationToken cancellationToken)
     {
         if (!await _effectiveScope.CanAccessStudentAsync(studentId, cancellationToken))
+            throw new NotFoundException(LocalizedKeys.StudentInformation.StudentNotFound);
+    }
+
+    private async Task NotifyStatusChange(StudentRequest request)
+    {
+        await _hubContext.Clients.User(request.StudentId.ToString()).SendAsync("RequestStatusUpdated", request.Id, request.Status.ToString());
+        
+        if (request.AssignedToStaffId.HasValue)
         {
-            throw new NotFoundException("Request not found");
+            await _hubContext.Clients.User(request.AssignedToStaffId.Value.ToString()).SendAsync("AssignedRequestUpdated", request.Id, request.Status.ToString());
         }
     }
 
-    private bool IsReviewStatus(RequestStatus status)
+    private bool CanTransition(RequestStatus current, RequestStatus next)
     {
-        return status == RequestStatus.Approved ||
-               status == RequestStatus.Rejected ||
-               status == RequestStatus.UnderReview ||
-               status == RequestStatus.MoreInfoRequired;
-    }
+        if (current == next) return true;
+        if (current == RequestStatus.Cancelled || current == RequestStatus.Rejected || current == RequestStatus.Completed) return false;
 
-    private bool IsValidTransition(RequestStatus current, RequestStatus next, string role)
-    {
-        // Basic state machine validation
-        bool isBasicValid = (current, next) switch
-        {
-            (RequestStatus.Draft, RequestStatus.Pending) => true,
-            (RequestStatus.Draft, RequestStatus.Cancelled) => true,
-            (RequestStatus.Pending, RequestStatus.UnderReview) => true,
-            (RequestStatus.Pending, RequestStatus.Rejected) => true,
-            (RequestStatus.UnderReview, RequestStatus.Approved) => true,
-            (RequestStatus.UnderReview, RequestStatus.MoreInfoRequired) => true,
-            (RequestStatus.UnderReview, RequestStatus.Rejected) => true,
-            (RequestStatus.MoreInfoRequired, RequestStatus.Pending) => true,
-            (RequestStatus.MoreInfoRequired, RequestStatus.Cancelled) => true,
-            (RequestStatus.Approved, RequestStatus.ReadyForPickup) => true,
-            (RequestStatus.ReadyForPickup, RequestStatus.Completed) => true,
-            (RequestStatus.Approved, RequestStatus.Completed) => true,
-            (RequestStatus.PaymentPending, RequestStatus.Approved) => true,
-            (RequestStatus.PaymentPending, RequestStatus.Completed) => true,
-            (_, RequestStatus.Cancelled) => true,
-            _ => false
-        };
+        if (next == RequestStatus.Cancelled) return true;
 
-        if (!isBasicValid) return false;
-
-        // Role-based guards
-        if (role == "Student")
-        {
-            // Students can only submit (Draft -> Pending) or cancel
-            return next == RequestStatus.Pending || next == RequestStatus.Cancelled;
-        }
-
-        if (role == "Staff" || role == "Admin")
-        {
-            // Staff cannot "un-submit" a request to Draft (unless specifically allowed by business logic, but usually it's MoreInfoRequired)
-            if (next == RequestStatus.Draft) return false;
-            return true;
-        }
+        if (current == RequestStatus.Draft) return next == RequestStatus.Pending || next == RequestStatus.PaymentPending;
+        if (current == RequestStatus.PaymentPending) return next == RequestStatus.Pending;
+        if (current == RequestStatus.Pending) return next == RequestStatus.UnderReview || next == RequestStatus.Rejected;
+        if (current == RequestStatus.UnderReview) return next == RequestStatus.Approved || next == RequestStatus.Rejected || next == RequestStatus.MoreInfoRequired;
+        if (current == RequestStatus.MoreInfoRequired) return next == RequestStatus.UnderReview;
+        if (current == RequestStatus.Approved) return next == RequestStatus.Completed || next == RequestStatus.ReadyForPickup;
+        if (current == RequestStatus.ReadyForPickup) return next == RequestStatus.Completed;
 
         return false;
     }
@@ -562,31 +430,25 @@ public class StudentRequestService : IStudentRequestService
         {
             Id = request.Id,
             ServiceId = request.ServiceId,
-            ServiceName = request.Service?.Name ?? string.Empty,
-            StudentCode = request.StudentCode,
+            ServiceName = request.Service.Name,
             StudentName = request.StudentNameJson,
+            StudentCode = request.StudentCode,
             Status = request.Status,
             PaymentStatus = request.PaymentStatus,
             AmountPaid = request.AmountPaid,
-            CurrentStepOrder = request.CurrentStepOrder,
             SubmittedAt = request.SubmittedAt,
             CompletedAt = request.CompletedAt,
-            RequestNumber = request.RequestNumber,
-            ServicePrice = request.Service?.Price,
-            IsClosed = request.IsClosed,
-            ClosedAt = request.ClosedAt,
             CreatedAt = request.CreatedAt,
+            CurrentStepOrder = request.CurrentStepOrder,
             AssignedToStaffId = request.AssignedToStaffId,
             AssignedAt = request.AssignedAt,
-            WorkflowSteps = request.Service?.Workflow?.Steps
-                .OrderBy(s => s.Order)
-                .Select(s => new StepInfoDto
-                {
-                    Order = s.Order,
-                    Title = s.Title,
-                    StepType = (int)s.StepType
-                }).ToList() ?? new List<StepInfoDto>(),
-            History = request.HistoryEntries.Select(h => new HistoryEntryDto
+            WorkflowSteps = request.Service.Workflow?.Steps.OrderBy(s => s.Order).Select(s => new StepInfoDto
+            {
+                Title = s.Title,
+                Order = s.Order,
+                StepType = (int)s.StepType
+            }).ToList() ?? new List<StepInfoDto>(),
+            History = request.HistoryEntries.OrderByDescending(h => h.PerformedAt).Select(h => new HistoryEntryDto
             {
                 Action = h.Action,
                 Comment = h.Comment,
@@ -596,4 +458,4 @@ public class StudentRequestService : IStudentRequestService
             }).ToList()
         };
     }
-    }
+}

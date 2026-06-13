@@ -10,7 +10,7 @@ public interface IStudentRepository
 
     Task<List<Student>> GetAllAsync();
 
-    Task<PagedResult<Student>> SearchAsync(StudentQueryRequest request);
+    Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request);
 
     Task AddAsync(Student student);
 

@@ -10,7 +10,7 @@ public interface IStaffRepository
 
     Task<List<Staff>> GetAllAsync();
 
-    Task<PagedResult<Staff>> SearchAsync(StaffQueryRequest request);
+    Task<PagedResult<StaffDto>> SearchAsync(StaffQueryRequest request);
 
     Task AddAsync(Staff staff);
 

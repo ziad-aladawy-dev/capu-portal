@@ -21,6 +21,7 @@ public class ServiceRepository : IServiceRepository
 
     public async Task<Service?> GetByIdWithWorkflowAsync(Guid id, CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsSplitQuery()
             .Include(s => s.ScopeNodes)
             .Include(s => s.Workflow)
                 .ThenInclude(w => w.Steps)
@@ -41,8 +42,10 @@ public class ServiceRepository : IServiceRepository
 
     public async Task<List<Service>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.Services
+            .AsSplitQuery()
             .Include(s => s.ScopeNodes)
             .Include(s => s.Workflow)
+                .ThenInclude(w => w.Steps)
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
 

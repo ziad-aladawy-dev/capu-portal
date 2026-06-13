@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Abstractions.Repositories;
+using CapitalUniversity.Core.Abstractions.Repositories;
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
@@ -22,9 +22,9 @@ public class StudentRepository : IStudentRepository
         return await _context.Students
             .AsNoTracking()
             .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x.Parent)
-                        .ThenInclude(x => x.Parent)
+                .ThenInclude(x => x.Parent!)
+                    .ThenInclude(x => x.Parent!)
+                        .ThenInclude(x => x.Parent!)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -33,25 +33,25 @@ public class StudentRepository : IStudentRepository
         return await _context.Students
             .AsNoTracking()
             .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-                        .ThenInclude(x => x!.Parent)
+                .ThenInclude(x => x.Parent!)
+                    .ThenInclude(x => x.Parent!)
+                        .ThenInclude(x => x.Parent!)
             .OrderBy(x => x.StudentCode)
             .ToListAsync();
     }
 
-    public async Task<PagedResult<Student>> SearchAsync(StudentQueryRequest request)
+    public async Task<PagedResult<StudentDto>> SearchAsync(StudentQueryRequest request)
     {
         var query = _context.Students.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.ToLower();
+            var search = request.Search;
 
             query = query.Where(x =>
-                x.Name.ToLower().Contains(search) ||
-                x.StudentCode.ToLower().Contains(search) ||
-                x.Email.ToLower().Contains(search) ||
+                x.Name.Contains(search) ||
+                x.StudentCode.Contains(search) ||
+                x.Email.Contains(search) ||
                 x.NationalId.Contains(search));
         }
 
@@ -80,8 +80,7 @@ public class StudentRepository : IStudentRepository
         if (request.LevelId.HasValue)
         {
             query = query.Where(x =>
-                x.StructureNodeId ==
-                request.LevelId.Value);
+                x.StructureNodeId == request.LevelId.Value);
         }
 
         if (request.LevelOrder.HasValue)
@@ -94,52 +93,36 @@ public class StudentRepository : IStudentRepository
         if (request.ProgramId.HasValue)
         {
             query = query.Where(x =>
-                x.StructureNode.ParentId ==
-                request.ProgramId.Value);
+                x.StructureNode.ParentId == request.ProgramId.Value);
         }
 
         if (request.FacultyId.HasValue)
         {
-            var facultyNode =
-                await _context.StructureNodes
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(x =>
-                        x.Id ==
-                        request.FacultyId.Value);
+            var facultyNode = await _context.StructureNodes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == request.FacultyId.Value);
 
             if (facultyNode != null)
             {
                 query = query.Where(x =>
-                    x.StructureNode.Path.StartsWith(
-                        facultyNode.Path));
+                    x.StructureNode.Path.StartsWith(facultyNode.Path));
             }
         }
 
         if (request.ScopeNodeId.HasValue)
         {
-            var scopeNode =
-                await _context.StructureNodes
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(x =>
-                        x.Id ==
-                        request.ScopeNodeId.Value);
+            var scopeNode = await _context.StructureNodes
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
 
             if (scopeNode != null)
             {
                 query = query.Where(x =>
-                    x.StructureNode.Path.StartsWith(
-                        scopeNode.Path));
+                    x.StructureNode.Path.StartsWith(scopeNode.Path));
             }
         }
 
-        int totalCount =
-            await query.CountAsync();
-
-        query = query
-            .Include(x => x.StructureNode)
-                .ThenInclude(x => x.Parent)
-                    .ThenInclude(x => x!.Parent)
-                        .ThenInclude(x => x!.Parent);
+        int totalCount = await query.CountAsync();
 
         IOrderedQueryable<Student> orderedQuery;
 
@@ -156,38 +139,50 @@ public class StudentRepository : IStudentRepository
                     : query.OrderByDescending(x => x.Email);
                 break;
             case "createdat":
+            case "date":
                 orderedQuery = request.Ascending
                     ? query.OrderBy(x => x.CreatedAt)
                     : query.OrderByDescending(x => x.CreatedAt);
                 break;
+            case "code":
             case "studentcode":
-            default:
                 orderedQuery = request.Ascending
                     ? query.OrderBy(x => x.StudentCode)
                     : query.OrderByDescending(x => x.StudentCode);
                 break;
+            default:
+                orderedQuery = query.OrderByDescending(x => x.CreatedAt);
+                break;
         }
 
         var items = await orderedQuery
-            .Skip((request.Page - 1)
-                * request.PageSize)
+            .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Select(x => new StudentDto
+            {
+                Id = x.Id,
+                StudentCode = x.StudentCode,
+                Name = x.Name,
+                Email = x.Email,
+                NationalId = x.NationalId,
+                PhoneNumber = x.PhoneNumber,
+                BirthDate = x.BirthDate,
+                IsActive = x.IsActive,
+                PasswordExpiry = x.PasswordExpiry,
+                CreatedAt = x.CreatedAt,
+                LevelName = x.StructureNode.Name,
+                ProgramName = x.StructureNode.Parent != null ? x.StructureNode.Parent.Name : string.Empty,
+                FacultyName = (x.StructureNode.Parent != null && x.StructureNode.Parent.Parent != null) ? x.StructureNode.Parent.Parent.Name : string.Empty
+            })
             .ToListAsync();
 
-        return new PagedResult<Student>
+        return new PagedResult<StudentDto>
         {
             Items = items,
-
             Page = request.Page,
-
             PageSize = request.PageSize,
-
             TotalCount = totalCount,
-
-            TotalPages =
-                (int)Math.Ceiling(
-                    totalCount /
-                    (double)request.PageSize)
+            TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
         };
     }
 
@@ -199,61 +194,36 @@ public class StudentRepository : IStudentRepository
     public Task UpdateAsync(Student student)
     {
         _context.Students.Update(student);
-
         return Task.CompletedTask;
     }
 
     public async Task SoftDeleteAsync(Guid id)
     {
-        var student = await GetByIdAsync(id);
-
-        if (student == null)
-            return;
-
+        var student = await _context.Students.FirstOrDefaultAsync(x => x.Id == id);
+        if (student == null) return;
         student.IsDeleted = true;
         student.UpdatedAt = DateTime.UtcNow;
-
-        _context.Students.Update(student);
-    }
-
-    public async Task ToggleStatusAsync(Guid id)
-    {
-        var student = await GetByIdAsync(id);
-
-        if (student == null)
-            return;
-
-        student.IsActive = !student.IsActive;
-
-        student.UpdatedAt = DateTime.UtcNow;
-
         _context.Students.Update(student);
     }
 
     public async Task<bool> ExistsAsync(Guid id)
     {
-        return await _context.Students
-            .AnyAsync(x => x.Id == id);
+        return await _context.Students.AnyAsync(x => x.Id == id);
     }
 
     public async Task<bool> StudentCodeExistsAsync(string studentCode)
     {
-        return await _context.Students
-            .AnyAsync(x => x.StudentCode == studentCode);
+        return await _context.Students.AnyAsync(x => x.StudentCode == studentCode);
     }
 
     public async Task<bool> EmailExistsAsync(string email)
     {
-        return await _context.Students
-            .AnyAsync(x =>
-                x.Email == email);
+        return await _context.Students.AnyAsync(x => x.Email == email);
     }
 
     public async Task<bool> NationalIdExistsAsync(string nationalId)
     {
-        return await _context.Students
-            .AnyAsync(x =>
-                x.NationalId == nationalId);
+        return await _context.Students.AnyAsync(x => x.NationalId == nationalId);
     }
 
     public async Task<string?> GetLastStudentCodeAsync()
@@ -262,6 +232,15 @@ public class StudentRepository : IStudentRepository
             .OrderByDescending(x => x.StudentCode)
             .Select(x => x.StudentCode)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task ToggleStatusAsync(Guid id)
+    {
+        var student = await _context.Students.FirstOrDefaultAsync(x => x.Id == id);
+        if (student == null) return;
+        student.IsActive = !student.IsActive;
+        student.UpdatedAt = DateTime.UtcNow;
+        _context.Students.Update(student);
     }
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
