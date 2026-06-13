@@ -4,6 +4,10 @@
   color: var(--color-text-primary);
 }
 
+.aplans-page.aplans-page--no-padding {
+  padding: 0;
+}
+
 .aplans-header {
   display: flex;
   justify-content: space-between;

@@ -4,11 +4,12 @@ import {
   ClipboardList, Plus, Trash2, X, AlertTriangle, RefreshCw, BookOpen,
   Edit2, Search, Lock, Unlock, Grid3X3, Table2, Globe, ChevronRight, Download,
 } from "lucide-react";
-import * as courseService from "../../../../core/services/courseService";
 import { useDomain } from "../../../../core/contexts/DomainContext";
 import { useScopePrograms } from "../../../../core/query/useScopePrograms";
 import { getNodeTypeConfig, getNodeTypeLabel } from "../../../../core/constants/nodeTypeRegistry";
 import { getLocalized, toLocalizedJson } from "../../../../core/utils/getLocalized";
+import { downloadCsv, toCsv } from "../../../../core/utils/exportCsv";
+import { formatDate } from "../../../../core/utils/formatDate";
 import PermissionGate from "../../../../core/auth/PermissionGate";
 import { useToast } from "../../../../core/components/Toast";
 import StatusBadge from "../../../../core/components/StatusBadge";
@@ -19,7 +20,7 @@ import {
   useDeleteAcademicPlan, useCloseAcademicPlan, useOpenAcademicPlan, useAddPlanCourse,
   useRemovePlanCourse, useBulkDeleteAcademicPlans, useBatchSetPlanCourses,
 } from "../../../../core/query/useAcademicPlans";
-import { useAllPrerequisitePairs } from "../../../../core/query/useCourses";
+import { useActiveCourses, useAllPrerequisitePairs } from "../../../../core/query/useCourses";
 import CurriculumGrid from "./CurriculumGrid";
 import CurriculumTable from "./CurriculumTable";
 import "./academicPlans.css";
@@ -46,7 +47,8 @@ function AcademicPlansPage() {
   const [selectedProgramId, setSelectedProgramId] = useState("");
 
   // Course catalog (for the add panel + code/title lookups).
-  const [courses, setCourses] = useState([]);
+  const { data: activeCourses = [], error: coursesError } = useActiveCourses();
+  const courses = useMemo(() => (Array.isArray(activeCourses) ? activeCourses : []), [activeCourses]);
   const [error, setError] = useState(null);
 
   // Search & pagination
@@ -68,7 +70,7 @@ function AcademicPlansPage() {
   }), [page, selectedProgramId, search]);
 
   const { data: planData, isLoading: plansLoading, refetch: refetchPlans } = useAcademicPlans(queryParams);
-  const plans = planData?.items || [];
+  const plans = useMemo(() => planData?.items || [], [planData]);
   const totalPages = planData?.totalPages || 1;
 
   const { data: selectedPlan, isLoading: planLoading } = useAcademicPlan(selectedPlanId);
@@ -93,19 +95,14 @@ function AcademicPlansPage() {
   const [deletePlanCourse, setDeletePlanCourse] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  // Load course catalog once.
+  // Surface course fetch errors to the error banner
   useEffect(() => {
-    let cancelled = false;
-    courseService.fetchActiveCourses()
-      .then((all) => { if (!cancelled) setCourses(Array.isArray(all) ? all : []); })
-      .catch((err) => { if (!cancelled) setError(err.message || "Failed to load courses"); });
-    return () => { cancelled = true; };
-  }, []);
+    if (coursesError) setError(coursesError.message || "Failed to load courses");
+  }, [coursesError]);
 
   // Auto-select the program when the scope resolves to exactly one (a Program
   // scope, or a container with a single program). Keep a valid selection when
   // the program set changes; force an explicit pick when there are several.
-  const programIdsKey = programs.map((p) => p.id).join(",");
   useEffect(() => {
     if (programsLoading) return;
     if (!programs.length) { setSelectedProgramId(""); return; }
@@ -114,8 +111,7 @@ function AcademicPlansPage() {
       if (programs.length === 1) return programs[0].id;
       return "";
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programIdsKey, programsLoading]);
+  }, [programs, programsLoading]);
 
   // Reset plan selection + paging when the active program changes.
   useEffect(() => {
@@ -126,15 +122,13 @@ function AcademicPlansPage() {
 
   // Auto-select a plan so a program's curriculum shows immediately (prefer the
   // active plan, else the first).
-  const planIdsKey = plans.map((p) => p.id).join(",");
   useEffect(() => {
     if (!plans.length) { setSelectedPlanId(null); return; }
     setSelectedPlanId((cur) => {
       if (cur && plans.some((p) => p.id === cur)) return cur;
       return (plans.find((p) => p.isActive) || plans[0]).id;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planIdsKey]);
+  }, [plans]);
 
   const courseById = useMemo(() => {
     const map = {};
@@ -306,42 +300,27 @@ function AcademicPlansPage() {
     }
   };
 
-  // Serialize the curriculum matrix to CSV and download it.
   const handleExportCsv = () => {
     if (!selectedPlan) return;
-    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const lines = [
-      ["Code", "Title", "Credits", "Level", "Semester", "Type"].join(","),
-      ...(selectedPlan.planCourses || [])
-        .slice()
-        .sort((a, b) => a.level - b.level || a.semester - b.semester)
-        .map((pc) => {
-          const c = courseById[pc.courseId] || {};
-          return [
-            esc(c.code), esc(c.title), c.creditHours || 0,
-            pc.level, pc.semester, pc.isMandatory ? "Mandatory" : "Elective",
-          ].join(",");
-        }),
-    ];
-    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(selectedPlan.name || "curriculum").replace(/[^\w؀-ۿ-]+/g, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows = (selectedPlan.planCourses || [])
+      .slice()
+      .sort((a, b) => a.level - b.level || a.semester - b.semester)
+      .map((pc) => {
+        const c = courseById[pc.courseId] || {};
+        return [
+          c.code, c.title, c.creditHours || 0,
+          pc.level, pc.semester, pc.isMandatory ? "Mandatory" : "Elective",
+        ];
+      });
+    const csv = toCsv(["Code", "Title", "Credits", "Level", "Semester", "Type"], rows);
+    downloadCsv(csv, selectedPlan.name || "curriculum");
     addToast(ta("plans.exported"), "success");
-  };
-
-  const formatDate = (iso) => {
-    if (!iso) return "—";
-    try { return new Date(iso).toLocaleDateString(); } catch { return "—"; }
   };
 
   const planReadOnly = !!selectedPlan?.isClosed;
 
   return (
-    <div className="aplans-page" style={{ padding: 0 }}>
+    <div className="aplans-page aplans-page--no-padding">
       <div className="aplans-header">
         <div className="aplans-header-left">
           <ClipboardList size={22} />
