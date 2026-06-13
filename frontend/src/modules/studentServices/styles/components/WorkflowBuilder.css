@@ -1,12 +1,14 @@
+/* ── Workflow Builder — step management ── */
+
 .wb-container {
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-body);
 }
 
 .wb-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .wb-header h4 {
@@ -14,116 +16,141 @@
   font-size: 13px;
   font-weight: 800;
   color: var(--color-text-primary);
-  font-family: "Space Mono", monospace;
+  font-family: var(--font-heading);
 }
 
 .wb-empty {
   text-align: center;
-  padding: 2rem;
-  color: #9ca3af;
-  background: #f8f9fb;
-  border-radius: 10px;
+  padding: 32px;
+  color: var(--color-text-secondary);
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
   border: 1px dashed var(--color-border);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .wb-steps-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .wb-step-card {
-  background: #f8f9fb;
-  border-radius: 12px;
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   overflow: hidden;
+  transition: border-color var(--transition-fast);
 }
 
+.wb-step-card:hover {
+  border-color: rgba(201, 168, 76, 0.2);
+}
+
+/* ── Step header bar ── */
 .wb-step-header {
   background: var(--color-primary);
-  padding: 7px 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .wb-step-order {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   background: var(--gold-light);
-  color: var(--color-text-primary);
+  color: var(--navy-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   flex-shrink: 0;
 }
 
 .wb-step-title-input {
   flex: 1;
-  height: 26px;
-  padding: 0 9px;
+  height: 28px;
+  padding: 0 10px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
   outline: none;
-  font-family: "DM Sans", sans-serif;
-  transition: 0.2s;
+  font-family: var(--font-body);
+  transition: border-color var(--transition-fast);
 }
-.wb-step-title-input::placeholder { color: rgba(255,255,255,0.35); }
-.wb-step-title-input:focus { border-bottom-color: var(--gold-light); }
 
+.wb-step-title-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.wb-step-title-input:focus {
+  border-bottom-color: var(--gold-light);
+}
+
+/* ── Step action buttons ── */
 .wb-step-actions {
   display: flex;
   gap: 3px;
   margin-inline-start: auto;
 }
+
 .wb-step-actions button {
-  width: 22px;
-  height: 22px;
-  background: rgba(255,255,255,0.08);
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.06);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.6);
-  transition: 0.15s;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all var(--transition-fast);
 }
-.wb-step-actions button:hover { background: rgba(255,255,255,0.18); color: #fff; }
-.wb-step-actions button.wb-danger:hover { background: rgba(220,38,38,0.3); color: #fca5a5; }
 
+.wb-step-actions button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.wb-step-actions button.wb-danger:hover {
+  background: rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+}
+
+/* ── Step details body ── */
 .wb-step-details {
-  padding: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .wb-step-details textarea {
   width: 100%;
-  padding: 8px 11px;
+  padding: 9px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 9px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
   background: var(--color-surface);
   color: var(--color-text-primary);
   outline: none;
   resize: vertical;
-  font-family: "DM Sans", sans-serif;
-  transition: 0.2s;
+  font-family: var(--font-body);
+  transition: all var(--transition-fast);
+  line-height: 1.5;
 }
+
 .wb-step-details textarea:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
 }
 
 .wb-step-type {
@@ -134,78 +161,90 @@
 }
 
 .wb-step-type-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+/* ── Select dropdown ── */
 .wb-select-wrap {
   position: relative;
 }
+
 .wb-select-wrap select {
-  height: 32px;
+  height: 34px;
   padding-block: 0;
   padding-inline-start: 10px;
   padding-inline-end: 28px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   background: var(--color-surface);
   color: var(--color-text-primary);
   outline: none;
   appearance: none;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  transition: 0.2s;
+  font-family: var(--font-body);
+  transition: all var(--transition-fast);
 }
+
 .wb-select-wrap select:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
 }
+
 .wb-select-arrow {
   position: absolute;
   inset-inline-end: 8px;
   top: 50%;
   transform: translateY(-50%) rotate(90deg);
   pointer-events: none;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
 }
 
+/* ── Checkbox ── */
 .wb-custom-checkbox {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   cursor: pointer;
 }
-.wb-custom-checkbox input[type="checkbox"] { display: none; }
+
+.wb-custom-checkbox input[type="checkbox"] {
+  display: none;
+}
+
 .wb-cb-box {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  border: 1.5px solid #d1d5db;
-  background: #f8f9fb;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: 0.15s;
+  transition: all var(--transition-fast);
   color: transparent;
 }
+
 .wb-custom-checkbox input[type="checkbox"]:checked + .wb-cb-box {
   background: var(--color-primary);
-  border-color: var(--color-text-primary);
+  border-color: var(--navy-accent);
   color: var(--gold-light);
 }
+
 .wb-cb-text {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 
+/* ── Fields section ── */
 .wb-step-fields {
   border-top: 1px solid var(--color-border);
-  padding: 12px;
+  padding: 14px;
   background: var(--color-surface);
 }

@@ -145,6 +145,22 @@ public class StudentRequestsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("assigned-to-staff/{staffId:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
+    public async Task<IActionResult> GetAssignedToStaff(Guid staffId, CancellationToken cancellationToken)
+    {
+        var result = await _requestService.GetAssignedToStaffAsync(staffId, cancellationToken);
+        return Ok(new { items = result, totalCount = result.Count });
+    }
+
+    [HttpGet("by-student/{studentId:guid}")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
+    public async Task<IActionResult> GetByStudentId(Guid studentId, CancellationToken cancellationToken)
+    {
+        var result = await _requestService.GetStudentRequestsAsync(studentId, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("staff/paged")]
     [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
     public async Task<IActionResult> GetPagedForStaff(

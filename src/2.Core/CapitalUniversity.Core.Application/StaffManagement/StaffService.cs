@@ -326,21 +326,7 @@ public class StaffService : IStaffService
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        var result = await SearchAsync(new StaffQueryRequest
-        {
-            ScopeNodeId = request.ScopeNodeId,
-
-            Page = 1,
-
-            PageSize = int.MaxValue
-        });
-
-        return new UserStatisticsDto
-        {
-            TotalStaff = result.Items.Count,
-            ActiveStaff = result.Items.Count(x => x.IsActive),
-            InactiveStaff = result.Items.Count(x => !x.IsActive)
-        };
+        return await _repository.GetStatisticsAsync(request);
     }
 
     public async Task UpdatePhotoAsync(Guid id, string photoUrl)

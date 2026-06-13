@@ -19,6 +19,7 @@ public class StaffRepository : IStaffRepository
     public async Task<Staff?> GetByIdAsync(Guid id)
     {
         return await _context.Staffs
+            .AsNoTracking()
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x!.Parent)
@@ -29,6 +30,7 @@ public class StaffRepository : IStaffRepository
     public async Task<List<Staff>> GetAllAsync()
     {
         return await _context.Staffs
+            .AsNoTracking()
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x!.Parent)
@@ -39,7 +41,7 @@ public class StaffRepository : IStaffRepository
 
     public async Task<PagedResult<Staff>> SearchAsync(StaffQueryRequest request)
     {
-        var query = _context.Staffs.AsQueryable();
+        var query = _context.Staffs.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -221,23 +223,34 @@ public class StaffRepository : IStaffRepository
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        var query = _context.Staffs.AsQueryable();
+        var query = _context.Staffs.AsNoTracking();
 
         if (request.ScopeNodeId.HasValue)
         {
             var scopeNode = await _context.StructureNodes
                 .IgnoreQueryFilters()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
 
             if (scopeNode != null)
                 query = query.Where(x => x.StructureNode.Path.StartsWith(scopeNode.Path));
         }
 
+        var counts = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Active = g.Count(x => x.IsActive),
+                Inactive = g.Count(x => !x.IsActive)
+            })
+            .FirstOrDefaultAsync();
+
         return new UserStatisticsDto
         {
-            TotalStaff = await query.CountAsync(),
-            ActiveStaff = await query.CountAsync(x => x.IsActive),
-            InactiveStaff = await query.CountAsync(x => !x.IsActive)
+            TotalStaff = counts?.Total ?? 0,
+            ActiveStaff = counts?.Active ?? 0,
+            InactiveStaff = counts?.Inactive ?? 0
         };
     }
 

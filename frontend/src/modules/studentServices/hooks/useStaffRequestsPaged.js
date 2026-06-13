@@ -1,24 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useScopeKeyPart } from "../../../core/query/scopedKeys";
 import { getPagedStaffRequests } from "../services/studentServicesService";
 
+const REQUESTS_PAGED_KEY = "ss-requests-paged";
+
 export const useStaffRequestsPaged = (initialPageSize = 10) => {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const scopePart = useScopeKeyPart();
+  const queryClient = useQueryClient();
+
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: initialPageSize,
-    totalCount: 0,
-    totalPages: 1
   });
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("requestnumber");
   const [ascending, setAscending] = useState(false);
 
-  // No synchronous setState before the await — the effect below calls this on
-  // mount and on every param change (react-hooks/set-state-in-effect).
-  const loadRequests = useCallback(async () => {
-    try {
+  const query = useQuery({
+    queryKey: [REQUESTS_PAGED_KEY, scopePart, pagination.page, pagination.pageSize, search, sortBy, ascending],
+    queryFn: async () => {
       const data = await getPagedStaffRequests(
         pagination.page,
         pagination.pageSize,
@@ -26,56 +27,52 @@ export const useStaffRequestsPaged = (initialPageSize = 10) => {
         sortBy,
         ascending
       );
-      setError(null);
-      setRequests(data.items || []);
-      setPagination(prev => ({
-        ...prev,
-        totalCount: data.totalCount,
-        totalPages: data.totalPages
-      }));
-    } catch (err) {
-      console.error("Failed to load paged requests:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.page, pagination.pageSize, search, sortBy, ascending]);
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount || 0,
+        totalPages: data.totalPages || 1,
+      };
+    },
+    staleTime: 15_000,
+    placeholderData: (prev) => prev,
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- async loader; setState only after await
-    loadRequests();
-  }, [loadRequests]);
+  const changePage = useCallback((newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  }, []);
 
-  const changePage = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      setPagination(prev => ({ ...prev, page: newPage }));
-    }
-  };
+  const changePageSize = useCallback((newSize) => {
+    setPagination({ page: 1, pageSize: newSize });
+  }, []);
 
-  const changePageSize = (newSize) => {
-    setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
-  };
-
-  const applySearch = (newSearch) => {
+  const applySearch = useCallback((newSearch) => {
     setSearch(newSearch);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  }, []);
 
-  const applySort = (newSortBy) => {
-    if (newSortBy === sortBy) {
-      setAscending(prev => !prev);
-    } else {
-      setSortBy(newSortBy);
-      setAscending(false);
-    }
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
+  const applySort = useCallback(
+    (newSortBy) => {
+      if (newSortBy === sortBy) {
+        setAscending((prev) => !prev);
+      } else {
+        setSortBy(newSortBy);
+        setAscending(false);
+      }
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    },
+    [sortBy]
+  );
 
   return {
-    requests,
-    loading,
-    error,
-    pagination,
+    requests: query.data?.items ?? [],
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    pagination: {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      totalCount: query.data?.totalCount ?? 0,
+      totalPages: query.data?.totalPages ?? 1,
+    },
     search,
     sortBy,
     ascending,
@@ -83,6 +80,6 @@ export const useStaffRequestsPaged = (initialPageSize = 10) => {
     changePageSize,
     applySearch,
     applySort,
-    refresh: loadRequests
+    refresh: () => queryClient.invalidateQueries({ queryKey: [REQUESTS_PAGED_KEY] }),
   };
 };

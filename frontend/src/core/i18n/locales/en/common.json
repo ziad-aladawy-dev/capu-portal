@@ -1275,5 +1275,13 @@
   "expand": "Expand",
   "egp": "EGP",
   "university_name_full": "Capital University",
-  "student_portal_label": "Student Portal"
+  "student_portal_label": "Student Portal",
+  "filter_fields": "Filter Fields",
+  "locked_to_scope": "Locked to scope",
+  "service_requests": "Service Requests",
+  "assigned_workflows": "Assigned Workflows",
+  "specialization": "Specialization",
+  "load_more": "Load more",
+  "workflow_steps": "Workflow Steps",
+  "view_request": "View Request"
 }

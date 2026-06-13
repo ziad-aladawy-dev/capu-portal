@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, MapPin, Layers, ToggleRight, FileText, Briefcase, ArrowLeft, Edit3, Banknote } from "lucide-react";
+import { Calendar, MapPin, Layers, ToggleRight, FileText, Briefcase, ArrowLeft, Edit3, Banknote, ClipboardList } from "lucide-react";
 import { getServiceById } from "../../services/studentServicesService";
 import { getLocalized } from "../../../../core/utils/getLocalized";
 import { fmtAmount } from "../../../../core/services/treasuryService";
 import { SERVICE_TYPE_LABELS } from "../../../../core/constants/requestStatus";
+import { WORKFLOW_STEP_TYPE_NAMES, STEP_FIELD_TYPE_NAMES } from "../../../../core/constants/workflowTypes";
 import { usePermission } from "../../../../core/auth/usePermission";
 import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import ErrorMessage from "../../../../core/components/ErrorMessage";
@@ -38,6 +39,16 @@ const ServiceDetailsPage = () => {
     return labels[type] || type;
   };
 
+  const getFieldTypeLabel = (fieldType) => {
+    const name = STEP_FIELD_TYPE_NAMES[fieldType] || (typeof fieldType === "string" ? fieldType : "Text");
+    return t(`field_type_${name.toLowerCase()}`, { defaultValue: name });
+  };
+
+  const getStepTypeLabel = (stepType) => {
+    const name = WORKFLOW_STEP_TYPE_NAMES[stepType] || (typeof stepType === "string" ? stepType : "Form");
+    return t(`step_type_${name.toLowerCase()}`, { defaultValue: name });
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
   if (!service) return <ErrorMessage message={t("service_not_found")} />;
@@ -48,6 +59,10 @@ const ServiceDetailsPage = () => {
   const priceLabel = service.isPaid ? `${fmtAmount(service.price)} EGP` : t("free");
   const canEdit = can("student-services.services.editclose");
 
+  const totalFields = hasWorkflow
+    ? service.workflow.steps.reduce((sum, step) => sum + (step.fields?.length || 0), 0)
+    : 0;
+
   return (
     <div className="sdp">
       <PageHeader
@@ -56,7 +71,7 @@ const ServiceDetailsPage = () => {
         title={localizedName}
         subtitle={getServiceTypeLabel(service.type)}
         leading={
-          <button className="btn-icon" onClick={() => navigate("/admin/student-services/services")} title={t("back_to_dashboard")} aria-label={t("back_to_dashboard")}>
+          <button className="btn-icon" onClick={() => navigate("/admin/student-services/services")} title={t("back_to_list")} aria-label={t("back_to_list")}>
             <ArrowLeft size={16} />
           </button>
         }
@@ -78,6 +93,9 @@ const ServiceDetailsPage = () => {
           )}
           {hasWorkflow && (
             <span className="sdp-stat-pill"><span>{t("workflow_steps")}</span><strong>{t("steps_count", { count: service.workflow.steps.length })}</strong></span>
+          )}
+          {totalFields > 0 && (
+            <span className="sdp-stat-pill"><span>{t("total_fields")}</span><strong>{totalFields}</strong></span>
           )}
         </div>
         <div className="sdp-tabs-row">
@@ -112,7 +130,31 @@ const ServiceDetailsPage = () => {
             {hasWorkflow ? (
               <div className="sdp-step-list">
                 {service.workflow.steps.map((step, idx) => (
-                  <div key={idx} className="sdp-step"><div className="sdp-step-num">{idx + 1}</div><span className="sdp-step-title">{step.title}</span>{step.isRequired && <span className="sdp-step-req">{t("required")}</span>}</div>
+                  <div key={idx} className="sdp-step">
+                    <div className="sdp-step-num">{idx + 1}</div>
+                    <div className="sdp-step-body">
+                      <div className="sdp-step-header">
+                        <span className="sdp-step-title">{step.title}</span>
+                        <div className="sdp-step-badges">
+                          <span className="sdp-step-type-badge">{getStepTypeLabel(step.stepType)}</span>
+                          {step.isRequired && <span className="sdp-step-req">{t("required")}</span>}
+                        </div>
+                      </div>
+                      {step.description && <p className="sdp-step-desc">{step.description}</p>}
+                      {step.fields?.length > 0 && (
+                        <div className="sdp-step-fields">
+                          {step.fields.map((field, fIdx) => (
+                            <div key={fIdx} className="sdp-field-chip">
+                              <ClipboardList size={11} />
+                              <span>{field.label}</span>
+                              <span className="sdp-field-type">{getFieldTypeLabel(field.fieldType)}</span>
+                              {field.isRequired && <span className="sdp-field-req">*</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : <p className="sdp-empty">{t("no_workflow_steps")}</p>}

@@ -4,7 +4,8 @@ import {
   Search, X, Users,
   CalendarRange, BookOpen, User, RotateCcw,
   GraduationCap, ChevronDown, ChevronUp, Eye, Building2,
-  UserSearch, Wallet, FileText, Shield,
+  UserSearch, Wallet, FileText, Shield, ClipboardList, GitBranch,
+  Lock, ChevronsDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -21,40 +22,44 @@ import "./secondarySidebar.css";
 
 const FILTER_DEFS = {
   staff: [
-    { key: "role", labelKey: "role" },
     { key: "status", labelKey: "status", options: [
       { value: "active", labelKey: "active" },
       { value: "inactive", labelKey: "inactive" },
     ]},
+    { key: "role", labelKey: "role" },
     { key: "facultyId", labelKey: "faculty" },
+    { key: "systemId", labelKey: "system" },
+    { key: "programId", labelKey: "program" },
+    { key: "departmentId", labelKey: "department" },
+    { key: "nationalId", labelKey: "national_id" },
+    { key: "email", labelKey: "email" },
   ],
   student: [
-    { key: "level", labelKey: "level" },
     { key: "status", labelKey: "status", options: [
       { value: "active", labelKey: "active" },
       { value: "inactive", labelKey: "inactive" },
     ]},
-    { key: "facultyId", labelKey: "faculty" },
     { key: "enrollment", labelKey: "enrollment", options: [
       { value: "active", labelKey: "currently_enrolled" },
       { value: "graduated", labelKey: "graduated" },
     ]},
-  ],
-  all: [
-    { key: "role", labelKey: "role" },
     { key: "level", labelKey: "level" },
-    { key: "status", labelKey: "status", options: [
-      { value: "active", labelKey: "active" },
-      { value: "inactive", labelKey: "inactive" },
-    ]},
     { key: "facultyId", labelKey: "faculty" },
+    { key: "systemId", labelKey: "system" },
+    { key: "programId", labelKey: "program" },
+    { key: "specializationId", labelKey: "specialization" },
+    { key: "nationalId", labelKey: "national_id" },
+    { key: "email", labelKey: "email" },
+    { key: "gender", labelKey: "gender", options: [
+      { value: "Male", labelKey: "male" },
+      { value: "Female", labelKey: "female" },
+    ]},
   ],
 };
 
 const TABS = [
-  { key: "all", labelKey: "all_users", icon: Users },
-  { key: "staff", labelKey: "staff", icon: User },
   { key: "student", labelKey: "students", icon: GraduationCap },
+  { key: "staff", labelKey: "staff", icon: User },
 ];
 
 // ── Pinned-user quick launch ──────────────────────────────────
@@ -72,6 +77,11 @@ const PINNED_MODULES = [
     route: (u) => `/admin/students/${u.id}/academics`,
   },
   {
+    key: "service_requests", labelKey: "service_requests", icon: ClipboardList,
+    types: ["student"],
+    route: (u) => `/admin/students/${u.id}/service-requests`,
+  },
+  {
     key: "finance", labelKey: "finance", icon: Wallet,
     types: ["student"],
     route: (u) => `/admin/finance/treasury?studentId=${u.id}`,
@@ -80,6 +90,11 @@ const PINNED_MODULES = [
     key: "profile_records", labelKey: "profile_records", icon: FileText,
     types: ["student"],
     route: (u) => `/admin/students/${u.id}/profile-records`,
+  },
+  {
+    key: "assigned_workflows", labelKey: "assigned_workflows", icon: GitBranch,
+    types: ["staff"],
+    route: (u) => `/admin/users/${u.id}/assigned-workflows`,
   },
   {
     key: "permissions", labelKey: "permissions", icon: Shield,
@@ -95,6 +110,12 @@ const USAGE_STORAGE_KEY = "secPinnedModuleUsage";
 const readModuleUsage = () => {
   try { return JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY)) || {}; }
   catch { return {}; }
+};
+
+const extractLevelNum = (name) => {
+  if (!name) return "";
+  const m = String(name).match(/(\d+)/);
+  return m ? m[1] : name;
 };
 
 function PinnedQuickLaunch({ user }) {
@@ -240,18 +261,25 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const { selectedYear, selectedSemester, selectedYearObj, selectedSemesterObj } = useAcademic();
   const { selected, select, clear, isActive } = useStickySelection();
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("student");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({});
   const [results, setResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [showFilterPicker, setShowFilterPicker] = useState(false);
+  const [visibleFilterKeys, setVisibleFilterKeys] = useState(["status", "level", "facultyId"]);
   const debounceRef = useRef(null);
   const [filterOptions, setFilterOptions] = useState({});
   const prevScopeIdRef = useRef(null);
 
   useEffect(() => {
     if (scopeNode?.id && scopeNode.id !== prevScopeIdRef.current) {
-      setActiveTab(preferredUserTab);
+      // Map "all" to "student" since "all" tab was removed
+      const tab = preferredUserTab === "all" ? "student" : preferredUserTab;
+      setActiveTab(tab);
       setSearchQuery("");
       setFilters({});
       prevScopeIdRef.current = scopeNode.id;
@@ -262,7 +290,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   }, [scopeNode, preferredUserTab]);
 
   const effectiveDirType = activeTab === "all" ? "all" : activeTab;
-  const activeFilters = FILTER_DEFS[effectiveDirType] || FILTER_DEFS.all;
+  const activeFilters = FILTER_DEFS[effectiveDirType] || [];
 
   const scopeDisplayName = useMemo(() =>
     scopeNode?.localizedName || getLocalized(scopeNode?.name, i18n.language) || t("all_scopes"),
@@ -272,7 +300,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
     const load = async () => {
       const options = {};
       try {
-        if (effectiveDirType === "staff" || effectiveDirType === "all") {
+        if (effectiveDirType === "staff") {
           const roles = await permissionService.fetchAllRoles({ pageSize: 100 });
           options.roles = (roles?.items || []).map(r => ({
             value: r.id,
@@ -282,12 +310,28 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
         const levels = await structureService.fetchLevels();
         options.levels = (levels || []).map(l => ({
           value: l.id,
-          label: getLocalized(l.name, i18n.language),
+          label: extractLevelNum(getLocalized(l.name, i18n.language)),
         }));
         const faculties = await structureService.fetchFaculties();
         options.faculties = (faculties || []).map(f => ({
           value: f.id,
           label: getLocalized(f.name, i18n.language),
+        }));
+        // Fetch systems, programs, specializations for extended filters
+        const systems = await structureService.fetchSystems();
+        options.systems = (systems || []).map(s => ({
+          value: s.id,
+          label: getLocalized(s.name, i18n.language),
+        }));
+        const programs = await structureService.fetchPrograms();
+        options.programs = (programs || []).map(p => ({
+          value: p.id,
+          label: getLocalized(p.name, i18n.language),
+        }));
+        const specializations = await structureService.fetchSpecializations();
+        options.specializations = (specializations || []).map(sp => ({
+          value: sp.id,
+          label: getLocalized(sp.name, i18n.language),
         }));
       } catch { /* ignore */ }
       setFilterOptions(options);
@@ -298,30 +342,46 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
   const buildSearchParams = useCallback((query, activeFilters_) => {
     const params = {
       search: query || undefined,
-      page: 1,
+      page: page,
       pageSize: 20,
       ScopeNodeId: scopeNode?.id || undefined,
       AcademicYearId: selectedYearObj?.id || undefined,
       SemesterId: selectedSemesterObj?.id || undefined,
     };
-    if (activeFilters_) {
-      if (activeFilters_.role) params.role = activeFilters_.role;
-      if (activeFilters_.status === "active") params.isActive = true;
-      else if (activeFilters_.status === "inactive") params.isActive = false;
-      if (activeFilters_.level) params.levelId = activeFilters_.level;
-      if (activeFilters_.enrollment === "graduated") params.isActive = false;
-      if (activeFilters_.facultyId) params.facultyId = activeFilters_.facultyId;
+    // Merge scope-locked filters (unwrap {value, label} → value) with user-set filters.
+    // User-set values take precedence — scoped defaults only apply when user hasn't touched them.
+    const mergedFilters = {};
+    Object.entries(lockedFilters).forEach(([k, v]) => { if (v && typeof v === "object" && v.value) mergedFilters[k] = v.value; });
+    Object.assign(mergedFilters, activeFilters_);
+    if (Object.keys(mergedFilters).length) {
+      if (mergedFilters.role) params.role = mergedFilters.role;
+      if (mergedFilters.status === "active") params.isActive = true;
+      else if (mergedFilters.status === "inactive") params.isActive = false;
+      if (mergedFilters.level) params.levelId = mergedFilters.level;
+      if (mergedFilters.enrollment === "graduated") params.isActive = false;
+      if (mergedFilters.facultyId) params.facultyId = mergedFilters.facultyId;
+      if (mergedFilters.systemId) params.systemId = mergedFilters.systemId;
+      if (mergedFilters.programId) params.programId = mergedFilters.programId;
+      if (mergedFilters.specializationId) params.specializationId = mergedFilters.specializationId;
+      if (mergedFilters.departmentId) params.departmentId = mergedFilters.departmentId;
+      if (mergedFilters.nationalId) params.nationalId = mergedFilters.nationalId;
+      if (mergedFilters.email) params.email = mergedFilters.email;
+      if (mergedFilters.gender) params.gender = mergedFilters.gender;
     }
     return params;
-  }, [scopeNode, selectedYearObj, selectedSemesterObj]);
+  }, [scopeNode, selectedYearObj, selectedSemesterObj, page]);
 
-  const doSearch = useCallback(async (query, activeFilters_) => {
-    setResultsLoading(true);
+  const doSearch = useCallback(async (query, activeFilters_, pageNum = 1, append = false) => {
+    const loadingSetter = pageNum === 1 ? setResultsLoading : setLoadMoreLoading;
+    loadingSetter(true);
     try {
       const searchParams = buildSearchParams(query, activeFilters_);
+      searchParams.page = pageNum;
       let allItems = [];
-      if (effectiveDirType === "staff" || effectiveDirType === "all") {
+      let total = 0;
+      if (effectiveDirType === "staff") {
         const data = await staffService.searchStaff(searchParams);
+        total = data?.totalCount || data?.total || 0;
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
             id: r.id,
@@ -331,31 +391,62 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
             role: r.role || "",
           }))];
         }
-      }
-      if (effectiveDirType === "student" || effectiveDirType === "all") {
+      } else {
         const data = await studentService.searchStudents(searchParams);
+        total = data?.totalCount || data?.total || 0;
         if (data?.items) {
           allItems = [...allItems, ...data.items.map(r => ({
             id: r.id,
             name: getLocalized(r.name, i18n.language),
             code: r.studentCode || "",
             type: "student",
-            level: r.levelName || "",
+            level: extractLevelNum(r.levelName),
           }))];
         }
       }
-      setResults(allItems);
-    } catch { setResults([]); }
-    finally { setResultsLoading(false); }
+      if (append) {
+        setResults(prev => [...prev, ...allItems]);
+      } else {
+        setResults(allItems);
+      }
+      setTotalCount(total);
+    } catch { if (!append) setResults([]); setTotalCount(0); }
+    finally { loadingSetter(false); }
   }, [effectiveDirType, buildSearchParams, i18n.language]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(searchQuery, filters), 300);
+    setPage(1);
+    debounceRef.current = setTimeout(() => doSearch(searchQuery, filters, 1, false), 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [searchQuery, filters, scopeNode, selectedYearObj, selectedSemesterObj, doSearch]);
+
+  const lockedFilters = useMemo(() => {
+    if (!scopeNode) return {};
+    const type = scopeNode.type;
+    const locked = {};
+    // Map scope node type to locked filter keys + their values
+    // Assumes scopeNode carries name/localizedName for display
+    const scopeLabel = getLocalized(scopeNode.localizedName || scopeNode.name, i18n.language);
+    if (type >= 2) { // Faculty or deeper
+      locked.facultyId = { value: scopeNode.id, label: scopeLabel };
+    }
+    if (type >= 3) { // System or deeper
+      locked.systemId = { value: scopeNode.id, label: scopeLabel };
+    }
+    if (type >= 4) { // Program or deeper
+      locked.programId = { value: scopeNode.id, label: scopeLabel };
+    }
+    if (type >= 5) { // Level or deeper
+      locked.level = { value: scopeNode.id, label: scopeLabel };
+    }
+    if (type >= 7) { // Specialization
+      locked.specializationId = { value: scopeNode.id, label: scopeLabel };
+    }
+    return locked;
+  }, [scopeNode, i18n.language]);
 
   const handleClearFilters = useCallback(() => {
     setSearchQuery("");
@@ -364,10 +455,17 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
 
   const handleSelectEntity = useCallback((entity) => select(entity), [select]);
 
+  const loadMore = useCallback(() => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    doSearch(searchQuery, filters, nextPage, true);
+  }, [page, searchQuery, filters, doSearch]);
+
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab);
     setFilters({});
     setSearchQuery("");
+    setVisibleFilterKeys(["status", "level", "facultyId"]);
   }, []);
 
   const resolveOptions = (filter) => {
@@ -375,6 +473,9 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
     if (filter.key === "role" && filterOptions.roles) return filterOptions.roles;
     if (filter.key === "level" && filterOptions.levels) return filterOptions.levels;
     if (filter.key === "facultyId" && filterOptions.faculties) return filterOptions.faculties;
+    if (filter.key === "systemId" && filterOptions.systems) return filterOptions.systems;
+    if (filter.key === "programId" && filterOptions.programs) return filterOptions.programs;
+    if (filter.key === "specializationId" && filterOptions.specializations) return filterOptions.specializations;
     return [];
   };
 
@@ -445,22 +546,71 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
           )}
         </div>
 
-        {activeFilters.map(filter => {
+        {/* Filter field visibility toggle */}
+        <div className="sec-filter-fields-toggle">
+          <button
+            className="sec-filter-add-btn"
+            onClick={() => setShowFilterPicker(p => !p)}
+          >
+            <ChevronsDown size={11} />
+            <span>{t("filter_fields")}</span>
+          </button>
+          {showFilterPicker && (
+            <div className="sec-filter-fields-panel">
+              {activeFilters.map(filter => {
+                const isLocked = lockedFilters[filter.key];
+                return (
+                  <label key={filter.key} className="sec-filter-field-option">
+                    <input
+                      type="checkbox"
+                      checked={visibleFilterKeys.includes(filter.key) || !!isLocked}
+                      disabled={!!isLocked}
+                      onChange={() => {
+                        setVisibleFilterKeys(prev =>
+                          prev.includes(filter.key)
+                            ? prev.filter(k => k !== filter.key)
+                            : [...prev, filter.key]
+                        );
+                      }}
+                    />
+                    <span>{t(filter.labelKey)}</span>
+                    {isLocked && <Lock size={10} className="sec-filter-lock-icon" />}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {activeFilters.filter(f => visibleFilterKeys.includes(f.key) || lockedFilters[f.key]).map(filter => {
+          const isLocked = lockedFilters[filter.key];
+          const lockInfo = lockedFilters[filter.key];
           const options = resolveOptions(filter);
           if (!options || options.length === 0) return null;
           return (
-            <div className="sec-filter-group" key={filter.key}>
-              <label className="sec-filter-label">{t(filter.labelKey)}</label>
+            <div className={`sec-filter-group ${isLocked ? "is-locked" : ""}`} key={filter.key}>
+              <label className="sec-filter-label">
+                {isLocked && <Lock size={9} className="sec-filter-lock-icon" />}
+                {t(filter.labelKey)}
+              </label>
               <div className="sec-filter-select-wrap">
                 <select
                   className="sec-filter-select"
-                  value={filters[filter.key] || ""}
+                  value={isLocked ? lockInfo.value : (filters[filter.key] || "")}
+                  disabled={!!isLocked}
                   onChange={e => setFilters(prev => ({ ...prev, [filter.key]: e.target.value }))}
+                  title={isLocked ? `${t("locked_to_scope")}: ${lockInfo.label}` : undefined}
                 >
-                  <option value="">{t("all")}</option>
-                  {options.map((opt, i) => (
-                    <option key={i} value={opt.value}>{opt.labelKey ? t(opt.labelKey) : opt.label}</option>
-                  ))}
+                  {isLocked ? (
+                    <option value={lockInfo.value}>{lockInfo.label}</option>
+                  ) : (
+                    <>
+                      <option value="">{t("all")}</option>
+                      {options.map((opt, i) => (
+                        <option key={i} value={opt.value}>{opt.labelKey ? t(opt.labelKey) : opt.label}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
                 <ChevronDown size={11} className="sec-filter-chevron" />
               </div>
@@ -521,7 +671,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
             <span className="sec-results-status">{t("searching")}</span>
           ) : (
             <span className="sec-results-status">
-              {results.length} {effectiveDirType === "staff" ? t("staff") : effectiveDirType === "student" ? t("students") : t("users")}
+              {totalCount > 0 ? `${results.length}/${totalCount}` : results.length} {effectiveDirType === "staff" ? t("staff") : t("students")}
             </span>
           )}
           {!resultsLoading && results.length > 0 && (
@@ -565,6 +715,17 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
               </div>
             </button>
           ))}
+          {!resultsLoading && !loadMoreLoading && results.length > 0 && results.length < totalCount && (
+            <button className="sec-load-more" onClick={loadMore}>
+              <ChevronsDown size={12} />
+              {t("load_more")}
+            </button>
+          )}
+          {loadMoreLoading && (
+            <div className="sec-results-loading">
+              <div className="sec-pulse" />
+            </div>
+          )}
         </div>
       </div>
     </aside>

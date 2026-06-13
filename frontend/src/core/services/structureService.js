@@ -1,5 +1,10 @@
 import api from "../api/apiClient";
 
+export async function fetchSystems() {
+  const { data } = await api.get("/structure/lookups/systems");
+  return data;
+}
+
 export async function fetchFaculties() {
   const { data } = await api.get("/structure/lookups/faculties");
   return data;

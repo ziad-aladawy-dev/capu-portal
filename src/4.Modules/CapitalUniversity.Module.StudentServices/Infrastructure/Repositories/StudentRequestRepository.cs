@@ -60,6 +60,8 @@ public class StudentRequestRepository : IStudentRequestRepository
         => await _context.StudentRequests
             .Where(r => r.AssignedToStaffId == staffId)
             .Include(r => r.Service)
+                .ThenInclude(s => s.Workflow)
+                .ThenInclude(w => w.Steps)
             .OrderByDescending(r => r.AssignedAt)
             .ToListAsync(cancellationToken);
 

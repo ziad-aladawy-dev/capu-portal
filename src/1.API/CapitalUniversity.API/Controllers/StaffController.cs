@@ -124,7 +124,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> ExportCsv([FromQuery] StaffQueryRequest request)
     {
         request.Page = 1;
-        request.PageSize = 100000;
+        request.PageSize = 10000;
 
         var result = await _service.SearchAsync(request);
 
@@ -233,6 +233,9 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> ExportExcel(
     [FromQuery] StaffQueryRequest request)
     {
+        request.Page = 1;
+        request.PageSize = 10000;
+
         var result = await _service.SearchAsync(request);
 
         using var workbook = new XLWorkbook();

@@ -20,24 +20,43 @@ import treasuryRoutes from "../../modules/treasury/routes";
 import syncRoutes from "../../modules/sync/routes";
 import auditLogsRoutes from "../../modules/auditLogs/routes";
 
+// Category ordering determines sidebar menu display order.
+// Groups: Overview → People Management → Academic → Student Services
+//         → Finance → Security & Access → System
 const ALL_ROUTES = [
+  // ── Overview ──
   ...adminRoutes,
-  ...universityRoutes,
+
+  // ── People Management ──
   ...usersRoutes,
   ...staffRoutes,
   ...studentsRoutes,
-  ...permissionsRoutes,
+
+  // ── Academic ──
   ...academicRoutes,
   ...academicYearsRoutes,
-  ...studentPortalRoutes,
+
+  // ── Student Services ──
   ...studentServicesRoutes,
 
-  ...notificationsRoutes,
-  ...studentProfileRecordsRoutes,
-  ...authorizationRoutes,
+  // ── Finance ──
   ...treasuryRoutes,
+
+  // ── Security & Access ──
+  ...permissionsRoutes,
+  ...authorizationRoutes,
+
+  // ── System ──
+  ...universityRoutes,
   ...syncRoutes,
   ...auditLogsRoutes,
+  ...notificationsRoutes,
+
+  // ── Student Profile Records (entity-level, appended) ──
+  ...studentProfileRecordsRoutes,
+
+  // ── Student Portal (separate shell) ──
+  ...studentPortalRoutes,
 ];
 
 const LOADING_FALLBACK = createElement(

@@ -7,11 +7,12 @@ import {
   Receipt, FileText, ClipboardCheck, AlertCircle, CheckCircle,
   XCircle, Edit3, Key, Trash2, ArrowLeft, Clock, Wallet,
   Building2, Layers, Users as UsersIcon, ShieldAlert, CreditCard,
-  BadgeCheck, CircleDashed, ExternalLink, Landmark,
+  BadgeCheck, CircleDashed, ExternalLink, Landmark, ClipboardList,
 } from "lucide-react";
 import { useToast } from "../../../core/components/Toast";
 import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
 import { useStudent, useUpdateStudent, useToggleStudentStatus, useDeleteStudent, studentKey } from "../../../core/query/useStudents";
+import { useStudentServiceRequests } from "../../../core/query/useStudentServiceRequests";
 import { SkeletonCard, SkeletonStats } from "../../../core/components/Skeleton";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import ErrorMessage from "../../../core/components/ErrorMessage";
@@ -27,9 +28,10 @@ import {
   fmtDate, fmtDateTime, fmtMoney, yearsSince, daysUntil, resolvePhotoUrl,
 } from "../../users/components/profileUtils";
 
-const TABS = (feeCount, recordCount) => [
+const TABS = (feeCount, recordCount, requestCount) => [
   { id: "overview", label: "Overview", icon: User },
   { id: "finance", label: "Finance", icon: Wallet, count: feeCount },
+  { id: "service_requests", label: "Service Requests", icon: ClipboardList, count: requestCount },
   { id: "records", label: "Records", icon: ClipboardCheck, count: recordCount },
   { id: "account", label: "Account", icon: ShieldAlert },
 ];
@@ -93,6 +95,8 @@ function StudentDetailContent({ id }) {
     retry: false,
     enabled: !!id,
   });
+  const requestsQuery = useStudentServiceRequests(id, { enabled: !!id });
+
   const recordsQuery = useQuery({
     queryKey: ["student-profile-records", id],
     queryFn: () => fetchProfileRecords(id),
@@ -103,6 +107,7 @@ function StudentDetailContent({ id }) {
   const fees = Array.isArray(feesQuery.data) ? feesQuery.data : [];
   const orders = Array.isArray(ordersQuery.data) ? ordersQuery.data : [];
   const records = Array.isArray(recordsQuery.data) ? recordsQuery.data : [];
+  const serviceRequests = Array.isArray(requestsQuery.data) ? requestsQuery.data : [];
   const outstanding = fees.reduce((sum, f) => sum + Number(f.totalAmount ?? 0), 0);
   const currency = fees[0]?.currency || "EGP";
   const verifiedRecords = records.filter((r) => r.verifiedAt).length;
@@ -281,7 +286,7 @@ function StudentDetailContent({ id }) {
       </div>
 
       <TabBar
-        tabs={TABS(fees.length || null, records.length || null)}
+        tabs={TABS(fees.length || null, records.length || null, serviceRequests.length || null)}
         active={activeTab}
         onChange={setActiveTab}
       />
@@ -299,6 +304,9 @@ function StudentDetailContent({ id }) {
             ordersQuery={ordersQuery}
             navigate={navigate}
           />
+        )}
+        {activeTab === "service_requests" && (
+          <ServiceRequestsTab studentId={id} requests={serviceRequests} query={requestsQuery} navigate={navigate} />
         )}
         {activeTab === "records" && (
           <RecordsTab studentId={id} records={records} query={recordsQuery} navigate={navigate} />
@@ -558,6 +566,56 @@ function FinanceTab({ studentId, fees, orders, feesQuery, ordersQuery, navigate 
         )}
       </Panel>
     </>
+  );
+}
+
+/* ── Service Requests ────────────────────────────────────────── */
+
+const REQ_STATUS_LABEL = { 0: "Pending", 1: "In Progress", 2: "Completed", 3: "Rejected", 4: "Cancelled" };
+
+function getReqStatusClass(status) {
+  switch (status) { case 0: return "warn"; case 1: return "info"; case 2: return "good"; case 3: return "bad"; case 4: return "bad"; default: return ""; }
+}
+
+function ServiceRequestsTab({ studentId, requests, query, navigate }) {
+  return (
+    <Panel
+      icon={ClipboardList}
+      title="Service Requests"
+      actions={
+        <button className="pp-btn soft" onClick={() => navigate(`/admin/students/${studentId}/service-requests`)}>
+          <ExternalLink size={13} /> Open All Requests
+        </button>
+      }
+    >
+      {query.isPending ? (
+        <SkeletonCard height={90} />
+      ) : requests.length === 0 ? (
+        <EmptyState icon={ClipboardList} title="No service requests" message="This student has not submitted any service requests yet." />
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table className="pp-table">
+            <thead>
+              <tr><th>Service</th><th>Status</th><th>Submitted</th></tr>
+            </thead>
+            <tbody>
+              {requests.slice(0, 5).map((req) => (
+                <tr key={req.id}>
+                  <td>{req.serviceName || req.service?.name || "—"}</td>
+                  <td><span className={`pp-pill ${getReqStatusClass(req.status)}`}>{REQ_STATUS_LABEL[req.status] || req.status}</span></td>
+                  <td>{req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {requests.length > 5 && (
+            <button className="pp-btn soft" style={{ marginTop: 10 }} onClick={() => navigate(`/admin/students/${studentId}/service-requests`)}>
+              View all {requests.length} requests
+            </button>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 

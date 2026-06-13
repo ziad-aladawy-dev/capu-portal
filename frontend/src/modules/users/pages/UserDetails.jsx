@@ -6,7 +6,7 @@ import {
   User, Mail, Phone, Calendar, Hash, Briefcase, Building2, Layers,
   Edit3, Key, Trash2, ArrowLeft, Clock, Shield, ShieldCheck, ShieldAlert,
   CheckCircle, XCircle, AlertCircle, Search, ChevronDown, ChevronUp,
-  GraduationCap, Users as UsersIcon, BadgeCheck, Lock,
+  GraduationCap, Users as UsersIcon, BadgeCheck, Lock, GitBranch, ExternalLink,
 } from "lucide-react";
 import { useToast } from "../../../core/components/Toast";
 import { useStickySelection } from "../../../core/contexts/StickySelectionContext";
@@ -17,6 +17,8 @@ import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import { PhotoValidationOverlay } from "../../../core/components/PhotoValidationOverlay";
 import { usePhotoValidator } from "../../../core/hooks/usePhotoValidator";
 import ErrorMessage from "../../../core/components/ErrorMessage";
+import { useStaffAssignedWorkflows } from "../../../core/query/useStaffAssignedWorkflows";
+import AssignedWorkflowSteps from "../components/AssignedWorkflowSteps";
 import userService from "../services/userService";
 import {
   ProfileHero, StatCard, TabBar, Panel, Field, EmptyState,
@@ -205,6 +207,8 @@ function StaffDetailContent({ id }) {
       });
     });
 
+  const workflowsQuery = useStaffAssignedWorkflows(staff?.id, { enabled: !!staff?.id });
+
   if (studentProbe.data?.id) {
     return <Navigate to={`/admin/students/${id}`} replace />;
   }
@@ -232,6 +236,7 @@ function StaffDetailContent({ id }) {
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "permissions", label: "Access & Permissions", icon: ShieldCheck, count: permStats.total ? permStats.granted : null },
+    { id: "workflows", label: "Assigned Workflows", icon: GitBranch, count: workflowsQuery.data?.length || null },
     { id: "account", label: "Account", icon: ShieldAlert },
   ];
 
@@ -328,6 +333,9 @@ function StaffDetailContent({ id }) {
       <div className="pp-fade" key={activeTab}>
         {activeTab === "overview" && <OverviewTab staff={s} />}
         {activeTab === "permissions" && <PermissionsTab query={permTreeQuery} tree={permTree} stats={permStats} />}
+        {activeTab === "workflows" && (
+          <AssignedWorkflowsTab staffId={id} query={workflowsQuery} navigate={navigate} />
+        )}
         {activeTab === "account" && (
           <AccountTab
             staff={s}
@@ -595,6 +603,45 @@ function AccountTab({ staff: s, onToggleActive, togglePending, onResetPassword, 
         </div>
       </Panel>
     </>
+  );
+}
+
+/* ── Assigned Workflows ───────────────────────────────────── */
+
+function AssignedWorkflowsTab({ staffId, query, navigate }) {
+  const { t } = useTranslation();
+  const workflows = Array.isArray(query.data) ? query.data : [];
+
+  const handleViewRequest = (item) => {
+    navigate(`/admin/student-services/requests/${item.id}`);
+  };
+
+  return (
+    <Panel
+      icon={GitBranch}
+      title={t("assigned_workflows")}
+      actions={
+        <button className="pp-btn soft" onClick={() => navigate(`/admin/users/${staffId}/assigned-workflows`)}>
+          <ExternalLink size={13} /> Open Workflows
+        </button>
+      }
+    >
+      {query.isPending ? (
+        <SkeletonCard height={90} />
+      ) : workflows.length === 0 ? (
+        <EmptyState icon={GitBranch} title="No assigned workflows" message="Work items assigned to this staff member appear here." />
+      ) : (
+        <div className="sawf-list">
+          {workflows.map((wf) => (
+            <AssignedWorkflowSteps
+              key={wf.id}
+              item={wf}
+              onViewRequest={handleViewRequest}
+            />
+          ))}
+        </div>
+      )}
+    </Panel>
   );
 }
 

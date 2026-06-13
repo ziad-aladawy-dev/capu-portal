@@ -1,39 +1,39 @@
-/* Services Management — module-scoped styles (ssm-*).
-   Page chrome (header, buttons) comes from core shellComponents.css. */
+/* ── Services Management — table listing page ── */
 
 .ssm-page {
   padding: 22px;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-body);
   color: var(--color-text-primary);
 }
 
+/* ── Filter / search bar ── */
 .ssm-filter-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: 0 4px 16px rgba(26, 31, 94, 0.04);
-  margin-bottom: 12px;
+  border-radius: var(--radius-xl);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
 }
 
 .ssm-search {
   position: relative;
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .ssm-search input {
   width: 100%;
-  height: 35px;
+  height: 38px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: #f8f9fb;
+  border-radius: var(--radius-md);
+  background: var(--color-background);
   color: var(--color-text-primary);
   outline: none;
-  font-size: 12px;
+  font-size: 13px;
   font-family: inherit;
-  transition: 0.2s ease;
+  transition: all var(--transition-fast);
   padding: 0 12px;
-  padding-inline-start: 36px;
+  padding-inline-start: 38px;
 }
 
 .ssm-search input:focus {
@@ -47,16 +47,17 @@
   inset-inline-start: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-secondary);
 }
 
+/* ── Table card ── */
 .ssm-table-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   overflow-x: auto;
-  box-shadow: 0 4px 16px rgba(26, 31, 94, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .ssm-table {
@@ -67,32 +68,39 @@
 }
 
 .ssm-table thead {
-  background: #f8f9fb;
+  background: var(--color-background);
 }
 
 .ssm-table th {
   color: var(--color-text-secondary);
   font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.55px;
+  letter-spacing: 0.5px;
   text-align: start;
-  padding: 11px 13px;
+  padding: 12px 14px;
   white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .ssm-table td {
-  padding: 11px 13px;
-  font-size: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
   color: var(--color-text-primary);
-  border-top: 1px solid #edf0f5;
+  border-top: 1px solid var(--color-border);
   white-space: nowrap;
   vertical-align: middle;
 }
 
-.ssm-table tbody tr:hover td {
-  background: #fdf9f0;
+.ssm-table tbody tr {
+  transition: background var(--transition-fast);
 }
 
+.ssm-table tbody tr:hover td {
+  background: rgba(201, 168, 76, 0.04);
+}
+
+/* ── Type badges ── */
 .ssm-type-badge {
   padding: 4px 10px;
   border-radius: 6px;
@@ -101,24 +109,43 @@
   display: inline-block;
 }
 
-.ssm-type-general { background: rgba(26, 31, 94, 0.08); color: var(--color-text-primary); }
-.ssm-type-specialized { background: rgba(201, 168, 76, 0.15); color: #8a6a10; }
-.ssm-type-admin { background: linear-gradient(135deg, rgba(26, 31, 94, 0.08), rgba(201, 168, 76, 0.1)); color: var(--navy-accent); }
+.ssm-type-general {
+  background: rgba(26, 31, 94, 0.07);
+  color: var(--navy-primary);
+}
 
+.ssm-type-specialized {
+  background: rgba(201, 168, 76, 0.12);
+  color: #8a6a10;
+}
+
+.ssm-type-admin {
+  background: linear-gradient(135deg, rgba(26, 31, 94, 0.07), rgba(201, 168, 76, 0.08));
+  color: var(--navy-accent);
+}
+
+/* ── Price badges ── */
 .ssm-price-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.ssm-price-badge.paid { background: rgba(220, 38, 38, 0.09); color: var(--color-error); }
-.ssm-price-badge.free { background: rgba(22, 163, 74, 0.1); color: var(--color-success); }
+.ssm-price-badge.paid {
+  background: rgba(220, 38, 38, 0.07);
+  color: var(--color-error);
+}
 
+.ssm-price-badge.free {
+  background: rgba(22, 163, 74, 0.08);
+  color: var(--color-success);
+}
+
+/* ── Row action buttons ── */
 .ssm-actions {
   display: flex;
   gap: 4px;
@@ -126,27 +153,88 @@
 }
 
 .ssm-action-btn {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all var(--transition-fast);
   background: transparent;
 }
 
-.ssm-action-btn.edit { color: var(--color-text-primary); background: rgba(201, 168, 76, 0.15); }
-.ssm-action-btn.edit:hover { background: rgba(201, 168, 76, 0.28); }
-.ssm-action-btn.info { color: var(--color-info); background: rgba(37, 99, 235, 0.1); }
-.ssm-action-btn.info:hover { background: rgba(37, 99, 235, 0.2); }
-.ssm-action-btn.toggle { color: var(--gold); background: rgba(201, 168, 76, 0.12); }
-.ssm-action-btn.toggle:hover { background: rgba(201, 168, 76, 0.25); }
-.ssm-action-btn.delete { color: var(--color-error); background: rgba(220, 38, 38, 0.08); }
-.ssm-action-btn.delete:hover { background: rgba(220, 38, 38, 0.18); }
+.ssm-action-btn.edit {
+  color: var(--navy-primary);
+  background: rgba(201, 168, 76, 0.1);
+}
+.ssm-action-btn.edit:hover {
+  background: rgba(201, 168, 76, 0.22);
+}
 
+.ssm-action-btn.info {
+  color: var(--color-info);
+  background: rgba(37, 99, 235, 0.07);
+}
+.ssm-action-btn.info:hover {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.ssm-action-btn.toggle {
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
+}
+.ssm-action-btn.toggle:hover {
+  background: rgba(201, 168, 76, 0.2);
+}
+
+.ssm-action-btn.delete {
+  color: var(--color-error);
+  background: rgba(220, 38, 38, 0.06);
+}
+.ssm-action-btn.delete:hover {
+  background: rgba(220, 38, 38, 0.14);
+}
+
+/* ── Service name cell ── */
+.ssm-service-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.ssm-service-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Pagination ── */
+.ssm-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 10px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ssm-pagination span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* ── Error ── */
 .ssm-error {
   padding: 40px;
   text-align: center;
@@ -154,7 +242,13 @@
   font-weight: 600;
 }
 
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .ssm-page { padding: 12px; }
-  .ssm-search { max-width: 100%; }
+  .ssm-page {
+    padding: 14px;
+  }
+
+  .ssm-search {
+    max-width: 100%;
+  }
 }

@@ -178,6 +178,12 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(allowedOrigins ?? ["http://localhost:5173", "http://localhost:5174"])
+              .SetIsOriginAllowed(origin =>
+              {
+                  if (allowedOrigins is { Length: > 0 }) return allowedOrigins.Contains(origin);
+                  if (Uri.TryCreate(origin, UriKind.Absolute, out var u)) return u.IsLoopback;
+                  return false;
+              })
               .AllowCredentials()
               .AllowAnyHeader()
               .AllowAnyMethod();

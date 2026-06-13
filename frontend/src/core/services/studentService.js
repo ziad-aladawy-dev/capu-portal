@@ -65,6 +65,11 @@ export async function exportStudentExcel(params = {}) {
   return data;
 }
 
+export async function fetchStudentServiceRequests(studentId, params = {}) {
+  const { data } = await api.get(`/student-services/requests/by-student/${studentId}`, { params });
+  return data;
+}
+
 export async function importStudentsExcel(file) {
   const form = new FormData();
   form.append("file", file);

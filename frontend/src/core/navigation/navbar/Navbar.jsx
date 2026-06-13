@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell, ChevronDown, Menu, Building2,
-  LogOut, Key, Search, Globe, Calendar,
+  LogOut, Key, Search, Globe, Calendar, PanelRight, User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getLocalized } from "../../utils/getLocalized";
@@ -133,7 +133,7 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
               onClick={onToggleSecondary}
               title={t("toggle_directory_search")}
             >
-              <Search size={14} />
+              <PanelRight size={14} />
             </button>
           )}
         </div>
@@ -287,6 +287,10 @@ function Navbar({ onToggleSidebar, onToggleSecondary, onOpenCommandPalette, seco
                   </div>
                 </div>
                 <div className="profile-dropdown-divider" />
+                <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); navigate(`/admin/users/${user?.id}`); }}>
+                  <User size={13} />
+                  <span>{t("my_profile")}</span>
+                </button>
                 <button className="nav-dropdown-item" onClick={() => { setOpenDropdown(null); setShowChangePassword(true); }}>
                   <Key size={13} />
                   <span>{t("change_password")}</span>

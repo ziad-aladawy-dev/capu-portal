@@ -1,13 +1,13 @@
-/* ── Requests Management — server-paged table ── */
+/* ── My Assigned Requests — personal queue ── */
 
-.rm-container {
+.mar-container {
   padding: 22px;
   font-family: var(--font-body);
   color: var(--color-text-primary);
 }
 
 /* ── Filters bar ── */
-.rm-filters-bar {
+.mar-filters-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -18,65 +18,43 @@
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   align-items: center;
+  justify-content: space-between;
 }
 
-.rm-search-box {
-  flex: 2;
-  min-width: 200px;
+.mar-filter-info {
   display: flex;
   align-items: center;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 12px;
   gap: 8px;
-  transition: all var(--transition-fast);
-  height: 38px;
 }
 
-.rm-search-box:focus-within {
-  border-color: var(--gold);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
-}
-
-.rm-search-box svg {
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.rm-search-box input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
+.mar-count {
   font-size: 13px;
-  font-family: inherit;
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
-.rm-status-filter select {
+.mar-status-filter select {
   height: 38px;
   padding: 0 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-background);
   font-weight: 600;
-  font-size: 13px;
   color: var(--color-text-primary);
   outline: none;
   cursor: pointer;
+  font-size: 13px;
   font-family: inherit;
   transition: all var(--transition-fast);
 }
 
-.rm-status-filter select:focus {
+.mar-status-filter select:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
 }
 
 /* ── Table ── */
-.rm-table-container {
+.mar-table-container {
   background: var(--color-surface);
   border-radius: var(--radius-xl);
   overflow-x: auto;
@@ -84,13 +62,13 @@
   border: 1px solid var(--color-border);
 }
 
-.rm-table {
+.mar-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 750px;
 }
 
-.rm-table th {
+.mar-table th {
   background: var(--color-background);
   padding: 12px 14px;
   text-align: start;
@@ -102,17 +80,7 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.rm-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: background var(--transition-fast);
-}
-
-.rm-table th.sortable:hover {
-  background: rgba(201, 168, 76, 0.06);
-}
-
-.rm-table td {
+.mar-table td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   font-size: 13px;
@@ -120,89 +88,56 @@
   vertical-align: middle;
 }
 
-.rm-table tbody tr {
+.mar-table tbody tr {
   transition: background var(--transition-fast);
 }
 
-.rm-table tbody tr:hover td {
+.mar-table tbody tr:hover td {
   background: rgba(201, 168, 76, 0.04);
 }
 
-.rm-number {
+.mar-number {
   font-family: var(--font-heading);
   font-weight: 700;
 }
 
-/* ── Pagination footer ── */
-.rm-pagination-footer {
+/* ── Pagination ── */
+.mar-pagination {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  gap: 4px;
   margin-top: 16px;
   background: var(--color-surface);
   border-radius: var(--radius-xl);
   padding: 10px 16px;
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
-  gap: 12px;
 }
 
-.rm-page-size-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.rm-page-size-control select {
-  height: 32px;
-  padding: 0 8px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-background);
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.rm-pagination-buttons {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.rm-page-info {
+.mar-page-info {
   font-size: 12px;
   font-weight: 700;
   color: var(--color-text-secondary);
   margin: 0 4px;
 }
 
-.rm-results-info {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+/* ── Error ── */
+.mar-error {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-error);
+  font-weight: 600;
 }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .rm-container {
+  .mar-container {
     padding: 14px;
   }
 
-  .rm-filters-bar {
+  .mar-filters-bar {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .rm-search-box {
-    min-width: unset;
-  }
-
-  .rm-pagination-footer {
-    flex-direction: column;
-    align-items: center;
   }
 }

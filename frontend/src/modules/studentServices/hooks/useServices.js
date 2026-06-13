@@ -1,47 +1,91 @@
-import { useState, useEffect, useCallback } from "react";
-import { getServices, createService, updateService, deleteService, toggleServiceStatus } from "../services/studentServicesService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useScopeKeyPart } from "../../../core/query/scopedKeys";
+import {
+  getServices,
+  getAllServices,
+  getServiceById,
+  createService,
+  updateService,
+  deleteService,
+  toggleServiceStatus,
+} from "../services/studentServicesService";
+
+const SERVICES_KEY = "ss-services";
 
 export const useServices = () => {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const scopePart = useScopeKeyPart();
+  const queryClient = useQueryClient();
 
-  // No leading setLoading(true): `loading` starts true and the mount effect
-  // must not setState synchronously (react-hooks/set-state-in-effect).
-  const loadServices = useCallback(async () => {
-    try {
+  const listQuery = useQuery({
+    queryKey: [SERVICES_KEY, scopePart],
+    queryFn: async () => {
       const data = await getServices();
-      setServices(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60_000,
+  });
 
-  const addService = async (data) => {
-    const newService = await createService(data);
-    await loadServices();
-    return newService;
+  const createMutation = useMutation({
+    mutationFn: (payload) => createService(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateService(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => deleteService(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (id) => toggleServiceStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
+
+  return {
+    services: listQuery.data ?? [],
+    loading: listQuery.isLoading,
+    error: listQuery.error?.message ?? null,
+    refresh: () => queryClient.invalidateQueries({ queryKey: [SERVICES_KEY] }),
+    addService: createMutation.mutateAsync,
+    editService: (id, payload) => updateMutation.mutateAsync({ id, payload }),
+    removeService: deleteMutation.mutateAsync,
+    toggleStatus: toggleMutation.mutateAsync,
   };
+};
 
-  const editService = async (id, data) => {
-    await updateService(id, data);
-    await loadServices();
-  };
+export const useAllServices = () => {
+  const scopePart = useScopeKeyPart();
+  return useQuery({
+    queryKey: [SERVICES_KEY, "all", scopePart],
+    queryFn: async () => {
+      const data = await getAllServices();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 60_000,
+  });
+};
 
-  const removeService = async (id) => {
-    await deleteService(id);
-    await loadServices();
-  };
-
-  const toggleStatus = async (id) => {
-    await toggleServiceStatus(id);
-    await loadServices();
-  };
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- async loader; setState only after await
-  useEffect(() => { loadServices(); }, [loadServices]);
-
-  return { services, loading, error, addService, editService, removeService, toggleStatus, refresh: loadServices };
+export const useServiceDetail = (id) => {
+  return useQuery({
+    queryKey: [SERVICES_KEY, "detail", String(id)],
+    enabled: Boolean(id),
+    queryFn: () => getServiceById(id),
+    staleTime: 60_000,
+  });
 };

@@ -1275,5 +1275,13 @@
   "expand": "توسيع",
   "egp": "ج.م",
   "university_name_full": "جامعة العاصمة",
-  "student_portal_label": "بوابة الطالب"
+  "student_portal_label": "بوابة الطالب",
+  "filter_fields": "حقول التصفية",
+  "locked_to_scope": "مقيد بالنطاق",
+  "service_requests": "طلبات الخدمة",
+  "assigned_workflows": "إجراءات العمل المسندة",
+  "specialization": "التخصص",
+  "load_more": "تحميل المزيد",
+  "workflow_steps": "خطوات الإجراء",
+  "view_request": "عرض الطلب"
 }

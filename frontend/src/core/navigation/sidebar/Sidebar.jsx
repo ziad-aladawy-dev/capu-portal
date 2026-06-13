@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight, LogOut, MoreHorizontal, User, Key, Bell } from "lucide-react";
 
 import { getLocalized } from "../../utils/getLocalized";
 import { buildMenu, getCategoryIcon } from "../menuAggregator";
@@ -34,10 +34,12 @@ function getUserRole(user, language) {
 function Sidebar({ isOpen, isMobile, onClose }) {
   const { t, i18n } = useTranslation();
   const [openedCategory, setOpenedCategory] = useState("overview");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { can } = usePermission();
   const { user, logout } = useAuth();
   const language = i18n.language;
   const location = useLocation();
+  const navigate = useNavigate();
 
   // `can` changes identity whenever the permission map recomputes (login,
   // scope change, permission refresh) — exactly the moments the menu should
@@ -57,6 +59,13 @@ function Sidebar({ isOpen, isMobile, onClose }) {
     }
     return null;
   }, [menu, location.pathname]);
+
+  // Auto-open category matching current route on mount/route change
+  useEffect(() => {
+    if (activeCategoryKey && activeCategoryKey !== openedCategory) {
+      setOpenedCategory(activeCategoryKey);
+    }
+  }, [activeCategoryKey]);
 
   const displayName = useMemo(
     () => getUserDisplayName(user, language) || t("guest"),
@@ -93,9 +102,33 @@ function Sidebar({ isOpen, isMobile, onClose }) {
             <div className="sidebar-avatar">{avatar}</div>
             <div className="sidebar-user-info">
               <strong>{displayName}</strong>
-              <span>{roleName}</span>
+              <span className="sidebar-user-role">{roleName}</span>
+              {user.jobTitle && <span className="sidebar-user-job">{user.jobTitle}</span>}
+              {user.employeeCode && <span className="sidebar-user-code">{user.employeeCode}</span>}
             </div>
-            <div className="sidebar-user-badge" />
+            <div className="sidebar-user-card-actions">
+              <button
+                className="sidebar-user-menu-btn"
+                onClick={(e) => { e.stopPropagation(); setUserMenuOpen(p => !p); }}
+                aria-label="User menu"
+              >
+                <MoreHorizontal size={14} />
+              </button>
+              {userMenuOpen && (
+                <div className="sidebar-user-dropdown">
+                  <button className="sidebar-user-dropdown-item" onClick={() => { setUserMenuOpen(false); navigate(`/admin/users/${user.id}`); }}>
+                    <User size={12} /> {t("profile")}
+                  </button>
+                  <button className="sidebar-user-dropdown-item" onClick={() => { setUserMenuOpen(false); navigate("/admin/notifications"); }}>
+                    <Bell size={12} /> {t("notifications")}
+                  </button>
+                  <div className="sidebar-user-dropdown-divider" />
+                  <button className="sidebar-user-dropdown-item logout-item" onClick={() => { setUserMenuOpen(false); logout(); }}>
+                    <LogOut size={12} /> {t("logout")}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

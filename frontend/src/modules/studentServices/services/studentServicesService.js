@@ -152,8 +152,23 @@ export const addComment = async (requestId, comment) => {
   return response.data;
 };
 
+export const closeRecord = async (requestId) => {
+  const response = await apiClient.post(`${BASE_URL}/requests/${requestId}/close-record`);
+  return response.data;
+};
+
+export const openRecord = async (requestId) => {
+  const response = await apiClient.post(`${BASE_URL}/requests/${requestId}/open-record`);
+  return response.data;
+};
+
 export const getAssignedToMe = async () => {
   const response = await apiClient.get(`${BASE_URL}/requests/assigned-to-me`);
+  return response.data;
+};
+
+export const getStaffAssignedRequests = async (staffId) => {
+  const response = await apiClient.get(`${BASE_URL}/requests/assigned-to-staff/${staffId}`);
   return response.data;
 };
 

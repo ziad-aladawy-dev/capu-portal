@@ -63,13 +63,12 @@ const ICON_MAP = {
 
 const CATEGORY_ICONS = {
   Overview: LayoutDashboard,
-  Administration: Building2,
   "People Management": Users,
-  "Security & Access": Shield,
   Academic: BookOpen,
-  "Student Information": FileText,
-  Finance: Receipt,
-  Student: GraduationCap,
+  "Student Services": Package,
+  Finance: HandCoins,
+  "Security & Access": Shield,
+  System: FolderTree,
 };
 
 export function resolveIcon(iconName) {

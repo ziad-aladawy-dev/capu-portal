@@ -398,6 +398,12 @@ public class StudentRequestService : IStudentRequestService
         return requests.Where(x => x.Status == RequestStatus.UnderReview).Select(MapToDto).ToList();
     }
 
+    public async Task<List<StudentRequestDto>> GetAssignedToStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        var requests = await _requestRepository.GetAssignedToStaffAsync(staffId, cancellationToken);
+        return requests.Select(MapToDto).ToList();
+    }
+
     public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, CancellationToken cancellationToken = default)
     {
         var result = await _requestRepository.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
@@ -570,6 +576,17 @@ public class StudentRequestService : IStudentRequestService
             ServicePrice = request.Service?.Price,
             IsClosed = request.IsClosed,
             ClosedAt = request.ClosedAt,
+            CreatedAt = request.CreatedAt,
+            AssignedToStaffId = request.AssignedToStaffId,
+            AssignedAt = request.AssignedAt,
+            WorkflowSteps = request.Service?.Workflow?.Steps
+                .OrderBy(s => s.Order)
+                .Select(s => new StepInfoDto
+                {
+                    Order = s.Order,
+                    Title = s.Title,
+                    StepType = (int)s.StepType
+                }).ToList() ?? new List<StepInfoDto>(),
             History = request.HistoryEntries.Select(h => new HistoryEntryDto
             {
                 Action = h.Action,

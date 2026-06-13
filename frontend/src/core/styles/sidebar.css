@@ -47,6 +47,13 @@
   box-shadow: -8px 0 30px rgba(7, 9, 30, 0.22);
 }
 
+[dir="rtl"] .sidebar {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='620'%3E%3Ccircle cx='230' cy='0' r='140' fill='rgba(224,192,106,0.04)' /%3E%3Ccircle cx='0' cy='460' r='110' fill='rgba(35,42,116,0.35)' /%3E%3Cline x1='115' y1='80' x2='230' y2='200' stroke='rgba(224,192,106,0.06)' stroke-width='1' /%3E%3Cline x1='0' y1='300' x2='115' y2='180' stroke='rgba(224,192,106,0.04)' stroke-width='1' /%3E%3C/svg%3E"),
+    linear-gradient(225deg, var(--navy-primary) 0%, #232a74 40%, var(--navy-accent) 100%);
+  background-position: top right;
+}
+
 .sidebar::after {
   content: "";
   position: absolute;
@@ -173,29 +180,122 @@
 
 .sidebar-user-card strong {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   text-align: start;
+  line-height: 1.3;
 }
 
-.sidebar-user-card span {
+.sidebar-user-card .sidebar-user-role {
   display: block;
-  font-size: 8.5px;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   text-align: start;
+  margin-top: 1px;
 }
 
-.sidebar-user-badge {
+.sidebar-user-card .sidebar-user-job {
+  display: block;
+  font-size: 8px;
+  color: rgba(224, 192, 106, 0.55);
+  white-space: nowrap;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.sidebar-user-card .sidebar-user-code {
+  display: block;
+  font-size: 7.5px;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: "Space Mono", monospace;
+  white-space: nowrap;
+  text-align: start;
+  margin-top: 1px;
+}
+
+.sidebar-user-card-actions {
+  position: relative;
   margin-inline-start: auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.7);
-  animation: onlinePulse 1.9s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.sidebar-user-menu-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-user-menu-btn:hover {
+  background: rgba(224, 192, 106, 0.12);
+  color: var(--gold-light);
+  border-color: rgba(224, 192, 106, 0.25);
+}
+
+.sidebar-user-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline-end: 0;
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid rgba(26, 31, 94, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(7, 9, 30, 0.04), 0 16px 48px rgba(7, 9, 30, 0.14);
+  padding: 4px;
+  z-index: 350;
+  animation: dropdownFade 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 11px;
+  color: #374151;
+  text-align: start;
+  transition: background 0.15s;
+}
+
+.sidebar-user-dropdown-item:hover {
+  background: rgba(26, 31, 94, 0.04);
+}
+
+.sidebar-user-dropdown-item.logout-item {
+  color: #b91c1c;
+}
+
+.sidebar-user-dropdown-item.logout-item:hover {
+  background: rgba(185, 28, 28, 0.06);
+}
+
+.sidebar-user-dropdown-divider {
+  height: 1px;
+  background: rgba(26, 31, 94, 0.06);
+  margin: 2px 0;
+}
+
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Scrollable content area ── */

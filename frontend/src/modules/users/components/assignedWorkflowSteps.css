@@ -1,0 +1,236 @@
+.sawf-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sawf-card {
+  border: 1px solid var(--pp-border);
+  border-radius: 9px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.sawf-card + .sawf-card {
+  margin-top: 8px;
+}
+
+.sawf-card:hover {
+  box-shadow: 0 1px 4px rgba(7, 9, 30, 0.04);
+}
+
+.sawf-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  color: inherit;
+  text-align: start;
+  transition: background 0.15s;
+}
+
+.sawf-card-header:hover {
+  background: rgba(26, 31, 94, 0.02);
+}
+
+.sawf-card-summary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sawf-service {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--pp-navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sawf-student {
+  font-size: 10.5px;
+  color: var(--pp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sawf-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sawf-date {
+  font-size: 9.5px;
+  color: var(--pp-muted);
+  white-space: nowrap;
+}
+
+.sawf-card-chevron {
+  flex-shrink: 0;
+  color: var(--pp-muted);
+  display: flex;
+  transition: transform 0.2s;
+}
+
+.sawf-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 12px 10px;
+  border-top: 1px solid var(--pp-border);
+}
+
+.sawf-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pp-navy);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sawf-action-btn:hover {
+  background: var(--pp-soft);
+  border-color: var(--pp-gold);
+  color: var(--pp-gold);
+}
+
+/* Steps section */
+.sawf-steps {
+  border-top: 1px solid var(--pp-border);
+  padding: 8px 12px;
+}
+
+.sawf-steps-header {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pp-muted);
+  margin-bottom: 6px;
+}
+
+.sawf-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.sawf-step-row + .sawf-step-row {
+  border-top: 1px solid rgba(26, 31, 94, 0.06);
+}
+
+.sawf-step-row.is-current {
+  background: rgba(201, 168, 76, 0.06);
+  margin: 0 -12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+.sawf-step-row.is-done {
+  opacity: 0.65;
+}
+
+.sawf-step-row.is-done .sawf-step-order {
+  background: #d4edda;
+  color: #155724;
+}
+
+.sawf-step-order {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: var(--pp-soft);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--pp-navy);
+  margin-top: 1px;
+}
+
+.sawf-step-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sawf-step-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pp-navy);
+}
+
+.sawf-step-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sawf-step-type {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--pp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sawf-step-date {
+  font-size: 9px;
+  color: var(--pp-muted);
+}
+
+.sawf-step-done {
+  color: var(--pp-good);
+}
+
+/* Shared pill */
+.sawf-req-num {
+  font-family: "Space Mono", monospace;
+  font-size: 8.5px;
+}
+
+.sawf-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sawf-pill.sm {
+  font-size: 8.5px;
+  padding: 1px 5px;
+}
+
+.sawf-pill.warn { background: #fef3cd; color: #856404; }
+.sawf-pill.info { background: #d1ecf1; color: #0c5460; }
+.sawf-pill.good { background: #d4edda; color: #155724; }
+.sawf-pill.bad  { background: #f8d7da; color: #721c24; }
+.sawf-pill.neutral { background: #e9ecef; color: #495057; }

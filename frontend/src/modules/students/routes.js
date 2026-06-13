@@ -5,6 +5,7 @@ const PeopleDashboardPage = lazy(() => import("./pages/PeopleDashboardPage"));
 const DirectoryPage = lazy(() => import("../../core/components/directory/DirectoryPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 const StudentAcademicHubPage = lazy(() => import("./pages/StudentAcademicHubPage"));
+const StudentServiceRequestsPage = lazy(() => import("./pages/StudentServiceRequestsPage"));
 
 export default [
   {
@@ -43,6 +44,13 @@ export default [
     path: "/admin/students/:id/academics",
     component: StudentAcademicHubPage,
     permission: "users.users.view",
+    pageType: "entity",
+    applicableTo: "student",
+  },
+  {
+    path: "/admin/students/:id/service-requests",
+    component: StudentServiceRequestsPage,
+    permission: "student-services.requests.view",
     pageType: "entity",
     applicableTo: "student",
   },

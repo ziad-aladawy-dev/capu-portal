@@ -45,6 +45,11 @@ export async function exportStaffCsv(params = {}) {
   return data;
 }
 
+export async function fetchStaffAssignedWorkflows(staffId, params = {}) {
+  const { data } = await api.get(`/staff/${staffId}/assigned-workflows`, { params });
+  return data;
+}
+
 export async function exportStaffExcel(params = {}) {
   const { data } = await api.get("/staff/export-excel", { params });
   return data;

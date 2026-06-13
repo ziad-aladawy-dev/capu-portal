@@ -19,5 +19,9 @@ public class StudentRequestDto
     public decimal? ServicePrice { get; set; }
     public bool IsClosed { get; set; }
     public DateTime? ClosedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public Guid? AssignedToStaffId { get; set; }
+    public DateTime? AssignedAt { get; set; }
+    public List<StepInfoDto> WorkflowSteps { get; set; } = new();
     public List<HistoryEntryDto> History { get; set; } = new();
     }

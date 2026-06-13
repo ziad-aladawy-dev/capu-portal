@@ -19,6 +19,7 @@ public class StudentRepository : IStudentRepository
     public async Task<Student?> GetByIdAsync(Guid id)
     {
         return await _context.Students
+            .AsNoTracking()
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x.Parent)
@@ -29,6 +30,7 @@ public class StudentRepository : IStudentRepository
     public async Task<List<Student>> GetAllAsync()
     {
         return await _context.Students
+            .AsNoTracking()
             .Include(x => x.StructureNode)
                 .ThenInclude(x => x.Parent)
                     .ThenInclude(x => x!.Parent)
@@ -39,7 +41,7 @@ public class StudentRepository : IStudentRepository
 
     public async Task<PagedResult<Student>> SearchAsync(StudentQueryRequest request)
     {
-        var query = _context.Students.AsQueryable();
+        var query = _context.Students.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -256,23 +258,34 @@ public class StudentRepository : IStudentRepository
 
     public async Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request)
     {
-        var query = _context.Students.AsQueryable();
+        var query = _context.Students.AsNoTracking();
 
         if (request.ScopeNodeId.HasValue)
         {
             var scopeNode = await _context.StructureNodes
                 .IgnoreQueryFilters()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.ScopeNodeId.Value);
 
             if (scopeNode != null)
                 query = query.Where(x => x.StructureNode.Path.StartsWith(scopeNode.Path));
         }
 
+        var counts = await query
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Active = g.Count(x => x.IsActive),
+                Inactive = g.Count(x => !x.IsActive)
+            })
+            .FirstOrDefaultAsync();
+
         return new UserStatisticsDto
         {
-            TotalStudents = await query.CountAsync(),
-            ActiveStudents = await query.CountAsync(x => x.IsActive),
-            InactiveStudents = await query.CountAsync(x => !x.IsActive)
+            TotalStudents = counts?.Total ?? 0,
+            ActiveStudents = counts?.Active ?? 0,
+            InactiveStudents = counts?.Inactive ?? 0
         };
     }
 

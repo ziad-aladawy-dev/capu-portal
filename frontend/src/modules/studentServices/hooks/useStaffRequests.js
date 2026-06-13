@@ -1,118 +1,112 @@
-import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useScopeKeyPart } from "../../../core/query/scopedKeys";
 import {
   getAllRequests,
   getStudentRequestById,
   assignRequest,
   updateRequestStatus,
   addComment,
+  closeRecord,
+  openRecord,
   getAssignedToMe,
-  getStudentRequestAttachments
+  getStudentRequestAttachments,
 } from "../services/studentServicesService";
 
+const REQUESTS_KEY = "ss-requests";
+
 export const useStaffRequests = () => {
+  const scopePart = useScopeKeyPart();
   const queryClient = useQueryClient();
-  const [requests, setRequests] = useState([]);
-  const [assignedToMe, setAssignedToMe] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentRequest, setCurrentRequest] = useState(null);
-  const [attachments, setAttachments] = useState([]);
-  const [loadingAttachments, setLoadingAttachments] = useState(false);
 
-  const loadAllRequests = useCallback(async () => {
-    setLoading(true);
-    try {
+  const allQuery = useQuery({
+    queryKey: [REQUESTS_KEY, "all", scopePart],
+    queryFn: async () => {
       const data = await getAllRequests();
-      setRequests(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 30_000,
+  });
 
-  const loadAssignedToMe = useCallback(async () => {
-    setLoading(true);
-    try {
+  const assignedQuery = useQuery({
+    queryKey: [REQUESTS_KEY, "assigned-to-me", scopePart],
+    queryFn: async () => {
       const data = await getAssignedToMe();
-      setAssignedToMe(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 30_000,
+  });
 
-  const getRequest = useCallback(async (id) => {
-    setLoading(true);
-    try {
-      const data = await getStudentRequestById(id);
-      setCurrentRequest(data);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const assignMutation = useMutation({
+    mutationFn: ({ requestId, staffId }) => assignRequest(requestId, staffId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
 
-  const getAttachments = useCallback(async (requestId) => {
-    setLoadingAttachments(true);
-    try {
-      const data = await getStudentRequestAttachments(requestId);
-      setAttachments(data);
-      return data;
-    } catch (err) {
-      console.error("Failed to load attachments", err);
-      setError(err.message);
-      return [];
-    } finally {
-      setLoadingAttachments(false);
-    }
-  }, []);
+  const statusMutation = useMutation({
+    mutationFn: ({ requestId, newStatus, comment }) =>
+      updateRequestStatus(requestId, newStatus, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
 
-  const assign = async (requestId, staffId) => {
-    const updated = await assignRequest(requestId, staffId);
-    setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
-    setAssignedToMe(prev => prev.map(r => r.id === requestId ? updated : r));
-    if (currentRequest?.id === requestId) setCurrentRequest(updated);
-    queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
-    return updated;
-  };
+  const commentMutation = useMutation({
+    mutationFn: ({ requestId, comment }) => addComment(requestId, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY] });
+    },
+  });
 
-  const changeStatus = async (requestId, newStatus, comment = "") => {
-    const updated = await updateRequestStatus(requestId, newStatus, comment);
-    setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
-    setAssignedToMe(prev => prev.map(r => r.id === requestId ? updated : r));
-    if (currentRequest?.id === requestId) setCurrentRequest(updated);
-    queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
-    return updated;
-  };
+  const closeMutation = useMutation({
+    mutationFn: (requestId) => closeRecord(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
 
-  const addCommentToRequest = async (requestId, comment) => {
-    const updated = await addComment(requestId, comment);
-    setRequests(prev => prev.map(r => r.id === requestId ? updated : r));
-    setAssignedToMe(prev => prev.map(r => r.id === requestId ? updated : r));
-    if (currentRequest?.id === requestId) setCurrentRequest(updated);
-    return updated;
-  };
+  const openMutation = useMutation({
+    mutationFn: (requestId) => openRecord(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] });
+    },
+  });
 
   return {
-    requests,
-    assignedToMe,
-    loading,
-    error,
-    currentRequest,
-    attachments,
-    loadingAttachments,
-    loadAllRequests,
-    loadAssignedToMe,
-    getRequest,
-    getAttachments,
-    assign,
-    changeStatus,
-    addCommentToRequest
+    requests: allQuery.data ?? [],
+    assignedToMe: assignedQuery.data ?? [],
+    loading: allQuery.isLoading,
+    error: allQuery.error?.message ?? null,
+    loadAllRequests: () => queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY, "all"] }),
+    loadAssignedToMe: () => queryClient.invalidateQueries({ queryKey: [REQUESTS_KEY, "assigned-to-me"] }),
+    assign: (requestId, staffId) => assignMutation.mutateAsync({ requestId, staffId }),
+    changeStatus: (requestId, newStatus, comment) =>
+      statusMutation.mutateAsync({ requestId, newStatus, comment }),
+    addCommentToRequest: (requestId, comment) =>
+      commentMutation.mutateAsync({ requestId, comment }),
+    closeRecord: (requestId) => closeMutation.mutateAsync(requestId),
+    openRecord: (requestId) => openMutation.mutateAsync(requestId),
   };
+};
+
+export const useStaffRequestDetail = (id) => {
+  return useQuery({
+    queryKey: [REQUESTS_KEY, "detail", String(id)],
+    enabled: Boolean(id),
+    queryFn: () => getStudentRequestById(id),
+    staleTime: 15_000,
+  });
+};
+
+export const useStaffRequestAttachments = (requestId) => {
+  return useQuery({
+    queryKey: [REQUESTS_KEY, "attachments", String(requestId)],
+    enabled: Boolean(requestId),
+    queryFn: () => getStudentRequestAttachments(requestId),
+    staleTime: 60_000,
+  });
 };

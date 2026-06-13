@@ -1,11 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getStaffStatistics, getRecentRequests } from "../services/studentServicesService";
+import { getStaffStatistics, getRecentRequests, getAssignedToMe } from "../services/studentServicesService";
 import { useScopeKeyPart } from "../../../core/query/scopedKeys";
 
-// Staff dashboard read-side. The apiClient interceptor stamps scope headers on
-// every request, so the query key embeds the active scope (useScopeKeyPart
-// pattern — see core/query/useDashboardStats.js). Mutations elsewhere in the
-// module invalidate ["staff-dashboard"] to refresh these numbers.
 export const useStaffDashboard = () => {
   const scopePart = useScopeKeyPart();
   const queryClient = useQueryClient();
@@ -13,18 +9,24 @@ export const useStaffDashboard = () => {
   const query = useQuery({
     queryKey: ["staff-dashboard", scopePart],
     queryFn: async () => {
-      const [stats, recent] = await Promise.all([
+      const [stats, recent, assigned] = await Promise.all([
         getStaffStatistics(),
         getRecentRequests(5),
+        getAssignedToMe(),
       ]);
-      return { stats, recentRequests: Array.isArray(recent) ? recent : [] };
+      return {
+        stats,
+        recentRequests: Array.isArray(recent) ? recent : [],
+        assignedToMeCount: Array.isArray(assigned) ? assigned.length : 0,
+      };
     },
-    staleTime: 60 * 1000,
+    staleTime: 60_000,
   });
 
   return {
     stats: query.data?.stats ?? null,
     recentRequests: query.data?.recentRequests ?? [],
+    assignedToMeCount: query.data?.assignedToMeCount ?? 0,
     loading: query.isLoading,
     error: query.error?.message ?? null,
     refresh: () => queryClient.invalidateQueries({ queryKey: ["staff-dashboard"] }),

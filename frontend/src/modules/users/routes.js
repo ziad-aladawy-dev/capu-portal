@@ -7,6 +7,7 @@ const EditStaff = lazy(() => import("./pages/EditStaff"));
 const AddStudent = lazy(() => import("./pages/AddStudent"));
 const EditStudent = lazy(() => import("./pages/EditStudent"));
 const UserDetails = lazy(() => import("./pages/UserDetails"));
+const StaffAssignedWorkflowsPage = lazy(() => import("./pages/StaffAssignedWorkflowsPage"));
 
 export default [
   {
@@ -24,6 +25,12 @@ export default [
     path: "/admin/users/:id",
     component: UserDetails,
     permission: "users.users.view",
+    pageType: "entity",
+  },
+  {
+    path: "/admin/users/:id/assigned-workflows",
+    component: StaffAssignedWorkflowsPage,
+    permission: "student-services.requests.view",
     pageType: "entity",
   },
 

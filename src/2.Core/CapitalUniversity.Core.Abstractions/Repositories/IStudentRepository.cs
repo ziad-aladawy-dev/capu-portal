@@ -30,5 +30,7 @@ public interface IStudentRepository
 
     Task ToggleStatusAsync(Guid id);
 
+    Task<UserStatisticsDto> GetStatisticsAsync(UserStatisticsRequest request);
+
     Task SaveChangesAsync();
 }

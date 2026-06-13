@@ -128,7 +128,7 @@ public class StudentsController : ControllerBase
     [FromQuery] StudentQueryRequest request)
     {
         request.Page = 1;
-        request.PageSize = 100000;
+        request.PageSize = 10000;
 
         var result = await _service.SearchAsync(request);
 
@@ -241,7 +241,7 @@ public class StudentsController : ControllerBase
     [FromQuery] StudentQueryRequest request)
     {
         request.Page = 1;
-        request.PageSize = 100000;
+        request.PageSize = 10000;
 
         var result = await _service.SearchAsync(request);
 
