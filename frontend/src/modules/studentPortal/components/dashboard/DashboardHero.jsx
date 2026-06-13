@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { CalendarDays, CreditCard, ClipboardList, Bell } from "lucide-react";
+import { CalendarDays, CreditCard, ClipboardList, Bell, BookOpen } from "lucide-react";
 import { useAuth } from "../../../../core/auth/useAuth";
 import { useAcademic } from "../../../../core/contexts/AcademicContext";
 import { getLocalized } from "../../../../core/utils/getLocalized";
@@ -9,7 +9,7 @@ import PortalProgressRing from "../shared/PortalProgressRing";
 import PortalBadge from "../shared/PortalBadge";
 import {
   useAggregatedDashboard, useGradesSummary, useFinancialSnapshot,
-  useUnreadNotifications, useOpenRequests,
+  useUnreadNotifications, useOpenRequests, useAcademicOverview,
 } from "../../hooks/useDashboardData";
 import styles from "./DashboardHero.module.css";
 
@@ -29,7 +29,7 @@ function daysBetween(to) {
 
 function DashboardHero() {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, activeScope } = useAuth();
   const { selectedYearObj, selectedSemesterObj } = useAcademic();
 
   // Single aggregated call; the legacy per-widget queries only run when the
@@ -51,6 +51,13 @@ function DashboardHero() {
   const summary = agg.data?.academicSummary ?? grades.data;
   const gpa = summary?.cgpa ?? summary?.gpa ?? null;
   const gpaTone = gpa == null ? "primary" : gpa >= 3 ? "success" : gpa >= 2 ? "warning" : "danger";
+
+  const academicOverview = useAcademicOverview(useLegacy ? activeScope : undefined, { enabled: useLegacy });
+  const courseData = agg.data?.courseSummary ?? academicOverview.data;
+  const enrolledCredits = courseData?.totalCredits ?? 0;
+  const completedCredits = summary?.earnedCredits ?? 0;
+  const totalCredits = completedCredits + enrolledCredits;
+  const creditPct = totalCredits > 0 ? Math.min(100, Math.round((completedCredits / totalCredits) * 100)) : 0;
 
   const outstanding = agg.data?.outstandingFeeTotal ?? fin.data?.outstanding ?? 0;
   const unreadCount = agg.data?.unreadNotificationCount ?? notif.data?.length ?? 0;
@@ -121,6 +128,15 @@ function DashboardHero() {
           <span className={styles.gpaValue}>{gpa != null ? Number(gpa).toFixed(2) : "—"}</span>
           <span className={styles.gpaLabel}>{t("portal_dashboard.gpa", { defaultValue: "GPA" })}</span>
         </PortalProgressRing>
+        {totalCredits > 0 && (
+          <div className={styles.creditBlock}>
+            <BookOpen size={13} />
+            <div className={styles.creditBar}>
+              <div className={styles.creditFill} style={{ width: `${creditPct}%` }} />
+            </div>
+            <span className={styles.creditText}>{completedCredits}/{totalCredits}</span>
+          </div>
+        )}
       </div>
 
       {alerts.length > 0 && (

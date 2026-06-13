@@ -1,4 +1,4 @@
-﻿using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Domain.UniversityStructure;
 using CapitalUniversity.Module.StudentServices.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,7 +21,15 @@ public class StudentServicesDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Ignore StructureNode entity (already mapped in CoreDbContext)
+        // Map Students for cross-module JOINs (read-only, excluded from migrations)
+        modelBuilder.Entity<CapitalUniversity.Core.Domain.Identity.Student>(entity =>
+        {
+            entity.ToTable("Students", "dbo", t => t.ExcludeFromMigrations());
+            entity.HasKey(e => e.Id);
+            entity.Ignore(e => e.ExternallySourced);
+        });
+
+        // Map StructureNodes for cross-module JOINs (read-only, excluded from migrations)
         modelBuilder.Entity<StructureNode>(entity =>
         {
             entity.ToTable("StructureNodes", "dbo", t => t.ExcludeFromMigrations());

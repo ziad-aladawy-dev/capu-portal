@@ -23,6 +23,7 @@ public interface IStudentRequestRepository
     Task<List<RecentRequestDto>> GetRecentRequestsAsync(int count, CancellationToken cancellationToken = default);
     Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default);
 
+    Task<List<DailyRequestCountDto>> GetRequestTrendAsync(int days, CancellationToken cancellationToken = default);
     Task<List<RequestAttachment>> GetAttachmentsByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default);
     Task<StudentRequest?> GetPendingForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default);
 }

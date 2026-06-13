@@ -40,11 +40,12 @@ function resolveScopeIds(activeScope) {
 /** The student's OWN enrolled courses (titles + credits) via the self-scoped
  *  GET /courses/registered (RegisteredCourses.View is an implicit student
  *  grant). The old offerings+courses catalog fan-out 403'd for students. */
-export function useAcademicOverview(activeScope) {
+export function useAcademicOverview(activeScope, { enabled = true } = {}) {
   const { semId, semesterName } = resolveScopeIds(activeScope);
   return useQuery({
     queryKey: ["dashboard", "academic-overview", semId ?? "all"],
     staleTime: STALE,
+    enabled,
     queryFn: async () => {
       const { data } = await api.get("/courses/registered");
       const registered = (Array.isArray(data) ? data : [])

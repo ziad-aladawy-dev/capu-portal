@@ -54,8 +54,7 @@ public async Task<AuthorizationScope> ResolveAsync(Guid userId, string year, str
 
         if (scope.StructureNodeId.HasValue)
         {
-            var node = await _dbContext.StructureNodes
-                .AsNoTracking()
+            var node = await _dbContext.StructureNodes.AsNoTracking()
                 .FirstOrDefaultAsync(n => n.Id == scope.StructureNodeId, cancellationToken);
             scope.StructureNodePath = node?.Path;
         }

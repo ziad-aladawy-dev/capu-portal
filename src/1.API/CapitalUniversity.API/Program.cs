@@ -287,10 +287,7 @@ using (var scope = app.Services.CreateScope())
     // idempotent EnsureCreated there too; real deployments apply migrations.
     if (autoMigrate && db.Database.IsRelational())
     {
-        if (isTesting)
-            await db.Database.EnsureCreatedAsync();
-        else
-            await db.Database.MigrateAsync();
+        await db.Database.EnsureCreatedAsync();
     }
 
     // The Testing host points StudentServicesDbContext at the shared SQL database

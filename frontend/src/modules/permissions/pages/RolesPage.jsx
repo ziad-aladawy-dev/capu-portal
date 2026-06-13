@@ -14,14 +14,15 @@ import {
   useAddRoleMember, useRemoveRoleMember, useUpdateRolePermissions,
 } from "../../../core/query/usePermissionsData";
 import {
-  LEVEL_TO_ACTION, PERMISSION_RESOURCES, computeResourceLevel,
+  ACTION_LEVELS as LEVELS,
+  LEVEL_TO_ACTION, LABEL_TO_ACTION, PERMISSION_RESOURCES, getLevelLabels,
+  computeResourceLevel,
 } from "../../../core/constants/permissionLevels";
 import PageHeader from "../../../core/components/PageHeader";
 import VirtualList from "../../../core/components/VirtualList";
 import ConfirmDialog from "../../../core/components/ConfirmDialog";
 import LoadingSpinner from "../../../core/components/LoadingSpinner";
 import EmptyState from "../../../core/components/EmptyState";
-import PermissionMatrix from "../components/PermissionMatrix";
 import RoleFormModal from "../components/RoleFormModal";
 import "../styles/roles.css";
 
@@ -63,6 +64,7 @@ function RolesPage() {
   const [memberSearching, setMemberSearching] = useState(false);
   const [removeMemberTarget, setRemoveMemberTarget] = useState(null);
   const memberSearchDebounce = useRef(null);
+  const [permActiveModuleId, setPermActiveModuleId] = useState(null);
 
   // ─── Queries ───
   const rolesQuery = useRoles();
@@ -258,6 +260,13 @@ function RolesPage() {
 
   const totalConfigured = Object.values(displayLevels).filter((l) => l > 0).length;
   const totalResources = (rolePerms || permTree).reduce((sum, m) => sum + (m.resources?.length || 0), 0);
+
+  const levelLabels = getLevelLabels(t);
+
+  const permActiveModule = useMemo(
+    () => (rolePerms || permTree).find((m) => m.moduleId === permActiveModuleId),
+    [rolePerms, permTree, permActiveModuleId]
+  );
 
   const renderMemberRow = (m) => (
     <div key={m.id} className="role-member-item">
@@ -495,13 +504,69 @@ function RolesPage() {
                         <p>{t("loading_permissions")}</p>
                       </div>
                     ) : (
-                      <PermissionMatrix
-                        modules={rolePerms || permTree}
-                        getLevel={(moduleId, res) => displayLevels[`${moduleId}::${res.resourceId}`] || 0}
-                        onLevelChange={handleLevelChange}
-                        canEdit={canEdit}
-                        disabledReason={needLevelTitle(false, t("edit"))}
-                      />
+                      <div className="perm-overrides-section" style={{ marginTop: 0 }}>
+                        <div className="perm-body">
+                          <div className="perm-module-sidebar">
+                            {(rolePerms || permTree).map((mod) => (
+                              <button
+                                key={mod.moduleId}
+                                className={`perm-module-btn ${(permActiveModuleId === null ? (rolePerms || permTree)[0]?.moduleId === mod.moduleId : permActiveModuleId === mod.moduleId) ? "active" : ""}`}
+                                onClick={() => setPermActiveModuleId(mod.moduleId)}
+                              >
+                                <span>{mod.moduleName}</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="perm-resource-area">
+                            <div className="perm-resource-list">
+                              {!permActiveModule || permActiveModule.resources?.length === 0 ? (
+                                <div className="perm-resource-empty">{t("no_resources_module")}</div>
+                              ) : (
+                                permActiveModule.resources.map((res) => {
+                                  const key = `${permActiveModule.moduleId}::${res.resourceId}`;
+                                  const lvl = displayLevels[key] || 0;
+                                  const resourceActions = new Set((res.permissions || []).map((p) => p.action));
+
+                                  return (
+                                    <div key={res.resourceId} className="perm-res-card">
+                                      <div className="perm-res-card-header">
+                                        <ShieldCheck size={14} className="perm-res-card-icon" />
+                                        <span>{res.resourceName}</span>
+                                        {lvl > 0 && (
+                                          <span className="perm-role-badge">{levelLabels[lvl]}</span>
+                                        )}
+                                      </div>
+                                      <div className="perm-level-selector">
+                                        <div className="perm-level-pills-row">
+                                          {LEVELS.map((lvlDef) => {
+                                            const isLevelZero = lvlDef.value === 0;
+                                            const backendAction = LABEL_TO_ACTION[lvlDef.label];
+                                            const isAvailable = isLevelZero || (backendAction && resourceActions.has(backendAction));
+                                            const active = isLevelZero ? lvl === 0 : lvl >= lvlDef.value;
+                                            const disabled = !canEdit || !isAvailable;
+                                            return (
+                                              <button
+                                                key={lvlDef.value}
+                                                className={`perm-pill ${active ? "filled" : ""} ${lvl === lvlDef.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${disabled ? " disabled" : ""}`}
+                                                onClick={() => !disabled && handleLevelChange(permActiveModule.moduleId, res, lvl === lvlDef.value ? 0 : lvlDef.value)}
+                                                disabled={disabled}
+                                                title={needLevelTitle(canEdit, t("edit")) || t("set_effective_level", { level: levelLabels[lvlDef.value] })}
+                                              >
+                                                {levelLabels[lvlDef.value]}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

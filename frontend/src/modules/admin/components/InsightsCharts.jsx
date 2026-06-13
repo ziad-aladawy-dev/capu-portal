@@ -1,29 +1,35 @@
-import { Users, CalendarCheck, ClipboardList } from "lucide-react";
+import { Users, BookOpen, ClipboardList } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { usePermission } from "../../../core/auth/usePermission";
-import { useDomain } from "../../../core/contexts/DomainContext";
-import { useAcademic } from "../../../core/contexts/AcademicContext";
-import { ChartCard, DonutChart } from "../../../core/components/dashboard/DashboardKit";
-import { useOfferingStats } from "../../../core/query/useCourseOfferings";
-import { useStudentStatistics, useServiceRequestStats } from "../../../core/query/useDashboardStats";
+import {
+  ChartCard, DonutChart, BarsChart,
+} from "../../../core/components/dashboard/DashboardKit";
+import {
+  useStudentStatistics,
+  useStaffStatistics,
+  useServiceRequestStats,
+  useCourseCount,
+  useProgramCount,
+  useFacultyCount,
+} from "../../../core/query/useDashboardStats";
 
-/** Permission-gated analytics row: each donut renders only when the viewer
- *  holds the underlying module permission, so the dashboard never 403s. */
 function InsightsCharts() {
   const { t } = useTranslation();
   const { can } = usePermission();
-  const { scopeNode } = useDomain();
-  const { selectedSemesterObj } = useAcademic();
 
   const canUsers = can("users.users.view");
-  const canOfferings = can("course-offerings.course-offerings.view");
+  const canCourses = can("courses.courses.view");
+  const canStructure = can("structure.structure.view");
   const canServices = can("student-services.services.view");
 
   const students = useStudentStatistics(canUsers);
-  const offerings = useOfferingStats(canOfferings ? selectedSemesterObj?.id : undefined, scopeNode?.id);
+  const staff = useStaffStatistics(canUsers);
   const requests = useServiceRequestStats(canServices);
+  const courses = useCourseCount(canCourses);
+  const programs = useProgramCount(canStructure);
+  const faculties = useFacultyCount(canStructure);
 
-  if (!canUsers && !canOfferings && !canServices) return null;
+  if (!canUsers && !canCourses && !canServices && !canStructure) return null;
 
   const studentData = students.data
     ? [
@@ -32,21 +38,20 @@ function InsightsCharts() {
       ]
     : [];
 
-  const offeringData = offerings.data
-    ? [
-        { name: t("acad_dash_status_open"), value: offerings.data.openCount || 0, color: "#16a34a" },
-        { name: t("acad_dash_status_draft"), value: offerings.data.draftCount || 0, color: "#c9a84c" },
-        { name: t("acad_dash_status_full"), value: offerings.data.fullCount || 0, color: "#2563eb" },
-        { name: t("acad_dash_status_closed"), value: offerings.data.closedCount || 0, color: "#64748b" },
-        { name: t("acad_dash_status_cancelled"), value: offerings.data.cancelledCount || 0, color: "#dc2626" },
-      ]
-    : [];
-
   const requestData = requests.data
     ? [
         { name: t("pending_requests"), value: requests.data.pendingRequests || 0, color: "#c9a84c" },
         { name: t("awaiting_approval"), value: requests.data.awaitingApproval || 0, color: "#2563eb" },
         { name: t("completed_requests"), value: requests.data.completedRequests || 0, color: "#16a34a" },
+      ]
+    : [];
+
+  const hasAcademicData = (faculties.data != null || courses.data != null || programs.data != null);
+  const academicData = hasAcademicData
+    ? [
+        ...(courses.data != null ? [{ name: t("courses"), value: courses.data || 0, color: "#2e3591" }] : []),
+        ...(programs.data != null ? [{ name: t("programs"), value: programs.data || 0, color: "#c9a84c" }] : []),
+        ...(faculties.data != null ? [{ name: t("faculties"), value: faculties.data || 0, color: "#2563eb" }] : []),
       ]
     : [];
 
@@ -63,15 +68,15 @@ function InsightsCharts() {
           <DonutChart data={studentData} centerLabel={t("total_students")} />
         </ChartCard>
       )}
-      {canOfferings && (
+      {(canCourses || canStructure) && (
         <ChartCard
-          icon={CalendarCheck}
-          title={t("dash_offerings_by_status")}
-          loading={!!selectedSemesterObj && offerings.isLoading}
-          empty={!selectedSemesterObj || (!offerings.isLoading && !offerings.data?.total)}
-          emptyLabel={!selectedSemesterObj ? t("dash_select_semester") : t("dash_no_data")}
+          icon={BookOpen}
+          title={t("dash_academic_landscape")}
+          loading={courses.isLoading || programs.isLoading || faculties.isLoading}
+          empty={!hasAcademicData}
+          emptyLabel={t("dash_no_data")}
         >
-          <DonutChart data={offeringData} centerLabel={t("acad_dash_offerings")} />
+          <BarsChart data={academicData} />
         </ChartCard>
       )}
       {canServices && (

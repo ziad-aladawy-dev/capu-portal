@@ -52,6 +52,7 @@
     "insert": "Insert",
     "open_level": "Open",
     "set_effective_level": "Set effective level to {{level}}",
+    "role_contributions": "Role Contributions",
     "permissions_manager": "Permissions Manager",
     "permissions_manager_desc": "Manage user role assignments and permission overrides",
     "select_user": "Select a User",

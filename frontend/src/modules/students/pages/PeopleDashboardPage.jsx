@@ -1,14 +1,12 @@
-import { Users, GraduationCap, UserCheck, UserCog, PieChart } from "lucide-react";
+import { Users, GraduationCap, UserCheck, UserCog, PieChart, ArrowLeftRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import PageHeader from "../../../core/components/PageHeader";
 import { usePermission } from "../../../core/auth/usePermission";
-import { StatCard, ChartCard, DonutChart, BarsChart } from "../../../core/components/dashboard/DashboardKit";
+import { StatCard, ChartCard, DonutChart } from "../../../core/components/dashboard/DashboardKit";
 import { useStudentStatistics, useStaffStatistics } from "../../../core/query/useDashboardStats";
 
 const fmt = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 
-/** People Management overview: student/staff population analytics. Route is
- *  gated by the dashboard permission; data widgets need users.users.view. */
 function PeopleDashboardPage() {
   const { t } = useTranslation();
   const { can } = usePermission();
@@ -19,6 +17,10 @@ function PeopleDashboardPage() {
 
   const s = students.data;
   const st = staff.data;
+
+  const totalStudents = s?.totalStudents ?? 0;
+  const totalStaff = st?.totalStaff ?? 0;
+  const ratio = totalStaff > 0 ? (totalStudents / totalStaff).toFixed(1) : null;
 
   const studentStatus = s
     ? [
@@ -33,11 +35,6 @@ function PeopleDashboardPage() {
         { name: t("dash_inactive"), value: st.inactiveStaff || 0, color: "#c9a84c" },
       ]
     : [];
-
-  const composition = [
-    { name: t("people_dash_students"), value: s?.totalStudents || 0, color: "#2e3591" },
-    { name: t("people_dash_staff"), value: st?.totalStaff || 0, color: "#c9a84c" },
-  ];
 
   return (
     <div className="dk-page">
@@ -70,11 +67,12 @@ function PeopleDashboardPage() {
               loading={students.isLoading}
             />
             <StatCard
-              icon={Users}
+              icon={ArrowLeftRight}
               tone="gold"
-              label={t("people_dash_total_staff")}
-              value={fmt(st?.totalStaff)}
-              loading={staff.isLoading}
+              label={t("people_dash_ratio")}
+              value={ratio ? `${ratio}:1` : "—"}
+              loading={students.isLoading || staff.isLoading}
+              sub={ratio ? t("people_dash_student_staff") : null}
             />
             <StatCard
               icon={UserCog}
@@ -85,7 +83,7 @@ function PeopleDashboardPage() {
             />
           </div>
 
-          <div className="dk-grid-3 dk-section">
+          <div className="dk-grid-2 dk-section">
             <ChartCard
               icon={GraduationCap}
               title={t("people_dash_students_status")}
@@ -103,15 +101,6 @@ function PeopleDashboardPage() {
               emptyLabel={t("dash_no_data")}
             >
               <DonutChart data={staffStatus} centerLabel={t("people_dash_total_staff")} />
-            </ChartCard>
-            <ChartCard
-              icon={PieChart}
-              title={t("people_dash_composition")}
-              loading={students.isLoading || staff.isLoading}
-              empty={!students.isLoading && !staff.isLoading && composition.every((d) => !d.value)}
-              emptyLabel={t("dash_no_data")}
-            >
-              <BarsChart data={composition} height={266} />
             </ChartCard>
           </div>
         </>

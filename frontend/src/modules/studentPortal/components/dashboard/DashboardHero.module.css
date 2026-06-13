@@ -64,6 +64,45 @@
 
 .gpaBlock {
   grid-area: gpa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.creditBlock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-size: 11px;
+  color: var(--portal-text-muted);
+}
+
+.creditBlock svg {
+  flex-shrink: 0;
+  color: var(--portal-primary);
+}
+
+.creditBar {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--portal-radius-full);
+  background: var(--portal-border);
+  overflow: hidden;
+}
+
+.creditFill {
+  height: 100%;
+  border-radius: var(--portal-radius-full);
+  background: linear-gradient(90deg, var(--portal-primary), var(--portal-accent));
+  transition: width 0.6s ease;
+}
+
+.creditText {
+  flex-shrink: 0;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .gpaValue {
