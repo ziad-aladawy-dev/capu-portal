@@ -1,4 +1,4 @@
-import { HandCoins, Hourglass, RotateCcw, ReceiptText, TrendingUp, PieChart } from "lucide-react";
+import { HandCoins, Hourglass, ReceiptText, TrendingUp, PieChart, Gauge } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import PageHeader from "../../../core/components/PageHeader";
 import { usePermission } from "../../../core/auth/usePermission";
@@ -32,8 +32,6 @@ const ORDER_COLORS = {
 
 const fmtCount = (v) => Number(v ?? 0).toLocaleString("en-US");
 
-/** Finance overview backed by GET /payments/fees/stats. Route is gated by the
- *  dashboard permission; the data needs payments.transactions.view. */
 function FinanceDashboardPage() {
   const { t, i18n } = useTranslation();
   const { can } = usePermission();
@@ -54,7 +52,6 @@ function FinanceDashboardPage() {
   const feeSlices = slices(stats?.feesByStatus, FEE_STATUS_KEYS, FEE_COLORS);
   const orderSlices = slices(stats?.ordersByStatus, ORDER_STATUS_KEYS, ORDER_COLORS);
 
-  // Zero-fill the last 12 months so gaps render as real dips, not equal spacing.
   const byMonth = new Map((stats?.monthlyCollected || []).map((p) => [`${p.year}-${p.month}`, p.amount]));
   const now = new Date();
   const monthly = Array.from({ length: 12 }, (_, i) => {
@@ -65,6 +62,18 @@ function FinanceDashboardPage() {
     };
   });
   const hasMonthly = monthly.some((m) => m.value > 0);
+
+  const collected = stats?.totalCollected ?? 0;
+  const outstanding = stats?.outstandingAmount ?? 0;
+  const totalDue = collected + outstanding;
+  const collectionRate = totalDue > 0 ? Math.round((collected / totalDue) * 100) : 0;
+
+  const collectionData = totalDue > 0
+    ? [
+        { name: t("fin_dash_collected"), value: collected, color: "#16a34a" },
+        { name: t("fin_dash_outstanding"), value: outstanding, color: "#c9a84c" },
+      ]
+    : [];
 
   return (
     <div className="dk-page">
@@ -98,15 +107,16 @@ function FinanceDashboardPage() {
               loading={isLoading}
             />
             <StatCard
-              icon={RotateCcw}
-              tone="red"
-              label={t("fin_dash_refunded")}
-              value={money(stats?.refundedAmount)}
+              icon={Gauge}
+              tone="navy"
+              label={t("fin_dash_collection_rate")}
+              value={totalDue > 0 ? `${collectionRate}%` : "—"}
               loading={isLoading}
+              subTone={collectionRate >= 80 ? "up" : undefined}
             />
             <StatCard
               icon={ReceiptText}
-              tone="navy"
+              tone="teal"
               label={t("fin_dash_orders")}
               value={fmtCount(stats?.totalOrders)}
               loading={isLoading}
@@ -125,7 +135,23 @@ function FinanceDashboardPage() {
               <TrendChart data={monthly} valueFormatter={fmtAmount} />
             </ChartCard>
 
-            <div className="dk-grid-2">
+            <div className="dk-grid-3">
+              {totalDue > 0 && (
+                <ChartCard
+                  icon={Gauge}
+                  title={t("fin_dash_collection_rate")}
+                  loading={isLoading}
+                  empty={false}
+                  emptyLabel={t("dash_no_data")}
+                  height={260}
+                >
+                  <DonutChart
+                    data={collectionData}
+                    centerValue={`${collectionRate}%`}
+                    centerLabel={t("fin_dash_collected")}
+                  />
+                </ChartCard>
+              )}
               <ChartCard
                 icon={PieChart}
                 title={t("fin_dash_fees_by_status")}

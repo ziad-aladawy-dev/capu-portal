@@ -52,6 +52,7 @@
     "insert": "إدراج",
     "open_level": "فتح",
     "set_effective_level": "تعيين المستوى الفعلي إلى {{level}}",
+    "role_contributions": "مساهمات الأدوار",
     "permissions_manager": "مدير الصلاحيات",
     "permissions_manager_desc": "إدارة تعيينات أدوار المستخدم وتجاوزات الصلاحيات",
     "select_user": "اختر مستخدماً",

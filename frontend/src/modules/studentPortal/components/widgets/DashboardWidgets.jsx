@@ -1,13 +1,11 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   BookOpen, Calendar, CalendarClock, Bell, GraduationCap, CreditCard,
-  ClipboardList, MapPin, Clock, User, TrendingUp, CheckCircle2,
-  Hourglass, Zap, Package,
+  ClipboardList, MapPin, Clock, TrendingUp, CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "../../../../core/auth/useAuth";
-import { useAcademic } from "../../../../core/contexts/AcademicContext";
 import { getLocalized } from "../../../../core/utils/getLocalized";
 import PortalBadge from "../shared/PortalBadge";
 import PortalStatCard from "../shared/PortalStatCard";
@@ -23,12 +21,14 @@ const egp = (n, t) =>
   `${Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${t("egp", { defaultValue: "EGP" })}`;
 
 const STATUS_TONE = {
-  2: "warning",   // Pending
-  3: "info",      // Under Review
-  4: "danger",    // More Info Required
-  7: "accent",    // Payment Pending
-  10: "success",  // Ready for Pickup
+  2: "warning",
+  3: "info",
+  4: "danger",
+  7: "accent",
+  10: "success",
 };
+
+const GPA_BAR_MAX = 4;
 
 /* Upcoming Schedule (span 2) */
 export const UpcomingScheduleWidget = memo(function UpcomingScheduleWidget() {
@@ -105,16 +105,20 @@ export const ActiveCoursesWidget = memo(function ActiveCoursesWidget() {
   );
 });
 
-/* Recent Grades (span 1) */
-export const RecentGradesWidget = memo(function RecentGradesWidget() {
+/* Grade Trend (span 1) — replaces RecentGrades */
+export const GradeTrendWidget = memo(function GradeTrendWidget() {
   const { t } = useTranslation();
   const { data, isLoading } = useGradesSummary();
   const gpa = data?.cgpa ?? data?.gpa ?? null;
   const standing = data?.academicStanding ?? data?.standing ?? null;
+  const earnedCredits = data?.earnedCredits ?? data?.totalCredits ?? data?.completedCredits ?? 0;
+
+  const pct = gpa != null ? Math.min(100, (gpa / GPA_BAR_MAX) * 100) : 0;
+  const tone = gpa == null ? "primary" : gpa >= 3 ? "success" : gpa >= 2 ? "warning" : "danger";
 
   return (
     <WidgetShell
-      title={t("portal_dashboard.widget_grades", { defaultValue: "Recent Grades" })}
+      title={t("portal_dashboard.widget_grades", { defaultValue: "Grade Trend" })}
       icon={GraduationCap}
       to="/student/grades"
       isLoading={isLoading}
@@ -128,16 +132,30 @@ export const RecentGradesWidget = memo(function RecentGradesWidget() {
           <TrendingUp size={13} /> {t("portal_dashboard.gpa", { defaultValue: "GPA" })}
         </span>
         {standing && <PortalBadge tone="success">{standing}</PortalBadge>}
+        {earnedCredits > 0 && (
+          <span className={styles.gradeCredits}>
+            {earnedCredits} {t("portal_dashboard.credits_earned", { defaultValue: "credits earned" })}
+          </span>
+        )}
+      </div>
+      <div className={styles.gpaBarTrack}>
+        <div className={styles.gpaBarFill} style={{ width: `${pct}%` }} />
+        <div className={styles.gpaBarDot} style={{ left: `${pct}%` }} />
+      </div>
+      <div className={styles.gpaBarLabels}>
+        <span>0</span>
+        <span>{GPA_BAR_MAX}</span>
       </div>
     </WidgetShell>
   );
 });
 
-/* Pending Requests (span 1) */
+/* Pending Requests (span 1) — improved */
 export const PendingRequestsWidget = memo(function PendingRequestsWidget() {
   const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useOpenRequests();
-  const open = data ?? [];
+  const open = useMemo(() => data ?? [], [data]);
+  const count = open.length;
 
   return (
     <WidgetShell
@@ -147,31 +165,39 @@ export const PendingRequestsWidget = memo(function PendingRequestsWidget() {
       isLoading={isLoading}
       isError={isError}
       onRetry={refetch}
-      isEmpty={open.length === 0}
+      isEmpty={count === 0}
       emptyIcon={CheckCircle2}
       emptyText={t("portal_dashboard.no_open_requests", { defaultValue: "No requests in progress" })}
     >
-      <ul className={styles.requestList}>
-        {open.slice(0, 3).map((r) => (
-          <li key={r.id} className={styles.requestItem}>
-            <Link to={`/student/requests/${r.id}`} className={styles.requestName}>
-              {r.serviceName ?? r.requestNumber ?? t("portal_dashboard.request", { defaultValue: "Request" })}
-            </Link>
-            <PortalBadge tone={STATUS_TONE[r.status] ?? "neutral"}>
-              {REQUEST_STATUS_LABELS[r.status]
-                ? t(`portal_requests.status_${REQUEST_STATUS_LABELS[r.status].replace(/\s+/g, "")}`, {
-                    defaultValue: REQUEST_STATUS_LABELS[r.status],
-                  })
-                : "?"}
-            </PortalBadge>
-          </li>
-        ))}
-      </ul>
+      <div className={styles.requestHeader}>
+        <span className={styles.requestCount}>{count}</span>
+        <span className={styles.requestCountLabel}>
+          {t("portal_dashboard.open_requests", { defaultValue: "open" })}
+        </span>
+      </div>
+      {count > 0 && (
+        <ul className={styles.requestList}>
+          {open.slice(0, 3).map((r) => (
+            <li key={r.id} className={styles.requestItem}>
+              <Link to={`/student/requests/${r.id}`} className={styles.requestName}>
+                {r.serviceName ?? r.requestNumber ?? t("portal_dashboard.request", { defaultValue: "Request" })}
+              </Link>
+              <PortalBadge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                {REQUEST_STATUS_LABELS[r.status]
+                  ? t(`portal_requests.status_${REQUEST_STATUS_LABELS[r.status].replace(/\s+/g, "")}`, {
+                      defaultValue: REQUEST_STATUS_LABELS[r.status],
+                    })
+                  : "?"}
+              </PortalBadge>
+            </li>
+          ))}
+        </ul>
+      )}
     </WidgetShell>
   );
 });
 
-/* Fee Status (span 2) */
+/* Fee Status (span 2) — improved with breakdown bar */
 export const FeeStatusWidget = memo(function FeeStatusWidget() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -181,6 +207,7 @@ export const FeeStatusWidget = memo(function FeeStatusWidget() {
   const paid = data?.paid ?? 0;
   const outstanding = data?.outstanding ?? 0;
   const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  const outstandingPct = total > 0 ? Math.round((outstanding / total) * 100) : 0;
 
   return (
     <WidgetShell
@@ -199,16 +226,25 @@ export const FeeStatusWidget = memo(function FeeStatusWidget() {
           <span className={styles.feeLabel}>{t("portal_dashboard.outstanding", { defaultValue: "Outstanding" })}</span>
           <strong className={outstanding > 0 ? styles.feeDue : styles.feeOk}>{egp(outstanding, t)}</strong>
         </div>
+        <div>
+          <span className={styles.feeLabel}>{t("portal_dashboard.paid", { defaultValue: "Paid" })}</span>
+          <strong className={styles.feeOk}>{egp(paid, t)}</strong>
+        </div>
         <div className={styles.feeEnd}>
           <span className={styles.feeLabel}>{t("portal_dashboard.total", { defaultValue: "Total" })}</span>
           <strong>{egp(total, t)}</strong>
         </div>
       </div>
-      <div className={styles.feeBar}>
-        <div className={styles.feeFill} style={{ width: `${pct}%` }} />
+      <div className={styles.feeBreakdownBar}>
+        <div className={styles.feeBreakdownFill} style={{ width: `${pct}%` }} />
+        {outstanding > 0 && (
+          <div className={styles.feeBreakdownOutstanding} style={{ width: `${outstandingPct}%` }} />
+        )}
       </div>
       <div className={styles.feeFooter}>
-        <span className={styles.feeLabel}>{pct}% {t("portal_dashboard.paid", { defaultValue: "paid" })}</span>
+        <span className={styles.feeLabel}>
+          {pct}% {t("portal_dashboard.collected", { defaultValue: "collected" })}
+        </span>
         {outstanding > 0 && (
           <Link to="/student/payments" className={styles.payNow}>
             {t("portal_dashboard.pay_now", { defaultValue: "Pay now" })}
@@ -250,72 +286,11 @@ export const RecentNotificationsWidget = memo(function RecentNotificationsWidget
   );
 });
 
-/* Quick Actions (span 4) */
-const QUICK_ACTIONS = [
-  { to: "/student/services", icon: Package, key: "request_service", label: "Request Service" },
-  { to: "/student/schedule", icon: Calendar, key: "view_schedule", label: "View Schedule" },
-  { to: "/student/payments", icon: CreditCard, key: "pay_fees", label: "Pay Fees" },
-  { to: "/student/courses", icon: BookOpen, key: "my_courses", label: "My Courses" },
-  { to: "/student/grades", icon: GraduationCap, key: "grades", label: "Grades" },
-  { to: "/student/profile", icon: User, key: "profile", label: "Profile" },
-];
-
-export const QuickActionsWidget = memo(function QuickActionsWidget() {
-  const { t } = useTranslation();
-  return (
-    <WidgetShell title={t("portal_dashboard.widget_quickactions", { defaultValue: "Quick Actions" })} icon={Zap}>
-      <div className={styles.quickGrid}>
-        {QUICK_ACTIONS.map((q) => (
-          <Link key={q.key} to={q.to} className={styles.quickAction}>
-            <q.icon size={19} />
-            <span>{t(`portal_dashboard.qa_${q.key}`, { defaultValue: q.label })}</span>
-          </Link>
-        ))}
-      </div>
-    </WidgetShell>
-  );
-});
-
-/* Academic Calendar (span 1) */
-export const AcademicCalendarWidget = memo(function AcademicCalendarWidget() {
-  const { t, i18n } = useTranslation();
-  const { selectedSemesterObj } = useAcademic();
-
-  const endDate = selectedSemesterObj?.endDate ? new Date(selectedSemesterObj.endDate) : null;
-  const daysLeft = endDate ? Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86_400_000)) : null;
-
-  return (
-    <WidgetShell
-      title={t("portal_dashboard.widget_calendar", { defaultValue: "Academic Calendar" })}
-      icon={Calendar}
-      isEmpty={!endDate}
-      emptyIcon={Calendar}
-      emptyText={t("portal_dashboard.no_milestones", { defaultValue: "No upcoming milestones" })}
-    >
-      <div className={styles.milestone}>
-        <span className={styles.milestoneIcon}><Hourglass size={18} /></span>
-        <div className={styles.milestoneBody}>
-          <strong>{t("portal_dashboard.semester_ends", { defaultValue: "Semester ends" })}</strong>
-          <span>{endDate?.toLocaleDateString(i18n.language === "ar" ? "ar-EG" : "en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-        </div>
-        {daysLeft != null && (
-          <span className={styles.milestoneCount}>
-            {daysLeft}
-            <small>{t("portal_dashboard.days", { defaultValue: "days" })}</small>
-          </span>
-        )}
-      </div>
-    </WidgetShell>
-  );
-});
-
 export const WIDGET_REGISTRY = {
   schedule: { component: UpcomingScheduleWidget, span: 2 },
   courses: { component: ActiveCoursesWidget, span: 2 },
-  grades: { component: RecentGradesWidget, span: 1 },
+  grades: { component: GradeTrendWidget, span: 1 },
   requests: { component: PendingRequestsWidget, span: 1 },
   fees: { component: FeeStatusWidget, span: 2 },
   notifications: { component: RecentNotificationsWidget, span: 2 },
-  quickactions: { component: QuickActionsWidget, span: 4 },
-  calendar: { component: AcademicCalendarWidget, span: 1 },
 };

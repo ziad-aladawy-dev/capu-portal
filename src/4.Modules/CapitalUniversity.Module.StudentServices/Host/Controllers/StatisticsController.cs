@@ -49,4 +49,12 @@ public class StatisticsController : ControllerBase
         var result = await _statisticsService.GetRecentRequestsAsync(count, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("staff/trend")]
+    [Authorize(Policy = "Permission:" + PermissionNames.StudentServices.RequestsView)]
+    public async Task<IActionResult> GetRequestTrend([FromQuery] int days = 30, CancellationToken cancellationToken = default)
+    {
+        var result = await _statisticsService.GetRequestTrendAsync(days, cancellationToken);
+        return Ok(result);
+    }
 }

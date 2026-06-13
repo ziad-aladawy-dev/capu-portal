@@ -199,6 +199,11 @@ export const getRecentRequests = async (count = 5) => {
   return response.data;
 };
 
+export const getRequestTrend = async (days = 30) => {
+  const response = await apiClient.get(`${BASE_URL}/statistics/staff/trend`, { params: { days } });
+  return response.data;
+};
+
 // ---------------------- File Upload ----------------------
 export const uploadFile = async (requestId, stepKey, file) => {
   const formData = new FormData();

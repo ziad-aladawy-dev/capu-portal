@@ -12,8 +12,6 @@ export const DEFAULT_WIDGET_ORDER = [
   "requests",
   "fees",
   "notifications",
-  "quickactions",
-  "calendar",
 ];
 
 function persist(state) {

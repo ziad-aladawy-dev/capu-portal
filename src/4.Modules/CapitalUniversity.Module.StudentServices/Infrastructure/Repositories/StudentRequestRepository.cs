@@ -269,6 +269,17 @@ public class StudentRequestRepository : IStudentRequestRepository
             .Where(a => a.StudentRequestId == requestId)
             .ToListAsync(cancellationToken);
 
+    public async Task<List<DailyRequestCountDto>> GetRequestTrendAsync(int days, CancellationToken cancellationToken = default)
+    {
+        var since = DateTime.UtcNow.Date.AddDays(-days);
+        return await _context.StudentRequests
+            .Where(r => r.CreatedAt >= since)
+            .GroupBy(r => r.CreatedAt.Date)
+            .Select(g => new DailyRequestCountDto { Date = g.Key, Count = g.Count() })
+            .OrderBy(d => d.Date)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<StudentRequest?> GetPendingForStudentAndServiceAsync(Guid studentId, Guid serviceId, CancellationToken cancellationToken = default)
         => await _context.StudentRequests
             .Include(r => r.Service)

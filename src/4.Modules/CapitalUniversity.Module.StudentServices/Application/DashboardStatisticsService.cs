@@ -32,6 +32,11 @@ public class DashboardStatisticsService : IDashboardStatisticsService
         return new StudentStatisticsDto { RequestsByStatus = counts };
     }
 
+    public async Task<List<DailyRequestCountDto>> GetRequestTrendAsync(int days = 30, CancellationToken cancellationToken = default)
+    {
+        return await _requestRepository.GetRequestTrendAsync(days, cancellationToken);
+    }
+
     public async Task<List<RecentRequestDto>> GetRecentRequestsAsync(int count = 5, CancellationToken cancellationToken = default)
     {
         var recent = await _requestRepository.GetRecentRequestsAsync(count, cancellationToken);

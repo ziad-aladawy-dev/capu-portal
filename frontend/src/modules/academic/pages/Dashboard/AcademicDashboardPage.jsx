@@ -14,8 +14,6 @@ import {
 
 const fmt = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 
-/** Analytics overview for the Academic suite. Route-gated by the dashboard
- *  permission; each widget additionally requires its module's view grant. */
 function AcademicDashboardPage() {
   const { t } = useTranslation();
   const { can } = usePermission();
@@ -83,7 +81,7 @@ function AcademicDashboardPage() {
             loading={!noSemester && offerings.isLoading}
             sub={
               !noSemester && stats
-                ? `${fmt(registered)} / ${fmt(capacity)} ${t("acad_dash_seats")}`
+                ? t("acad_dash_fill_rate", { pct: fillPct })
                 : null
             }
           />
@@ -104,6 +102,7 @@ function AcademicDashboardPage() {
             label={t("acad_dash_programs")}
             value={fmt(programs.data)}
             loading={programs.isLoading}
+            sub={courses.data ? t("acad_dash_programs_sub", { count: fmt(courses.data / Math.max(programs.data, 1)) }) : null}
           />
         )}
       </div>
@@ -130,7 +129,7 @@ function AcademicDashboardPage() {
             <DonutChart
               data={capacityData}
               centerValue={`${fillPct}%`}
-              centerLabel={t("acad_dash_registered")}
+              centerLabel={t("acad_dash_filled")}
             />
           </ChartCard>
         </div>

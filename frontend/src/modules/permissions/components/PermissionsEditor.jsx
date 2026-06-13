@@ -4,9 +4,10 @@ import {
   Undo2, ShieldCheck, Globe, Building2, MapPin, AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import * as structureService from "../../../core/services/structureService";
 import * as academicService from "../../../core/services/academicService";
+import * as permissionService from "../../../core/services/permissionService";
 import { useRoles, useUpdatePermissionAssignment } from "../../../core/query/usePermissionsData";
 import { useDomain } from "../../../core/contexts/DomainContext";
 import { usePermission } from "../../../core/auth/usePermission";
@@ -112,6 +113,7 @@ function PermissionsEditor({ user, tree, assignment }) {
   const [requestTemporalScope, setRequestTemporalScope] = useState(init.requestTemporalScope);
   const [dirty, setDirty] = useState(false);
   const [activeModuleId, setActiveModuleId] = useState(tree.length > 0 ? tree[0].moduleId : null);
+  const [permTab, setPermTab] = useState("roles");
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [scopeModalContext, setScopeModalContext] = useState(null); // { type: "role" | "override", id, entryIndex }
@@ -156,28 +158,103 @@ function PermissionsEditor({ user, tree, assignment }) {
     [userTree, activeModuleId]
   );
 
+  const roleQueries = useQueries({
+    queries: assignedRoleIds.map((roleId) => ({
+      queryKey: ["role-permissions", roleId],
+      queryFn: () => permissionService.fetchRolePermissions(roleId),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  // Compute role contributions per resource
+  const roleContributions = useMemo(() => {
+    const map = {};
+    for (const mod of userTree) {
+      for (const res of (mod.resources || [])) {
+        const rid = String(res.resourceId);
+        const contributions = [];
+
+        for (let i = 0; i < assignedRoleIds.length; i++) {
+          const roleId = assignedRoleIds[i];
+          const role = allRoles.find((r) => String(r.id) === roleId);
+          if (!role) continue;
+
+          const rolePerms = roleQueries[i]?.data;
+          if (!Array.isArray(rolePerms)) continue;
+
+          // Find this resource's permissions from the role
+          let maxLevel = 0;
+          for (const rMod of rolePerms) {
+            for (const rRes of (rMod.resources || [])) {
+              if (String(rRes.resourceId) !== rid) continue;
+              for (const p of (rRes.permissions || [])) {
+                if (!p.isAssigned) continue;
+                const val = ACTION_VALUES[p.action] || 0;
+                maxLevel = Math.max(maxLevel, val);
+              }
+            }
+          }
+
+          if (maxLevel > 0) {
+            const scopes = roleScopeMap[roleId] || [];
+            for (const scope of scopes) {
+              contributions.push({
+                roleId,
+                roleName: role.name,
+                level: maxLevel,
+                scope: scope.structuralScope,
+                isSystemRole: role.isSystemRole,
+              });
+            }
+          }
+        }
+
+        map[rid] = contributions;
+      }
+    }
+    return map;
+  }, [userTree, assignedRoleIds, roleScopeMap, allRoles, roleQueries]);
+
   const resourceLevels = useMemo(() => {
     const map = {};
     for (const mod of userTree) {
       for (const res of (mod.resources || [])) {
         const rid = String(res.resourceId);
-        let roleLvl = 0, effLvl = 0;
+        let effLvl = 0;
         for (const p of (res.permissions || [])) {
           const orig = originalSnapshot?.[p.permissionId];
           if (!orig) continue;
           const val = ACTION_VALUES[orig.action] || 0;
-          if (orig.isAssigned) effLvl = Math.max(effLvl, val);
-          let roleAssg;
-          if (orig.hasAllowOverride) roleAssg = false;
-          else if (orig.hasDenyOverride) roleAssg = true;
-          else roleAssg = orig.isAssigned;
-          if (roleAssg) roleLvl = Math.max(roleLvl, val);
+          if (orig.isAssigned) {
+            effLvl = Math.max(effLvl, val);
+          }
         }
-        map[rid] = { effectiveLevel: effLvl, roleBasedLevel: roleLvl };
+        map[rid] = { effectiveLevel: effLvl, roleBasedLevel: 0 };
       }
     }
+
+    // Accurately compute role-based level from individual role trees
+    // to bypass the backend write-time expansion masking issue.
+    for (const query of roleQueries) {
+      if (!query.data) continue;
+      for (const mod of query.data) {
+        for (const res of (mod.resources || [])) {
+          const rid = String(res.resourceId);
+          if (!map[rid]) {
+             map[rid] = { effectiveLevel: 0, roleBasedLevel: 0 };
+          }
+          for (const p of (res.permissions || [])) {
+            if (p.isAssigned) {
+              const val = ACTION_VALUES[p.action] || 0;
+              map[rid].roleBasedLevel = Math.max(map[rid].roleBasedLevel, val);
+            }
+          }
+        }
+      }
+    }
+
     return map;
-  }, [userTree, originalSnapshot]);
+  }, [userTree, originalSnapshot, roleQueries]);
 
   const resourceActions = useMemo(() => {
     const map = {};
@@ -195,10 +272,12 @@ function PermissionsEditor({ user, tree, assignment }) {
   }, [pendingLevels, resourceLevels]);
 
   const resourceHasOverride = useCallback((resId) => {
-    if (pendingLevels[resId] !== undefined) return true;
+    const pending = pendingLevels[resId];
+    const roleLvl = resourceLevels[resId]?.roleBasedLevel || 0;
+    if (pending !== undefined) return pending !== roleLvl;
     const ov = resourceOverrides[resId];
     return ov && (ov.allow.length > 0 || ov.deny.length > 0);
-  }, [pendingLevels, resourceOverrides]);
+  }, [pendingLevels, resourceOverrides, resourceLevels]);
 
   const overrideCountByModule = useMemo(() => {
     const counts = {};
@@ -214,21 +293,19 @@ function PermissionsEditor({ user, tree, assignment }) {
 
   const markDirty = () => setDirty(true);
 
-  const setLevel = (resId, desired, roleBasedLevel) => {
-    if (desired === roleBasedLevel) {
-      const next = { ...pendingLevels };
-      delete next[resId];
-      setPendingLevels(next);
-    } else {
-      setPendingLevels((prev) => ({ ...prev, [resId]: desired }));
-    }
+  const setLevel = (resId, desired) => {
+    setPendingLevels((prev) => ({ ...prev, [resId]: desired }));
     markDirty();
   };
 
   const handleRevert = (resId) => {
-    const next = { ...pendingLevels };
-    delete next[resId];
-    setPendingLevels(next);
+    const roleLvl = resourceLevels[resId]?.roleBasedLevel || 0;
+    setPendingLevels((prev) => ({ ...prev, [resId]: roleLvl }));
+    setOverrideScopeMap((prev) => {
+      const next = { ...prev };
+      delete next[resId];
+      return next;
+    });
     markDirty();
   };
 
@@ -273,18 +350,11 @@ function PermissionsEditor({ user, tree, assignment }) {
     setScopeModalOpen(true);
   };
 
-  const openOverrideScope = (resId, entryIndex) => {
+  const openOverrideScope = (resId) => {
     const s = String(resId);
-    const scopes = overrideScopeMap[s]
-      ? (Array.isArray(overrideScopeMap[s]) ? overrideScopeMap[s] : [overrideScopeMap[s]])
-      : [{ structuralScope: { ...requestStructuralScope }, temporalScope: { ...requestTemporalScope } }];
-    if (entryIndex !== null && entryIndex >= 0 && entryIndex < scopes.length) {
-      setScopeModalContext({ type: "override", id: s, entryIndex });
-      setScopeModalSelected(scopes[entryIndex].structuralScope.structureNodeId);
-    } else {
-      setScopeModalContext({ type: "override", id: s, entryIndex: null });
-      setScopeModalSelected(undefined);
-    }
+    const currentScope = overrideScopeMap[s] || null;
+    setScopeModalContext({ type: "override", id: s, entryIndex: 0 });
+    setScopeModalSelected(currentScope?.structuralScope?.structureNodeId ?? null);
     setScopeModalOpen(true);
   };
 
@@ -296,7 +366,7 @@ function PermissionsEditor({ user, tree, assignment }) {
 
   const handleScopeApply = () => {
     if (!scopeModalContext) return;
-    const { type, id, entryIndex } = scopeModalContext;
+    const { type, id } = scopeModalContext;
     const newScope = {
       structuralScope: { structureNodeId: scopeModalSelected },
       temporalScope: requestTemporalScope,
@@ -304,6 +374,7 @@ function PermissionsEditor({ user, tree, assignment }) {
     if (type === "role") {
       setRoleScopeMap((prev) => {
         const arr = prev[id] || [];
+        const entryIndex = scopeModalContext.entryIndex;
         if (entryIndex !== null && entryIndex >= 0 && entryIndex < arr.length) {
           const updated = [...arr];
           updated[entryIndex] = newScope;
@@ -312,15 +383,7 @@ function PermissionsEditor({ user, tree, assignment }) {
         return { ...prev, [id]: [...arr, newScope] };
       });
     } else {
-      setOverrideScopeMap((prev) => {
-        const arr = Array.isArray(prev[id]) ? prev[id] : (prev[id] ? [prev[id]] : []);
-        if (entryIndex !== null && entryIndex >= 0 && entryIndex < arr.length) {
-          const updated = [...arr];
-          updated[entryIndex] = newScope;
-          return { ...prev, [id]: updated };
-        }
-        return { ...prev, [id]: [...arr, newScope] };
-      });
+      setOverrideScopeMap((prev) => ({ ...prev, [id]: newScope }));
     }
     markDirty();
     closeScopeModal();
@@ -406,31 +469,25 @@ function PermissionsEditor({ user, tree, assignment }) {
       if (desired > roleLvl) {
         const action = LEVEL_TO_ACTION[desired];
         if (action) {
-          const raw = overrideScopeMap[resId];
-          const scopes = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-          (scopes.length > 0 ? scopes : [null]).forEach((ovScope) => {
-            toAdd.push({
-              resourceId: resId,
-              actions: [action],
-              type: 1,
-              structuralScope: ovScope?.structuralScope || requestStructuralScope,
-              temporalScope: ovScope?.temporalScope || requestTemporalScope,
-            });
+          const ovScope = overrideScopeMap[resId];
+          toAdd.push({
+            resourceId: resId,
+            actions: [action],
+            type: 1,
+            structuralScope: ovScope?.structuralScope || requestStructuralScope,
+            temporalScope: ovScope?.temporalScope || requestTemporalScope,
           });
         }
       } else if (desired < roleLvl) {
         const action = LEVEL_TO_ACTION[desired + 1];
         if (action) {
-          const raw = overrideScopeMap[resId];
-          const scopes = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-          (scopes.length > 0 ? scopes : [null]).forEach((ovScope) => {
-            toAdd.push({
-              resourceId: resId,
-              actions: [action],
-              type: 2,
-              structuralScope: ovScope?.structuralScope || requestStructuralScope,
-              temporalScope: ovScope?.temporalScope || requestTemporalScope,
-            });
+          const ovScope = overrideScopeMap[resId];
+          toAdd.push({
+            resourceId: resId,
+            actions: [action],
+            type: 2,
+            structuralScope: ovScope?.structuralScope || requestStructuralScope,
+            temporalScope: ovScope?.temporalScope || requestTemporalScope,
           });
         }
       }
@@ -458,6 +515,34 @@ function PermissionsEditor({ user, tree, assignment }) {
         }));
       });
 
+    // Detect scope changes on existing roles: remove old scopes, add new scopes
+    for (const id of assignedRoleIds) {
+      if (!initialRoleIds.includes(id)) continue;
+      const oldScopes = init.scopeMap[id] || [];
+      const newScopes = roleScopeMap[id] || [];
+      const oldKey = (s) => JSON.stringify(s.structuralScope);
+      const oldKeys = new Set(oldScopes.map(oldKey));
+      const newKeys = new Set(newScopes.map(oldKey));
+      for (const scope of oldScopes) {
+        if (!newKeys.has(oldKey(scope))) {
+          rolesToRemove.push({
+            roleId: id,
+            structuralScope: scope.structuralScope,
+            temporalScope: scope.temporalScope,
+          });
+        }
+      }
+      for (const scope of newScopes) {
+        if (!oldKeys.has(oldKey(scope))) {
+          rolesToAdd.push({
+            roleId: id,
+            structuralScope: scope.structuralScope,
+            temporalScope: scope.temporalScope,
+          });
+        }
+      }
+    }
+
     saveMutation.mutate({
       userId: user.id,
       rolesToAdd: rolesToAdd.map((r) => ({ ...r, temporalScope: normalizeTemporal(r.temporalScope) })),
@@ -483,23 +568,6 @@ function PermissionsEditor({ user, tree, assignment }) {
     const node = findNode(structureTree, nodeId);
     return node ? (node.localizedName || node.name) : null;
   }, [structureTree]);
-
-  // Unique structural scope nodes from all role assignments
-  const roleScopeNodes = useMemo(() => {
-    const seen = new Set();
-    const nodes = [];
-    for (const scopes of Object.values(roleScopeMap)) {
-      for (const s of scopes) {
-        const nid = s.structuralScope?.structureNodeId;
-        const key = nid ?? "__global__";
-        if (!seen.has(key)) {
-          seen.add(key);
-          nodes.push({ nodeId: nid, nodeName: nid ? getNodeName(nid) : null });
-        }
-      }
-    }
-    return nodes;
-  }, [roleScopeMap, getNodeName]);
 
   // Scenario B guardrail: list role assignments whose structural scope falls
   // outside the active navbar scope.
@@ -554,8 +622,20 @@ function PermissionsEditor({ user, tree, assignment }) {
         </div>
       )}
 
-      {/* ─── Temporal Scope Section ─── */}
-      <div className="perm-temporal-section">
+      {/* ─── Tabs ─── */}
+      <div className="perm-tabs">
+        <button className={`perm-tab ${permTab === "roles" ? "active" : ""}`} onClick={() => setPermTab("roles")}>
+          <Shield size={14} /> {t("roles")}
+        </button>
+        <button className={`perm-tab ${permTab === "permissions" ? "active" : ""}`} onClick={() => setPermTab("permissions")}>
+          <ShieldCheck size={14} /> {t("permissions")}
+        </button>
+      </div>
+
+      {permTab === "roles" && (
+        <>
+          {/* ─── Temporal Scope Section ─── */}
+          <div className="perm-temporal-section">
         <h3 className="perm-section-title">
           <Globe size={16} /> {t("temporal_scope")}
         </h3>
@@ -749,7 +829,10 @@ function PermissionsEditor({ user, tree, assignment }) {
           </div>
         </div>
       </div>
+      </>)}
 
+      {permTab === "permissions" && (
+      <>
       {/* ─── Effective Permissions Section ─── */}
       <div className="perm-overrides-section">
         <div className="perm-overrides-header">
@@ -791,25 +874,23 @@ function PermissionsEditor({ user, tree, assignment }) {
                   const displayLevel = getDisplayLevel(rid);
                   const levels = resourceLevels[rid] || { effectiveLevel: 0, roleBasedLevel: 0 };
                   const overridden = resourceHasOverride(rid);
-                  const ovScopes = overrideScopeMap[rid] ? (Array.isArray(overrideScopeMap[rid]) ? overrideScopeMap[rid] : [overrideScopeMap[rid]]) : [];
-                  const roleLvlName = levelLabels[levels.roleBasedLevel] || t("none");
-                  const isDowngraded = displayLevel < levels.roleBasedLevel;
+                  const ovScope = overrideScopeMap[rid];
+                  const contributions = roleContributions[rid] || [];
 
                   return (
-                    <div key={rid} className={`perm-res-card ${overridden ? "has-override" : ""} ${isDowngraded ? "is-denied" : ""}`}>
+                    <div key={rid} className={`perm-res-card ${overridden ? "has-override" : ""}`}>
                       <div className="perm-res-card-header">
                         <ShieldCheck size={14} className="perm-res-card-icon" />
                         <span>{res.resourceName}</span>
-                        {overridden && (
+                        {overridden && ovScope && (
                           <>
-                            {ovScopes.map((s, idx) => {
-                              const nodeId = s.structuralScope?.structureNodeId;
+                            {(() => {
+                              const nodeId = ovScope.structuralScope?.structureNodeId;
                               const nodeName = nodeId ? getNodeName(nodeId) : null;
                               return (
                                 <span
-                                  key={idx}
                                   className={`perm-res-scope-badge ${nodeId ? "is-scoped" : "is-global"}`}
-                                  onClick={() => openOverrideScope(rid, idx)}
+                                  onClick={() => openOverrideScope(rid)}
                                   title={t("override_scope_title")}
                                 >
                                   {nodeId
@@ -817,35 +898,52 @@ function PermissionsEditor({ user, tree, assignment }) {
                                     : <><Globe size={10} /> {t("override_scope_global")}</>}
                                 </span>
                               );
-                            })}
+                            })()}
                             {canEditPerms && (
                               <span
                                 className="perm-res-scope-add-btn"
-                                onClick={() => openOverrideScope(rid, null)}
-                                title={t("add_scope") || "Add scope"}
+                                onClick={() => openOverrideScope(rid)}
+                                title={t("edit_scope") || "Edit scope"}
                               >
                                 <Plus size={10} />
                               </span>
                             )}
                           </>
                         )}
-                        {levels.roleBasedLevel > 0 && (
-                          <>
-                            {roleScopeNodes.map((n, i) => (
-                              <span
-                                key={i}
-                                className={`perm-res-scope-badge ${n.nodeId ? "is-scoped" : "is-global"}`}
-                                title={t("assignment_scope")}
-                              >
-                                {n.nodeId
-                                  ? <><Building2 size={10} /> {n.nodeName || t("scope_structural")}</>
-                                  : <><Globe size={10} /> {t("scope_global")}</>}
-                              </span>
-                            ))}
-                            <span className="perm-role-badge">{roleLvlName}</span>
-                          </>
-                        )}
                       </div>
+
+                      {/* Role Contributions */}
+                      {contributions.length > 0 && (
+                        <div className="perm-role-contributions">
+                          <span className="perm-contrib-label">{t("role_contributions")}</span>
+                          <div className="perm-contrib-cards">
+                            {contributions.map((contrib, idx) => {
+                              const nodeId = contrib.scope?.structureNodeId;
+                              const nodeName = nodeId ? getNodeName(nodeId) : null;
+                              return (
+                                <div key={idx} className="perm-contrib-card">
+                                  <span className="perm-contrib-role">{contrib.roleName}</span>
+                                  <div className="perm-contrib-level">
+                                    {LEVELS.filter((l) => l.value > 0).map((l) => (
+                                      <span
+                                        key={l.value}
+                                        className={`perm-contrib-pip ${contrib.level >= l.value ? "filled" : ""}`}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="perm-contrib-scope">
+                                    {nodeId
+                                      ? <><Building2 size={10} /> {nodeName || t("scope_structural")}</>
+                                      : <><Globe size={10} /> {t("scope_global")}</>}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Effective Level Selector */}
                       <div className="perm-level-selector">
                         <div className="perm-level-pills-row">
                           {LEVELS.map((lvl) => {
@@ -858,7 +956,7 @@ function PermissionsEditor({ user, tree, assignment }) {
                               <button
                                 key={lvl.value}
                                 className={`perm-pill ${active ? "filled" : ""} ${displayLevel === lvl.value && isAvailable ? "current" : ""}${isLevelZero ? " none" : ""}${disabled ? " disabled" : ""}`}
-                                onClick={() => !disabled && setLevel(rid, lvl.value, levels.roleBasedLevel)}
+                                onClick={() => !disabled && setLevel(rid, lvl.value)}
                                 title={editDisabledTitle || t("set_effective_level", { level: levelLabels[lvl.value] })}
                                 disabled={disabled}
                               >
@@ -898,6 +996,7 @@ function PermissionsEditor({ user, tree, assignment }) {
           </div>
         </div>
       </div>
+      </>)}
 
       {/* ─── Scope Selection Modal ─── */}
       {scopeModalOpen && (
