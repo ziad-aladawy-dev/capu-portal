@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ClipboardList } from "lucide-react";
 import PageHeader from "../../../../core/components/PageHeader";
+import { AuthContext } from "../../../../core/auth/AuthContext";
 import { useStaffRequestsPaged } from "../../hooks/useStaffRequestsPaged";
+import { assignRequest } from "../../services/studentServicesService";
 import LoadingSpinner from "../../../../core/components/LoadingSpinner";
 import EmptyState from "../../../../core/components/EmptyState";
 import ErrorMessage from "../../../../core/components/ErrorMessage";
@@ -29,12 +32,21 @@ const STATUS_NAMES = Object.fromEntries(
   Object.entries(REQUEST_STATUS).map(([name, value]) => [value, name])
 );
 
+const REQUESTS_PAGED_KEY = "ss-requests-paged";
+
 const RequestsManagement = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const { requests, loading, error, pagination, search, sortBy, ascending, changePage, changePageSize, applySearch, applySort } = useStaffRequestsPaged(10);
+  const { requests, loading, error, pagination, search, sortBy, ascending, changePage, changePageSize, applySearch, applySort, refresh } = useStaffRequestsPaged(10);
+
+  const claimMutation = useMutation({
+    mutationFn: (requestId) => assignRequest(requestId, user.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [REQUESTS_PAGED_KEY] }),
+  });
 
   // Debounce the search box (~300ms) so we don't refetch on every keystroke.
   useEffect(() => {
@@ -88,6 +100,7 @@ const RequestsManagement = () => {
                   <th>{t("status")}</th>
                   <th>{t("date")}</th>
                   <th>{t("payment_status")}</th>
+                  <th>{t("assigned_to")}</th>
                   <th>{t("actions")}</th>
                 </tr>
               </thead>
@@ -100,7 +113,15 @@ const RequestsManagement = () => {
                     <td><StatusBadge status={req.status} /></td>
                     <td>{req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : "-"}</td>
                     <td><StatusBadge status={req.paymentStatus} type="payment" /></td>
-                    <td><button className="btn-primary" onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}>{t("review")}</button></td>
+                    <td>{req.assignedToStaffId ? t("assigned") : t("unassigned")}</td>
+                    <td>
+                      <button className="btn-primary" onClick={() => navigate(`/admin/student-services/requests/${req.id}`)}>{t("review")}</button>
+                      {!req.assignedToStaffId && (
+                        <button className="btn-secondary" style={{ marginLeft: 6 }} onClick={() => claimMutation.mutate(req.id)} disabled={claimMutation.isPending}>
+                          {claimMutation.isPending ? t("claiming") : t("claim")}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

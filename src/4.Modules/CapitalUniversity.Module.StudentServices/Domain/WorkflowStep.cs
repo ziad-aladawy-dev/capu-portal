@@ -16,5 +16,7 @@ public class WorkflowStep : BaseEntity
 
     public bool IsRequired { get; set; } = true;
 
+    public decimal? Price { get; set; }
+
     public ICollection<WorkflowStepField> Fields { get; set; } = new List<WorkflowStepField>();
 }

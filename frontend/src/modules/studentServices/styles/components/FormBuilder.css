@@ -134,36 +134,17 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-}
-
-.fb-custom-checkbox input[type="checkbox"] {
-  display: none;
-}
-
-.fb-cb-box {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-  color: transparent;
-}
-
-.fb-custom-checkbox input[type="checkbox"]:checked + .fb-cb-box {
-  background: var(--color-primary);
-  border-color: var(--navy-accent);
-  color: var(--gold-light);
-}
-
-.fb-cb-text {
   font-size: 12px;
   font-weight: 700;
   color: var(--color-text-primary);
+}
+
+.fb-custom-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--gold);
+  margin: 0;
 }
 
 /* ── Field action buttons ── */

@@ -243,36 +243,17 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-}
-
-.sb-custom-checkbox input[type="checkbox"] {
-  display: none;
-}
-
-.sb-cb-box {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-  color: transparent;
-}
-
-.sb-custom-checkbox input[type="checkbox"]:checked + .sb-cb-box {
-  background: var(--color-primary);
-  border-color: var(--navy-accent);
-  color: var(--gold-light);
-}
-
-.sb-cb-text {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.sb-custom-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--gold);
+  margin: 0;
 }
 
 /* ── Scope selector ── */

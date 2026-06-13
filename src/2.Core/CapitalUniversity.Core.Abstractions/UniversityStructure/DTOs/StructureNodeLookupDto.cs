@@ -10,5 +10,7 @@ public class StructureNodeLookupDto
 
     public int Type { get; set; }
 
+    public int Order { get; set; }
+
     public Guid? ParentId { get; set; }
 }

@@ -10,5 +10,6 @@ public class CreateWorkflowStepDto
     public WorkflowStepType StepType { get; set; } = WorkflowStepType.Form;
     public WorkflowTransitionType TransitionType { get; set; } = WorkflowTransitionType.Staff;
     public bool IsRequired { get; set; } = true;
+    public decimal? Price { get; set; }
     public List<CreateStepFieldDto> Fields { get; set; } = new();
 }

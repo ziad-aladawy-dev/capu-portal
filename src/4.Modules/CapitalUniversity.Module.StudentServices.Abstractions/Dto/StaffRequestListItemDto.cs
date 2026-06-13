@@ -11,4 +11,6 @@ public class StaffRequestListItemDto
     public RequestStatus Status { get; set; }
     public DateTime SubmittedAt { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
+    public Guid? AssignedToStaffId { get; set; }
+    public Guid StudentId { get; set; }
 }

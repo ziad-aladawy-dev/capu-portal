@@ -2,6 +2,7 @@
 using CapitalUniversity.Core.Abstractions.Shared;
 using CapitalUniversity.Core.Abstractions.Students.DTOs;
 using CapitalUniversity.Core.Domain.Identity;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -81,6 +82,13 @@ public class StudentRepository : IStudentRepository
             query = query.Where(x =>
                 x.StructureNodeId ==
                 request.LevelId.Value);
+        }
+
+        if (request.LevelOrder.HasValue)
+        {
+            query = query.Where(x =>
+                x.StructureNode.Type == StructureNodeType.Level &&
+                x.StructureNode.Order == request.LevelOrder.Value);
         }
 
         if (request.ProgramId.HasValue)

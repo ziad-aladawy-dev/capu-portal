@@ -7,5 +7,6 @@ public class WorkflowStepDefinition
     public string? Description { get; set; }
     public WorkflowStepType StepType { get; set; }
     public bool IsRequired { get; set; }
+    public decimal? Price { get; set; }
     public List<WorkflowStepFieldDefinition> Fields { get; set; } = new();
 }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CapitalUniversity.Core.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class first : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -286,6 +286,34 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CoursePrerequisites",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CourseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PrerequisiteCourseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CoursePrerequisites", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CoursePrerequisites_Courses_CourseId",
+                        column: x => x.CourseId,
+                        principalTable: "Courses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CoursePrerequisites_Courses_PrerequisiteCourseId",
+                        column: x => x.PrerequisiteCourseId,
+                        principalTable: "Courses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Resources",
                 columns: table => new
                 {
@@ -403,6 +431,8 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     ExternalVersion = table.Column<int>(type: "int", nullable: true),
                     LastSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OriginSystem = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    IsClosed = table.Column<bool>(type: "bit", nullable: false),
+                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
@@ -456,6 +486,7 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     SemesterId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StructureNodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     SectionCode = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    InstructorId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Capacity = table.Column<int>(type: "int", nullable: false),
                     RegisteredCount = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
@@ -666,6 +697,8 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ReconciliationAttempts = table.Column<int>(type: "int", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    IsClosed = table.Column<bool>(type: "bit", nullable: false),
+                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
@@ -695,6 +728,8 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     VerifiedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     VerifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsSensitive = table.Column<bool>(type: "bit", nullable: false),
+                    IsClosed = table.Column<bool>(type: "bit", nullable: false),
+                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
@@ -777,6 +812,8 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     SourceReferenceId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     OrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    IsClosed = table.Column<bool>(type: "bit", nullable: false),
+                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false)
@@ -957,6 +994,12 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                 filter: "[ExternalId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CourseOfferings_InstructorId",
+                table: "CourseOfferings",
+                column: "InstructorId",
+                filter: "[InstructorId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CourseOfferings_SemesterId",
                 table: "CourseOfferings",
                 column: "SemesterId");
@@ -965,6 +1008,17 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                 name: "IX_CourseOfferings_StructureNodeId_SemesterId_Status",
                 table: "CourseOfferings",
                 columns: new[] { "StructureNodeId", "SemesterId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CoursePrerequisites_CourseId_PrerequisiteCourseId",
+                table: "CoursePrerequisites",
+                columns: new[] { "CourseId", "PrerequisiteCourseId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CoursePrerequisites_PrerequisiteCourseId",
+                table: "CoursePrerequisites",
+                column: "PrerequisiteCourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Courses_Code",
@@ -1364,6 +1418,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "CourseOfferings");
+
+            migrationBuilder.DropTable(
+                name: "CoursePrerequisites");
 
             migrationBuilder.DropTable(
                 name: "Notifications");

@@ -16,6 +16,8 @@ public class StudentQueryRequest
 
     public Guid? LevelId { get; set; }
 
+    public int? LevelOrder { get; set; }
+
     public Guid? ScopeNodeId { get; set; }
 
     public Guid? AcademicYearId { get; set; }

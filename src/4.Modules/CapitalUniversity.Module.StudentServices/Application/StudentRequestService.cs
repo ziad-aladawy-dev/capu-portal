@@ -404,23 +404,22 @@ public class StudentRequestService : IStudentRequestService
         return requests.Select(MapToDto).ToList();
     }
 
-    public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default)
     {
-        var result = await _requestRepository.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
+        var result = await _requestRepository.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, staffId, cancellationToken);
 
-        // Filter items in-memory based on scope
+        // Filter items in-memory based on scope — StudentId is already populated in the DTO
         var filteredItems = new List<StaffRequestListItemDto>();
         foreach (var item in result.Items)
         {
-            var request = await _requestRepository.GetByIdAsync(item.Id, cancellationToken);
-            if (request != null && await _effectiveScope.CanAccessStudentAsync(request.StudentId, cancellationToken))
+            if (await _effectiveScope.CanAccessStudentAsync(item.StudentId, cancellationToken))
             {
                 filteredItems.Add(item);
             }
         }
 
         result.Items = filteredItems;
-        result.TotalCount = filteredItems.Count; // Adjust count based on filtered results
+        result.TotalCount = filteredItems.Count;
         result.TotalPages = (int)Math.Ceiling(result.TotalCount / (double)pageSize);
 
         return result;

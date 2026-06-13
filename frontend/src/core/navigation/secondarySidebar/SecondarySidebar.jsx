@@ -308,10 +308,18 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
           }));
         }
         const levels = await structureService.fetchLevels();
-        options.levels = (levels || []).map(l => ({
-          value: l.id,
-          label: extractLevelNum(getLocalized(l.name, i18n.language)),
-        }));
+        const seenOrders = new Set();
+        options.levels = (levels || [])
+          .sort((a, b) => a.order - b.order)
+          .filter(l => {
+            if (seenOrders.has(l.order)) return false;
+            seenOrders.add(l.order);
+            return true;
+          })
+          .map(l => ({
+            value: l.order,
+            label: extractLevelNum(getLocalized(l.name, i18n.language)),
+          }));
         const faculties = await structureService.fetchFaculties();
         options.faculties = (faculties || []).map(f => ({
           value: f.id,
@@ -357,7 +365,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
       if (mergedFilters.role) params.role = mergedFilters.role;
       if (mergedFilters.status === "active") params.isActive = true;
       else if (mergedFilters.status === "inactive") params.isActive = false;
-      if (mergedFilters.level) params.levelId = mergedFilters.level;
+      if (mergedFilters.level !== undefined && mergedFilters.level !== "") params.levelOrder = mergedFilters.level;
       if (mergedFilters.enrollment === "graduated") params.isActive = false;
       if (mergedFilters.facultyId) params.facultyId = mergedFilters.facultyId;
       if (mergedFilters.systemId) params.systemId = mergedFilters.systemId;
@@ -440,7 +448,7 @@ function SecondarySidebar({ sidebarOpen, sidebarWidth }) {
       locked.programId = { value: scopeNode.id, label: scopeLabel };
     }
     if (type >= 5) { // Level or deeper
-      locked.level = { value: scopeNode.id, label: scopeLabel };
+      locked.level = { value: scopeNode.order ?? scopeNode.id, label: scopeLabel };
     }
     if (type >= 7) { // Specialization
       locked.specializationId = { value: scopeNode.id, label: scopeLabel };

@@ -68,6 +68,8 @@ public class StructureLookupService : IStructureLookupService
 
             Type = (int)node.Type,
 
+            Order = node.Order,
+
             ParentId = node.ParentId
         };
     }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CapitalUniversity.Core.Infrastructure.Migrations
 {
     [DbContext(typeof(CoreDbContext))]
-    [Migration("20260611100826_first")]
-    partial class first
+    [Migration("20260613080650_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -384,6 +384,37 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.ToTable("Courses", (string)null);
                 });
 
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.CoursePrerequisite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("PrerequisiteCourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrerequisiteCourseId");
+
+                    b.HasIndex("CourseId", "PrerequisiteCourseId")
+                        .IsUnique();
+
+                    b.ToTable("CoursePrerequisites", (string)null);
+                });
+
             modelBuilder.Entity("CapitalUniversity.Core.Domain.Identity.PasswordResetToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -617,6 +648,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.Property<DateTime>("BirthDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -638,6 +672,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
@@ -1081,6 +1118,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("InstructorId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsClosed")
                         .HasColumnType("bit");
 
@@ -1118,6 +1158,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InstructorId")
+                        .HasFilter("[InstructorId] IS NOT NULL");
+
                     b.HasIndex("SemesterId");
 
                     b.HasIndex("CourseId", "SemesterId");
@@ -1137,6 +1180,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1155,6 +1201,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1351,6 +1400,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1358,6 +1410,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1579,6 +1634,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.Property<int>("Category")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1590,6 +1648,9 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                     b.Property<string>("DataJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsClosed")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1765,6 +1826,21 @@ namespace CapitalUniversity.Core.Infrastructure.Migrations
                         });
 
                     b.Navigation("ExternallySourced")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CapitalUniversity.Core.Domain.Courses.CoursePrerequisite", b =>
+                {
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CapitalUniversity.Core.Domain.Courses.Course", null)
+                        .WithMany()
+                        .HasForeignKey("PrerequisiteCourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

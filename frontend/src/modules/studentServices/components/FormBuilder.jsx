@@ -97,8 +97,7 @@ const FormBuilder = ({ fields = [], onChange }) => {
                   checked={field.required}
                   onChange={e => updateField(field.id, "required", e.target.checked)}
                 />
-                <span className="fb-cb-box"><CheckCircle size={9} /></span>
-                <span className="fb-cb-text">{t("required")}</span>
+                {t("required")}
               </label>
             </div>
             <div className="fb-field-actions">

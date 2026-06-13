@@ -179,13 +179,19 @@ public class StudentRequestRepository : IStudentRequestRepository
         return result;
     }
 
-    public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<StaffRequestListItemDto>> GetPagedRequestsForStaffAsync(int page, int pageSize, string? search, string? sortBy, bool ascending, Guid? staffId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.StudentRequests.Include(r => r.Service).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search) && int.TryParse(search, out int reqNumber))
         {
             query = query.Where(r => r.RequestNumber == reqNumber);
+        }
+
+        // Assignment visibility: unassigned requests visible to all, assigned only to the assignee
+        if (staffId.HasValue)
+        {
+            query = query.Where(r => r.AssignedToStaffId == null || r.AssignedToStaffId == staffId);
         }
 
         var allRequests = await query.ToListAsync(cancellationToken);
@@ -243,7 +249,9 @@ public class StudentRequestRepository : IStudentRequestRepository
             ServiceName = x.Request.Service.Name,
             Status = x.Request.Status,
             SubmittedAt = x.Request.CreatedAt,
-            PaymentStatus = x.Request.PaymentStatus
+            PaymentStatus = x.Request.PaymentStatus,
+            AssignedToStaffId = x.Request.AssignedToStaffId,
+            StudentId = x.Request.StudentId
         }).ToList();
 
         return new PagedResult<StaffRequestListItemDto>

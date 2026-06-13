@@ -13,6 +13,7 @@ public class WorkflowStepConfiguration : IEntityTypeConfiguration<WorkflowStep>
         builder.Property(x => x.Title).IsRequired().HasMaxLength(500);
         builder.Property(x => x.Description).HasMaxLength(2000);
         builder.Property(x => x.StepType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.Price).HasPrecision(18, 2);
 
         builder.HasIndex(x => new { x.WorkflowId, x.Order });
 

@@ -210,36 +210,17 @@
   align-items: center;
   gap: 7px;
   cursor: pointer;
-}
-
-.wb-custom-checkbox input[type="checkbox"] {
-  display: none;
-}
-
-.wb-cb-box {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-  color: transparent;
-}
-
-.wb-custom-checkbox input[type="checkbox"]:checked + .wb-cb-box {
-  background: var(--color-primary);
-  border-color: var(--navy-accent);
-  color: var(--gold-light);
-}
-
-.wb-cb-text {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.wb-custom-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--gold);
+  margin: 0;
 }
 
 /* ── Fields section ── */

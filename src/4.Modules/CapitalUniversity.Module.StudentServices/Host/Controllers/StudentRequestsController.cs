@@ -171,7 +171,14 @@ public class StudentRequestsController : ControllerBase
         [FromQuery] bool ascending = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await _requestService.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, cancellationToken);
+        Guid? staffId = null;
+        if (!_userScope.IsStudent)
+        {
+            var canBypass = _userScope.HasGlobalScope ||
+                await StaffHasPermissionAsync(PermissionNames.StudentServices.RequestsAssign, cancellationToken);
+            staffId = canBypass ? null : _currentUser.Id;
+        }
+        var result = await _requestService.GetPagedRequestsForStaffAsync(page, pageSize, search, sortBy, ascending, staffId, cancellationToken);
         return Ok(result);
     }
 

@@ -104,10 +104,22 @@ const WorkflowBuilder = ({ workflow = { steps: [] }, onChange }) => {
                     checked={step.isRequired}
                     onChange={e => updateStep(step.order, "isRequired", e.target.checked)}
                   />
-                  <span className="wb-cb-box"><CheckCircle size={10} /></span>
-                  <span className="wb-cb-text">{t("required_step")}</span>
+                  {t("required_step")}
                 </label>
               </div>
+
+              {step.stepType === WORKFLOW_STEP_TYPE.Payment && (
+                <div className="wb-price-field">
+                  <label>{t("price")}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={step.price ?? ""}
+                    onChange={e => updateStep(step.order, "price", e.target.value ? parseFloat(e.target.value) : null)}
+                  />
+                </div>
+              )}
             </div>
 
             {step.stepType === WORKFLOW_STEP_TYPE.Form && (

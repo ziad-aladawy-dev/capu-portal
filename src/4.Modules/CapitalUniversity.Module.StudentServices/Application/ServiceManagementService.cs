@@ -151,6 +151,7 @@ public class ServiceManagementService : IServiceManagementService
                 StepType = stepDto.StepType,
                 TransitionType = stepDto.TransitionType,
                 IsRequired = stepDto.IsRequired,
+                Price = stepDto.Price,
                 Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
                 {
                     Order = fieldDto.Order,
@@ -165,14 +166,15 @@ public class ServiceManagementService : IServiceManagementService
         await _workflowRepository.AddAsync(workflow, cancellationToken);
         await _workflowRepository.SaveChangesAsync(cancellationToken);
 
+        var paymentStep = dto.Workflow.Steps.FirstOrDefault(s => s.StepType == WorkflowStepType.Payment);
         var service = new Service
         {
             Name = dto.Name,
             Type = dto.Type,
             Description = dto.Description,
             IsActive = true,
-            IsPaid = dto.IsPaid,
-            Price = dto.Price,
+            IsPaid = paymentStep != null,
+            Price = paymentStep?.Price,
             IncludeDescendants = dto.IncludeDescendants,
             AcademicYearId = dto.AcademicYearId,
             SemesterId = dto.SemesterId,
@@ -199,8 +201,6 @@ public class ServiceManagementService : IServiceManagementService
         if (dto.Name != null) service.Name = dto.Name;
         if (dto.Type.HasValue) service.Type = dto.Type.Value;
         if (dto.Description != null) service.Description = dto.Description;
-        if (dto.IsPaid.HasValue) service.IsPaid = dto.IsPaid.Value;
-        if (dto.Price.HasValue) service.Price = dto.Price;
         if (dto.IncludeDescendants.HasValue) service.IncludeDescendants = dto.IncludeDescendants.Value;
         if (dto.AcademicYearId.HasValue) service.AcademicYearId = dto.AcademicYearId;
         if (dto.SemesterId.HasValue) service.SemesterId = dto.SemesterId;
@@ -227,6 +227,10 @@ public class ServiceManagementService : IServiceManagementService
                 }
             }
 
+            var paymentStep = dto.Workflow.Steps.FirstOrDefault(s => s.StepType == WorkflowStepType.Payment);
+            service.IsPaid = paymentStep != null;
+            service.Price = paymentStep?.Price;
+
             var newWorkflow = new Workflow
             {
                 Name = $"Workflow for {service.Name}",
@@ -238,6 +242,7 @@ public class ServiceManagementService : IServiceManagementService
                     StepType = stepDto.StepType,
                     TransitionType = stepDto.TransitionType,
                     IsRequired = stepDto.IsRequired,
+                    Price = stepDto.Price,
                     Fields = stepDto.Fields.Select(fieldDto => new WorkflowStepField
                     {
                         Order = fieldDto.Order,
@@ -347,6 +352,7 @@ public class ServiceManagementService : IServiceManagementService
                 StepType = s.StepType,
                 TransitionType = s.TransitionType,
                 IsRequired = s.IsRequired,
+                Price = s.Price,
                 Fields = s.Fields.OrderBy(f => f.Order).Select(f => new WorkflowStepFieldDto
                 {
                     Id = f.Id,

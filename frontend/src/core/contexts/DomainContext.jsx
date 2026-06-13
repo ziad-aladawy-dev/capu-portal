@@ -7,7 +7,7 @@ const STORAGE_KEY = "capu_selected_scope_node";
 
 function persistScopeNode(node) {
   if (node && node.id) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ id: node.id, name: node.name, type: node.type }));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ id: node.id, name: node.name, type: node.type, order: node.order }));
   } else {
     sessionStorage.removeItem(STORAGE_KEY);
   }
@@ -40,7 +40,7 @@ export const DomainProvider = ({ children }) => {
         if (cancelled) return;
         const roots = Array.isArray(tree) ? tree : [];
         if (roots.length > 0) {
-          const root = { id: roots[0].id, name: roots[0].name, type: roots[0].type };
+          const root = { id: roots[0].id, name: roots[0].name, type: roots[0].type, order: roots[0].order };
           if (!cancelled) {
             setScopeNode(root);
             persistScopeNode(root);
@@ -53,7 +53,7 @@ export const DomainProvider = ({ children }) => {
   }, []);
 
   const selectScopeNode = useCallback((node) => {
-    const value = node && node.id ? { id: node.id, name: node.name, type: node.type } : null;
+    const value = node && node.id ? { id: node.id, name: node.name, type: node.type, order: node.order } : null;
     setScopeNode(value);
     if (value) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value));

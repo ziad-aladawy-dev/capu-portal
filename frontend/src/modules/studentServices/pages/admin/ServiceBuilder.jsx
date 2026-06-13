@@ -90,15 +90,6 @@ const EligibilityPricing = ({ t, formData, updateField, academicYears, semesters
                 ))}
               </div>
             )}
-            <label className="sb-custom-checkbox">
-              <input
-                type="checkbox"
-                checked={formData.includeDescendants}
-                onChange={e => updateField("includeDescendants", e.target.checked)}
-              />
-              <span className="sb-cb-box"><CheckCircle size={11} /></span>
-              <span className="sb-cb-text">{t("include_descendants")}</span>
-            </label>
           </div>
         </div>
 
@@ -149,29 +140,6 @@ const EligibilityPricing = ({ t, formData, updateField, academicYears, semesters
           </div>
         </div>
 
-        {/* Paid service toggle */}
-        <div className="sb-form-group">
-          <label>&nbsp;</label>
-          <label className="sb-custom-checkbox" style={{ height: 38, alignItems: "center" }}>
-            <input type="checkbox" checked={formData.isPaid} onChange={e => updateField("isPaid", e.target.checked)} />
-            <span className="sb-cb-box"><CheckCircle size={11} /></span>
-            <span className="sb-cb-text">{t("paid_service")}</span>
-          </label>
-        </div>
-
-        {/* Price field */}
-        {formData.isPaid && (
-          <div className="sb-form-group">
-            <label>{t("price")}</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={e => updateField("price", parseFloat(e.target.value))}
-            />
-          </div>
-        )}
       </div>
     </div>
   </>
@@ -207,7 +175,7 @@ const ServiceBuilder = () => {
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
-    name: "", type: "General", description: "", isPaid: false, price: 0,
+    name: "", type: "General", description: "",
     scopeNodeIds: [], includeDescendants: true, academicYearId: "", semesterId: "",
     levelOrder: null, workflow: { steps: [] }
   });
@@ -256,8 +224,6 @@ const ServiceBuilder = () => {
         name: data.name || "",
         type: getTypeString(data.type),
         description: data.description || "",
-        isPaid: data.isPaid || false,
-        price: data.price || 0,
         scopeNodeIds: data.scopeNodeIds || [],
         includeDescendants: data.includeDescendants !== undefined ? data.includeDescendants : true,
         academicYearId: data.academicYearId || "",
@@ -328,7 +294,6 @@ const ServiceBuilder = () => {
   const validateStep = (currentStep = step) => {
     if (currentStep === 1 && !formData.name.trim()) { setError(t("sb_name_required")); return false; }
     if (currentStep === 2 && formData.scopeNodeIds.length === 0) { setError(t("sb_scope_required")); return false; }
-    if (currentStep === 2 && formData.isPaid && formData.price <= 0) { setError(t("sb_price_positive")); return false; }
     if (currentStep === 3 && (!formData.workflow?.steps?.length)) { setError(t("sb_workflow_required")); return false; }
     return true;
   };
@@ -347,8 +312,6 @@ const ServiceBuilder = () => {
         name: formData.name,
         type: typeof formData.type === "string" ? getTypeNumber(formData.type) : formData.type,
         description: formData.description,
-        isPaid: formData.isPaid,
-        price: formData.price,
         scopeNodeIds: formData.scopeNodeIds,
         includeDescendants: formData.includeDescendants,
         academicYearId: formData.academicYearId || null,
