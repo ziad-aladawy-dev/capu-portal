@@ -18,7 +18,9 @@ function SessionTimeoutWarning({ onLogout }) {
   const lastActivityRef = useRef(Date.now());
 
   const resetIdleTimer = useCallback(() => {
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    lastActivityRef.current = now;
+    localStorage.setItem("capu_last_activity", now.toString());
 
     // If warning is showing, dismiss it
     if (showWarning) {
@@ -30,14 +32,47 @@ function SessionTimeoutWarning({ onLogout }) {
   // Track user activity
   useEffect(() => {
     const events = ["mousemove", "mousedown", "click", "keydown", "scroll", "touchstart"];
-    const handler = () => { lastActivityRef.current = Date.now(); };
+    const handler = () => {
+      const now = Date.now();
+      lastActivityRef.current = now;
+      // Debounce the localStorage write slightly so we don't spam it on mousemove
+      if (now - (window.__lastCapuActivityWrite || 0) > 1000) {
+        window.__lastCapuActivityWrite = now;
+        localStorage.setItem("capu_last_activity", now.toString());
+      }
+    };
     events.forEach((e) => document.addEventListener(e, handler, { passive: true }));
-    return () => events.forEach((e) => document.removeEventListener(e, handler));
-  }, []);
+
+    // Listen for activity from other tabs
+    const storageHandler = (e) => {
+      if (e.key === "capu_last_activity" && e.newValue) {
+        lastActivityRef.current = parseInt(e.newValue, 10);
+        if (showWarning) {
+          setShowWarning(false);
+          if (countdownRef.current) clearInterval(countdownRef.current);
+        }
+      }
+    };
+    window.addEventListener("storage", storageHandler);
+
+    return () => {
+      events.forEach((e) => document.removeEventListener(e, handler));
+      window.removeEventListener("storage", storageHandler);
+    };
+  }, [showWarning]);
 
   // Check idle state every 30 seconds
   useEffect(() => {
     idleTimerRef.current = setInterval(() => {
+      // Sync ref with localStorage just in case storage events were missed
+      const stored = localStorage.getItem("capu_last_activity");
+      if (stored) {
+        const storedTime = parseInt(stored, 10);
+        if (storedTime > lastActivityRef.current) {
+          lastActivityRef.current = storedTime;
+        }
+      }
+
       const idleTime = Date.now() - lastActivityRef.current;
 
       if (idleTime >= TIMEOUT_MS) {
