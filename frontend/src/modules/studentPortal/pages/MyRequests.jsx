@@ -3,25 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid, Table as TableIcon, ClipboardList, AlertCircle } from "lucide-react";
 import { useMyRequests } from "../hooks/useStudentRequests";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import PortalPageShell from "../components/shared/PortalPageShell";
 import PortalCard from "../components/shared/PortalCard";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
 import { RequestStatusBadge, PaymentStatusBadge } from "../components/RequestBadges";
 import {
-  REQUEST_STATUS_NAMES, REQUEST_STATUS_LABELS, KANBAN_COLUMNS,
+  REQUEST_STATUS_NAMES,
+  REQUEST_STATUS_LABELS,
+  KANBAN_COLUMNS,
 } from "../constants/requestStatus";
 import { formatDate } from "../utils/format";
 import styles from "./MyRequests.module.css";
 
-// Every status (1..10) is filterable so no request is ever invisible.
 const FILTER_OPTIONS = Object.keys(REQUEST_STATUS_NAMES).map(Number);
 
 function MyRequests() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const listQuery = useMyRequests();
-  const [filterStatus, setFilterStatus] = useState(""); // "" = all, else int
+  const [filterStatus, setFilterStatus] = useState("");
   const [view, setView] = useState("table");
 
   const list = useMemo(() => listQuery.data || [], [listQuery.data]);
@@ -42,6 +44,20 @@ function MyRequests() {
 
   const tableTitle = t("portal_requests.table", { defaultValue: "Table" });
   const boardTitle = t("portal_requests.board", { defaultValue: "Board" });
+
+  const localizedList = useMemo(() => {
+    return list.map(req => ({
+      ...req,
+      localizedServiceName: req.serviceName ? getLocalized(req.serviceName, i18n.language) || req.serviceName : req.serviceName,
+    }));
+  }, [list, i18n.language]);
+
+  const localizedFiltered = useMemo(() => {
+    return filtered.map(req => ({
+      ...req,
+      localizedServiceName: req.serviceName ? getLocalized(req.serviceName, i18n.language) || req.serviceName : req.serviceName,
+    }));
+  }, [filtered, i18n.language]);
 
   return (
     <PortalPageShell
@@ -123,10 +139,10 @@ function MyRequests() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((req) => (
+                  {localizedFiltered.map((req) => (
                     <tr key={req.id}>
                       <td className={styles.reqNum}>#{req.requestNumber || String(req.id).slice(0, 8)}</td>
-                      <td>{req.serviceName}</td>
+                      <td>{req.localizedServiceName}</td>
                       <td>{req.submittedAt ? formatDate(req.submittedAt, i18n.language) : "—"}</td>
                       <td><RequestStatusBadge status={req.status} /></td>
                       <td><PaymentStatusBadge status={req.paymentStatus} /></td>
@@ -137,7 +153,7 @@ function MyRequests() {
                       </td>
                     </tr>
                   ))}
-                  {!filtered.length && (
+                  {!localizedFiltered.length && (
                     <tr>
                       <td colSpan={6} className={styles.tableEmpty}>
                         {t("portal_requests.none_for_filter", { defaultValue: "No requests with this status." })}
@@ -158,16 +174,19 @@ function MyRequests() {
                 <span className={styles.kanbanCount}>{byColumn[col.key].length}</span>
               </div>
               <div className={styles.kanbanCards}>
-                {byColumn[col.key].map((req) => (
-                  <button type="button" key={req.id} className={styles.kanbanCard} onClick={() => open(req.id)}>
-                    <div className={styles.kanbanService}>{req.serviceName}</div>
-                    <div className={styles.kanbanMeta}>
-                      <span>#{req.requestNumber || String(req.id).slice(0, 8)}</span>
-                      {col.statuses.length > 1 && <RequestStatusBadge status={req.status} />}
-                      <PaymentStatusBadge status={req.paymentStatus} />
-                    </div>
-                  </button>
-                ))}
+                {byColumn[col.key].map((req) => {
+                  const localizedName = req.serviceName ? getLocalized(req.serviceName, i18n.language) || req.serviceName : req.serviceName;
+                  return (
+                    <button type="button" key={req.id} className={styles.kanbanCard} onClick={() => open(req.id)}>
+                      <div className={styles.kanbanService}>{localizedName}</div>
+                      <div className={styles.kanbanMeta}>
+                        <span>#{req.requestNumber || String(req.id).slice(0, 8)}</span>
+                        {col.statuses.length > 1 && <RequestStatusBadge status={req.status} />}
+                        <PaymentStatusBadge status={req.paymentStatus} />
+                      </div>
+                    </button>
+                  );
+                })}
                 {byColumn[col.key].length === 0 && <div className={styles.kanbanEmpty}>—</div>}
               </div>
             </div>

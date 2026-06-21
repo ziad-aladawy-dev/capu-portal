@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../../../core/auth/useAuth";
 import StudentBlockerGate from "../../../core/components/StudentBlockerGate";
 import SessionTimeoutWarning from "../../../core/components/SessionTimeoutWarning";
+import Footer from "../../../core/components/Footer";
 import BottomNav from "./BottomNav";
 import SideDrawer from "./SideDrawer";
 import { useNavBadges } from "./useNavBadges";
@@ -115,6 +116,7 @@ function StudentPortalLayout() {
             </motion.main>
           </AnimatePresence>
         </StudentBlockerGate>
+        <Footer />
       </div>
     </div>
   );

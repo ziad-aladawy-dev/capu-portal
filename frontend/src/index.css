@@ -11,6 +11,8 @@ body,
 #root {
   width: 100%;
   min-height: 100vh;
+  margin: 28px 0px 0px 0px;
+  font-family: "Outfit", sans-serif;
 }
 
 body {
@@ -158,4 +160,9 @@ code {
   outline: 2px solid #4338ca;
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+.dashboard-wrapper {
+  min-height: 100vh;
+  background: #f5f6fa;
 }

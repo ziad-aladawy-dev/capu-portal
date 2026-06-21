@@ -6,6 +6,7 @@ import { useAuth } from "../../../core/auth/useAuth";
 import { useServicesCatalog } from "../hooks/useServicesCatalog";
 import { SERVICE_TYPE, SERVICE_TYPE_LABELS } from "../constants/requestStatus";
 import { fmtAmount } from "../../../core/services/treasuryPaymentService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import PortalPageShell from "../components/shared/PortalPageShell";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
@@ -19,30 +20,34 @@ const TYPE_FILTERS = [
 ];
 
 function StudentServicesCatalog() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useServicesCatalog(user?.id);
 
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
-  const [fee, setFee] = useState(""); // "", "free", "paid"
+  const [fee, setFee] = useState("");
   const [sort, setSort] = useState("name");
 
   const services = useMemo(() => {
     let list = Array.isArray(data) ? [...data] : [];
     const q = search.trim().toLowerCase();
-    if (q) list = list.filter((s) => `${s.name} ${s.description || ""}`.toLowerCase().includes(q));
+    if (q) list = list.filter((s) => {
+      const name = getLocalized(s.name, i18n.language) || "";
+      const desc = getLocalized(s.description, i18n.language) || "";
+      return `${name} ${desc}`.toLowerCase().includes(q);
+    });
     if (type !== "") list = list.filter((s) => s.type === Number(type));
     if (fee === "free") list = list.filter((s) => !s.isPaid);
     if (fee === "paid") list = list.filter((s) => s.isPaid);
     list.sort((a, b) =>
       sort === "price"
         ? (a.price || 0) - (b.price || 0)
-        : String(a.name).localeCompare(String(b.name))
+        : (getLocalized(a.name, i18n.language) || "").localeCompare(getLocalized(b.name, i18n.language) || "")
     );
     return list;
-  }, [data, search, type, fee, sort]);
+  }, [data, search, type, fee, sort, i18n.language]);
 
   return (
     <PortalPageShell
@@ -94,32 +99,36 @@ function StudentServicesCatalog() {
         />
       ) : (
         <div className={styles.grid}>
-          {services.map((s) => (
-            <button
-              type="button"
-              key={s.id}
-              className={styles.card}
-              onClick={() => navigate(`/student/services/${s.id}`)}
-            >
-              <div className={styles.cardTop}>
-                <span className={styles.type}>
-                  {SERVICE_TYPE_LABELS[s.type]
-                    ? t(`portal_services.type_${s.type}`, { defaultValue: SERVICE_TYPE_LABELS[s.type] })
-                    : "—"}
+          {services.map((s) => {
+            const localizedName = getLocalized(s.name, i18n.language) || s.name;
+            const localizedDesc = getLocalized(s.description, i18n.language) || s.description;
+            return (
+              <button
+                type="button"
+                key={s.id}
+                className={styles.card}
+                onClick={() => navigate(`/student/services/${s.id}`)}
+              >
+                <div className={styles.cardTop}>
+                  <span className={styles.type}>
+                    {SERVICE_TYPE_LABELS[s.type]
+                      ? t(`portal_services.type_${s.type}`, { defaultValue: SERVICE_TYPE_LABELS[s.type] })
+                      : "—"}
+                  </span>
+                  <span className={`${styles.fee} ${s.isPaid ? styles.feePaid : styles.feeFree}`}>
+                    {s.isPaid
+                      ? `${fmtAmount(s.price)} EGP`
+                      : t("portal_services.free", { defaultValue: "Free" })}
+                  </span>
+                </div>
+                <h3 className={styles.name}>{localizedName}</h3>
+                {localizedDesc && <p className={styles.desc}>{localizedDesc}</p>}
+                <span className={styles.apply}>
+                  {t("portal_services.view", { defaultValue: "View & Apply" })} <ArrowRight size={14} />
                 </span>
-                <span className={`${styles.fee} ${s.isPaid ? styles.feePaid : styles.feeFree}`}>
-                  {s.isPaid
-                    ? `${fmtAmount(s.price)} EGP`
-                    : t("portal_services.free", { defaultValue: "Free" })}
-                </span>
-              </div>
-              <h3 className={styles.name}>{s.name}</h3>
-              {s.description && <p className={styles.desc}>{s.description}</p>}
-              <span className={styles.apply}>
-                {t("portal_services.view", { defaultValue: "View & Apply" })} <ArrowRight size={14} />
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
     </PortalPageShell>

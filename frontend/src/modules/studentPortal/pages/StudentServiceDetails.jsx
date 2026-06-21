@@ -2,36 +2,48 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, FileText, AlertCircle, ClipboardList } from "lucide-react";
-import { getServiceById } from "../../studentServices/services/studentServicesService";
+import { getAvailableServicesForStudent } from "../../studentServices/services/studentServicesService";
 import { usePendingRequestForService } from "../hooks/useStudentRequests";
 import { WORKFLOW_STEP_TYPE_NAMES } from "../constants/workflowTypes";
 import { SERVICE_TYPE_LABELS } from "../constants/requestStatus";
 import { fmtAmount } from "../../../core/services/treasuryPaymentService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import PortalPageShell from "../components/shared/PortalPageShell";
 import PortalCard from "../components/shared/PortalCard";
 import PortalBadge from "../components/shared/PortalBadge";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
+import { useAuth } from "../../../core/auth/useAuth";
 import styles from "./StudentServiceDetails.module.css";
 
 function StudentServiceDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
 
   const serviceQuery = useQuery({
     queryKey: ["portal", "services", "detail", String(id)],
-    enabled: Boolean(id),
-    queryFn: () => getServiceById(id),
+    enabled: Boolean(id) && Boolean(user?.id),
+    queryFn: async () => {
+      const services = await getAvailableServicesForStudent(user.id);
+      const service = services.find(s => s.id === id);
+      if (!service) {
+        throw new Error("Service not found or not available for you");
+      }
+      return service;
+    },
   });
   const service = serviceQuery.data;
 
-  // Open Draft/PaymentPending request for this service → offer "view existing" instead of Apply.
   const pendingQuery = usePendingRequestForService(id);
   const pending = pendingQuery.data;
 
+  const localizedName = service ? getLocalized(service.name, i18n.language) || service.name : "";
+  const localizedDesc = service ? getLocalized(service.description, i18n.language) || service.description : "";
+
   const shellProps = {
-    title: service?.name || t("portal_services.details_title", { defaultValue: "Service details" }),
+    title: localizedName || t("portal_services.details_title", { defaultValue: "Service details" }),
     backTo: "/student/services",
   };
 
@@ -59,7 +71,6 @@ function StudentServiceDetails() {
     );
   }
 
-  // ServiceDto really has: name, type, description, isActive, isPaid, price, workflow.
   const workflowSteps = [...(service.workflow?.steps || [])].sort(
     (a, b) => (a.order ?? 0) - (b.order ?? 0)
   );
@@ -85,7 +96,7 @@ function StudentServiceDetails() {
               <FileText size={14} /> {t("portal_services.description", { defaultValue: "Description" })}
             </h3>
             <p className={styles.cardText}>
-              {service.description || t("portal_services.no_description", { defaultValue: "No description provided." })}
+              {localizedDesc || t("portal_services.no_description", { defaultValue: "No description provided." })}
             </p>
           </PortalCard>
 
@@ -99,20 +110,24 @@ function StudentServiceDetails() {
               </p>
             ) : (
               <ol className={styles.stepList}>
-                {workflowSteps.map((step, idx) => (
-                  <li key={`${step.order}-${idx}`} className={styles.stepItem}>
-                    <span className={styles.stepNum}>{idx + 1}</span>
-                    <div className={styles.stepBody}>
-                      <span className={styles.stepTitle}>{step.title}</span>
-                      <span className={styles.stepType}>
-                        {t(`portal_services.step_type_${WORKFLOW_STEP_TYPE_NAMES[step.stepType] || "Form"}`, {
-                          defaultValue: WORKFLOW_STEP_TYPE_NAMES[step.stepType] || "",
-                        })}
-                      </span>
-                      {step.description && <p className={styles.stepDesc}>{step.description}</p>}
-                    </div>
-                  </li>
-                ))}
+                {workflowSteps.map((step, idx) => {
+                  const stepTitle = getLocalized(step.title, i18n.language) || step.title;
+                  const stepDesc = getLocalized(step.description, i18n.language) || step.description;
+                  return (
+                    <li key={`${step.order}-${idx}`} className={styles.stepItem}>
+                      <span className={styles.stepNum}>{idx + 1}</span>
+                      <div className={styles.stepBody}>
+                        <span className={styles.stepTitle}>{stepTitle}</span>
+                        <span className={styles.stepType}>
+                          {t(`portal_services.step_type_${WORKFLOW_STEP_TYPE_NAMES[step.stepType] || "Form"}`, {
+                            defaultValue: WORKFLOW_STEP_TYPE_NAMES[step.stepType] || "",
+                          })}
+                        </span>
+                        {stepDesc && <p className={styles.stepDesc}>{stepDesc}</p>}
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </PortalCard>

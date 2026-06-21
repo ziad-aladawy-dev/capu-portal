@@ -14,19 +14,20 @@
   background-position: top left;
   background-repeat: no-repeat;
   background-size: 1000px 100vh, auto;
-  border-bottom: 1px solid rgba(224, 192, 106, 0.1);
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
   gap: 8px;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 301;
   font-family: "Outfit", sans-serif;
   box-shadow:
-    0 1px 0 rgba(224, 192, 106, 0.06),
-    0 8px 24px rgba(7, 9, 30, 0.2);
+  0 1px 0 rgba(224, 192, 106, 0.06), 0 8px 24px rgba(7, 9, 30, 0.2);
 }
 
 /* ── Sections ── */

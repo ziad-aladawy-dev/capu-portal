@@ -37,6 +37,8 @@ public class ServiceRepository : IServiceRepository
         => await _context.Services
             .Where(s => s.IsActive)
             .Include(s => s.Workflow)
+                .ThenInclude(w => w.Steps)
+                    .ThenInclude(step => step.Fields)
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
 
@@ -46,6 +48,7 @@ public class ServiceRepository : IServiceRepository
             .Include(s => s.ScopeNodes)
             .Include(s => s.Workflow)
                 .ThenInclude(w => w.Steps)
+                    .ThenInclude(step => step.Fields)
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
 
@@ -57,7 +60,13 @@ public class ServiceRepository : IServiceRepository
         Guid? currentSemesterId,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Services.Where(s => s.IsActive);
+        var query = _context.Services
+            .AsSplitQuery()
+            .Include(s => s.ScopeNodes)
+            .Include(s => s.Workflow)
+                .ThenInclude(w => w.Steps)
+                    .ThenInclude(step => step.Fields)
+            .Where(s => s.IsActive);
 
         if (currentAcademicYearId.HasValue)
             query = query.Where(s => s.AcademicYearId == null || s.AcademicYearId == currentAcademicYearId.Value);
@@ -68,7 +77,11 @@ public class ServiceRepository : IServiceRepository
 
         var services = await query.ToListAsync(cancellationToken);
 
-        var allServiceNodes = await _context.ServiceStructureNodes.ToListAsync(cancellationToken);
+        var serviceIds = services.Select(s => s.Id).ToList();
+        var allServiceNodes = await _context.ServiceStructureNodes
+            .Where(sn => serviceIds.Contains(sn.ServiceId))
+            .ToListAsync(cancellationToken);
+
         var allNodeIds = allServiceNodes.Select(sn => sn.StructureNodeId).Distinct().ToList();
         var nodesDict = await _context.Set<StructureNode>()
             .Where(n => allNodeIds.Contains(n.Id))

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import { STEP_FIELD_TYPE } from "../constants/workflowTypes";
 import FileUploader from "./FileUploader";
 import styles from "./DynamicFormRenderer.module.css";
@@ -23,11 +24,12 @@ function DynamicFormRenderer({
   onAttachmentsChange,
   disabled = false,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const sorted = [...fields].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const renderControl = (field) => {
     const val = values[field.id] ?? "";
+    const localizedLabel = getLocalized(field.label, i18n.language) || field.label;
 
     switch (field.fieldType) {
       case STEP_FIELD_TYPE.Text:
@@ -133,7 +135,7 @@ function DynamicFormRenderer({
               onChange={(e) => onChange(field.id, e.target.checked)}
               disabled={disabled}
             />
-            <span>{field.label}</span>
+            <span>{localizedLabel}</span>
           </label>
         );
 
@@ -170,17 +172,20 @@ function DynamicFormRenderer({
 
   return (
     <div className={styles.container}>
-      {sorted.map((field) => (
-        <div key={field.id} className={styles.field}>
-          {field.fieldType !== STEP_FIELD_TYPE.Checkbox && (
-            <label className={styles.label}>
-              {field.label}
-              {field.isRequired && <span className={styles.required}> *</span>}
-            </label>
-          )}
-          {renderControl(field)}
-        </div>
-      ))}
+      {sorted.map((field) => {
+        const localizedLabel = getLocalized(field.label, i18n.language) || field.label;
+        return (
+          <div key={field.id} className={styles.field}>
+            {field.fieldType !== STEP_FIELD_TYPE.Checkbox && (
+              <label className={styles.label}>
+                {localizedLabel}
+                {field.isRequired && <span className={styles.required}> *</span>}
+              </label>
+            )}
+            {renderControl(field)}
+          </div>
+        );
+      })}
     </div>
   );
 }

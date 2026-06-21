@@ -16,14 +16,6 @@ namespace CapitalUniversity.Core.Infrastructure.Persistence.Seeders;
 
 public static class DataSeeder
 {
-    /// <param name="seedDemoData">
-    /// B3 — When false (production), the demo people + their dependent rows
-    /// (staff/students with built-in passwords, staff role assignments, permission
-    /// overrides, welcome notifications) are NOT seeded. Platform data (structure,
-    /// roles, auth modules/resources/role-permissions) and reference data (academic
-    /// calendar, course catalog, academic plans) are always seeded so the system is
-    /// functional. Defaults true to preserve dev/test behaviour.
-    /// </param>
     public static async Task SeedAsync(
         CoreDbContext context,
         IPasswordHasher passwordHasher,
@@ -31,46 +23,31 @@ public static class DataSeeder
         bool seedDemoData = true)
     {
         // ── Platform + reference data — always seeded. ──
-        // Tables that are "one-shot" (skip if any rows exist).
-        //
-        // StructureNodes gates on THIS seeder's own root, not AnyAsync: the
-        // bilingual demo tree (UniversityStructureSeeder, runs first) already
-        // occupies the table on a fresh database, which used to skip this real
-        // tree and starve every downstream section (plans, students, offerings).
         if (await context.StructureNodes.AnyAsync(n => n.ParentId == null && n.Name == "Capital University"))
             Console.WriteLine("[Seed] StructureNodes: already populated, skipping.");
         else
             await RunStepAsync("StructureNodes", () => SeedStructureAsync(context));
-        await RunOnceAsync("AcademicYears",   context.AcademicYears,   () => SeedAcademicTimelineAsync(context));
+
+        await RunOnceAsync("AcademicYears", context.AcademicYears, () => SeedAcademicTimelineAsync(context));
         await RunOnceAsync("Roles", context.Roles, () => SeedRolesAsync(context));
 
-        // Idempotent / self-healing: always run, upsert by natural key so stale state converges.
-        await RunStepAsync("Modules",   () => SeedAuthModulesAsync(context));
+        await RunStepAsync("Modules", () => SeedAuthModulesAsync(context));
         await RunStepAsync("Resources", () => SeedAuthResourcesAsync(context));
         await RunStepAsync("RolePermissions", () => SeedRolePermissionsAsync(context, actionExpander));
 
-        // ── Demo accounts + their dependents — development/test only. ──
         if (seedDemoData)
         {
-            await RunStepAsync("Staffs",          () => SeedStaffAsync(context, passwordHasher));
-            await RunStepAsync("Students",        () => SeedStudentsAsync(context, passwordHasher));
-            await RunStepAsync("StaffRoles",      () => SeedStaffRoleAssignmentsAsync(context));
+            await RunStepAsync("Staffs", () => SeedStaffAsync(context, passwordHasher));
+            await RunStepAsync("Students", () => SeedStudentsAsync(context, passwordHasher));
+            await RunStepAsync("StaffRoles", () => SeedStaffRoleAssignmentsAsync(context));
             await RunOnceAsync("StaffPermissions", context.StaffPermissions, () => SeedStaffPermissionOverridesAsync(context));
-            await RunOnceAsync("Notifications",   context.Notifications,   () => SeedNotificationsAsync(context));
+            await RunOnceAsync("Notifications", context.Notifications, () => SeedNotificationsAsync(context));
         }
 
         await RunStepAsync("Courses", () => SeedCoursesAsync(context));
-        // Per-plan idempotent (skip-by-name) rather than one-shot: a partial run
-        // (e.g. structure tree missing for some programs) must converge on the
-        // next boot instead of being frozen by an AnyAsync guard.
         await RunStepAsync("AcademicPlans", () => SeedAcademicPlansAsync(context));
     }
 
-    /// <summary>
-    /// Seeds the full course catalog with upsert-by-code idempotency so new
-    /// courses can be added on subsequent seed runs without duplicating existing
-    /// rows. Bilingual titles per the localization convention.
-    /// </summary>
     private static async Task SeedCoursesAsync(CoreDbContext context)
     {
         var seedCourses = new (string Code, string TitleAr, string TitleEn, int CreditHours, CourseCategory Category)[]
@@ -172,16 +149,9 @@ public static class DataSeeder
 
         if (added > 0)
             await context.SaveChangesAsync();
-        Console.WriteLine($"[Seed] Courses: +{added} added (catalog now has {existingCodes.Count + added} courses).");
+        Console.WriteLine($"[Seed] Courses: +{added} added.");
     }
 
-    /// <summary>
-    /// Seeds academic plans for each program with course-to-level-semester mappings.
-    /// One-shot — skipped if any plans exist. Plans reference the StructureNode
-    /// (program) and Course tables, so this runs after both are populated.
-    /// Plan names and course IDs are cross-referenced at seed time so data is
-    /// always consistent with the current catalog and structure.
-    /// </summary>
     private static async Task SeedAcademicPlansAsync(CoreDbContext context)
     {
         var nodes = await context.StructureNodes.ToListAsync();
@@ -191,8 +161,6 @@ public static class DataSeeder
 
         var programs = nodes.Where(n => n.Type == StructureNodeType.Program).ToList();
 
-        // Exact name first: the demo tree stores bilingual JSON names whose EN
-        // half can substring-match (e.g. "Civil Engineering" exists in both trees).
         StructureNode? GetProgram(string name) =>
             programs.FirstOrDefault(n => string.Equals(n.Name, name, StringComparison.OrdinalIgnoreCase))
             ?? programs.FirstOrDefault(n => n.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
@@ -242,7 +210,6 @@ public static class DataSeeder
             return plan.Id;
         }
 
-        // ── Faculty of Engineering – Helwan (Computer & Systems) ──
         MakePlan("BSc Computer & Systems Engineering 2025",
             "Computer & Systems Engineering", new[]
             {
@@ -255,7 +222,6 @@ public static class DataSeeder
                 ("CE301", 4, 1, false), ("CE401",  4, 1, false), ("BME201", 4, 1, false),
             });
 
-        // ── Faculty of Engineering – Helwan (Communications) ──
         MakePlan("BSc Communications Engineering 2025",
             "Communications & Information Engineering", new[]
             {
@@ -267,7 +233,6 @@ public static class DataSeeder
                 ("CS402",   4, 1, true), ("CS301",  4, 1, true),
             });
 
-        // ── Faculty of Engineering – Helwan (Biomedical) ──
         MakePlan("BSc Biomedical Engineering 2025",
             "Biomedical Engineering", new[]
             {
@@ -279,7 +244,6 @@ public static class DataSeeder
                 ("CS401",  4, 1, false),
             });
 
-        // ── Faculty of Engineering – Mataria (Civil) ──
         MakePlan("BSc Civil Engineering 2025",
             "Civil Engineering", new[]
             {
@@ -292,7 +256,6 @@ public static class DataSeeder
                 ("CE401",   4, 1, true), ("ARCH201", 4, 1, false),
             });
 
-        // ── Faculty of Engineering – Mataria (Architecture) ──
         MakePlan("BSc Architecture 2025",
             "Architectural Engineering", new[]
             {
@@ -304,7 +267,6 @@ public static class DataSeeder
                 ("CE302",   4, 1, false),
             });
 
-        // ── Faculty of Engineering – Mataria (Mechanical) ──
         MakePlan("BSc Mechanical Engineering 2025",
             "Mechanical Engineering", new[]
             {
@@ -316,7 +278,6 @@ public static class DataSeeder
                 ("CE301",   4, 1, false),
             });
 
-        // ── Faculty of Engineering – Mataria (Electrical) ──
         MakePlan("BSc Electrical Engineering 2025",
             "Electrical Engineering", new[]
             {
@@ -328,7 +289,6 @@ public static class DataSeeder
                 ("CS402",   4, 1, true),
             });
 
-        // ── Faculty of Home Economics (Clinical Nutrition) ──
         MakePlan("BSc Clinical Nutrition 2025",
             "Clinical Nutrition", new[]
             {
@@ -340,7 +300,6 @@ public static class DataSeeder
                 ("CS101",  4, 1, false),
             });
 
-        // ── Faculty of Home Economics (Nutrition & Food Science) ──
         MakePlan("BSc Nutrition & Food Science 2025",
             "Nutrition & Food Science", new[]
             {
@@ -352,7 +311,6 @@ public static class DataSeeder
                 ("CS101",  4, 1, false),
             });
 
-        // ── Faculty of Home Economics (Textiles) ──
         MakePlan("BSc Textiles & Clothing 2025",
             "Textile & Clothing", new[]
             {
@@ -364,7 +322,6 @@ public static class DataSeeder
                 ("CS101",  4, 1, false),
             });
 
-        // ── Faculty of Home Economics (Family & Childhood) ──
         MakePlan("BSc Family & Childhood Management 2025",
             "Family & Childhood Institution Management", new[]
             {
@@ -376,7 +333,6 @@ public static class DataSeeder
                 ("CS101",  4, 1, false),
             });
 
-        // ── Faculty of Home Economics (General Stream) ──
         MakePlan("BSc General Stream 2025",
             "General Stream", new[]
             {
@@ -421,18 +377,19 @@ public static class DataSeeder
 
     private static async Task SeedStructureAsync(CoreDbContext context)
     {
-        // Locally-scoped collector — must NOT be a static field or concurrent test
-        // seedings (each on its own in-memory DB) race on it and throw
-        // InvalidOperationException: "Collection was modified".
         var nodes = new List<StructureNode>();
 
         StructureNode MakeNode(string name, StructureNodeType type, StructureNode? parent, int order)
         {
             var node = new StructureNode
             {
-                Id = Guid.NewGuid(), Name = name, Type = type,
-                ParentId = parent?.Id, Order = order,
-                Depth = parent?.Depth + 1 ?? 0, IsActive = true,
+                Id = Guid.NewGuid(),
+                Name = name,
+                Type = type,
+                ParentId = parent?.Id,
+                Order = order,
+                Depth = parent?.Depth + 1 ?? 0,
+                IsActive = true,
             };
             node.Path = parent == null ? $"/{node.Id}" : $"{parent.Path}/{node.Id}";
             nodes.Add(node);
@@ -487,12 +444,9 @@ public static class DataSeeder
 
     private static async Task SeedAcademicTimelineAsync(CoreDbContext context)
     {
-        // Year names are numeric-ish ("2023-2024") and read the same in both
-        // cultures; semester names ("Fall" / "خريف", etc.) get the bilingual
-        // JSON shape so the picker shows the operator's language.
-        var fallName   = LocalizedJson.Of("خريف",  "Fall");
-        var springName = LocalizedJson.Of("ربيع",  "Spring");
-        var summerName = LocalizedJson.Of("صيف",   "Summer");
+        var fallName = LocalizedJson.Of("خريف", "Fall");
+        var springName = LocalizedJson.Of("ربيع", "Spring");
+        var summerName = LocalizedJson.Of("صيف", "Summer");
 
         var yearDefs = new[]
         {
@@ -516,17 +470,12 @@ public static class DataSeeder
         await context.SaveChangesAsync();
     }
 
-
-
     // ════════════════════════════════════════════════════════════════
     //  4. AUTH MODULES
     // ════════════════════════════════════════════════════════════════
 
     private static async Task SeedAuthModulesAsync(CoreDbContext context)
     {
-        // Bilingual JSON for every module display name. Rows that overlap a
-        // permission manifest (academics, permissions, notifications, …)
-        // also get refreshed at startup by PermissionManifestSynchronizer.
         var modules = new (string Key, string DisplayJson, string Icon, int Order)[]
         {
             ("dashboard",    LocalizedJson.Of("لوحة المعلومات",    "Dashboard"),            "LayoutDashboard", 0),
@@ -592,31 +541,21 @@ public static class DataSeeder
             }
         }
 
-        // One Resource per (module, key) — action verbs are per-row on
-        // RolePermission.Action and StaffPermissionOverride.Action. Keys match
-        // the canonical {module}.{resource}.{action} identity declared in
-        // PermissionNames and the per-module manifests, so HasPermission
-        // attribute lookups round-trip against these rows. DisplayName is
-        // the bilingual JSON shape; PermissionManifestSynchronizer refreshes
-        // the rows it owns on startup.
-        AddRes("dashboard",    "dashboard",      LocalizedJson.Of("لوحة المعلومات",    "Dashboard"),         0);
-        AddRes("users",        "users",          LocalizedJson.Of("المستخدمون",        "Users"),             0);
-        AddRes("structure",    "structure",      LocalizedJson.Of("الهيكل",            "Structure"),         0);
-        AddRes("programs",     "programs",       LocalizedJson.Of("البرامج",           "Programs"),          0);
-        AddRes("permissions",  "permissions",    LocalizedJson.Of("الصلاحيات",         "Permissions"),       0);
-        AddRes("permissions",  "roles",          LocalizedJson.Of("الأدوار",           "Roles"),             1);
-        AddRes("sync",         "sync",           LocalizedJson.Of("مزامنة النظام",     "SIS Sync"),          0);
-        AddRes("academics",    "academic-years", LocalizedJson.Of("الجدول الأكاديمي",  "Academic Timeline"), 0);
-        AddRes("notifications","notifications",  LocalizedJson.Of("الإشعارات",         "Notifications"),     0);
-        AddRes("system",       "audit-logs",     LocalizedJson.Of("سجل التدقيق",       "Audit Log"),         0);
+        AddRes("dashboard", "dashboard", LocalizedJson.Of("لوحة المعلومات", "Dashboard"), 0);
+        AddRes("users", "users", LocalizedJson.Of("المستخدمون", "Users"), 0);
+        AddRes("structure", "structure", LocalizedJson.Of("الهيكل", "Structure"), 0);
+        AddRes("programs", "programs", LocalizedJson.Of("البرامج", "Programs"), 0);
+        AddRes("permissions", "permissions", LocalizedJson.Of("الصلاحيات", "Permissions"), 0);
+        AddRes("permissions", "roles", LocalizedJson.Of("الأدوار", "Roles"), 1);
+        AddRes("sync", "sync", LocalizedJson.Of("مزامنة النظام", "SIS Sync"), 0);
+        AddRes("academics", "academic-years", LocalizedJson.Of("الجدول الأكاديمي", "Academic Timeline"), 0);
+        AddRes("notifications", "notifications", LocalizedJson.Of("الإشعارات", "Notifications"), 0);
+        AddRes("system", "audit-logs", LocalizedJson.Of("سجل التدقيق", "Audit Log"), 0);
 
-        // Resources declared by manifest assemblies — seeded here so role
-        // permission grants below can reference them. The PermissionManifestSynchronizer
-        // reconciles metadata (DisplayName, Icon, OrderNumber) from manifests at startup.
-        AddRes("courses",          "courses",         LocalizedJson.Of("كتالوج المقررات",  "Course Catalog"),     0);
-        AddRes("courses",          "academic-plans",  LocalizedJson.Of("الخطط الدراسية",   "Academic Plans"),     1);
-        AddRes("course-offerings", "course-offerings",LocalizedJson.Of("طرح المقررات",     "Course Offerings"),   0);
-        AddRes("schedule",         "schedule-slots",  LocalizedJson.Of("مواعيد الجدول",    "Schedule Slots"),     0);
+        AddRes("courses", "courses", LocalizedJson.Of("كتالوج المقررات", "Course Catalog"), 0);
+        AddRes("courses", "academic-plans", LocalizedJson.Of("الخطط الدراسية", "Academic Plans"), 1);
+        AddRes("course-offerings", "course-offerings", LocalizedJson.Of("طرح المقررات", "Course Offerings"), 0);
+        AddRes("schedule", "schedule-slots", LocalizedJson.Of("مواعيد الجدول", "Schedule Slots"), 0);
 
         await context.SaveChangesAsync();
     }
@@ -627,9 +566,6 @@ public static class DataSeeder
 
     private static async Task SeedRolesAsync(CoreDbContext context)
     {
-        // Role names render in role pickers + permission UIs; bilingual so
-        // operator sees their language. Stored as {"ar":"…","en":"…"} JSON,
-        // decoded in Get(s)RolesQueryHandler before reaching the client.
         var roles = new (string Json, bool System)[]
         {
             (LocalizedJson.Of("مسؤول النظام الأعلى", "Super Admin"),      true),
@@ -654,14 +590,9 @@ public static class DataSeeder
         var roles = await context.Roles.ToListAsync();
         var resources = await context.Resources.Include(r => r.Module).ToListAsync();
 
-        // Roles + resources are stored bilingually ({"ar":"…","en":"…"}); the
-        // seeder's grant statements key by their English label, so index by
-        // the "en" subkey (falls back to the literal for plain-text rows).
         var roleMap = roles.ToDictionary(r => LocalizedJson.Extract(r.Name, "en"), r => r.Id);
         var resourceMap = resources.GroupBy(r => (r.Module.ModuleKey, r.Key)).ToDictionary(g => g.Key, g => g.First());
 
-        // Per-action rows. Existing rows are keyed by (RoleId, ResourceId, Action)
-        // to respect the IX_RolePermissions_RoleId_ResourceId_Action unique index.
         var existing = await context.RolePermissions
             .ToDictionaryAsync(rp => (rp.RoleId, rp.ResourceId, rp.Action));
 
@@ -670,9 +601,6 @@ public static class DataSeeder
             if (!resourceMap.TryGetValue((moduleKey, resourceKey), out var res)) return;
             if (!roleMap.TryGetValue(roleName, out var roleId)) return;
 
-            // Expand the granted verb through the resource manifest's forward implies
-            // graph (a role grant is an allow). Every granted resource is manifest-
-            // declared, so this is the single source of truth — no CRUD-ladder fallback.
             foreach (var action in actionExpander.ExpandActionNames(moduleKey, resourceKey, topAction))
             {
                 if (existing.ContainsKey((roleId, res.Id, action))) continue;
@@ -686,80 +614,69 @@ public static class DataSeeder
             }
         }
 
-        // Super Admin — full access to every seeded resource. Grant every action
-        // the manifest declares: ladder-walking the hierarchical verbs misses
-        // Explicit actions that sit outside the implies graph (e.g.
-        // student-services.requests.Assign), which left the seeded admin 403'd
-        // on assign. Grant() expands implies and dedupes, so this is idempotent.
         foreach (var res in resources)
         {
             foreach (var action in actionExpander.DeclaredActionNames(res.Module.ModuleKey, res.Key))
                 Grant("Super Admin", res.Module.ModuleKey, res.Key, action);
         }
 
-        // Faculty Admin
-        Grant("Faculty Admin", "dashboard",     "dashboard",      "View");
-        Grant("Faculty Admin", "users",         "users",          "EditClose");
-        Grant("Faculty Admin", "structure",     "structure",      "View");
-        Grant("Faculty Admin", "programs",      "programs",       "Insert");
-        Grant("Faculty Admin", "permissions",   "permissions",    "View");
-        Grant("Faculty Admin", "permissions",   "roles",          "View");
-        Grant("Faculty Admin", "academics",     "academic-years", "View");
-        Grant("Faculty Admin", "notifications", "notifications",  "Insert");
-        Grant("Faculty Admin", "courses",          "courses",         "EditClose");
-        Grant("Faculty Admin", "courses",          "academic-plans",  "EditClose");
-        Grant("Faculty Admin", "course-offerings", "course-offerings","EditClose");
-        Grant("Faculty Admin", "schedule",         "schedule-slots",  "EditClose");
+        Grant("Faculty Admin", "dashboard", "dashboard", "View");
+        Grant("Faculty Admin", "users", "users", "EditClose");
+        Grant("Faculty Admin", "structure", "structure", "View");
+        Grant("Faculty Admin", "programs", "programs", "Insert");
+        Grant("Faculty Admin", "permissions", "permissions", "View");
+        Grant("Faculty Admin", "permissions", "roles", "View");
+        Grant("Faculty Admin", "academics", "academic-years", "View");
+        Grant("Faculty Admin", "notifications", "notifications", "Insert");
+        Grant("Faculty Admin", "courses", "courses", "EditClose");
+        Grant("Faculty Admin", "courses", "academic-plans", "EditClose");
+        Grant("Faculty Admin", "course-offerings", "course-offerings", "EditClose");
+        Grant("Faculty Admin", "schedule", "schedule-slots", "EditClose");
 
-        // Department Head
-        Grant("Department Head", "dashboard",     "dashboard",      "View");
-        Grant("Department Head", "users",         "users",          "EditClose");
-        Grant("Department Head", "structure",     "structure",      "View");
-        Grant("Department Head", "programs",      "programs",       "View");
-        Grant("Department Head", "academics",     "academic-years", "View");
-        Grant("Department Head", "notifications", "notifications",  "View");
-        Grant("Department Head", "courses",          "courses",         "EditClose");
-        Grant("Department Head", "courses",          "academic-plans",  "EditClose");
-        Grant("Department Head", "course-offerings", "course-offerings","EditClose");
-        Grant("Department Head", "schedule",         "schedule-slots",  "EditClose");
+        Grant("Department Head", "dashboard", "dashboard", "View");
+        Grant("Department Head", "users", "users", "EditClose");
+        Grant("Department Head", "structure", "structure", "View");
+        Grant("Department Head", "programs", "programs", "View");
+        Grant("Department Head", "academics", "academic-years", "View");
+        Grant("Department Head", "notifications", "notifications", "View");
+        Grant("Department Head", "courses", "courses", "EditClose");
+        Grant("Department Head", "courses", "academic-plans", "EditClose");
+        Grant("Department Head", "course-offerings", "course-offerings", "EditClose");
+        Grant("Department Head", "schedule", "schedule-slots", "EditClose");
 
-        // Registrar
-        Grant("Registrar", "dashboard", "dashboard",      "View");
-        Grant("Registrar", "users",     "users",          "EditClose");
-        Grant("Registrar", "structure", "structure",      "View");
-        Grant("Registrar", "programs",  "programs",       "Insert");
+        Grant("Registrar", "dashboard", "dashboard", "View");
+        Grant("Registrar", "users", "users", "EditClose");
+        Grant("Registrar", "structure", "structure", "View");
+        Grant("Registrar", "programs", "programs", "Insert");
         Grant("Registrar", "academics", "academic-years", "View");
-        Grant("Registrar", "courses",       "courses",         "Insert");
-        Grant("Registrar", "courses",       "academic-plans",  "View");
+        Grant("Registrar", "courses", "courses", "Insert");
+        Grant("Registrar", "courses", "academic-plans", "View");
         Grant("Registrar", "course-offerings", "course-offerings", "Insert");
 
-        // Academic Advisor
-        Grant("Academic Advisor", "dashboard",     "dashboard",     "View");
-        Grant("Academic Advisor", "users",         "users",         "View");
-        Grant("Academic Advisor", "structure",     "structure",     "View");
-        Grant("Academic Advisor", "programs",      "programs",      "View");
+        Grant("Academic Advisor", "dashboard", "dashboard", "View");
+        Grant("Academic Advisor", "users", "users", "View");
+        Grant("Academic Advisor", "structure", "structure", "View");
+        Grant("Academic Advisor", "programs", "programs", "View");
         Grant("Academic Advisor", "notifications", "notifications", "View");
-        Grant("Academic Advisor", "courses",          "courses",         "View");
-        Grant("Academic Advisor", "courses",          "academic-plans",  "View");
-        Grant("Academic Advisor", "course-offerings", "course-offerings","View");
-        Grant("Academic Advisor", "schedule",         "schedule-slots",  "View");
+        Grant("Academic Advisor", "courses", "courses", "View");
+        Grant("Academic Advisor", "courses", "academic-plans", "View");
+        Grant("Academic Advisor", "course-offerings", "course-offerings", "View");
+        Grant("Academic Advisor", "schedule", "schedule-slots", "View");
 
-        // Staff (basic)
-        Grant("Staff", "dashboard",     "dashboard",     "View");
-        Grant("Staff", "users",         "users",         "View");
+        Grant("Staff", "dashboard", "dashboard", "View");
+        Grant("Staff", "users", "users", "View");
         Grant("Staff", "notifications", "notifications", "View");
         Grant("Staff", "course-offerings", "course-offerings", "View");
-        Grant("Staff", "schedule",         "schedule-slots",  "View");
+        Grant("Staff", "schedule", "schedule-slots", "View");
 
-        // Viewer
         Grant("Viewer", "dashboard", "dashboard", "View");
-        Grant("Viewer", "users",     "users",     "View");
+        Grant("Viewer", "users", "users", "View");
 
         await context.SaveChangesAsync();
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  8. STAFF  (Super admin credentials: nationalId=29801011234567, password=admin123)
+    //  8. STAFF
     // ════════════════════════════════════════════════════════════════
 
     private static async Task SeedStaffAsync(CoreDbContext context, IPasswordHasher passwordHasher)
@@ -770,8 +687,6 @@ public static class DataSeeder
             ?? nodes.FirstOrDefault(n => n.Name.Contains(name));
 
         var adminPwd = passwordHasher.HashPassword("admin123");
-        // JobTitle values are bilingual JSON; the Name and Role columns stay
-        // literal because they're personal names / unique role identifiers.
         var defs = new (string Emp, string Name, string NID, DateTime DOB, string Phone, string Email, string Role, string Job, string NodeName)[]
         {
             ("ADMIN-001", "Super Admin User",      "29801011234567", new(1985, 6, 15),  "01000000000", "superadmin@capital.edu.eg",        "Super Admin",      LocalizedJson.Of("مسؤول النظام",            "System Administrator"),           "Capital University"),
@@ -807,9 +722,6 @@ public static class DataSeeder
                 current.Role = d.Role;
                 current.JobTitle = d.Job;
                 current.StructureNodeId = node.Id;
-                // B3 — Do NOT re-apply the password on update: re-seeding on every
-                // boot must not silently reset a password the user has since
-                // changed. The hash is set only on initial insert (below).
                 current.IsActive = true;
                 updated++;
             }
@@ -876,7 +788,6 @@ public static class DataSeeder
         var added = 0;
         var updated = 0;
 
-        // Group students by program so we can distribute them across actual Level nodes
         foreach (var group in defs.GroupBy(d => d.NodeName))
         {
             var programNode = FindProgram(group.Key);
@@ -911,8 +822,6 @@ public static class DataSeeder
                     current.PhoneNumber = d.Phone;
                     current.Email = d.Email;
                     current.StructureNodeId = node.Id;
-                    // B3 — Do NOT re-apply the password on update (see SeedStaffAsync):
-                    // re-seeding must not reset a password the user has changed.
                     current.IsActive = true;
                     updated++;
                 }
@@ -956,9 +865,6 @@ public static class DataSeeder
             nodes.FirstOrDefault(n => n.Name == name)
             ?? nodes.FirstOrDefault(n => n.Name.Contains(name));
 
-        // NodeName=null means "global structural" — the row has no structural restriction
-        // and the runtime PermissionService filter accepts it regardless of header.
-        // Reserved for Super Admin; every other role is tenanted to a real node.
         var defs = new (string EmpCode, string RoleName, string Year, string Semester, string? NodeName)[]
         {
             ("ADMIN-001", "Super Admin",      ScopeKeys.Global, ScopeKeys.Global, null),
@@ -974,8 +880,6 @@ public static class DataSeeder
 
         var existing = await context.StaffRoles.ToListAsync();
 
-        // Cleanup rows that were stored at a specific year/semester scope —
-        // all seeded role assignments should use Global scope.
         var stale = existing.Where(r => r.Year != ScopeKeys.Global || r.Semester != ScopeKeys.Global).ToList();
         if (stale.Count > 0)
         {
@@ -1077,17 +981,11 @@ public static class DataSeeder
             added++;
         }
 
-        // STF-001 (Tamer Said – IT Support, role "Staff"): temporarily denied
-        // from editing users, but allowed to view notifications.
-        AddOverride("STF-001", "users",         "users",          "Edit",    OverrideType.Deny);
-        AddOverride("STF-001", "notifications", "notifications",  "View",    OverrideType.Allow);
+        AddOverride("STF-001", "users", "users", "Edit", OverrideType.Deny);
+        AddOverride("STF-001", "notifications", "notifications", "View", OverrideType.Allow);
 
-        // VWR-001 (Nadia Youssef – External Auditor, role "Viewer"): denied
-        // access to structure data, but allowed to view programs.
         AddOverride("VWR-001", "structure", "structure", "View", OverrideType.Deny);
 
-        // FAC-002 (Ahmed Abdel-Rahman – Vice Dean, Mataria): explicitly denied
-        // from managing Home Economics resources (scoped to that faculty).
         AddOverride("FAC-002", "programs", "programs", "Insert", OverrideType.Deny, "Mataria");
 
         await context.SaveChangesAsync();
@@ -1111,29 +1009,52 @@ public static class DataSeeder
             return;
         }
 
-        // Title and Message are bilingual JSON. NotificationService decodes
-        // both via ILocalizationService.Get<string>(json) on every read.
         context.Notifications.AddRange(
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
-                Title   = LocalizedJson.Of("مرحبًا بك في بوابة جامعة العاصمة", "Welcome to Capital University Portal"),
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = adminId.Value,
+                Title = LocalizedJson.Of("مرحبًا بك في بوابة جامعة العاصمة", "Welcome to Capital University Portal"),
                 Message = LocalizedJson.Of("تم إنشاء حسابك بصلاحيات مسؤول النظام الأعلى.", "Your account has been created with Super Administrator privileges."),
-                Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
-                Title   = LocalizedJson.Of("تحديث العام الأكاديمي", "Academic Year Update"),
+                Type = NotificationType.Info,
+                IsRead = false
+            },
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = adminId.Value,
+                Title = LocalizedJson.Of("تحديث العام الأكاديمي", "Academic Year Update"),
                 Message = LocalizedJson.Of("تم تفعيل العام الأكاديمي 2025-2026. يُرجى مراجعة جدول الفصول.", "The 2025-2026 academic year has been activated. Please review the semester schedule."),
-                Type = NotificationType.Warning, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = adminId.Value,
-                Title   = LocalizedJson.Of("موافقات معلقة", "Pending Approvals"),
+                Type = NotificationType.Warning,
+                IsRead = false
+            },
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = adminId.Value,
+                Title = LocalizedJson.Of("موافقات معلقة", "Pending Approvals"),
                 Message = LocalizedJson.Of("هناك ٣ طلبات تسجيل معلقة تنتظر اعتمادك.", "There are 3 pending registration approvals requiring your attention."),
-                Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = regId.Value,
-                Title   = LocalizedJson.Of("اكتمل الاستيراد المجمّع", "Bulk Import Complete"),
+                Type = NotificationType.Info,
+                IsRead = false
+            },
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = regId.Value,
+                Title = LocalizedJson.Of("اكتمل الاستيراد المجمّع", "Bulk Import Complete"),
                 Message = LocalizedJson.Of("اكتمل استيراد بيانات الطلاب. تم إنشاء ٤٧ سجلًا جديدًا وتجاوز سجلين مكررين.", "Student data import completed. 47 new records created, 2 duplicates skipped."),
-                Type = NotificationType.Info, IsRead = false },
-            new Notification { Id = Guid.NewGuid(), RecipientUserId = facId.Value,
-                Title   = LocalizedJson.Of("استحقاق تقرير القسم", "Department Report Due"),
+                Type = NotificationType.Info,
+                IsRead = false
+            },
+            new Notification
+            {
+                Id = Guid.NewGuid(),
+                RecipientUserId = facId.Value,
+                Title = LocalizedJson.Of("استحقاق تقرير القسم", "Department Report Due"),
                 Message = LocalizedJson.Of("يستحق تقرير نهاية الفصل الخاص بالقسم في 15 ديسمبر.", "The semester-end departmental report is due by December 15."),
-                Type = NotificationType.Warning, IsRead = false }
+                Type = NotificationType.Warning,
+                IsRead = false
+            }
         );
 
         await context.SaveChangesAsync();

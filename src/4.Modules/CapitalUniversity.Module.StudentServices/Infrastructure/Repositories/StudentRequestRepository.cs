@@ -148,7 +148,7 @@ public class StudentRequestRepository : IStudentRequestRepository
     public void Update(StudentRequest request)
     {
         _context.Entry(request).Property(x => x.RequestNumber).IsModified = false;
-        _context.Entry(request).Property(x => x.RowVersion).IsModified = false;
+        //_context.Entry(request).Property(x => x.RowVersion).IsModified = false;
         _context.StudentRequests.Update(request);
     }
 

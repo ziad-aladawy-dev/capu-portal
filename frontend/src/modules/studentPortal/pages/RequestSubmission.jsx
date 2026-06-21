@@ -4,22 +4,27 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CreditCard, Wallet, Info, ClipboardList } from "lucide-react";
 import {
-  getServiceById,
+  getAvailableServicesForStudent,
   getStudentRequestById,
   getPendingRequestForService,
   getStudentRequestAttachments,
 } from "../../studentServices/services/studentServicesService";
 import {
-  useCreateDraft, useSaveStep, useSubmitRequest, useProcessPayment,
+  useCreateDraft,
+  useSaveStep,
+  useSubmitRequest,
+  useProcessPayment,
 } from "../hooks/useStudentRequests";
 import { WORKFLOW_STEP_TYPE, STEP_FIELD_TYPE } from "../constants/workflowTypes";
 import { REQUEST_STATUS } from "../constants/requestStatus";
 import { fmtAmount } from "../../../core/services/treasuryPaymentService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import DynamicFormRenderer from "../components/DynamicFormRenderer";
 import PortalPageShell from "../components/shared/PortalPageShell";
 import PortalCard from "../components/shared/PortalCard";
 import PortalSkeleton from "../components/shared/PortalSkeleton";
 import PortalEmptyState from "../components/shared/PortalEmptyState";
+import { useAuth } from "../../../core/auth/useAuth";
 import styles from "./RequestSubmission.module.css";
 
 const RESUMABLE_STATUSES = [
@@ -28,7 +33,6 @@ const RESUMABLE_STATUSES = [
   REQUEST_STATUS.PaymentPending,
 ];
 
-/** SubmittedData is keyed by step Order (string) → { fieldId: value }. */
 function parseSubmittedData(raw) {
   if (!raw) return {};
   let obj = raw;
@@ -52,7 +56,8 @@ function RequestSubmission() {
   const [searchParams] = useSearchParams();
   const resumeId = searchParams.get("resume");
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
 
   const createDraftMut = useCreateDraft();
   const saveStepMut = useSaveStep();
@@ -61,12 +66,16 @@ function RequestSubmission() {
 
   const serviceQuery = useQuery({
     queryKey: ["portal", "services", "detail", String(serviceId)],
-    enabled: Boolean(serviceId),
-    queryFn: () => getServiceById(serviceId),
+    enabled: Boolean(serviceId) && Boolean(user?.id),
+    queryFn: async () => {
+      const services = await getAvailableServicesForStudent(user.id);
+      const service = services.find(s => s.id === serviceId);
+      if (!service) throw new Error("Service not found or not available");
+      return service;
+    },
   });
   const service = serviceQuery.data;
 
-  // boot: "loading" | "ready" | "blocked" (open non-editable request) | "error"
   const [bootState, setBootState] = useState("loading");
   const [bootError, setBootError] = useState(null);
   const [existingRequest, setExistingRequest] = useState(null);
@@ -74,13 +83,12 @@ function RequestSubmission() {
 
   const [requestId, setRequestId] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [stepValues, setStepValues] = useState({});          // { [stepOrder]: { [fieldId]: value } }
-  const [attachmentsByField, setAttachmentsByField] = useState({}); // { [fieldId]: fileEntry[] }
+  const [stepValues, setStepValues] = useState({});
+  const [attachmentsByField, setAttachmentsByField] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("Card");
   const [busy, setBusy] = useState(false);
   const [wizError, setWizError] = useState(null);
 
-  // ── wizard step model ─────────────────────────────────────────────────────
   const formSteps = useMemo(
     () =>
       (service?.workflow?.steps || [])
@@ -95,25 +103,24 @@ function RequestSubmission() {
     const reviewDef = declared.find((s) => s.stepType === WORKFLOW_STEP_TYPE.Review);
     const paymentDef = declared.find((s) => s.stepType === WORKFLOW_STEP_TYPE.Payment);
     const steps = [
-      ...formSteps.map((s) => ({ kind: "form", step: s, title: s.title })),
+      ...formSteps.map((s) => ({ kind: "form", step: s, title: getLocalized(s.title, i18n.language) || s.title })),
       {
         kind: "review",
-        title: reviewDef?.title || t("portal_requests.review", { defaultValue: "Review" }),
+        title: reviewDef?.title ? (getLocalized(reviewDef.title, i18n.language) || reviewDef.title) : t("portal_requests.review", { defaultValue: "Review" }),
       },
     ];
     if (service.isPaid) {
       steps.push({
         kind: "payment",
-        title: paymentDef?.title || t("portal_requests.payment_step", { defaultValue: "Payment" }),
+        title: paymentDef?.title ? (getLocalized(paymentDef.title, i18n.language) || paymentDef.title) : t("portal_requests.payment_step", { defaultValue: "Payment" }),
       });
     }
     return steps;
-  }, [service, formSteps, t]);
+  }, [service, formSteps, t, i18n.language]);
 
   const paymentIndex = service?.isPaid ? formSteps.length + 1 : -1;
   const current = wizardSteps[stepIndex];
 
-  // ── boot: resume existing draft or create one ─────────────────────────────
   const bootedRef = useRef(false);
   const [bootNonce, setBootNonce] = useState(0);
 
@@ -121,16 +128,12 @@ function RequestSubmission() {
     if (!service || bootedRef.current) return;
     bootedRef.current = true;
 
-    // Nothing to apply with — don't create a junk draft (render shows the
-    // "no steps" empty state before bootState is ever consulted).
     if (!formSteps.length) return;
 
     const sameService = (req) =>
       String(req?.serviceId || "").toLowerCase() === String(serviceId).toLowerCase();
 
     const seedAttachments = async (req) => {
-      // Best effort: map server attachments (keyed by step order) onto the
-      // first File field of that step so review + validation see them.
       try {
         const list = await getStudentRequestAttachments(req.id);
         if (!Array.isArray(list) || !list.length) return;
@@ -151,7 +154,7 @@ function RequestSubmission() {
         }
         if (Object.keys(seeded).length) setAttachmentsByField((prev) => ({ ...seeded, ...prev }));
       } catch {
-        // Attachments listing may not be available — resume without them.
+        // ignore
       }
     };
 
@@ -164,9 +167,7 @@ function RequestSubmission() {
           try {
             const byId = await getStudentRequestById(resumeId);
             if (byId && sameService(byId)) req = byId;
-          } catch {
-            // Fall back to the pending lookup below.
-          }
+          } catch {}
         }
         if (!req) {
           const pending = await getPendingRequestForService(serviceId);
@@ -187,7 +188,7 @@ function RequestSubmission() {
           }
           await seedAttachments(req);
           if (req.status === REQUEST_STATUS.PaymentPending && service.isPaid) {
-            setStepIndex(formSteps.length + 1); // payment step
+            setStepIndex(formSteps.length + 1);
           } else {
             const firstUnfilled = formSteps.findIndex((s) => !restored[String(s.order)]);
             setStepIndex(firstUnfilled === -1 ? formSteps.length : firstUnfilled);
@@ -202,14 +203,13 @@ function RequestSubmission() {
         setBootError(errMsg(err, t("portal_requests.boot_failed", { defaultValue: "Couldn't start your application." })));
       }
     })();
-  }, [service, bootNonce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [service, bootNonce]);
 
   const retryBoot = () => {
     bootedRef.current = false;
     setBootNonce((n) => n + 1);
   };
 
-  // ── helpers ───────────────────────────────────────────────────────────────
   const setFieldValue = (order, fieldId, val) => {
     setStepValues((prev) => ({
       ...prev,
@@ -255,7 +255,6 @@ function RequestSubmission() {
     (files || []).some((f) => f.uploading)
   );
 
-  // ── actions ───────────────────────────────────────────────────────────────
   const handleNext = async () => {
     if (busy || !current) return;
     setWizError(null);
@@ -269,7 +268,6 @@ function RequestSubmission() {
     try {
       if (current.kind === "form") {
         const orderKey = String(current.step.order);
-        // SubmittedData is a flat dict keyed by step order — send { order: values }.
         await saveStepMut.mutateAsync({
           requestId,
           stepKey: orderKey,
@@ -285,13 +283,10 @@ function RequestSubmission() {
         }
       } else if (current.kind === "payment") {
         await payMut.mutateAsync({ requestId, method: paymentMethod });
-        // Mock gateway pays instantly but the backend parks the request back in
-        // Draft after payment — submit again so it lands in Pending.
         await submitMut.mutateAsync(requestId);
         navigate(`/student/requests/${requestId}`);
       }
     } catch (err) {
-      // Keep the wizard mounted so entered data survives — show inline and let the user retry.
       setWizError(errMsg(err, t("portal_requests.error_generic", { defaultValue: "Something went wrong. Please try again." })));
     } finally {
       setBusy(false);
@@ -304,7 +299,6 @@ function RequestSubmission() {
     setStepIndex((i) => i - 1);
   };
 
-  // ── render helpers ────────────────────────────────────────────────────────
   const displayValue = (field, vals) => {
     if (field.fieldType === STEP_FIELD_TYPE.File) {
       const names = uploadedFiles(field.id).map((f) => f.name);
@@ -324,11 +318,17 @@ function RequestSubmission() {
     if (!current) return null;
 
     if (current.kind === "form") {
+      const localizedFields = (current.step.fields || []).map(f => ({
+        ...f,
+        label: getLocalized(f.label, i18n.language) || f.label,
+      }));
+      const localizedDesc = getLocalized(current.step.description, i18n.language) || current.step.description;
+
       return (
         <>
-          {current.step.description && <p className={styles.stepDesc}>{current.step.description}</p>}
+          {localizedDesc && <p className={styles.stepDesc}>{localizedDesc}</p>}
           <DynamicFormRenderer
-            fields={current.step.fields || []}
+            fields={localizedFields}
             values={stepValues[String(current.step.order)] || {}}
             onChange={(fieldId, val) => setFieldValue(current.step.order, fieldId, val)}
             requestId={requestId}
@@ -349,16 +349,20 @@ function RequestSubmission() {
           </p>
           {formSteps.map((step) => {
             const vals = stepValues[String(step.order)] || {};
+            const stepTitle = getLocalized(step.title, i18n.language) || step.title;
             return (
               <div key={step.order} className={styles.reviewStep}>
-                <h4 className={styles.reviewStepTitle}>{step.title}</h4>
+                <h4 className={styles.reviewStepTitle}>{stepTitle}</h4>
                 <dl className={styles.reviewList}>
-                  {(step.fields || []).map((f) => (
-                    <div key={f.id} className={styles.reviewRow}>
-                      <dt>{f.label}</dt>
-                      <dd>{displayValue(f, vals)}</dd>
-                    </div>
-                  ))}
+                  {(step.fields || []).map((f) => {
+                    const fieldLabel = getLocalized(f.label, i18n.language) || f.label;
+                    return (
+                      <div key={f.id} className={styles.reviewRow}>
+                        <dt>{fieldLabel}</dt>
+                        <dd>{displayValue(f, vals)}</dd>
+                      </div>
+                    );
+                  })}
                 </dl>
               </div>
             );
@@ -421,10 +425,9 @@ function RequestSubmission() {
     return t("next", { defaultValue: "Next" });
   };
 
-  // ── page states ───────────────────────────────────────────────────────────
   const shellProps = {
     title: service
-      ? t("portal_requests.apply_for", { defaultValue: "Apply: {{service}}", service: service.name })
+      ? t("portal_requests.apply_for", { defaultValue: "Apply: {{service}}", service: getLocalized(service.name, i18n.language) || service.name })
       : t("portal_requests.apply_title", { defaultValue: "Apply for a service" }),
     subtitle: t("portal_requests.wizard_subtitle", { defaultValue: "Complete the steps to submit your request" }),
     backTo: `/student/services/${serviceId}`,

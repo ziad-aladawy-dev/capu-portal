@@ -1,0 +1,23 @@
+.app-footer {
+    /* margin-top: 2rem; */
+    padding: 1.1rem 1.5rem;
+    border-top: 1px solid var(--color-border, #e5e7eb);
+    background: var(--navy-accent, #ffffff);
+    text-align: center;
+    font-size: 0.75rem;
+    color: white;
+    font-family: var(--font-ui, 'Outfit', sans-serif);
+    flex-shrink: 0; 
+    margin-top: 0px;
+  }
+  
+  .app-footer p {
+    margin: 0;
+    line-height: 1.5;
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    .app-footer {
+      border-top-color: var(--color-border, #2c3160);
+    }
+  }

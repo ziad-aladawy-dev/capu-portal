@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Menu, X, Globe } from "lucide-react";
 
 function LandingNavbar() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -23,13 +25,15 @@ function LandingNavbar() {
     };
   }, []);
 
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-  };
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const goToLogin = () => {
     navigate("/admin/login");
     closeMobileMenu();
+  };
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar");
   };
 
   return (
@@ -45,21 +49,43 @@ function LandingNavbar() {
 
         {!isMobile && (
           <nav className="navbar-links">
-            <span>Home</span>
-            <span>About</span>
-            <span>Faculties</span>
-            <span>Admissions</span>
-            <span>Services</span>
-            <span>News</span>
-            <span>Contact</span>
+            <span>{t("landing.nav.home")}</span>
+            <span>{t("landing.nav.about")}</span>
+            <span>{t("landing.nav.faculties")}</span>
+            <span>{t("landing.nav.admissions")}</span>
+            <span>{t("landing.nav.services")}</span>
+            <span>{t("landing.nav.news")}</span>
+            <span>{t("landing.nav.contact")}</span>
           </nav>
         )}
 
-        {!isMobile && (
-          <button className="login-btn" onClick={goToLogin}>
-            Login
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          {!isMobile && (
+            <button className="login-btn" onClick={goToLogin}>
+              {t("landing.nav.login")}
+            </button>
+          )}
+
+          <button
+            onClick={toggleLanguage}
+            style={{
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "8px",
+              color: "#fff",
+              padding: "8px 12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "13px",
+              fontWeight: "600",
+            }}
+          >
+            <Globe size={16} />
+            {i18n.language === "ar" ? "EN" : "عربي"}
           </button>
-        )}
+        </div>
 
         {isMobile && (
           <button
@@ -75,22 +101,37 @@ function LandingNavbar() {
         <div className="mobile-menu">
           <div className="mobile-menu-header">
             <span>Menu</span>
-
             <button onClick={closeMobileMenu}>
               <X size={18} />
             </button>
           </div>
 
           <div className="mobile-menu-links">
-            <span>Home</span>
-            <span>About</span>
-            <span>Faculties</span>
-            <span>Admissions</span>
-            <span>Services</span>
-            <span>News</span>
-            <span>Contact</span>
+            <span>{t("landing.nav.home")}</span>
+            <span>{t("landing.nav.about")}</span>
+            <span>{t("landing.nav.faculties")}</span>
+            <span>{t("landing.nav.admissions")}</span>
+            <span>{t("landing.nav.services")}</span>
+            <span>{t("landing.nav.news")}</span>
+            <span>{t("landing.nav.contact")}</span>
 
-            <button onClick={goToLogin}>Login</button>
+            <button onClick={goToLogin}>{t("landing.nav.login")}</button>
+
+            <button
+              onClick={toggleLanguage}
+              style={{
+                background: "rgba(255,255,255,0.1)",
+                border: "none",
+                borderRadius: "8px",
+                color: "#fff",
+                padding: "10px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              {i18n.language === "ar" ? "English" : "العربية"}
+            </button>
           </div>
         </div>
       )}

@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GraduationCap, ArrowRight } from "lucide-react";
 import Reveal from "./Reveal";
 
 function CTASection() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -16,15 +18,12 @@ function CTASection() {
             <GraduationCap size={32} />
           </div>
 
-          <h2>Ready to Explore Capital University?</h2>
+          <h2>{t("landing.cta.title")}</h2>
 
-          <p>
-            Access the university portal and discover academic services, student support,
-            campus resources, and a modern digital experience designed for everyone.
-          </p>
+          <p>{t("landing.cta.desc")}</p>
 
           <button className="primary-btn" onClick={() => navigate("/admin/login")}>
-            Go to Login
+            {t("landing.cta.button")}
             <ArrowRight size={18} />
           </button>
         </div>

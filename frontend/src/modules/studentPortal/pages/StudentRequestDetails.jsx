@@ -5,12 +5,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, AlertCircle, Paperclip, Download, CreditCard, Loader2 } from "lucide-react";
 import { getServiceById } from "../../studentServices/services/studentServicesService";
 import {
-  useStudentRequest, useRequestAttachments, useProcessPayment, useSubmitRequest, requestKeys,
+  useStudentRequest,
+  useRequestAttachments,
+  useProcessPayment,
+  useSubmitRequest,
+  requestKeys,
 } from "../hooks/useStudentRequests";
 import { useFileUpload } from "../hooks/useFileUpload";
 import { REQUEST_STATUS } from "../constants/requestStatus";
 import { STEP_FIELD_TYPE } from "../constants/workflowTypes";
 import { fmtAmount } from "../../../core/services/treasuryPaymentService";
+import { getLocalized } from "../../../core/utils/getLocalized";
 import { RequestStatusBadge, PaymentStatusBadge } from "../components/RequestBadges";
 import RequestTimeline from "../components/RequestTimeline";
 import PortalPageShell from "../components/shared/PortalPageShell";
@@ -20,7 +25,6 @@ import PortalEmptyState from "../components/shared/PortalEmptyState";
 import { formatDateTime } from "../utils/format";
 import styles from "./StudentRequestDetails.module.css";
 
-/** SubmittedData arrives as a JSON string (or object) keyed by step order. */
 function parseSubmittedData(raw) {
   if (!raw) return {};
   let obj = raw;
@@ -61,7 +65,6 @@ function StudentRequestDetails() {
   const requestQuery = useStudentRequest(id);
   const req = requestQuery.data;
 
-  // Workflow definition gives step titles + field labels for SubmittedData keys.
   const serviceQuery = useQuery({
     queryKey: ["portal", "services", "detail", String(req?.serviceId || "")],
     enabled: Boolean(req?.serviceId),
@@ -82,6 +85,8 @@ function StudentRequestDetails() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
 
+  const localizedServiceName = req?.serviceName ? getLocalized(req.serviceName, i18n.language) || req.serviceName : "";
+
   const submittedEntries = useMemo(() => {
     const data = parseSubmittedData(req?.submittedData);
     const orders = Object.keys(data).sort((a, b) => Number(a) - Number(b));
@@ -92,9 +97,10 @@ function StudentRequestDetails() {
       if (values && typeof values === "object" && !Array.isArray(values)) {
         for (const [fieldId, value] of Object.entries(values)) {
           const field = step?.fields?.find((f) => String(f.id).toLowerCase() === fieldId.toLowerCase());
+          const label = field?.label ? (getLocalized(field.label, i18n.language) || field.label) : fieldId;
           rows.push({
             key: fieldId,
-            label: field?.label || fieldId,
+            label,
             value: formatValue(value, t),
             isFile: field?.fieldType === STEP_FIELD_TYPE.File,
           });
@@ -102,13 +108,14 @@ function StudentRequestDetails() {
       } else {
         rows.push({ key: order, label: order, value: formatValue(values, t), isFile: false });
       }
+      const stepTitle = step?.title ? (getLocalized(step.title, i18n.language) || step.title) : t("portal_requests.step", { defaultValue: "Step {{order}}", order });
       return {
         order,
-        title: step?.title || t("portal_requests.step", { defaultValue: "Step {{order}}", order }),
+        title: stepTitle,
         rows,
       };
     });
-  }, [req?.submittedData, workflowSteps, t]);
+  }, [req?.submittedData, workflowSteps, t, i18n.language]);
 
   const handleDownload = async (att) => {
     setDownloadError(null);
@@ -128,8 +135,6 @@ function StudentRequestDetails() {
     setPaying(true);
     try {
       await payMut.mutateAsync({ requestId: req.id, method: "Card" });
-      // Backend parks the request back in Draft after payment — submit again
-      // so it moves to Pending instead of stranding the student in Draft.
       await submitMut.mutateAsync(req.id);
       await qc.invalidateQueries({ queryKey: requestKeys.detail(req.id) });
     } catch (err) {
@@ -146,7 +151,6 @@ function StudentRequestDetails() {
     backTo: "/student/requests",
   };
 
-  // !data && !error means the fetch is still in flight — never flash "not found".
   if (requestQuery.isLoading || (!req && !requestQuery.isError)) {
     return (
       <PortalPageShell {...shellProps}>
@@ -189,7 +193,6 @@ function StudentRequestDetails() {
             <strong>{t("portal_requests.action_required", { defaultValue: "Action required" })}</strong>
             <p>{lastComment || t("portal_requests.more_info_needed", { defaultValue: "Additional information is needed to continue processing your request." })}</p>
           </div>
-          {/* Backend permits SaveStepData + re-submit while MoreInfoRequired — resume the wizard. */}
           <button
             type="button"
             className={styles.bannerBtn}
@@ -223,7 +226,7 @@ function StudentRequestDetails() {
         <div className={styles.main}>
           <PortalCard className={styles.card}>
             <h3 className={styles.cardTitle}>{t("portal_requests.service", { defaultValue: "Service" })}</h3>
-            <p className={styles.cardText}>{req.serviceName}</p>
+            <p className={styles.cardText}>{localizedServiceName}</p>
             <div className={styles.metaRow}>
               <span className={styles.metaItem}>
                 {t("portal_requests.submitted_on", { defaultValue: "Submitted on" })}:{" "}

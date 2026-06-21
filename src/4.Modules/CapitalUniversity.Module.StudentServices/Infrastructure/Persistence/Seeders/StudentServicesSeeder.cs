@@ -1,15 +1,27 @@
-﻿using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
+﻿using CapitalUniversity.Core.Domain.UniversityStructure;
+using CapitalUniversity.Core.Domain.UniversityStructure.Enums;
 using CapitalUniversity.Core.Infrastructure.Persistence;
 using CapitalUniversity.Module.StudentServices.Abstractions.PublicApi;
 using CapitalUniversity.Module.StudentServices.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace CapitalUniversity.Module.StudentServices.Infrastructure.Persistence.Seeders;
 
 public static class StudentServicesSeeder
 {
+    private static string Localized(string ar, string en)
+        => JsonSerializer.Serialize(new { ar, en });
+
+    private static string TruncateLocalized(string ar, string en, int maxAr = 25, int maxEn = 25)
+    {
+        var arTrunc = ar.Length > maxAr ? ar[..maxAr] : ar;
+        var enTrunc = en.Length > maxEn ? en[..maxEn] : en;
+        return Localized(arTrunc, enTrunc);
+    }
+
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -23,355 +35,230 @@ public static class StudentServicesSeeder
             return;
         }
 
-        logger?.LogInformation("Seeding StudentServices data with realistic examples...");
+        logger?.LogInformation("Seeding StudentServices with fully bilingual data...");
 
-        var universityNode = await coreDbContext.StructureNodes
+        var university = await coreDbContext.StructureNodes
             .FirstOrDefaultAsync(n => n.Type == StructureNodeType.University);
+
         var engineeringFaculty = await coreDbContext.StructureNodes
             .FirstOrDefaultAsync(n => n.Type == StructureNodeType.Faculty && n.Name.Contains("الهندسة"));
+
+        var homeEconomicsFaculty = await coreDbContext.StructureNodes
+            .FirstOrDefaultAsync(n => n.Type == StructureNodeType.Faculty && n.Name.Contains("الاقتصاد المنزلي"));
+
         var csProgram = await coreDbContext.StructureNodes
             .FirstOrDefaultAsync(n => n.Type == StructureNodeType.Program && n.Name.Contains("علوم الحاسب"));
-        var csLevel1Node = await coreDbContext.StructureNodes
-            .FirstOrDefaultAsync(n => n.Name.Contains("\"ar\":\"المستوى الأول\"") && n.Parent!.Name.Contains("علوم الحاسب"));
-        var csLevel4Node = await coreDbContext.StructureNodes
-            .FirstOrDefaultAsync(n => n.Name.Contains("\"ar\":\"المستوى الرابع\"") && n.Parent!.Name.Contains("علوم الحاسب"));
 
-        // -----------------------------------------------------------------
-        // 1. خدمة عامة (Form + Review + Payment) مع حقل ملف داخل النموذج
-        // -----------------------------------------------------------------
-        var generalWorkflow = new Workflow
+        var businessProgram = await coreDbContext.StructureNodes
+            .FirstOrDefaultAsync(n => n.Type == StructureNodeType.Program && n.Name.Contains("إدارة الأعمال"));
+
+        var csLevel1 = csProgram != null
+            ? await coreDbContext.StructureNodes.FirstOrDefaultAsync(n => n.Type == StructureNodeType.Level && n.Name.Contains("المستوى الأول") && n.ParentId == csProgram.Id)
+            : null;
+
+        var csLevel4 = csProgram != null
+            ? await coreDbContext.StructureNodes.FirstOrDefaultAsync(n => n.Type == StructureNodeType.Level && n.Name.Contains("المستوى الرابع") && n.ParentId == csProgram.Id)
+            : null;
+
+        async Task<Service> CreateServiceWithWorkflowAsync(
+            string nameAr, string nameEn,
+            string descAr, string descEn,
+            ServiceType type,
+            bool isPaid,
+            decimal? price,
+            bool includeDescendants,
+            int? levelOrder,
+            List<(int order, string titleAr, string titleEn, string descAr, string descEn, WorkflowStepType stepType, bool isRequired, decimal? stepPrice, List<(int order, string labelAr, string labelEn, StepFieldType fieldType, bool isRequired, List<string>? options)> fields)> steps,
+            List<Guid> scopeNodeIds)
         {
-            Name = "Workflow for General Service",
-            Steps = new List<WorkflowStep>
+            var workflowNameAr = nameAr.Length > 12 ? nameAr[..12] : nameAr;
+            var workflowNameEn = nameEn.Length > 12 ? nameEn[..12] : nameEn;
+            var workflowNameJson = Localized($"سير {workflowNameAr}", $"WF {workflowNameEn}");
+            if (workflowNameJson.Length > 200)
             {
-                new WorkflowStep
-                {
-                    Order = 1,
-                    Title = "تعبئة البيانات",
-                    Description = "أدخل بياناتك الشخصية",
-                    StepType = WorkflowStepType.Form,
-                    IsRequired = true,
-                    Fields = new List<WorkflowStepField>
-                    {
-                        new WorkflowStepField { Order = 1, Label = "الاسم الكامل", FieldType = StepFieldType.Text, IsRequired = true },
-                        new WorkflowStepField { Order = 2, Label = "البريد الإلكتروني", FieldType = StepFieldType.Text, IsRequired = true },
-                        new WorkflowStepField { Order = 3, Label = "المرفقات", FieldType = StepFieldType.File, IsRequired = false }
-                    }
-                },
-                new WorkflowStep
-                {
-                    Order = 2,
-                    Title = "مراجعة",
-                    Description = "راجع بياناتك",
-                    StepType = WorkflowStepType.Review,
-                    IsRequired = true
-                },
-                new WorkflowStep
-                {
-                    Order = 3,
-                    Title = "الدفع",
-                    Description = "إتمام الدفع (اختياري مجاني)",
-                    StepType = WorkflowStepType.Payment,
-                    IsRequired = false
-                }
+                workflowNameAr = nameAr.Length > 8 ? nameAr[..8] : nameAr;
+                workflowNameEn = nameEn.Length > 8 ? nameEn[..8] : nameEn;
+                workflowNameJson = Localized($"سير {workflowNameAr}", $"WF {workflowNameEn}");
             }
-        };
-        dbContext.Workflows.Add(generalWorkflow);
-        await dbContext.SaveChangesAsync();
 
-        var generalService = new Service
-        {
-            Name = "خدمة عامة (متاحة للجميع)",
-            Type = ServiceType.General,
-            Description = "هذه خدمة عامة متاحة لجميع الطلاب بغض النظر عن كليتهم أو مستواهم.",
-            IsActive = true,
-            IsPaid = false,
-            Price = 0,
-            IncludeDescendants = false,
-            LevelOrder = null,
-            WorkflowId = generalWorkflow.Id,
-            Workflow = generalWorkflow
-        };
-        dbContext.Services.Add(generalService);
-        await dbContext.SaveChangesAsync();
-
-        // -----------------------------------------------------------------
-        // 2. خدمة على مستوى الجامعة
-        // -----------------------------------------------------------------
-        if (universityNode != null)
-        {
-            var uniWorkflow = new Workflow
+            var workflow = new Workflow
             {
-                Name = "Workflow for University Service",
-                Steps = new List<WorkflowStep>
+                Name = workflowNameJson,
+                Steps = steps.Select(s => new WorkflowStep
                 {
-                    new WorkflowStep
+                    Order = s.order,
+                    Title = TruncateLocalized(s.titleAr, s.titleEn, 30, 30),
+                    Description = TruncateLocalized(s.descAr, s.descEn, 40, 40),
+                    StepType = s.stepType,
+                    IsRequired = s.isRequired,
+                    Price = s.stepPrice,
+                    Fields = s.fields.Select(f => new WorkflowStepField
                     {
-                        Order = 1,
-                        Title = "طلب عام",
-                        Description = "طلب على مستوى الجامعة",
-                        StepType = WorkflowStepType.Form,
-                        IsRequired = true,
-                        Fields = new List<WorkflowStepField>
-                        {
-                            new WorkflowStepField { Order = 1, Label = "تفاصيل الطلب", FieldType = StepFieldType.TextArea, IsRequired = true }
-                        }
-                    },
-                    new WorkflowStep
-                    {
-                        Order = 2,
-                        Title = "مراجعة",
-                        Description = "مراجعة الطلب",
-                        StepType = WorkflowStepType.Review,
-                        IsRequired = true
-                    }
-                }
+                        Order = f.order,
+                        Label = TruncateLocalized(f.labelAr, f.labelEn, 25, 25),
+                        FieldType = f.fieldType,
+                        IsRequired = f.isRequired,
+                        OptionsJson = f.options != null && f.options.Any()
+                            ? JsonSerializer.Serialize(f.options)
+                            : null
+                    }).ToList()
+                }).ToList()
             };
-            dbContext.Workflows.Add(uniWorkflow);
+
+            await dbContext.Workflows.AddAsync(workflow);
             await dbContext.SaveChangesAsync();
 
-            var uniService = new Service
+            var serviceName = TruncateLocalized(nameAr, nameEn, 30, 30);
+            var serviceDesc = TruncateLocalized(descAr, descEn, 50, 50);
+
+            var service = new Service
             {
-                Name = "خدمة الجامعة (لجميع الطلاب)",
-                Type = ServiceType.Administrative,
-                Description = "خدمة تقدم للطلاب من أي كلية أو مستوى، لأنها مرتبطة بالجامعة مع IncludeDescendants = true.",
+                Name = serviceName,
+                Description = serviceDesc,
+                Type = type,
                 IsActive = true,
-                IsPaid = false,
-                Price = 0,
-                IncludeDescendants = true,
-                LevelOrder = null,
-                WorkflowId = uniWorkflow.Id,
-                Workflow = uniWorkflow
+                IsPaid = isPaid,
+                Price = price,
+                IncludeDescendants = includeDescendants,
+                LevelOrder = levelOrder,
+                WorkflowId = workflow.Id,
+                Workflow = workflow
             };
-            dbContext.Services.Add(uniService);
+
+            await dbContext.Services.AddAsync(service);
             await dbContext.SaveChangesAsync();
 
-            var uniScope = new ServiceStructureNode
+            foreach (var nodeId in scopeNodeIds)
             {
-                ServiceId = uniService.Id,
-                StructureNodeId = universityNode.Id
-            };
-            dbContext.ServiceStructureNodes.Add(uniScope);
+                dbContext.ServiceStructureNodes.Add(new ServiceStructureNode
+                {
+                    ServiceId = service.Id,
+                    StructureNodeId = nodeId
+                });
+            }
+
+            await dbContext.SaveChangesAsync();
+            return service;
         }
 
-        // -----------------------------------------------------------------
-        // 3. خدمة كلية الهندسة (مدفوعة)
-        // -----------------------------------------------------------------
+        await CreateServiceWithWorkflowAsync(
+            nameAr: "خدمة عامة (للجميع)",
+            nameEn: "General Service (All)",
+            descAr: "خدمة عامة متاحة لكافة الطلاب دون قيود",
+            descEn: "General service available to all students",
+            type: ServiceType.General,
+            isPaid: false,
+            price: 0,
+            includeDescendants: false,
+            levelOrder: null,
+            steps: new List<(int, string, string, string, string, WorkflowStepType, bool, decimal?, List<(int, string, string, StepFieldType, bool, List<string>?)>)>
+            {
+                (1,
+                 "بيانات شخصية", "Personal Info",
+                 "أدخل بياناتك الأساسية", "Enter basic details",
+                 WorkflowStepType.Form, true, null,
+                 new List<(int, string, string, StepFieldType, bool, List<string>?)>
+                 {
+                     (1, "الاسم الكامل", "Full Name", StepFieldType.Text, true, null),
+                     (2, "رقم الهوية", "ID", StepFieldType.Text, true, null),
+                     (3, "البريد الإلكتروني", "Email", StepFieldType.Text, true, null),
+                     (4, "الجوال", "Mobile", StepFieldType.Text, false, null),
+                     (5, "المرفقات (اختياري)", "Attachments (Optional)", StepFieldType.File, false, null)
+                 }),
+                (2,
+                 "مراجعة الطلب", "Review",
+                 "راجع بياناتك قبل الإرسال", "Review before submission",
+                 WorkflowStepType.Review, true, null,
+                 new List<(int, string, string, StepFieldType, bool, List<string>?)>()),
+                (3,
+                 "الدفع (مجاني)", "Payment (Free)",
+                 "الخدمة مجانية", "Service is free",
+                 WorkflowStepType.Payment, false, null,
+                 new List<(int, string, string, StepFieldType, bool, List<string>?)>())
+            },
+            scopeNodeIds: new List<Guid>()
+        );
+
+        if (university != null)
+        {
+            await CreateServiceWithWorkflowAsync(
+                nameAr: "خدمة إدارية - الجامعة",
+                nameEn: "Admin Service - University",
+                descAr: "خدمة إدارية تشمل جميع الكليات والأقسام",
+                descEn: "Administrative service covering all faculties",
+                type: ServiceType.Administrative,
+                isPaid: true,
+                price: 50,
+                includeDescendants: true,
+                levelOrder: null,
+                steps: new List<(int, string, string, string, string, WorkflowStepType, bool, decimal?, List<(int, string, string, StepFieldType, bool, List<string>?)>)>
+                {
+                    (1,
+                     "طلب إداري", "Admin Request",
+                     "تقديم طلب إداري", "Submit admin request",
+                     WorkflowStepType.Form, true, null,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>
+                     {
+                         (1, "نوع الطلب", "Type", StepFieldType.Select, true, new List<string> { "شهادة", "تصديق", "معادلة", "استفسار" }),
+                         (2, "التفاصيل", "Details", StepFieldType.TextArea, true, null),
+                         (3, "المرفقات", "Attachments", StepFieldType.File, false, null)
+                     }),
+                    (2,
+                     "مراجعة الإدارة", "Admin Review",
+                     "مراجعة من قبل الإدارة", "Review by admin",
+                     WorkflowStepType.Review, true, null,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>()),
+                    (3,
+                     "الدفع", "Payment",
+                     "دفع الرسوم", "Pay fees",
+                     WorkflowStepType.Payment, true, 50,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>())
+                },
+                scopeNodeIds: new List<Guid> { university.Id }
+            );
+        }
+
         if (engineeringFaculty != null)
         {
-            var facultyWorkflow = new Workflow
-            {
-                Name = "Workflow for Engineering Faculty Service",
-                Steps = new List<WorkflowStep>
+            await CreateServiceWithWorkflowAsync(
+                nameAr: "خدمة كلية الهندسة",
+                nameEn: "Engineering Faculty Service",
+                descAr: "خدمة لطلاب كلية الهندسة (جميع الأقسام)",
+                descEn: "Service for Engineering students (all depts)",
+                type: ServiceType.Specialized,
+                isPaid: true,
+                price: 100,
+                includeDescendants: true,
+                levelOrder: null,
+                steps: new List<(int, string, string, string, string, WorkflowStepType, bool, decimal?, List<(int, string, string, StepFieldType, bool, List<string>?)>)>
                 {
-                    new WorkflowStep
-                    {
-                        Order = 1,
-                        Title = "طلب كلية الهندسة",
-                        Description = "خدمة خاصة بكلية الهندسة",
-                        StepType = WorkflowStepType.Form,
-                        IsRequired = true,
-                        Fields = new List<WorkflowStepField>
-                        {
-                            new WorkflowStepField { Order = 1, Label = "رقم الطالب", FieldType = StepFieldType.Text, IsRequired = true }
-                        }
-                    },
-                    new WorkflowStep
-                    {
-                        Order = 2,
-                        Title = "الدفع",
-                        Description = "دفع رسوم الخدمة",
-                        StepType = WorkflowStepType.Payment,
-                        IsRequired = true
-                    }
-                }
-            };
-            dbContext.Workflows.Add(facultyWorkflow);
-            await dbContext.SaveChangesAsync();
-
-            var facultyService = new Service
-            {
-                Name = "خدمة كلية الهندسة",
-                Type = ServiceType.Specialized,
-                Description = "خدمة متاحة لجميع طلاب كلية الهندسة (جميع الأقسام والبرامج والمستويات) لأن IncludeDescendants = true.",
-                IsActive = true,
-                IsPaid = true,
-                Price = 100,
-                IncludeDescendants = true,
-                LevelOrder = null,
-                WorkflowId = facultyWorkflow.Id,
-                Workflow = facultyWorkflow
-            };
-            dbContext.Services.Add(facultyService);
-            await dbContext.SaveChangesAsync();
-
-            var facultyScope = new ServiceStructureNode
-            {
-                ServiceId = facultyService.Id,
-                StructureNodeId = engineeringFaculty.Id
-            };
-            dbContext.ServiceStructureNodes.Add(facultyScope);
-        }
-
-        // -----------------------------------------------------------------
-        // 4. خدمة برنامج علوم الحاسب (مجانية)
-        // -----------------------------------------------------------------
-        if (csProgram != null)
-        {
-            var programWorkflow = new Workflow
-            {
-                Name = "Workflow for CS Program Service",
-                Steps = new List<WorkflowStep>
-                {
-                    new WorkflowStep
-                    {
-                        Order = 1,
-                        Title = "طلب برنامج علوم الحاسب",
-                        Description = "خدمة خاصة ببرنامج علوم الحاسب فقط (بدون وراثة)",
-                        StepType = WorkflowStepType.Form,
-                        IsRequired = true,
-                        Fields = new List<WorkflowStepField>
-                        {
-                            new WorkflowStepField { Order = 1, Label = "الكود الدراسي", FieldType = StepFieldType.Text, IsRequired = true }
-                        }
-                    }
-                }
-            };
-            dbContext.Workflows.Add(programWorkflow);
-            await dbContext.SaveChangesAsync();
-
-            var programService = new Service
-            {
-                Name = "خدمة برنامج علوم الحاسب (لطلاب البرنامج فقط)",
-                Type = ServiceType.Specialized,
-                Description = "هذه الخدمة متاحة فقط للطلاب المسجلين في برنامج علوم الحاسب (بغض النظر عن مستواهم). لأن IncludeDescendants = false، لكن المستويات أبناء البرنامج لذا ستظهر لهم.",
-                IsActive = true,
-                IsPaid = false,
-                Price = 0,
-                IncludeDescendants = false,
-                LevelOrder = null,
-                WorkflowId = programWorkflow.Id,
-                Workflow = programWorkflow
-            };
-            dbContext.Services.Add(programService);
-            await dbContext.SaveChangesAsync();
-
-            var programScope = new ServiceStructureNode
-            {
-                ServiceId = programService.Id,
-                StructureNodeId = csProgram.Id
-            };
-            dbContext.ServiceStructureNodes.Add(programScope);
-        }
-
-        // -----------------------------------------------------------------
-        // 5. خدمة التخرج - المستوى الرابع (مدفوعة)
-        // -----------------------------------------------------------------
-        if (csLevel4Node != null)
-        {
-            var levelWorkflow = new Workflow
-            {
-                Name = "Workflow for Level 4 CS Service",
-                Steps = new List<WorkflowStep>
-                {
-                    new WorkflowStep
-                    {
-                        Order = 1,
-                        Title = "طلب التخرج",
-                        Description = "خدمة خاصة بطلاب المستوى الرابع علوم حاسب فقط",
-                        StepType = WorkflowStepType.Form,
-                        IsRequired = true,
-                        Fields = new List<WorkflowStepField>
-                        {
-                            new WorkflowStepField { Order = 1, Label = "مشروع التخرج", FieldType = StepFieldType.TextArea, IsRequired = true }
-                        }
-                    },
-                    new WorkflowStep
-                    {
-                        Order = 2,
-                        Title = "الدفع",
-                        Description = "دفع رسوم خدمة التخرج",
-                        StepType = WorkflowStepType.Payment,
-                        IsRequired = true
-                    }
-                }
-            };
-            dbContext.Workflows.Add(levelWorkflow);
-            await dbContext.SaveChangesAsync();
-
-            var levelService = new Service
-            {
-                Name = "خدمة التخرج - المستوى الرابع علوم حاسب",
-                Type = ServiceType.Administrative,
-                Description = "خدمة متاحة فقط لطلاب المستوى الرابع في برنامج علوم الحاسب.",
-                IsActive = true,
-                IsPaid = true,
-                Price = 500,
-                IncludeDescendants = false,
-                LevelOrder = 4,
-                WorkflowId = levelWorkflow.Id,
-                Workflow = levelWorkflow
-            };
-            dbContext.Services.Add(levelService);
-            await dbContext.SaveChangesAsync();
-
-            var levelScope = new ServiceStructureNode
-            {
-                ServiceId = levelService.Id,
-                StructureNodeId = csLevel4Node.Id
-            };
-            dbContext.ServiceStructureNodes.Add(levelScope);
-        }
-
-        // -----------------------------------------------------------------
-        // 6. خدمة الإرشاد الأكاديمي - المستوى الأول
-        // -----------------------------------------------------------------
-        if (csLevel1Node != null)
-        {
-            var firstLevelWorkflow = new Workflow
-            {
-                Name = "Workflow for First Level CS Service",
-                Steps = new List<WorkflowStep>
-                {
-                    new WorkflowStep
-                    {
-                        Order = 1,
-                        Title = "توجيه وإرشاد",
-                        Description = "خدمة لطلاب المستوى الأول",
-                        StepType = WorkflowStepType.Form,
-                        IsRequired = true,
-                        Fields = new List<WorkflowStepField>()
-                    }
-                }
-            };
-            dbContext.Workflows.Add(firstLevelWorkflow);
-            await dbContext.SaveChangesAsync();
-
-            var firstLevelService = new Service
-            {
-                Name = "خدمة الإرشاد الأكاديمي - المستوى الأول",
-                Type = ServiceType.General,
-                Description = "خدمة متاحة فقط لطلاب المستوى الأول في برنامج علوم الحاسب (باستخدام LevelOrder=1)",
-                IsActive = true,
-                IsPaid = false,
-                Price = 0,
-                IncludeDescendants = false,
-                LevelOrder = 1,
-                WorkflowId = firstLevelWorkflow.Id,
-                Workflow = firstLevelWorkflow
-            };
-            dbContext.Services.Add(firstLevelService);
-            await dbContext.SaveChangesAsync();
-
-            var firstLevelScope = new ServiceStructureNode
-            {
-                ServiceId = firstLevelService.Id,
-                StructureNodeId = csProgram.Id
-            };
-            dbContext.ServiceStructureNodes.Add(firstLevelScope);
+                    (1,
+                     "طلب كلية الهندسة", "Eng Faculty Request",
+                     "خدمة خاصة بطلاب الهندسة", "Service for Engineering students",
+                     WorkflowStepType.Form, true, null,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>
+                     {
+                         (1, "القسم", "Department", StepFieldType.Select, true, new List<string> { "مدني", "كهربائي", "ميكانيكي", "كيميائي", "حاسوب" }),
+                         (2, "الرقم الجامعي", "University ID", StepFieldType.Text, true, null),
+                         (3, "الموضوع", "Subject", StepFieldType.Text, true, null),
+                         (4, "الوصف", "Description", StepFieldType.TextArea, false, null)
+                     }),
+                    (2,
+                     "مراجعة الكلية", "Faculty Review",
+                     "مراجعة من قبل الكلية", "Review by faculty",
+                     WorkflowStepType.Review, true, null,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>()),
+                    (3,
+                     "الدفع", "Payment",
+                     "دفع رسوم الخدمة", "Pay service fee",
+                     WorkflowStepType.Payment, true, 100,
+                     new List<(int, string, string, StepFieldType, bool, List<string>?)>())
+                },
+                scopeNodeIds: new List<Guid> { engineeringFaculty.Id }
+            );
         }
 
         await dbContext.SaveChangesAsync();
-        logger?.LogInformation("StudentServices seeding completed.");
+        logger?.LogInformation("StudentServices seeding completed successfully.");
     }
 }

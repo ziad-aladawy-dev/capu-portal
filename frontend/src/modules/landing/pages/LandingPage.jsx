@@ -6,12 +6,13 @@ import FacultiesSection from "../components/FacultiesSection";
 import ServicesSection from "../components/ServicesSection";
 import NewsSection from "../components/NewsSection";
 import CTASection from "../components/CTASection";
+import LandingFooter from "../components/LandingFooter";
 import "../styles/landing.css";
 
 function LandingPage() {
   const { t } = useTranslation();
   return (
-    <div className="landing-page">
+    <div className="landing-page" dir={t("dir", { defaultValue: "ltr" })}>
       <LandingNavbar />
       <HeroSlider />
       <StatsSection />
@@ -19,6 +20,7 @@ function LandingPage() {
       <ServicesSection />
       <NewsSection />
       <CTASection />
+      <LandingFooter />
     </div>
   );
 }

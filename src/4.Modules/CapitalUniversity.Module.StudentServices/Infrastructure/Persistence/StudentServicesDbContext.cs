@@ -47,16 +47,25 @@ public class StudentServicesDbContext : DbContext
 
         // Apply all configurations from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(StudentServicesDbContext).Assembly);
+
+        modelBuilder.Entity<StudentRequest>()
+            .Property(r => r.RequestNumber)
+            .ValueGeneratedOnAddOrUpdate();
+
+        modelBuilder.Entity<StudentRequest>()
+            .Ignore(r => r.RowVersion);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Prevent modification of auto-generated RequestNumber
+        // Prevent modification of auto-generated fields on StudentRequest
         foreach (var entry in ChangeTracker.Entries<StudentRequest>())
         {
             if (entry.State == EntityState.Modified)
             {
+                // These are auto-generated or read-only
                 entry.Property(x => x.RequestNumber).IsModified = false;
+                entry.Property(x => x.CreatedAt).IsModified = false;
             }
         }
         return await base.SaveChangesAsync(cancellationToken);

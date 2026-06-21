@@ -1283,5 +1283,98 @@
   "specialization": "Specialization",
   "load_more": "Load more",
   "workflow_steps": "Workflow Steps",
-  "view_request": "View Request"
+  "view_request": "View Request",
+  "footer_copyright": "2026 All copyrights, intellectual property rights are reserved by FCAI & CITC.",
+
+  "landing": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "faculties": "Faculties",
+      "admissions": "Admissions",
+      "services": "Services",
+      "news": "News",
+      "contact": "Contact",
+      "login": "Login"
+    },
+    "hero": {
+      "slide1": {
+        "subtitle": "Welcome to Capital University",
+        "title": "A Modern University Experience",
+        "description": "Discover a university environment built for learning, innovation, research, and student success.",
+        "button": "Get Started"
+      },
+      "slide2": {
+        "subtitle": "Academic Excellence",
+        "title": "Faculties, Programs, and Opportunities",
+        "description": "Explore diverse faculties, modern academic programs, and a future-ready educational journey.",
+        "button": "Get Started"
+      },
+      "slide3": {
+        "subtitle": "Student Life & Services",
+        "title": "Everything Students Need in One Place",
+        "description": "Access academic support, digital services, university updates, campus resources, and more.",
+        "button": "Get Started"
+      },
+      "secondary_button": "Login to Portal"
+    },
+    "stats": {
+      "students": "Students",
+      "faculties": "Faculties",
+      "programs": "Programs",
+      "staff": "Staff Members"
+    },
+    "faculties": {
+      "cs": "Faculty of Computer Science",
+      "cs_desc": "Programs focused on software, artificial intelligence, data, and modern digital systems.",
+      "engineering": "Faculty of Engineering",
+      "engineering_desc": "Practical and theoretical education across multiple engineering disciplines.",
+      "business": "Faculty of Business",
+      "business_desc": "Preparing future professionals in business, management, accounting, and finance.",
+      "pharmacy": "Faculty of Pharmacy",
+      "pharmacy_desc": "Supporting healthcare education through science, knowledge, and professional practice.",
+      "science": "Faculty of Science",
+      "science_desc": "Building strong scientific foundations through research, labs, and discovery.",
+      "arts": "Faculty of Arts",
+      "arts_desc": "Encouraging creativity, communication, culture, and critical thinking."
+    },
+    "services": {
+      "title": "Student Services",
+      "subtitle": "Access important student resources, academic tools, and digital services through one connected university experience.",
+      "academic_calendar": "Academic Calendar",
+      "forms_documents": "Forms & Documents",
+      "student_guide": "Student Guide",
+      "e_learning": "E-Learning",
+      "library": "Library",
+      "campus_services": "Campus Services"
+    },
+    "news": {
+      "title": "Latest News & Updates",
+      "subtitle": "Stay informed with university announcements, important updates, and events happening across campus.",
+      "item1": {
+        "title": "Admission for the new academic year is now open",
+        "desc": "Applications are now available for undergraduate and postgraduate programs.",
+        "date": "Latest Update"
+      },
+      "item2": {
+        "title": "New digital services launched for students",
+        "desc": "Students can now access more academic resources and online support services.",
+        "date": "University News"
+      },
+      "item3": {
+        "title": "Upcoming campus activities and events",
+        "desc": "Stay updated with workshops, seminars, and student engagement activities.",
+        "date": "Events"
+      },
+      "read_more": "Read More"
+    },
+    "cta": {
+      "title": "Ready to Explore Capital University?",
+      "desc": "Access the university portal and discover academic services, student support, campus resources, and a modern digital experience designed for everyone.",
+      "button": "Go to Login"
+    },
+    "footer": {
+      "copyright": "All copyrights, intellectual property rights are reserved by FCAI & CITC."
+    }
+  }
 }

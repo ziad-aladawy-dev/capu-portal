@@ -4,6 +4,7 @@ import { Outlet, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../navigation/navbar/Navbar";
 import Sidebar from "../navigation/sidebar/Sidebar";
 import SecondarySidebar from "../navigation/secondarySidebar/SecondarySidebar";
+import Footer from "../components/Footer";
 import Breadcrumbs from "../components/Breadcrumbs";
 import CategoryTabs from "../components/CategoryTabs";
 import SessionTimeoutWarning from "../components/SessionTimeoutWarning";
@@ -170,6 +171,10 @@ function DashboardLayout() {
         style={{
           marginInlineStart: getContentMargin(),
           transition: "margin-inline-start 0.35s cubic-bezier(0.4,0,0.2,1)",
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
         }}
       >
 
@@ -177,9 +182,10 @@ function DashboardLayout() {
 
         <CategoryTabs />
 
-        <main className="dashboard-page-content">
+        <main className="dashboard-page-content" style={{ flex: 1 }}>
           <Outlet />
         </main>
+          <Footer /> 
       </div>
 
       {/* Command Palette (Cmd+K) */}

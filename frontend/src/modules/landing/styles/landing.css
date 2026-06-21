@@ -8,6 +8,7 @@
 
 html,
 body {
+  margin: 28px 0px 0px 0px;
   font-family: "DM Sans", sans-serif;
   background: #f4f5f7;
   overflow-x: hidden;
@@ -92,20 +93,21 @@ body {
   left: 0;
   width: 100%;
   z-index: 1000;
-  background: transparent;
+  /* background: transparent; */
   transition: all 0.35s ease;
+  background: var(--navy-accent, #ffffff);
 }
 
 .landing-navbar.scrolled {
-  background: rgba(26, 31, 94, 0.95);
+  background: var(--navy-accent, #ffffff);
   backdrop-filter: blur(10px);
   box-shadow: 0 6px 18px rgba(26, 31, 94, 0.14);
 }
 
 .navbar-container {
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 8px 22px;
+  margin: 0px auto;
+  padding: 2px 20px;
 
   display: flex;
   align-items: center;
@@ -125,12 +127,12 @@ body {
 .navbar-logo-img {
   width: auto;
   height: 100px;
-
+  
   object-fit: contain;
 
   display: block;
 
-  transition: 0.3s ease;
+  transition: 0.5s ease;
 }
 
 .landing-navbar.scrolled .navbar-logo-img {
@@ -977,5 +979,38 @@ body {
   .shape-three {
     width: 90px;
     height: 90px;
+  }
+}
+
+/* ===== Footer Simplified ===== */
+.landing-footer {
+  background: #0f1338;
+  padding: 28px 0;
+  margin-top: 40px;
+  border-top: 3px solid #e0c06a;
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 28px;
+  text-align: center;
+}
+
+.footer-copyright p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  margin: 0;
+}
+
+/* تنسيق للشاشات الصغيرة */
+@media (max-width: 600px) {
+  .landing-footer {
+    padding: 20px 0;
+  }
+  .footer-copyright p {
+    font-size: 13px;
   }
 }
